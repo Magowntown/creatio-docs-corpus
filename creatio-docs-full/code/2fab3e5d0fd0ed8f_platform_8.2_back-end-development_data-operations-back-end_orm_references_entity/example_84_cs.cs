@@ -1,0 +1,1 @@
+event EventHandler<EntityColumnBeforeEventArgs> ColumnValueChanging

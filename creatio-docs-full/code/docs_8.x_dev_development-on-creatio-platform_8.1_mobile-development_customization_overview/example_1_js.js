@@ -1,0 +1,1 @@
+[    {        "operation": "merge",        "name": "settings",        "values": {"diffV2":"[{\"operation\":\"merge\",\"name\":\"Case_ListItem_Subtitle_Status\",\"values\":{\"label\":{\"visible\":false}}}]"        }    }    ...]

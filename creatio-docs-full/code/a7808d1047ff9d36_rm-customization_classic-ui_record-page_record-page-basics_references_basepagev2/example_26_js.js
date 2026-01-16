@@ -1,0 +1,1 @@
+getPrintMenuItemVisible(reportId)

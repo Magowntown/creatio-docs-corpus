@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {        ...,        /* The attribute that stores data of the "Request number" ("UsrLastRequestNumber" code) system setting. */        "LastRequestNumber": {},    }}/**SCHEMA_VIEW_MODEL_CONFIG*/,

@@ -1,0 +1,1 @@
+HasHavingCondition bool

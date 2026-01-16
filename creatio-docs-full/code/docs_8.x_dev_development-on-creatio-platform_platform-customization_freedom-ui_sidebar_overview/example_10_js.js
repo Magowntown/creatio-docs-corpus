@@ -1,0 +1,1 @@
+private _loadDataByHttpRequest(): Promise<CustomData> {  /* Implement the custom business logic. */  ...;}public async handle(request: BaseRequest): Promise<void> {  const data = await this._loadDataByHttpRequest()  /* Implement the business logic that handles loaded data. */  ...;  await this.next?.handle(request);}

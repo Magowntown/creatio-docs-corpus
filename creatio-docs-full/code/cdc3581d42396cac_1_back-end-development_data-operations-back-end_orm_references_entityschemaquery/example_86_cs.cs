@@ -1,0 +1,1 @@
+void RemoveColumn(string columnName)

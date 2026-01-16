@@ -1,0 +1,1 @@
+/* Retrieve the ID of an unloaded module. */getModuleId: function() {    return this.sandbox.id + "_ModuleName";},.../* Unload a non-visual module. */this.sandbox.unloadModule(this.getModuleId());.../* Unload a visual module previously loaded into the "ModuleContainer" container. */this.sandbox.unloadModule(this.getModuleId(), "ModuleContainer");

@@ -1,0 +1,1 @@
+IFile Get(IFileLocator fileLocator, FileOptions options)

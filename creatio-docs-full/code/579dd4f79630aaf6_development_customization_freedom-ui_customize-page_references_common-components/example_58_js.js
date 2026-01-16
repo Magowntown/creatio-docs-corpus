@@ -1,0 +1,1 @@
+{    "type": "crt.BarcodeScanner",    "name": "InventoryScanner",    "size": "medium",    "scanTimeout": 2000,    "features": {        "flashToggle": true    },    "enabled": true,    "scanned": {        "request": "SomeRequest",        "params": {            "result": "@event"        }    }}

@@ -1,0 +1,1 @@
+define({    FileContentAction1: "Some description of file action 1",    FileContentAction2: "Some description of file action 2",});

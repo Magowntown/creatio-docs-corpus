@@ -1,0 +1,1 @@
+MasterColumnInfo CUSTOM_OBJECT

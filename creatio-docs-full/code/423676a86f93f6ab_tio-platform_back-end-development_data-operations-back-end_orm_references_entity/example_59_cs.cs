@@ -1,0 +1,1 @@
+virtual MemoryStream GetStreamValue(string valueName)

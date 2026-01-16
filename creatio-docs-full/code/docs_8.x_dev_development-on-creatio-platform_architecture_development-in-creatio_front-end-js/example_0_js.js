@@ -1,0 +1,1 @@
+define("ModuleName", "dependencies", function(dependencies) {        // someMethods…        return { moduleObject };});

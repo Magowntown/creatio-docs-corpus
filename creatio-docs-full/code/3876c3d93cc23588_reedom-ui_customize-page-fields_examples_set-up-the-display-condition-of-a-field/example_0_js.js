@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/[    "attributes": {        ...,        /* The attribute that stores the request originator type. */        "IsRequestFromEmployee": {}    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG*/,

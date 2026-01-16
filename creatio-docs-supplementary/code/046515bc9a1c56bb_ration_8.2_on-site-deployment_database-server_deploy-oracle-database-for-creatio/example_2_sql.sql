@@ -1,0 +1,1 @@
+sqlplus.exe "YOUR_SCHEMA_NAME/YOUR_SCHEMA_PASSWORD@your_server.com:1521/YOUR_SERVICE_NAME" @tspkg_UtilitiesGlobalTypes.sqlsqlplus.exe "YOUR_SCHEMA_NAME/YOUR_SCHEMA_PASSWORD@your_server.com:1521/ YOUR_SERVICE_NAME" @RecompileSchema.sql

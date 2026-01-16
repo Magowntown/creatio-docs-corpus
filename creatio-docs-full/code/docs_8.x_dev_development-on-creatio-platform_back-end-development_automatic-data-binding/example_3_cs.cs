@@ -1,0 +1,1 @@
+var dataBindingController = ClassFactory.Get<IDataBindingController>(new ConstructorArgument("userConnection", UserConnection));var result = dataBindingController.GenerateBindings(schemaName, recordIds, sysPackageUId);

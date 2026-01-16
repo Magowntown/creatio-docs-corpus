@@ -1,0 +1,1 @@
+EntitySchemaCaseNotNullQueryFunction CreateCaseNotNullFunction(params EntitySchemaCaseNotNullQueryFunctionWhenItem[] whenItems)

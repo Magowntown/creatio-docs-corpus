@@ -1,0 +1,1 @@
+var esq = this.Ext.create(Terrasoft.EntitySchemaQuery, {    rootSchemaName: "Activity"});esq.addFunctionColumn("Photo.Data", Terrasoft.FunctionType.LENGTH, "PhotoLength");

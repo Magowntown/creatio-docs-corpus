@@ -1,0 +1,1 @@
+CanEdit BOOLEAN

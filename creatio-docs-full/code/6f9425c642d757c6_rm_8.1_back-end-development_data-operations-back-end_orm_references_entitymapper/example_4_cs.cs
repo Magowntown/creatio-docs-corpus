@@ -1,0 +1,1 @@
+Details Dictionary<string, List<Dictionary<string, object>>>

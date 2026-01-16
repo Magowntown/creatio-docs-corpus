@@ -1,0 +1,1 @@
+DetailsConfig CUSTOM_OBJECT

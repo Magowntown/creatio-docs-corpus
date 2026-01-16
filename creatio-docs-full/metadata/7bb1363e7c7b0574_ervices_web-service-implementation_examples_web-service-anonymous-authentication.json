@@ -1,0 +1,562 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-implementation/examples/web-service-anonymous-authentication",
+  "title": "Implement a custom web service that uses anonymous authentication",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development"
+    },
+    {
+      "text": "Web services",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services"
+    },
+    {
+      "text": "Implementation",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/implementation"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/web-service-implementation-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\nTo implement the example:\n1. Implement a custom web service. Read more >>>\n2. Register the web service. Read more >>>\n3. Enable both HTTP and HTTPS support for the web service. Read more >>>\n4. Enable access to the web service for all users. Read more >>>\nExample\nImplement the `UsrAnonymousConfigurationService` custom web service that uses anonymous authentication and receives the contact information by the specified name. Creatio must return the following data:\n* The contact ID if the contact is found.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png)\n* The ID of the first contact only if multiple contacts are found.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png)\n* The empty string if no contacts are found.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_02.png)\n## 1\\. Implement a custom web service\u200b\n1. **Open the Configuration section**. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.3&id=15101&anchor=title-2093-2).\n2. **Create a user-made package**. Instructions: [Create a user-made package using **Configuration** section](https://academy.creatio.com/documents?ver=8.3&id=15122).\nFor this example, create the `sdkAnonymousService` package.\n3. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.3&id=15072&anchor=change-the-current-package).\nFor this example, change the current package to `sdkAnonymousService` user-made package.\n4. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n5. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrAnonymousConfigurationService  \nTitle| AnonymousConfigurationService  \n6. **Apply the changes**.\n7. **Create a service class**.\n1. Add the arbitrary namespace nested into `Terrasoft.Configuration` in the Schema Designer. For example, `UsrAnonymousConfigurationServiceNamespace`.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (the **Code** property).\n4. Specify the `Terrasoft.Nui.ServiceModel.WebService.BaseService` class as a parent class.\n5. Add the `[ServiceContract]` and `[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]` attributes to the class.\n6. Use `SystemUserConnection` to access the database in the custom anonymous web service. Out of the box, database operations in an anonymous web service are executed on behalf of a system-level user. If your integration requires a specific user context, implement a custom web service that uses cookie-based authentication instead. Learn more: [Implement a custom web service that uses cookie-based authentication](https://academy.creatio.com/documents?ver=8.3&id=15262&anchor=title-2148-2).\n8. **Implement a class method**.\nFor this example, add the `public string GetContactIdByName(string Name)` method that implements the endpoint of the custom web service. The method executes database queries using the `EntitySchemaQuery` class. Depending on the `Name` parameter value specified in the query string, the response body returns the following:\n* The contact ID (`string` type) if the contact is found.\n* The ID of the first found contact (`string` type) if several contacts are found.\n* The empty string if no contacts are found.\n9. Specify the user on whose behalf to process the HTTP request. To do this, call the `SessionHelper.SpecifyWebOperationIdentity` method of the `Terrasoft.Web.Common` namespace after retrieving `SystemUserConnection`. This method enables business processes to manage the database record (`Entity`) from the custom web service that uses anonymous authentication.\n/* The user on whose behalf to process the HTTP request. */  \nTerrasoft.Web.Common.SessionHelper.SpecifyWebOperationIdentity(  \nHttpContextAccessor.GetInstance(),  \nSystemUserConnection.CurrentUser  \n);  \nView the source code of the `UsrAnonymousConfigurationService` custom web service below.\nUsrAnonymousConfigurationService\nnamespace Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace  \n{  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \nusing Terrasoft.Core.Entities;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(  \nRequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrAnonymousConfigurationService : BaseService  \n{  \n/* The link to the \"UserConnection\" instance required to access the  \ndatabase. */  \nprivate SystemUserConnection _systemUserConnection;  \nprivate SystemUserConnection SystemUserConnection  \n{  \nget  \n{  \nreturn _systemUserConnection ??  \n(_systemUserConnection =  \n(SystemUserConnection)  \nAppConnection.SystemUserConnection);  \n}  \n}  \n/* The method that returns the contact ID by the contact name. */  \n[OperationContract]  \n[WebInvoke(  \nMethod = \"GET\",  \nRequestFormat = WebMessageFormat.Json,  \nBodyStyle = WebMessageBodyStyle.Wrapped,  \nResponseFormat = WebMessageFormat.Json)]  \npublic string GetContactIdByName(string Name)  \n{  \n/* The user on whose behalf to process the HTTP request. */  \nSessionHelper.SpecifyWebOperationIdentity(  \nHttpContextAccessor.GetInstance(),  \nSystemUserConnection.CurrentUser);  \n/* The default result. */  \nvar result = \"\";  \n/* The \"EntitySchemaQuery\" instance that accesses the \"Contact\"  \ndatabase table. */  \nvar esq = new EntitySchemaQuery(  \nSystemUserConnection.EntitySchemaManager,  \n\"Contact\");  \n/* Add columns to the query. */  \nvar colId = esq.AddColumn(\"Id\");  \nvar colName = esq.AddColumn(\"Name\");  \n/* Filter the query data. */  \nvar esqFilter = esq.CreateFilterWithParameters(  \nFilterComparisonType.Equal,  \n\"Name\",  \nName);  \nesq.Filters.Add(esqFilter);  \n/* Retrieve the query results. */  \nvar entities = esq.GetEntityCollection(SystemUserConnection);  \n/* If the service receives data. */  \nif (entities.Count > 0)  \n{  \n/* Return the \"Id\" column value of the first query result  \nrecord. */  \nresult = entities[0].GetColumnValue(colId.Name).ToString();  \n/* You can also use this option:  \nresult = entities[0].GetTypedColumnValue<string>(colId.Name); */  \n}  \n/* Return the result. */  \nreturn result;  \n}  \n}  \n}  \n10. **Publish the schema**.\n**As a result** , Creatio will add the custom `UsrAnonymousConfigurationService` web service that has the `GetContactIdByName` endpoint.\n## 2\\. Register the web service\u200b\n1. **Go to the \"..\\Terrasoft.WebApp\\ServiceModel\" directory**.\n2. **Create and open the \"UsrAnonymousConfigurationService.svc\" file**.\n3. **Register the web service**. To do this, add the following record.\n\"UsrAnonymousConfigurationService.svc\" file\n<%@ ServiceHost  \nService=\"Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace.UsrAnonymousConfigurationService\"  \nDebug=\"true\"  \nLanguage=\"C#\"  \n%>  \nThe `Service` attribute includes the full name of the web service class and specifies the namespace.\n4. **Save the changes**.\n## 3\\. Enable both HTTP and HTTPS support for the web service\u200b\n1. **Enable HTTP support**.\n1. Open the \"..\\Terrasoft.WebApp\\ServiceModel\\http\\services.config\" file.\n2. Go to the `<services>` section.\n3. Add the following record to the root `<services>` section.\n\"..\\Terrasoft.WebApp\\ServiceModel\\http\\services.config\" file\n<services>  \n...  \n<service  \nname=\"Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace.UsrAnonymousConfigurationService\">  \n<endpoint  \nname=\"UsrAnonymousConfigurationServiceEndPoint\"  \naddress=\"\"  \nbinding=\"webHttpBinding\"  \nbehaviorConfiguration=\"RestServiceBehavior\"  \nbindingNamespace=\"http://Terrasoft.WebApp.ServiceModel\"  \ncontract=\"Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace.UsrAnonymousConfigurationService\" />  \n</service>  \n</services>  \n4. Save the changes.\n2. **Enable HTTPS support**. To do this, repeat steps 1\u20134 of the previous step in the \"..\\Terrasoft.WebApp\\ServiceModel\\https\\services.config\" file.\n## 4\\. Enable access to the web service for all users\u200b\n1. **Open the \"..\\Terrasoft.WebApp\\Web.config\" file**.\n2. **Go to the** `<configuration>` **section**.\n3. **Add the** `<location>` **element** to the root `<configuration>` section after the `<appSettings>` element. The `<location>` element defines the relative path and access permissions to the web service.\n\"..\\Terrasoft.WebApp\\Web.config\" file\n<configuration>  \n...  \n<location path=\"ServiceModel/UsrAnonymousConfigurationService.svc\">  \n<system.web>  \n<authorization>  \n<allow users=\"*\" />  \n</authorization>  \n</system.web>  \n</location>  \n...  \n</configuration>  \n4. **Check if the** `<appSettings>` **element includes the** `key` **attribute whose value is set to \"AllowedLocations\"**. If the `<add key=\"AllowedLocations\" value=\"\" />` element is omitted, add it to the root `<appSettings>` section.\n5. **Add the relative web service path** (`ServiceModel/UsrAnonymousConfigurationService.svc`) to the `value` attribute.\nWe do not recommend adding a separate value for an existing `key` attribute, since values are only read from the last `key` attribute whose name matches.\n\"..\\Terrasoft.WebApp\\Web.config\" file\n<configuration>  \n...  \n<appSettings>  \n...  \n<add  \nkey=\"AllowedLocations\"  \nvalue=\"[Previous values];ServiceModel/UsrAnonymousConfigurationService.svc\" />  \n...  \n</appSettings>  \n...  \n</configuration>  \n6. **Save the changes**.\n7. **Apply the changes**. To do this, restart Creatio in IIS.\n## View the result\u200b\nTo view the outcome of the example that **receives the contact ID** :\n1. **Access the** `GetContactIdByName` **endpoint** of the `UsrAnonymousConfigurationService` web service from the browser address bar.\n2. **Pass the contact name** in the `Name` parameter. For example, \"Andrew Baker.\"\nRequest string\n[CreatioURL]/0/ServiceModel/UsrAnonymousConfigurationService.svc/GetContactIdByName?Name=Andrew%20Baker  \n**As a result** , the Creatio instance will return:\n* The contact ID if the contact is found. [View the result >>>](https://academy.creatio.com/documents?ver=8.3&id=15264&anchor=view-result)\n* The ID of the first contact only if several contacts are found. [View the result >>>](https://academy.creatio.com/documents?ver=8.3&id=15264&anchor=view-result-1)\n* The empty string if no contacts are found. [View the result >>>](https://academy.creatio.com/documents?ver=8.3&id=15264&anchor=view-result-2)\n## Source code\u200b\nUsrAnonymousConfigurationService\nnamespace Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace  \n{  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \nusing Terrasoft.Core.Entities;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(  \nRequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrAnonymousConfigurationService : BaseService  \n{  \n/* The link to the \"UserConnection\" instance required to access the  \ndatabase. */  \nprivate SystemUserConnection _systemUserConnection;  \nprivate SystemUserConnection SystemUserConnection  \n{  \nget  \n{  \nreturn _systemUserConnection ??  \n(_systemUserConnection =  \n(SystemUserConnection)  \nAppConnection.SystemUserConnection);  \n}  \n}  \n/* The method that returns the contact ID by the contact name. */  \n[OperationContract]  \n[WebInvoke(  \nMethod = \"GET\",  \nRequestFormat = WebMessageFormat.Json,  \nBodyStyle = WebMessageBodyStyle.Wrapped,  \nResponseFormat = WebMessageFormat.Json)]  \npublic string GetContactIdByName(string Name)  \n{  \n/* The user on whose behalf to process the HTTP request. */  \nSessionHelper.SpecifyWebOperationIdentity(  \nHttpContextAccessor.GetInstance(),  \nSystemUserConnection.CurrentUser);  \n/* The default result. */  \nvar result = \"\";  \n/* The \"EntitySchemaQuery\" instance that accesses the \"Contact\"  \ndatabase table. */  \nvar esq = new EntitySchemaQuery(  \nSystemUserConnection.EntitySchemaManager,  \n\"Contact\");  \n/* Add columns to the query. */  \nvar colId = esq.AddColumn(\"Id\");  \nvar colName = esq.AddColumn(\"Name\");  \n/* Filter the query data. */  \nvar esqFilter = esq.CreateFilterWithParameters(  \nFilterComparisonType.Equal,  \n\"Name\",  \nName);  \nesq.Filters.Add(esqFilter);  \n/* Retrieve the query results. */  \nvar entities = esq.GetEntityCollection(SystemUserConnection);  \n/* If the service receives data. */  \nif (entities.Count > 0)  \n{  \n/* Return the \"Id\" column value of the first query result  \nrecord. */  \nresult = entities[0].GetColumnValue(colId.Name).ToString();  \n/* You can also use this option:  \nresult = entities[0].GetTypedColumnValue<string>(colId.Name); */  \n}  \n/* Return the result. */  \nreturn result;  \n}  \n}  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAnonymousConfigurationServicePackage_2021-08-13_10.34.52.zip)",
+  "code_examples": [
+    {
+      "code": "/* The user on whose behalf to process the HTTP request. */Terrasoft.Web.Common.SessionHelper.SpecifyWebOperationIdentity(    HttpContextAccessor.GetInstance(),    SystemUserConnection.CurrentUser);",
+      "language": "cs",
+      "context": "Specify the user on whose behalf to process the HTTP request. To do this, call theSessionHelper.SpecifyWebOperationIdentitymethod of theTerrasoft.Web.Commonnamespace after retrievingSystemUserConnecti",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace{    using System;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using Terrasoft.Core;    using Terrasoft.Web.Common;    using Terrasoft.Core.Entities;    [ServiceContract]    [AspNetCompatibilityRequirements(        RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    public class UsrAnonymousConfigurationService : BaseService    {        /* The link to the \"UserConnection\" instance required to access the        database. */        private SystemUserConnection _systemUserConnection;        private SystemUserConnection SystemUserConnection        {            get            {                return _systemUserConnection ??                    (_systemUserConnection =                        (SystemUserConnection)                            AppConnection.SystemUserConnection);            }        }        /* The method that returns the contact ID by the contact name. */        [OperationContract]        [WebInvoke(            Method = \"GET\",            RequestFormat = WebMessageFormat.Json,            BodyStyle = WebMessageBodyStyle.Wrapped,            ResponseFormat = WebMessageFormat.Json)]        public string GetContactIdByName(string Name)        {            /* The user on whose behalf to process the HTTP request. */            SessionHelper.SpecifyWebOperationIdentity(                HttpContextAccessor.GetInstance(),                SystemUserConnection.CurrentUser);            /* The default result. */            var result = \"\";            /* The \"EntitySchemaQuery\" instance that accesses the \"Contact\"            database table. */            var esq = new EntitySchemaQuery(                SystemUserConnection.EntitySchemaManager,                \"Contact\");            /* Add columns to the query. */            var colId = esq.AddColumn(\"Id\");            var colName = esq.AddColumn(\"Name\");            /* Filter the query data. */            var esqFilter = esq.CreateFilterWithParameters(                FilterComparisonType.Equal,                \"Name\",                Name);            esq.Filters.Add(esqFilter);            /* Retrieve the query results. */            var entities = esq.GetEntityCollection(SystemUserConnection);            /* If the service receives data. */            if (entities.Count > 0)            {                /* Return the \"Id\" column value of the first query result                record. */                result = entities[0].GetColumnValue(colId.Name).ToString();                /* You can also use this option:                result = entities[0].GetTypedColumnValue<string>(colId.Name); */            }            /* Return the result. */            return result;        }    }}",
+      "language": "cs",
+      "context": "View the source code of theUsrAnonymousConfigurationServicecustom web service below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<%@ ServiceHost    Service=\"Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace.UsrAnonymousConfigurationService\"    Debug=\"true\"    Language=\"C#\"%>",
+      "language": "cs",
+      "context": "Register the web service. To do this, add the following record.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<services>    ...    <service        name=\"Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace.UsrAnonymousConfigurationService\">        <endpoint            name=\"UsrAnonymousConfigurationServiceEndPoint\"            address=\"\"            binding=\"webHttpBinding\"            behaviorConfiguration=\"RestServiceBehavior\"            bindingNamespace=\"http://Terrasoft.WebApp.ServiceModel\"            contract=\"Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace.UsrAnonymousConfigurationService\" />    </service></services>",
+      "language": "xml",
+      "context": "Add the following record to the root<services>section.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<configuration>  ...  <location path=\"ServiceModel/UsrAnonymousConfigurationService.svc\">    <system.web>      <authorization>        <allow users=\"*\" />      </authorization>    </system.web>  </location>  ...</configuration>",
+      "language": "xml",
+      "context": "Add the<location>elementto the root<configuration>section after the<appSettings>element. The<location>element defines the relative path and access permissions to the web service.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<configuration>  ...  <appSettings>    ...    <add      key=\"AllowedLocations\"      value=\"[Previous values];ServiceModel/UsrAnonymousConfigurationService.svc\" />    ...  </appSettings>  ...</configuration>",
+      "language": "xml",
+      "context": "We do not recommend adding a separate value for an existingkeyattribute, since values are only read from the lastkeyattribute whose name matches.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[CreatioURL]/0/ServiceModel/UsrAnonymousConfigurationService.svc/GetContactIdByName?Name=Andrew%20Baker",
+      "language": "cli",
+      "context": "Pass the contact namein theNameparameter. For example, \"Andrew Baker.\"",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrAnonymousConfigurationService"
+        ],
+        [
+          "Title",
+          "AnonymousConfigurationService"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrAnonymousConfigurationService</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>AnonymousConfigurationService</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleImplement theUsrAnonymousConfigurationServicecustom web service that uses anonymous authentication and receives the contact information by the specified name. Creatio must return the following data:The contact ID if the contact is found.The ID of the first contact only if multiple contacts are found.The empty string if no contacts are found.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Implement the <code>UsrAnonymousConfigurationService</code> custom web service that uses anonymous authentication and receives the contact information by the specified name. Creatio must return the following data:</p><ul>\n<li>\n<p>The contact ID if the contact is found.</p>\n<figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png\"/></div></figure>\n</li>\n<li>\n<p>The ID of the first contact only if multiple contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png\"/></div></figure>\n</li>\n<li>\n<p>The empty string if no contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_02.png\"/></div></figure>\n</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Implement theUsrAnonymousConfigurationServicecustom web service that uses anonymous authentication and receives the contact information by the specified name. Creatio must return the following data:The contact ID if the contact is found.The ID of the first contact only if multiple contacts are found.The empty string if no contacts are found.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Implement the <code>UsrAnonymousConfigurationService</code> custom web service that uses anonymous authentication and receives the contact information by the specified name. Creatio must return the following data:</p><ul>\n<li>\n<p>The contact ID if the contact is found.</p>\n<figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png\"/></div></figure>\n</li>\n<li>\n<p>The ID of the first contact only if multiple contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png\"/></div></figure>\n</li>\n<li>\n<p>The empty string if no contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_02.png\"/></div></figure>\n</li>\n</ul></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png",
+      "alt": "",
+      "title": "",
+      "context": "The contact ID if the contact is found.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7bb1363e7c7b0574_ervices_web-service-implementation_examples_web-service-anonymous-authentication_fdc18aa8b273.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_01.png",
+      "alt": "",
+      "title": "",
+      "context": "The ID of the first contact only if multiple contacts are found.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7bb1363e7c7b0574_ervices_web-service-implementation_examples_web-service-anonymous-authentication_fdc18aa8b273.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateAnonymousWebService/7.18/scr_result_02.png",
+      "alt": "",
+      "title": "",
+      "context": "The empty string if no contacts are found.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7bb1363e7c7b0574_ervices_web-service-implementation_examples_web-service-anonymous-authentication_ab83b38323ea.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAnonymousConfigurationServicePackage_2021-08-13_10.34.52.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAnonymousConfigurationServicePackage_2021-08-13_10.34.52.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/7bb1363e7c7b0574_ervices_web-service-implementation_examples_web-service-anonymous-authentication_sdkAnonymousConfigurationServicePackage_2021-08-13_10.34.52.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement a custom web service that uses anonymous authentication",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement a custom web service\u200b",
+      "anchor": "title-1240-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Register the web service\u200b",
+      "anchor": "title-2145-4"
+    },
+    {
+      "level": 2,
+      "text": "3. Enable both HTTP and HTTPS support for the web service\u200b",
+      "anchor": "title-2145-5"
+    },
+    {
+      "level": 2,
+      "text": "4. Enable access to the web service for all users\u200b",
+      "anchor": "title-2145-6"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-2145-7"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15264-1"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-implementation/examples/web-service-anonymous-authentication",
+      "text": "Implement a web service (anonymous authentication)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/web-services/web-service-implementation/examples/web-service-anonymous-authentication",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-implementation/examples/web-service-anonymous-authentication",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-implementation/examples/web-service-anonymous-authentication",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-implementation/custom-web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/web-service-implementation-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-implementation/examples/web-service-cookie-authentication",
+      "text": "PreviousImplement a web service (cookie-authentication)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-implementation/examples/web-service-non-standard-text-encoding",
+      "text": "NextImplement a web service (anonymous authentication and non-standard text encoding)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-calling/call-web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/call-web-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/file-api",
+      "text": "File API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/api-for-file-management/entity-file-api",
+      "text": "Manage files using Entity class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:56:36.529681"
+}

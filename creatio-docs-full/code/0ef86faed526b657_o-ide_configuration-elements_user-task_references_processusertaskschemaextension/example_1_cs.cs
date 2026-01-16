@@ -1,0 +1,1 @@
+public virtual void SynchronizeDynamicParameters(UserConnection userConnection, ProcessUserTaskSchema target)

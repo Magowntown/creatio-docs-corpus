@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction CreateDatePartFunction(EntitySchemaDatePartQueryFunctionInterval interval, string columnPath)

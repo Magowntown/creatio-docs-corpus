@@ -1,0 +1,1 @@
+define("UsrSchemac6fd3fd0Detail", [], function() {    return {        entitySchemaName: "UsrMedDocument",        details: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,        diff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/,        methods: {            getDisplayColumns: function() {                return ["UsrSeries", "UsrNumber"];            }        }    };});

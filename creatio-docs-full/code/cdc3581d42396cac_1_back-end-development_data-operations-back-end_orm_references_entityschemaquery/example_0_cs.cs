@@ -1,0 +1,1 @@
+public EntitySchemaQuery(EntitySchema rootSchema)

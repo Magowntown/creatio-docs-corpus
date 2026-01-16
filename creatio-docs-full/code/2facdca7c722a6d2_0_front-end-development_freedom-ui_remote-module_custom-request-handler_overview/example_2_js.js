@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {        ...,        /* The attribute that stores data received from the external web service. */        "SomeAttributeName": {}    }}/**SCHEMA_VIEW_MODEL_CONFIG*/,

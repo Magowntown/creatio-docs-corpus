@@ -1,0 +1,1 @@
+inputType string

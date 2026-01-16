@@ -1,0 +1,529 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/no-code-customization/8.1/base-integrations/webhook-service-integration/process-webhooks",
+  "title": "Process webhooks in Creatio",
+  "breadcrumbs": [
+    {
+      "text": "Base integrations",
+      "href": "/docs/8.x/no-code-customization/8.1/category/base-integrations"
+    },
+    {
+      "text": "Webhook service integration",
+      "href": "/docs/8.x/no-code-customization/8.1/category/webhook-service-integration"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nnote\nThis article covers the webhook processing relevant to Creatio 8.1.1 and later. Instructions for Creatio version 8.1.0 and earlier are listed in 8.0 documentation: [Process webhooks in Creatio](https://academy.creatio.com/documents?id=2411&ver=8.0).\nUse the **Webhooks** section (Fig. 1) of the Studio workplace to analyze incoming webhooks as well as view parsed results and errors in parsing.\nFig. 1 Webhooks section\n![Fig.\u00a01 Webhooks section](https://academy.creatio.com/docs/sites/en/files/images/Release_notes/release_notes_8_1/scr_webhooks_section.png)\n## Maintain webhooks\u200b\nCreatio checks new webhooks every minute. If Creatio is not available for any reason at the time of receiving the webhook, Creatio service makes additional attempts to pass the webhook to Creatio 1 minute, 5 minutes, 60 minutes, 6 hours, 24 hours, 36 hours, 48 hours, 60 hours, and 72 hours later.\nCreatio stores incoming webhooks in the **Webhooks** section. The section UI displays summary statistics of all incoming webhooks using the following dashboards:\n* \"Dynamics of received webhooks\" chart. Visualizes dynamics of webhook processing by displaying summary statistics of all incoming webhooks without time limits.\n* \"Total,\" \"Done\" and \"Failed\" metrics. Displays the number of all incoming webhooks that have appropriate statuses. Click on the metrics to display detailed information webhooks that have the appropriate statuses.\n* \"Webhooks\" list. Displays the list of all incoming webhooks.\nYou can filter webhooks on \"Dynamics of received webhooks\" chart and \"Webhooks\" dashboard list by status (**Status** drop-down list) and by date (**Date range** drop-down list).\n**Webhook status** indicates the webhook lifecycle stage. View available webhook statuses in the table below.\nStatus| Status description  \n---|---  \nNew| The newly incoming webhook.  \nProcessing| The webhook is under processing.  \nFailed| The webhook parsing failed.  \nDone| The webhook was parsed successfully.  \nTo **display webhook details** , double-click the webhook row in \"Webhooks\" dashboard list. This opens the webhook page (Fig. 2).\nFig. 2 Webhook details\n![Fig.\u00a02 Webhook details](https://academy.creatio.com/docs/sites/academy_en/files/images/Platform_basics/import_from_webforms/ImportDataFromOtherWebPages/8.1/scr_webhook_page.png)\nCreatio **deletes webhooks automatically** after a specific period. The **period values** are as follows out of the box:\n* 90 days for webhooks whose status is \"New\"\n* 90 days for webhooks whose status is \"Failed\"\n* 30 days for webhooks whose status is \"Done\"\nYou can specify the maximum period within which the webhook can remain in any status in the **Webhook status** lookup.\nnote\nDeletion of a webhook does not delete the created record. Deletion of a webhook whose status is \"Failed\" deletes the connected log.\nTo **delete the webhook manually** , click ![](https://academy.creatio.com/sites/en/files/images/Platform_basics/import_from_webforms/scr_webhook_actions.png) \u2192 **Delete** in the webhook row.\n## Process webhooks\u200b\nAfter Creatio retrieves a webhook, Creatio starts processing it.\n**Creatio platform** uses the \"Start process to create object records based on incoming webhooks\" business process that launches the \"Create object records based on incoming webhook\" business process out of the box.\n**Marketing Creatio** product and **Lead Generation** composable app use the \"Engagement tools App: Start process to create object records based on incoming webhooks\" business process instead of the \"Create object records based on incoming webhook\". Out of the box, the \"Create object records based on incoming webhook\" business process is deactivated in **Marketing Creatio** product and **Lead Generation** composable app.\nThe \"Create object records based on incoming webhook\" business process attempts to parse the webhook to add a Creatio record. The business process works as follows out of the box:\n1. Read a collection of new webhooks (50 records whose **Status** field value is \"New\") from the \"Webhooks\" dashboard list every minute.\n2. Change the webhook status from \"New\" to \"Processing.\"\n3. Change the status of webhooks whose status remains \"Processing\" for longer than the specified period (1 hour by default) back to \"New.\" It is a disaster recovery mechanism. Learn more: [Wikipedia](https://en.wikipedia.org/w/index.php?title=Disaster_recovery&oldid=1105023527).\n4. Create the record.\nYou can customize the business process or deactivate it and create a custom process. If you want to receive a webhook in Creatio without adding a record, deactivate the business process. For example, this is useful if you want to achieve the following:\n* Set up a notification about new webhooks.\n* Create a record based on the webhook.\n* Send an email that contains webhook data.\n* Set up a notification about a webhook processing error.\nThe \"Create entity\" user task (the \"Webhook To Entity UT\" task in the **Configuration** section) executes the main functionality of the \"Create object records based on incoming webhooks\" business process. The user task works as follows out of the box:\n1. Define a parser for the webhook data type based on the **Content type** field value in the \"Webhooks\" dashboard list.\n2. Define the object to add a record based on the webhook. Requires the `EntityName` parameter in the **Request body** field. Learn more about configuring the parameter: [Work with webhooks basics](https://academy.creatio.com/documents?id=2412).\n3. Populate other fields of the record based on the parameters of the **Request body** field.\n4. Save the record to Creatio.\nIf the incoming webhook does not contain the `Content-Type` or `EntityName` parameter value, the process cannot create the record based on a webhook. In this case, the webhook status is set to \"Failed.\"\nIf the incoming webhook data differs from the expected data, the parsing fails. Creatio displays the errors for the dedicated webhook in the **Parsing errors** list on the webhook page. The process logs the detailed error in the **Webhook parse errors log** lookup and changes the webhook status to \"Failed.\"\nView the logged **webhook processing errors** in the table below.\nError text| Error description| Error correction  \n---|---|---  \nAn error occurred while setting the column value. ColumnName:{ColumnName}. EntityName:{EntityName}. Exception:Cannot cast {ActualType} to {ExpectedType}.| The column data type of the incoming webhook does not match the column data type in the added Creatio object. The object is added, and the parsed columns are populated. The columns specified in the error are not populated. Webhook status is not changed to \"Failed.\"| Verify the mapping of webhook columns to Creatio object columns. Learn more: [Work with webhooks basics](https://academy.creatio.com/documents?id=2412).  \nAn error occurred while processing the webhook. Entity name: \"{EntityName}\" Exception: Item with name \"{EntityName}\" not found.| Unable to find the Creatio object specified in the `EntityName` webhook parameter.| Verify the object name in the external webhook service. Ensure the `EntityName` parameter value matches the object code. Learn more in a separate article: [Work with webhooks basics](https://academy.creatio.com/documents?id=2412).  \nAn error occurred while processing the webhook. The parameter \"{EntityName}\" should be existing and not empty.| The `EntityName` webhook parameter does not exist or is empty.| Add or fill out the object code.  \nAn error occurred while processing the webhook. Exception: The parameter \"{Content-Type}\" should be existing and not empty.| The `Content-Type` webhook parameter does not exist or is empty.| Verify the data type in the `Content-Type` webhook parameter. If the data type is populated, but the field name is different, contact Creatio support for a detailed analysis of the webhook service.  \nAn error occurred while processing the webhook. Exception: {Content-Type} type of webhook is unsupported.| The data type listed in the `Content-Type` webhook parameter is unsupported. Creatio supports `application/json` and `multipart/form-data` data types of the webhook body.| Contact Creatio support.  \nAn error occurred while processing the webhook. Exception: Could not parse the webhook body: {RequestBody}.| An unexpected error occurred when processing the `RequestBody` webhook parameter.| Contact Creatio support for a detailed analysis of the webhook.  \n## Customize webhook processing\u200b\nIf you want to create a custom business logic of a webhook processing, modify the out-of-the-box business processes or create a new business process. We recommend deactivating out-of-the-box business processes instead of deleting them.\n* * *\n## See also\u200b\n[Work with webhooks basics](https://academy.creatio.com/documents?id=2412)\n[Retrieve a webhook in Creatio](https://academy.creatio.com/documents?id=2516)\n[Data import](https://academy.creatio.com/docs/8.x/creatio-apps/category/data-import)\n[Tech Hour: Webhooks. Integrating with Landingi, Wordpress and MS Forms](https://www.youtube.com/watch?v=EdCe4V1_jOY)",
+  "code_examples": [],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Status",
+          "Status description"
+        ],
+        [
+          "New",
+          "The newly incoming webhook."
+        ],
+        [
+          "Processing",
+          "The webhook is under processing."
+        ],
+        [
+          "Failed",
+          "The webhook parsing failed."
+        ],
+        [
+          "Done",
+          "The webhook was parsed successfully."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Status</p></th><th><p>Status description</p></th></tr><tr><td><p>New</p></td><td><p>The newly incoming webhook.</p></td></tr><tr><td><p>Processing</p></td><td><p>The webhook is under processing.</p></td></tr><tr><td><p>Failed</p></td><td><p>The webhook parsing failed.</p></td></tr><tr><td><p>Done</p></td><td><p>The webhook was parsed successfully.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Error text",
+          "Error description",
+          "Error correction"
+        ],
+        [
+          "An error occurred while setting the column value. ColumnName:{ColumnName}. EntityName:{EntityName}. Exception:Cannotcast {ActualType} to {ExpectedType}.",
+          "The column data type of the incoming webhook does not match the column data type in the added Creatio object. The object is added, and the parsed columns are populated. The columns specified in the error are not populated. Webhook status is not changed to \"Failed.\"",
+          "Verify the mapping of webhook columns to Creatio object columns. Learn more:Work with webhooks basics."
+        ],
+        [
+          "An error occurred while processing the webhook. Entity name: \"{EntityName}\" Exception: Item with name \"{EntityName}\" not found.",
+          "Unable to find the Creatio object specified in theEntityNamewebhook parameter.",
+          "Verify the object name in the external webhook service. Ensure theEntityNameparameter value matches the object code. Learn more in a separate article:Work with webhooks basics."
+        ],
+        [
+          "An error occurred while processing the webhook. The parameter \"{EntityName}\" should be existing and not empty.",
+          "TheEntityNamewebhook parameter does not exist or is empty.",
+          "Add or fill out the object code."
+        ],
+        [
+          "An error occurred while processing the webhook. Exception: The parameter \"{Content-Type}\" should be existing and not empty.",
+          "TheContent-Typewebhook parameter does not exist or is empty.",
+          "Verify the data type in theContent-Typewebhook parameter. If the data type is populated, but the field name is different, contact Creatio support for a detailed analysis of the webhook service."
+        ],
+        [
+          "An error occurred while processing the webhook. Exception: {Content-Type} type of webhook is unsupported.",
+          "The data type listed in theContent-Typewebhook parameter is unsupported. Creatio supportsapplication/jsonandmultipart/form-datadata types of the webhook body.",
+          "Contact Creatio support."
+        ],
+        [
+          "An error occurred while processing the webhook. Exception: Could not parse the webhook body: {RequestBody}.",
+          "An unexpected error occurred when processing theRequestBodywebhook parameter.",
+          "Contact Creatio support for a detailed analysis of the webhook."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Error text</p></th><th><p>Error description</p></th><th><p>Error correction</p></th></tr><tr><td><p>An error occurred while setting the column value. ColumnName:{ColumnName}. EntityName:{EntityName}. Exception<!-- -->:Cannot<!-- --> cast {ActualType} to {ExpectedType}.</p></td><td><p>The column data type of the incoming webhook does not match the column data type in the added Creatio object. The object is added, and the parsed columns are populated. The columns specified in the error are not populated. Webhook status is not changed to \"Failed.\"</p></td><td><p>Verify the mapping of webhook columns to Creatio object columns. Learn more: <a href=\"https://academy.creatio.com/documents?id=2412\" rel=\"noopener noreferrer\" target=\"_blank\">Work with webhooks basics</a>.</p></td></tr><tr><td><p>An error occurred while processing the webhook. Entity name: \"{EntityName}\" Exception: Item with name \"{EntityName}\" not found.</p></td><td><p>Unable to find the Creatio object specified in the <code>EntityName</code> webhook parameter.</p></td><td><p>Verify the object name in the external webhook service. Ensure the <code>EntityName</code> parameter value matches the object code. Learn more in a separate article: <a href=\"https://academy.creatio.com/documents?id=2412\" rel=\"noopener noreferrer\" target=\"_blank\">Work with webhooks basics</a>.</p></td></tr><tr><td><p>An error occurred while processing the webhook. The parameter \"{EntityName}\" should be existing and not empty.</p></td><td><p>The <code>EntityName</code> webhook parameter does not exist or is empty.</p></td><td><p>Add or fill out the object code.</p></td></tr><tr><td><p>An error occurred while processing the webhook. Exception: The parameter \"{Content-Type}\" should be existing and not empty.</p></td><td><p>The <code>Content-Type</code> webhook parameter does not exist or is empty.</p></td><td><p>Verify the data type in the <code>Content-Type</code> webhook parameter. If the data type is populated, but the field name is different, contact Creatio support for a detailed analysis of the webhook service.</p></td></tr><tr><td><p>An error occurred while processing the webhook. Exception: {Content-Type} type of webhook is unsupported.</p></td><td><p>The data type listed in the <code>Content-Type</code> webhook parameter is unsupported. Creatio supports <code>application/json</code> and <code>multipart/form-data</code> data types of the webhook body.</p></td><td><p>Contact Creatio support.</p></td></tr><tr><td><p>An error occurred while processing the webhook. Exception: Could not parse the webhook body: {RequestBody}.</p></td><td><p>An unexpected error occurred when processing the <code>RequestBody</code> webhook parameter.</p></td><td><p>Contact Creatio support for a detailed analysis of the webhook.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThis article covers the webhook processing relevant to Creatio 8.1.1 and later. Instructions for Creatio version 8.1.0 and earlier are listed in 8.0 documentation:Process webhooks in Creatio.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>This article covers the webhook processing relevant to Creatio 8.1.1 and later. Instructions for Creatio version 8.1.0 and earlier are listed in 8.0 documentation: <a href=\"https://academy.creatio.com/documents?id=2411&amp;ver=8.0\" rel=\"noopener noreferrer\" target=\"_blank\">Process webhooks in Creatio</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This article covers the webhook processing relevant to Creatio 8.1.1 and later. Instructions for Creatio version 8.1.0 and earlier are listed in 8.0 documentation:Process webhooks in Creatio.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This article covers the webhook processing relevant to Creatio 8.1.1 and later. Instructions for Creatio version 8.1.0 and earlier are listed in 8.0 documentation: <a href=\"https://academy.creatio.com/documents?id=2411&amp;ver=8.0\" rel=\"noopener noreferrer\" target=\"_blank\">Process webhooks in Creatio</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteDeletion of a webhook does not delete the created record. Deletion of a webhook whose status is \"Failed\" deletes the connected log.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Deletion of a webhook does not delete the created record. Deletion of a webhook whose status is \"Failed\" deletes the connected log.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Deletion of a webhook does not delete the created record. Deletion of a webhook whose status is \"Failed\" deletes the connected log.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Deletion of a webhook does not delete the created record. Deletion of a webhook whose status is \"Failed\" deletes the connected log.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Release_notes/release_notes_8_1/scr_webhooks_section.png",
+      "alt": "Fig.\u00a01 Webhooks section",
+      "title": "",
+      "context": "Use theWebhookssection (Fig.\u00a01) of the Studio workplace to analyze incoming webhooks as well as view",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.1_base-integrations_webhook-service-integration_process-webhooks_eedd4ba42f84.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Platform_basics/import_from_webforms/ImportDataFromOtherWebPages/8.1/scr_webhook_page.png",
+      "alt": "Fig.\u00a02 Webhook details",
+      "title": "",
+      "context": "Todisplay webhook details, double-click the webhook row in \"Webhooks\" dashboard list. This opens the",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.1_base-integrations_webhook-service-integration_process-webhooks_ec02a1a3e9e8.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/images/Platform_basics/import_from_webforms/scr_webhook_actions.png",
+      "alt": "",
+      "title": "",
+      "context": "Todelete the webhook manually, click\u2192Deletein the webhook row.",
+      "width": "",
+      "height": ""
+    }
+  ],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=EdCe4V1_jOY",
+      "text": "Tech Hour: Webhooks. Integrating with Landingi, Wordpress and MS Forms"
+    }
+  ],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Process webhooks in Creatio",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Maintain webhooks\u200b",
+      "anchor": "title-2501-3"
+    },
+    {
+      "level": 2,
+      "text": "Process webhooks\u200b",
+      "anchor": "title-2501-1"
+    },
+    {
+      "level": 2,
+      "text": "Customize webhook processing\u200b",
+      "anchor": "title-2501-2"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/webhook-service-integration/process-webhooks",
+      "text": "Process webhooks",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/base-integrations/webhook-service-integration/process-webhooks",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/webhook-service-integration/process-webhooks",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/base-integrations/webhook-service-integration/process-webhooks",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/customization-tools",
+      "text": "Customization tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/recommendations",
+      "text": "Recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/app-management",
+      "text": "App management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/ui-and-business-logic-customization",
+      "text": "UI and business logic customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/custom-localization",
+      "text": "Custom localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/system-settings-and-lookups",
+      "text": "System settings and lookups",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/ai-tools",
+      "text": "AI tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/print-ready-reports",
+      "text": "Print-ready reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/appearance-customization",
+      "text": "Appearance customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/mobile-app-setup",
+      "text": "Mobile app setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/tags-setup",
+      "text": "Tags setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/base-integrations",
+      "text": "Base integrations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/add-imap-smtp-email-provider",
+      "text": "IMAP / SMTP email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/ms-exchange--microsoft-365-email-and-calendar",
+      "text": "MS Exchange / Microsoft 365 email and calendar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/microsoft-email-contacts-and-calendar/set-up-the-ms-exchange-and-microsoft-365-services",
+      "text": "Set up Microsoft Exchange and Office 365",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/microsoft-email-contacts-and-calendar/synchronizing-creatio-calendar-with-ms-exchange-and-microsoft-365-calendars",
+      "text": "Synchronize calendar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/microsoft-email-contacts-and-calendar/set-up-oauth-authentication-for-ms-office-365",
+      "text": "Set up OAuth authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/google-services",
+      "text": "Google services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/google-mail-contacts-and-calendar/register-creatio-application-in-gsuite",
+      "text": "Register with Google Workspace",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/google-mail-contacts-and-calendar/synchronize-contacts-and-activities-with-google",
+      "text": "Synchronize Google services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/google-mail-contacts-and-calendar/delete-your-google-account-from-creatio",
+      "text": "Delete the account",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/mailbox-setup",
+      "text": "Mailbox setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/set-up-a-secure-mailbox-connection",
+      "text": "Set up a secure connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/set-up-a-personal-mailbox",
+      "text": "Set up a personal mailbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/configure-a-shared-mailbox",
+      "text": "Set up a shared mailbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/email-account-individual-settings",
+      "text": "Email settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/mailbox-setup-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/webhook-service-integration",
+      "text": "Webhook service integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/webhook-service-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/webhook-service-integration/retrieve-a-webhook",
+      "text": "PreviousRetrieve a webhook",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/chat-setup",
+      "text": "NextChat setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-chat-processing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-facebook-messenger-integration",
+      "text": "Set up Facebook Messenger",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-telegram-integration",
+      "text": "Set up Telegram",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-whatsapp-integration",
+      "text": "Set up WhatsApp",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-ada-integration",
+      "text": "Set up Ada",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/oauth-2-0/general-oauth-flow",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/oauth-2-0/set-up-the-oauth-2-0-authorization-instruction",
+      "text": "Get credentials",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/getting-started-with-low-code-web-service-integration",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/set-up-the-soap-web-service-integration",
+      "text": "SOAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/set-up-the-rest-web-service-integration",
+      "text": "REST",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/web-service-authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/phone-integration-connectors",
+      "text": "Phone integration connectors",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-avaya",
+      "text": "Avaya",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-cisco-finesse",
+      "text": "Cisco Finesse",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-tapi",
+      "text": "TAPI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-callway",
+      "text": "CallWay",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/configure-a-wss-phone-service-connection",
+      "text": "Set up WSS telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/creatio-phone-integration-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/feature-comparison-for-supported-phone-systems copy",
+      "text": "Comparison of phone systems",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/bpm-tools",
+      "text": "BPM tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/business-process-setup",
+      "text": "Business process setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-elements-reference",
+      "text": "Process elements reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-element-use-cases",
+      "text": "Process element use cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-examples",
+      "text": "Process examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-administration",
+      "text": "Process administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/dynamic-case-setup-dcm",
+      "text": "Dynamic case setup (DCM)",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/creatio-apps/category/data-import",
+      "text": "Data import",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T04:23:10.979280"
+}

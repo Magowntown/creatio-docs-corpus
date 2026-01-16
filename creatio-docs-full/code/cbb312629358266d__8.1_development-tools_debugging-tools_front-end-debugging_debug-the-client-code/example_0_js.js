@@ -1,0 +1,1 @@
+Terrasoft.SysSettings.postPersonalSysSettingsValue("IsDebug", true);

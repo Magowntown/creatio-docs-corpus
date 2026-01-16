@@ -1,0 +1,1 @@
+extendSectionPublishers(publishers) : Array

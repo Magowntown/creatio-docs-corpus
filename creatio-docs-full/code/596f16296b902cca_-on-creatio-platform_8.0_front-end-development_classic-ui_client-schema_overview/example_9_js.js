@@ -1,0 +1,1 @@
+/* GetColumnsValues is the message name.messageHandler is the message handler function.context is the execution scope of the handler function.key is an array of message filtering tags. */this.sandbox.subscribe("GetColumnsValues", messageHandler, context, ["key"]);

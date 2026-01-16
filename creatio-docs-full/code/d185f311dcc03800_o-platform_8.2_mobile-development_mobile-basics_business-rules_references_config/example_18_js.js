@@ -1,0 +1,1 @@
+record.changeProperty("Owner", {    disabled: false,    readOnly: false,    hidden: false,    addFilter: {        property: "IsChief",        value: true    },    isValid: {        value: false,        message: LocalizableStrings["Owner_should_be_a_chief_only"]    } });

@@ -1,0 +1,1 @@
+EntitySchemaCurrentTimeQueryFunction CreateCurrentTimeFunction()

@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {    ...,        /* The attribute that stores data about user's access permission. */        "IsAccessRightsGranted": {}    },    ...}/**SCHEMA_VIEW_MODEL_CONFIG*/,

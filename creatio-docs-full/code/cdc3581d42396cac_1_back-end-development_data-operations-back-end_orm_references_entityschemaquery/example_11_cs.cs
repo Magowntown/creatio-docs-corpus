@@ -1,0 +1,1 @@
+Filters Terrasoft.Core.Entities.EntitySchemaQueryFilterCollection

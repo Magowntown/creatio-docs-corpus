@@ -1,0 +1,1 @@
+update "Clients"set "AccessTokenLifetime" = New_Token_Lifetimewhere "ClientId" = Some_Client_Id

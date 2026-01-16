@@ -1,0 +1,1 @@
+setSubtitleColumns(modelName, columns)

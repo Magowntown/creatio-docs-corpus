@@ -1,0 +1,1 @@
+Select GetSummarySelectQuery(UserConnection userConnection, EntitySchemaQueryColumnCollection summaryColumns)Select GetSummarySelectQuery(UserConnection userConnection)Select GetSummarySelectQuery(UserConnection userConnection, IEnumerable<string> columnNames)Select GetSummarySelectQuery(UserConnection userConnection, params string[] columnNames)

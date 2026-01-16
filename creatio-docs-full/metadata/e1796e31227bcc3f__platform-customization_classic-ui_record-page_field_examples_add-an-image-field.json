@@ -1,0 +1,1163 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-an-image-field",
+  "title": "Add an image field to a record page",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Record page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page"
+    },
+    {
+      "text": "Field",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/field-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: advanced\nTo implement the example:\n1. Add an image column to the object schema. Read more >>>\n2. Add an image field to the record page. Read more >>>\nExample\nAdd an image field to the page of a knowledge base article. Use the image provided below as a default field value.\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/logo.png)\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_result.png)\n## 1\\. Add an image column to the object schema\u200b\n1. **Create a package**. Instructions: [Create a user-made package using Configuration section](https://academy.creatio.com/documents?ver=8.0&id=15122).\nFor this example, create the `sdkAddFieldWithImageToPagePackage` package.\n2. **Create a replacing object schema**. Instructions: [Implement a replacing object](https://academy.creatio.com/documents?ver=8.0&id=15107&anchor=title-3028-7).\nFor this example, create the `KnowledgeBase` replacing object schema. Use the schema properties as follows.\nProperty| Property value  \n---|---  \nParent object| KnowledgeBase  \nCreatio populates other properties automatically.\n3. **Add an image column** to the schema.\n1. Go to the properties area \u2192 **Columns** node\u2019s context menu \u2192 ![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_add_button.png) \u2192 **Other** \u2192 **Image Link**.\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_add_column.png)\n2. Fill out the column properties.\nProperty| Property value  \n---|---  \nCode| UsrLogo  \nTitle| Logo of the knowledge base article  \n4. **Select the image column** to use as the object image.\n1. Go to the `KnowledgeBase` replacing object schema \u2192 **Object settings** property block.\n2. Fill out the image properties.\nProperty| Property value  \n---|---  \nImage| Logo of the knowledge base article  \n5. **Publish the schema**.\n**As a result** , an image column will be added to the object schema.\n## 2\\. Add an image field to the record page\u200b\n1. **Create a replacing view model schema**. Instructions: [Implement a replacing module](https://academy.creatio.com/documents?ver=8.0&id=15106&anchor=title-3028-4).\nFor this example, create the `KnowledgeBasePageV2` replacing view model schema. Use the schema properties as follows.\nProperty| Property value  \n---|---  \nParent object| KnowledgeBasePageV2  \nCreatio populates other properties automatically.\n2. **Add an image** to the schema.\n1. Go to the properties area \u2192 **Images** node\u2019s context menu \u2192 ![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_add_button.png).\n2. Fill out the image properties.\nProperty| Property value  \n---|---  \nCode| DefaultLogo  \nImage| Upload the image file  \n3. Click **Add**.\n3. **Add the dependencies**.\nFor this example, add the `KnowledgeBasePageV2Resources` and `ConfigurationConstants` modules as dependencies.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"KnowledgeBasePageV2\", [\"KnowledgeBasePageV2Resources\", \"ConfigurationConstants\"], function(resources, ConfigurationConstants) {  \nreturn {  \n...  \n}  \n});  \n4. **Specify the object schema** that is used in the replacing view model schema.\n1. Add the `entitySchemaName` property.\n2. Set `KnowledgeBase` as property value.\nentitySchemaName property\n/* The name of the record page object's schema. */  \nentitySchemaName: \"KnowledgeBase\",  \n5. **Implement the business logic** that adds the default image to a new knowledge base article.\n1. Add the `methods` schema section.\n2. Implement the following methods.\nMethod| Method description  \n---|---  \ngetPhotoSrcMethod()| Receives the image by link.  \nbeforePhotoFileSelected()| Called before the image selection box opens.  \nonPhotoChange()| Called upon the image change.  \nonPhotoUploaded()| Saves the link to the changed image in the object column.  \nmethods schema section\n/* The methods of the record page's view model. */  \nmethods: {  \n/* Call before the image selection box opens. */  \nbeforePhotoFileSelected: function() {  \nreturn true;  \n},  \n/* Receive the image by link. */  \ngetPhotoSrcMethod: function() {  \n/* Receive the image link from the object column. */  \nvar imageColumnValue = this.get(\"UsrLogo\");  \n/* If the link is specified, return the image file URL. */  \nif (imageColumnValue) {  \nreturn this.getSchemaImageUrl(imageColumnValue);  \n}  \n/* If the link is not specified, return the default image. */  \nreturn this.Terrasoft.ImageUrlBuilder.getUrl(this.get(\"Resources.Images.DefaultLogo\"));  \n},  \n/* Handle the image change.   \nphoto is the image file. */  \nonPhotoChange: function(photo) {  \nif (!photo) {  \nthis.set(\"UsrLogo\", null);  \nreturn;  \n}  \n/* Upload the file to the database. Call onPhotoUploaded once the upload finishes. */  \nthis.Terrasoft.ImageApi.upload({  \nfile: photo,  \nonComplete: this.onPhotoUploaded,  \nonError: this.Terrasoft.emptyFn,  \nscope: this  \n});  \n},  \n/* Save the link to the changed image.   \nimageId is the ID of the file saved in the database. */  \nonPhotoUploaded: function(imageId) {  \nvar imageData = {  \nvalue: imageId,  \ndisplayValue: \"Image\"  \n};  \n/* Assign the image link to the image column. */  \nthis.set(\"UsrLogo\", imageData);  \n}  \n},  \n6. **Set up the image field layout**.\nIf you add an image field to the page of the knowledge base article, the layout of base page fields can break. To avoid this, change the layout of existing **Name** , **Type** , **Modified By** fields in addition to placing the image field. To do this:\n1. Add the `diff` schema section.\n2. Add a configuration object that contains the layout settings of the page fields. To add an image field to the page, use the auxiliary `PhotoContainer` wrapper container that has the `\"image-edit-container\"` class.\ndiff schema section\n/* Display the field on the record page. */  \ndiff: /**SCHEMA_DIFF*/[  \n/* Metadata to add the custom image field to the record page. */  \n{  \n/* Add the element to the page. */  \n\"operation\": \"insert\",  \n/* The meta name of the parent container to add the field. */  \n\"parentName\": \"Header\",  \n/* Add the image to the parent element's collection of elements. */  \n\"propertyName\": \"items\",  \n/* The meta name of the image to add. */  \n\"name\": \"PhotoContainer\",  \n/* The properties to pass to the element's constructor. */  \n\"values\": {  \n/* Set the type of the added element to \"container.\" */  \n\"itemType\": Terrasoft.ViewItemType.CONTAINER,  \n/* The name of the CSS class. */  \n\"wrapClass\": [\"image-edit-container\"],  \n/* Set up the image layout. */  \n\"layout\": {   \n/* The column number. */  \n\"column\": 0,   \n/* The row number. */  \n\"row\": 0,   \n/* The row span. */  \n\"rowSpan\": 3,   \n/* The column span. */  \n\"colSpan\": 3   \n},  \n/* The array of nested elements. */  \n\"items\": []  \n}  \n},  \n/* The \"UsrLogo\" field contains the account logo. */  \n{  \n\"operation\": \"insert\",  \n\"parentName\": \"PhotoContainer\",  \n\"propertyName\": \"items\",  \n\"name\": \"UsrLogo\",  \n\"values\": {  \n/* The method that retrieves the image by link. */  \n\"getSrcMethod\": \"getPhotoSrcMethod\",  \n/* The method that is called upon the image change. */  \n\"onPhotoChange\": \"onPhotoChange\",  \n/* The method that is called before the image selection box opens. */  \n\"beforeFileSelected\": \"beforePhotoFileSelected\",  \n/* The property that flags the image as editable. */  \n\"readonly\": false,  \n/* The view generator of the control. */  \n\"generator\": \"ImageCustomGeneratorV2.generateCustomImageControl\"  \n}  \n},  \n/* Change the layout of the \"Name\" field. */  \n{  \n/* Execute the operation that modifies the existing element. */  \n\"operation\": \"merge\",  \n\"name\": \"Name\",  \n\"parentName\": \"Header\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n\"bindTo\": \"Name\",  \n\"layout\": {  \n\"column\": 3,  \n\"row\": 0,  \n\"colSpan\": 20  \n}  \n}  \n},  \n/* Change the layout of the \"ModifiedBy\" field. */  \n{  \n\"operation\": \"merge\",  \n\"name\": \"ModifiedBy\",  \n\"parentName\": \"Header\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n\"bindTo\": \"ModifiedBy\",  \n\"layout\": {  \n\"column\": 3,  \n\"row\": 2,  \n\"colSpan\": 20  \n}  \n}  \n},  \n/* Change the layout of the \"Type\" field. */  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Type\",  \n\"parentName\": \"Header\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n\"bindTo\": \"Type\",  \n\"layout\": {  \n\"column\": 3,  \n\"row\": 1,  \n\"colSpan\": 20  \n},  \n\"contentType\": Terrasoft.ContentType.ENUM  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n7. **Save the schema**.\n**As a result** , a new knowledge base article will include the default image.\n## View the result\u200b\n1. **Open the Knowledge base section**.\n2. **Create a new article**.\n**As a result** , Creatio will add an image field to the page of a knowledge base article. The image field will include the default image. [View result >>>](https://academy.creatio.com/documents?ver=8.0&id=15533&anchor=view-result)\nYou can change or delete the image.\n## Source code\u200b\nKnowledgeBasePageV2\n/* Declare the AMD module. */  \ndefine(\"KnowledgeBasePageV2\", [\"KnowledgeBasePageV2Resources\", \"ConfigurationConstants\"], function(resources, ConfigurationConstants) {  \nreturn {  \n/* The name of the record page object's schema. */  \nentitySchemaName: \"KnowledgeBase\",  \n/* The methods of the record page's view model. */  \nmethods: {  \n/* Call before the image selection box opens. */  \nbeforePhotoFileSelected: function() {  \nreturn true;  \n},  \n/* Receive the image by link. */  \ngetPhotoSrcMethod: function() {  \n/* Receive the image link from the object column. */  \nvar imageColumnValue = this.get(\"UsrLogo\");  \n/* If the link is specified, return the image file URL. */  \nif (imageColumnValue) {  \nreturn this.getSchemaImageUrl(imageColumnValue);  \n}  \n/* If the link is not specified, return the default image. */  \nreturn this.Terrasoft.ImageUrlBuilder.getUrl(this.get(\"Resources.Images.DefaultLogo\"));  \n},  \n/* Handle the image change.   \nphoto is the image file. */  \nonPhotoChange: function(photo) {  \nif (!photo) {  \nthis.set(\"UsrLogo\", null);  \nreturn;  \n}  \n/* Upload the file to the database. Call onPhotoUploaded once the upload finishes. */  \nthis.Terrasoft.ImageApi.upload({  \nfile: photo,  \nonComplete: this.onPhotoUploaded,  \nonError: this.Terrasoft.emptyFn,  \nscope: this  \n});  \n},  \n/* Save the link to the changed image.   \nimageId is the ID of the file saved in the database. */  \nonPhotoUploaded: function(imageId) {  \nvar imageData = {  \nvalue: imageId,  \ndisplayValue: \"Image\"  \n};  \n/* Assign the image link to the image column. */  \nthis.set(\"UsrLogo\", imageData);  \n}  \n},  \n/* Display the field on the record page. */  \ndiff: /**SCHEMA_DIFF*/[  \n/* Metadata to add the custom image field to the record page. */  \n{  \n/* Add the element to the page. */  \n\"operation\": \"insert\",  \n/* The meta name of the parent container to add the field. */  \n\"parentName\": \"Header\",  \n/* Add the image to the parent element's collection of elements. */  \n\"propertyName\": \"items\",  \n/* The meta name of the image to add. */  \n\"name\": \"PhotoContainer\",  \n/* The properties to pass to the element's constructor. */  \n\"values\": {  \n/* Set the type of the added element to \"container.\" */  \n\"itemType\": Terrasoft.ViewItemType.CONTAINER,  \n/* The name of the CSS class. */  \n\"wrapClass\": [\"image-edit-container\"],  \n/* Set up the image layout. */  \n\"layout\": {   \n/* The column number. */  \n\"column\": 0,   \n/* The row number. */  \n\"row\": 0,   \n/* The row span. */  \n\"rowSpan\": 3,   \n/* The column span. */  \n\"colSpan\": 3   \n},  \n/* The array of nested elements. */  \n\"items\": []  \n}  \n},  \n/* The \"UsrLogo\" field contains the account logo. */  \n{  \n\"operation\": \"insert\",  \n\"parentName\": \"PhotoContainer\",  \n\"propertyName\": \"items\",  \n\"name\": \"UsrLogo\",  \n\"values\": {  \n/* The method that retrieves the image by link. */  \n\"getSrcMethod\": \"getPhotoSrcMethod\",  \n/* The method that is called upon the image change. */  \n\"onPhotoChange\": \"onPhotoChange\",  \n/* The method that is called before the image selection box opens. */  \n\"beforeFileSelected\": \"beforePhotoFileSelected\",  \n/* The property that flags the image as editable. */  \n\"readonly\": false,  \n/* The view generator of the control. */  \n\"generator\": \"ImageCustomGeneratorV2.generateCustomImageControl\"  \n}  \n},  \n/* Change the layout of the \"Name\" field. */  \n{  \n/* Execute the operation that modifies the existing element. */  \n\"operation\": \"merge\",  \n\"name\": \"Name\",  \n\"parentName\": \"Header\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n\"bindTo\": \"Name\",  \n\"layout\": {  \n\"column\": 3,  \n\"row\": 0,  \n\"colSpan\": 20  \n}  \n}  \n},  \n/* Change the layout of the \"ModifiedBy\" field. */  \n{  \n\"operation\": \"merge\",  \n\"name\": \"ModifiedBy\",  \n\"parentName\": \"Header\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n\"bindTo\": \"ModifiedBy\",  \n\"layout\": {  \n\"column\": 3,  \n\"row\": 2,  \n\"colSpan\": 20  \n}  \n}  \n},  \n/* Change the layout of the \"Type\" field. */  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Type\",  \n\"parentName\": \"Header\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n\"bindTo\": \"Type\",  \n\"layout\": {  \n\"column\": 3,  \n\"row\": 1,  \n\"colSpan\": 20  \n},  \n\"contentType\": Terrasoft.ContentType.ENUM  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n}  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/docs/sites/academy_en/files/packages/AddFieldWithImageToPage/8.1/sdkAddFieldWithImageToPagePackage_2024-04-17_13.05.49.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"KnowledgeBasePageV2\", [\"KnowledgeBasePageV2Resources\", \"ConfigurationConstants\"], function(resources, ConfigurationConstants) {    return {        ...    }});",
+      "language": "js",
+      "context": "For this example, add theKnowledgeBasePageV2ResourcesandConfigurationConstantsmodules as dependencies.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": " /* The name of the record page object's schema. */entitySchemaName: \"KnowledgeBase\",",
+      "language": "js",
+      "context": "Specify the object schemathat is used in the replacing view model schema.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* The methods of the record page's view model. */methods: {    /* Call before the image selection box opens. */    beforePhotoFileSelected: function() {        return true;    },    /* Receive the image by link. */    getPhotoSrcMethod: function() {        /* Receive the image link from the object column. */        var imageColumnValue = this.get(\"UsrLogo\");        /* If the link is specified, return the image file URL. */        if (imageColumnValue) {            return this.getSchemaImageUrl(imageColumnValue);        }        /* If the link is not specified, return the default image. */        return this.Terrasoft.ImageUrlBuilder.getUrl(this.get(\"Resources.Images.DefaultLogo\"));    },    /* Handle the image change.     photo is the image file. */    onPhotoChange: function(photo) {        if (!photo) {            this.set(\"UsrLogo\", null);            return;        }        /* Upload the file to the database. Call onPhotoUploaded once the upload finishes. */        this.Terrasoft.ImageApi.upload({            file: photo,            onComplete: this.onPhotoUploaded,            onError: this.Terrasoft.emptyFn,            scope: this        });    },    /* Save the link to the changed image.     imageId is the ID of the file saved in the database. */    onPhotoUploaded: function(imageId) {        var imageData = {            value: imageId,            displayValue: \"Image\"        };        /* Assign the image link to the image column. */        this.set(\"UsrLogo\", imageData);    }},",
+      "language": "js",
+      "context": "Saves the link to the changed image in the object column.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Display the field on the record page. */diff: /**SCHEMA_DIFF*/[    /* Metadata to add the custom image field to the record page. */    {        /* Add the element to the page. */        \"operation\": \"insert\",        /* The meta name of the parent container to add the field. */        \"parentName\": \"Header\",        /* Add the image to the parent element's collection of elements. */        \"propertyName\": \"items\",        /* The meta name of the image to add. */        \"name\": \"PhotoContainer\",        /* The properties to pass to the element's constructor. */        \"values\": {            /* Set the type of the added element to \"container.\" */            \"itemType\": Terrasoft.ViewItemType.CONTAINER,            /* The name of the CSS class. */            \"wrapClass\": [\"image-edit-container\"],            /* Set up the image layout. */            \"layout\": {                 /* The column number. */                \"column\": 0,                 /* The row number. */                \"row\": 0,                 /* The row span. */                \"rowSpan\": 3,                 /* The column span. */                \"colSpan\": 3             },            /* The array of nested elements. */            \"items\": []        }    },    /* The \"UsrLogo\" field contains the account logo. */    {        \"operation\": \"insert\",        \"parentName\": \"PhotoContainer\",        \"propertyName\": \"items\",        \"name\": \"UsrLogo\",        \"values\": {            /* The method that retrieves the image by link. */            \"getSrcMethod\": \"getPhotoSrcMethod\",            /* The method that is called upon the image change. */            \"onPhotoChange\": \"onPhotoChange\",            /* The method that is called before the image selection box opens. */            \"beforeFileSelected\": \"beforePhotoFileSelected\",            /* The property that flags the image as editable. */            \"readonly\": false,            /* The view generator of the control. */            \"generator\": \"ImageCustomGeneratorV2.generateCustomImageControl\"        }    },    /* Change the layout of the \"Name\" field. */    {        /* Execute the operation that modifies the existing element. */        \"operation\": \"merge\",        \"name\": \"Name\",        \"parentName\": \"Header\",        \"propertyName\": \"items\",        \"values\": {            \"bindTo\": \"Name\",            \"layout\": {                \"column\": 3,                \"row\": 0,                \"colSpan\": 20            }        }    },    /* Change the layout of the \"ModifiedBy\" field. */    {        \"operation\": \"merge\",        \"name\": \"ModifiedBy\",        \"parentName\": \"Header\",        \"propertyName\": \"items\",        \"values\": {            \"bindTo\": \"ModifiedBy\",            \"layout\": {                \"column\": 3,                \"row\": 2,                \"colSpan\": 20            }        }    },    /* Change the layout of the \"Type\" field. */    {        \"operation\": \"merge\",        \"name\": \"Type\",        \"parentName\": \"Header\",        \"propertyName\": \"items\",        \"values\": {            \"bindTo\": \"Type\",            \"layout\": {                \"column\": 3,                \"row\": 1,                \"colSpan\": 20            },            \"contentType\": Terrasoft.ContentType.ENUM        }    }]/**SCHEMA_DIFF*/",
+      "language": "js",
+      "context": "If you add an image field to the page of the knowledge base article, the layout of base page fields can break. To avoid this, change the layout of existingName,Type,Modified Byfields in addition to pl",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"KnowledgeBasePageV2\", [\"KnowledgeBasePageV2Resources\", \"ConfigurationConstants\"], function(resources, ConfigurationConstants) {    return {        /* The name of the record page object's schema. */        entitySchemaName: \"KnowledgeBase\",        /* The methods of the record page's view model. */        methods: {            /* Call before the image selection box opens. */            beforePhotoFileSelected: function() {                return true;            },            /* Receive the image by link. */            getPhotoSrcMethod: function() {                /* Receive the image link from the object column. */                var imageColumnValue = this.get(\"UsrLogo\");                /* If the link is specified, return the image file URL. */                if (imageColumnValue) {                    return this.getSchemaImageUrl(imageColumnValue);                }                /* If the link is not specified, return the default image. */                return this.Terrasoft.ImageUrlBuilder.getUrl(this.get(\"Resources.Images.DefaultLogo\"));            },            /* Handle the image change.             photo is the image file. */            onPhotoChange: function(photo) {                if (!photo) {                    this.set(\"UsrLogo\", null);                    return;                }                /* Upload the file to the database. Call onPhotoUploaded once the upload finishes. */                this.Terrasoft.ImageApi.upload({                    file: photo,                    onComplete: this.onPhotoUploaded,                    onError: this.Terrasoft.emptyFn,                    scope: this                });            },            /* Save the link to the changed image.             imageId is the ID of the file saved in the database. */            onPhotoUploaded: function(imageId) {                var imageData = {                    value: imageId,                    displayValue: \"Image\"                };                /* Assign the image link to the image column. */                this.set(\"UsrLogo\", imageData);            }        },        /* Display the field on the record page. */        diff: /**SCHEMA_DIFF*/[            /* Metadata to add the custom image field to the record page. */            {                /* Add the element to the page. */                \"operation\": \"insert\",                /* The meta name of the parent container to add the field. */                \"parentName\": \"Header\",                /* Add the image to the parent element's collection of elements. */                \"propertyName\": \"items\",                /* The meta name of the image to add. */                \"name\": \"PhotoContainer\",                /* The properties to pass to the element's constructor. */                \"values\": {                    /* Set the type of the added element to \"container.\" */                    \"itemType\": Terrasoft.ViewItemType.CONTAINER,                    /* The name of the CSS class. */                    \"wrapClass\": [\"image-edit-container\"],                    /* Set up the image layout. */                    \"layout\": {                         /* The column number. */                        \"column\": 0,                         /* The row number. */                        \"row\": 0,                         /* The row span. */                        \"rowSpan\": 3,                         /* The column span. */                        \"colSpan\": 3                     },                    /* The array of nested elements. */                    \"items\": []                }            },            /* The \"UsrLogo\" field contains the account logo. */            {                \"operation\": \"insert\",                \"parentName\": \"PhotoContainer\",                \"propertyName\": \"items\",                \"name\": \"UsrLogo\",                \"values\": {                    /* The method that retrieves the image by link. */                    \"getSrcMethod\": \"getPhotoSrcMethod\",                    /* The method that is called upon the image change. */                    \"onPhotoChange\": \"onPhotoChange\",                    /* The method that is called before the image selection box opens. */                    \"beforeFileSelected\": \"beforePhotoFileSelected\",                    /* The property that flags the image as editable. */                    \"readonly\": false,                    /* The view generator of the control. */                    \"generator\": \"ImageCustomGeneratorV2.generateCustomImageControl\"                }            },            /* Change the layout of the \"Name\" field. */            {                /* Execute the operation that modifies the existing element. */                \"operation\": \"merge\",                \"name\": \"Name\",                \"parentName\": \"Header\",                \"propertyName\": \"items\",                \"values\": {                    \"bindTo\": \"Name\",                    \"layout\": {                        \"column\": 3,                        \"row\": 0,                        \"colSpan\": 20                    }                }            },            /* Change the layout of the \"ModifiedBy\" field. */            {                \"operation\": \"merge\",                \"name\": \"ModifiedBy\",                \"parentName\": \"Header\",                \"propertyName\": \"items\",                \"values\": {                    \"bindTo\": \"ModifiedBy\",                    \"layout\": {                        \"column\": 3,                        \"row\": 2,                        \"colSpan\": 20                    }                }            },            /* Change the layout of the \"Type\" field. */            {                \"operation\": \"merge\",                \"name\": \"Type\",                \"parentName\": \"Header\",                \"propertyName\": \"items\",                \"values\": {                    \"bindTo\": \"Type\",                    \"layout\": {                        \"column\": 3,                        \"row\": 1,                        \"colSpan\": 20                    },                    \"contentType\": Terrasoft.ContentType.ENUM                }            }        ]/**SCHEMA_DIFF*/    }});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Parent object",
+          "KnowledgeBase"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Parent object</p></center></td><td><center><p>KnowledgeBase</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrLogo"
+        ],
+        [
+          "Title",
+          "Logo of the knowledge base article"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrLogo</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>Logo of the knowledge base article</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Image",
+          "Logo of the knowledge base article"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Image</p></center></td><td><center><p>Logo of the knowledge base article</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Parent object",
+          "KnowledgeBasePageV2"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Parent object</p></center></td><td><center><p>KnowledgeBasePageV2</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "DefaultLogo"
+        ],
+        [
+          "Image",
+          "Upload the image file"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>DefaultLogo</p></center></td></tr><tr><td><center><p>Image</p></center></td><td><center><p>Upload the image file</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Method",
+          "Method description"
+        ],
+        [
+          "getPhotoSrcMethod()",
+          "Receives the image by link."
+        ],
+        [
+          "beforePhotoFileSelected()",
+          "Called before the image selection box opens."
+        ],
+        [
+          "onPhotoChange()",
+          "Called upon the image change."
+        ],
+        [
+          "onPhotoUploaded()",
+          "Saves the link to the changed image in the object column."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Method</p></th><th><p>Method description</p></th></tr><tr><td><p>getPhotoSrcMethod()</p></td><td><p>Receives the image by link.</p></td></tr><tr><td><p>beforePhotoFileSelected()</p></td><td><p>Called before the image selection box opens.</p></td></tr><tr><td><p>onPhotoChange()</p></td><td><p>Called upon the image change.</p></td></tr><tr><td><p>onPhotoUploaded()</p></td><td><p>Saves the link to the changed image in the object column.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd an image field to the page of a knowledge base article. Use the image provided below as a default field value.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add an image field to the page of a knowledge base article. Use the image provided below as a default field value.</p><figure><figcaption> <a id=\"\" name=\"\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/logo.png\"/></div></figure><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_result.png\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add an image field to the page of a knowledge base article. Use the image provided below as a default field value.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add an image field to the page of a knowledge base article. Use the image provided below as a default field value.</p><figure><figcaption> <a id=\"\" name=\"\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/logo.png\"/></div></figure><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_result.png\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/logo.png",
+      "alt": "",
+      "title": "",
+      "context": "Add an image field to the page of a knowledge base article. Use the image provided below as a defaul",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e1796e31227bcc3f__platform-customization_classic-ui_record-page_field_examples_add-an-image-field_3228be7bd512.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "Add an image field to the page of a knowledge base article. Use the image provided below as a defaul",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e1796e31227bcc3f__platform-customization_classic-ui_record-page_field_examples_add-an-image-field_538ab9fd18ed.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the properties area \u2192Columnsnode\u2019s context menu \u2192\u2192Other\u2192Image Link.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e1796e31227bcc3f__platform-customization_classic-ui_record-page_field_examples_add-an-image-field_d1cda91261d1.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_add_column.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the properties area \u2192Columnsnode\u2019s context menu \u2192\u2192Other\u2192Image Link.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e1796e31227bcc3f__platform-customization_classic-ui_record-page_field_examples_add-an-image-field_9411436e4e83.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddFieldWithImageToPage/8.1/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the properties area \u2192Imagesnode\u2019s context menu \u2192.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e1796e31227bcc3f__platform-customization_classic-ui_record-page_field_examples_add-an-image-field_d1cda91261d1.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/docs/sites/academy_en/files/packages/AddFieldWithImageToPage/8.1/sdkAddFieldWithImageToPagePackage_2024-04-17_13.05.49.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAddFieldWithImageToPagePackage_2024-04-17_13.05.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/e1796e31227bcc3f__platform-customization_classic-ui_record-page_field_examples_add-an-image-field_sdkAddFieldWithImageToPagePackage_2024-04-17_13.05.49.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add an image field to a record page",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Add an image column to the object schema\u200b",
+      "anchor": "title-3196-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Add an image field to the record page\u200b",
+      "anchor": "title-3196-2"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-3196-3"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-3196-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GETSCHEMAIMAGEURL",
+        "path": "("
+      },
+      {
+        "method": "GETURL",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      },
+      {
+        "method": "UPLOAD",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GETSCHEMAIMAGEURL",
+        "path": "("
+      },
+      {
+        "method": "GETURL",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      },
+      {
+        "method": "UPLOAD",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-an-image-field",
+      "text": "Add an image field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-an-image-field",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/record-page-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/field-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-a-field-a-new-column",
+      "text": "Add a field (a new column)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-a-field-an-existing-column",
+      "text": "PreviousAdd a field (an existing column)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-a-calculated-field",
+      "text": "NextAdd a calculated field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-a-multicurrency-field",
+      "text": "Add a multicurrency field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/implement-the-validation-of-a-date-time-type-field",
+      "text": "Implement the validation of a Date/Time type field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/implement-the-validation-of-a-string-type-field",
+      "text": "Implement the validation of a String type field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/set-the-default-value",
+      "text": "Set the default field value",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/make-required",
+      "text": "Make required field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/set-up-filtering-of-lookup-field-values",
+      "text": "Set up filtering of lookup field values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/set-up-filtering-of-bound-lookup-field-values",
+      "text": "Set up filtering of bound lookup field values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/set-up-the-lock-conditions",
+      "text": "Set up the conditions that lock a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/keep-fields-unlocked",
+      "text": "Keep fields unlocked",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/set-up-the-display-conditions",
+      "text": "Set up the display conditions of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/enable-the-automatic-numbering-front-end",
+      "text": "Enable the automatic field numbering (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/enable-the-automatic-numbering-back-end",
+      "text": "Enable the automatic field numbering (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/attach-an-info-button",
+      "text": "Attach an info button to a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-a-tooltip",
+      "text": "Add a tooltip to a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/action-dashboard-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/timeline/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/timeline-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/connected-entity-profile/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/sites/academy_en/files/packages/AddFieldWithImageToPage/8.1/sdkAddFieldWithImageToPagePackage_2024-04-17_13.05.49.zip",
+      "text": "Package with example implementation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:06:05.153625"
+}

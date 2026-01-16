@@ -1,0 +1,1 @@
+{    // The name of the element for which the module settings are defined.    "SomeInvoiceChart": {        // Name of the "DashboardItem" view element.        "widgetType": "Chart",        // Parameters required to display data for a particular "DashboardItem" element.        "parameters": {            "caption": "some caption",            ...        },    },    {...}}

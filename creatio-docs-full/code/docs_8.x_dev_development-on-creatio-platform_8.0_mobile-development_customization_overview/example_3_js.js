@@ -1,0 +1,1 @@
+[    {        "operation": "merge",        "name": "settings",        "values": {"modelViewConfig":"{\"viewConfig\":{\"properties\":{\"body\":{\"properties\":{\"name\":\"CaseEntityList\",\"itemLayout\":{\"properties\":{\"subtitles\":[{\"alias\":\"Case.Status\",\"label\":{\"visible\":false},\"value\":\"$Status\"}]}}}}}}}"        }    }    ...]

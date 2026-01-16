@@ -1,0 +1,1 @@
+HasWhenItems bool

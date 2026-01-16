@@ -1,0 +1,1 @@
+/** * @inheritDoc Terrasoft.BaseModule#render * @override */render: function(renderTo) {    this.callParent(arguments);    const component = document.createElement("angular-element-component");    component.setAttribute("id", this.id);    renderTo.appendChild(component);}

@@ -1,0 +1,1 @@
+<add key="quartz.jobStore.misfireThreshold" value="600000" />;

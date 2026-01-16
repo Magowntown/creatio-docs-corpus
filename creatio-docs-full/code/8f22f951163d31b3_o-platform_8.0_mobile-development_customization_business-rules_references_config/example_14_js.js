@@ -1,0 +1,1 @@
+Ext.callback(callbackConfig.success, callbackConfig.scope, [result]);Ext.callback(callbackConfig.failure, callbackConfig.scope, [exception]);

@@ -1,0 +1,1 @@
+static void SetFeatureState(this UserConnection source, string code, int state, bool forAllUsers = false)

@@ -1,0 +1,1 @@
+-autoUpdateConfigurationVersion

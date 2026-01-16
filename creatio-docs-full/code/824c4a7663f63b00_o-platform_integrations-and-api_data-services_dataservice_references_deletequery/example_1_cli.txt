@@ -1,0 +1,1 @@
+// URL example of the POST query to DataService to delete data.http(s)://example.creatio.com/0/dataservice/json/reply/DeleteQuery

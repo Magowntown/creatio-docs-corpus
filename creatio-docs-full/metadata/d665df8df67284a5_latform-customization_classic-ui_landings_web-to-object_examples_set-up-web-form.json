@@ -1,0 +1,1090 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/landings/web-to-object/examples/set-up-web-form",
+  "title": "Set up web form for a custom object",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1"
+    },
+    {
+      "text": "Landings",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings"
+    },
+    {
+      "text": "Web-To-Object",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-to-object-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nCreate a custom Creatio object via a landing page web form on a third party website. Learn more about landing pages in the [Integrate with landing pages and web forms](https://academy.creatio.com/documents?id=1081) article (user documentation).\nThe general procedure of creating a custom object via a web form is as follows:\n1. Register a new landing page type.\n2. Add an edit page for the web form.\n3. Map the new landing page type to the created edit page.\n4. Update the scripts for the web form record page.\n5. Create and configure a landing page in the **Landing pages and web forms** section.\n6. Deploy and set up a landing page with a web form.\nImportant\nTracking website events only works for leads and does not work for custom objects.\n## Case description\u200b\nCreate a custom **Contact** object using a landing page web form.\n## Source code\u200b\nYou can download the package with an implementation of the case using the following [link](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWebFormPackage_20.07.07_16.56.49.zip).\n## Case implementation algorithm\u200b\n### 1\\. Register a new landing page type\u200b\nTo do this:\n1. Open the System Designer by clicking ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Settings_button.png). Go to the **System setup** block \u2192 click **Lookups**.\n2. Select the **Landing types** lookup.\n3. Add a new record.\nIn the created record, specify (Fig.1):\n* **Name** \u2013 \"Contact\"\n* **Object** \u2013 \"Contact.\"\nFig. 1. Setting landing page parameters \n![Fig. 1. Setting landing page parameters](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Lookup.png)\n### 2\\. Add an edit page for the web form\u200b\n1. Run the **Add** \u2192 **Schema of the Edit Page View Model** menu command on the **Schemas** tab in the **Configuration** section of the user-made package (Fig. 2). The procedure for creating a view model schema of the edit page is covered in the [Client module](https://academy.creatio.com/documents?ver=8.1&id=15106) article.\nFig. 2. \u2013 Adding a view model schema of the edit page \n![Fig. 2. \u2013 Adding a view model schema of the edit page](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_SchemaEditPageViewModule.png)\n2. Specify the following parameters for the created schema of the edit page view model (Fig. 3):\n* **Title** \u2013 \"ContactGeneratedWebFormPage\"\n* **Name** \u2013 \"UsrContactGeneratedWebFormPage\"\n* **Parent object** \u2013 \"Edit page, landing.\"\nFig. 3. Setting up the mini-page view model schema \n![Fig. 3. Setting up the mini-page view model schema](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_ContactGeneratedWebFormPage_Settings.png)\nComplete source code of the module\n// UsrContactGeneratedWebFormPage \u2013 unique schema name.  \ndefine(\"UsrContactGeneratedWebFormPage\", [\"UsrContactGeneratedWebFormPageResources\"], function() {  \nreturn {  \ndetails: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,  \nmethods: {  \n/**  \n* @inheritdoc BaseGeneratedWebFormPageV2#getScriptTemplateFromResources  \n* @overriden  \n*/  \ngetScriptTemplateFromResources: function() {  \nvar scriptTemplate;  \nif (this.getIsFeatureEnabled(\"OutboundCampaign\")) {  \n// ContactScriptTemplate \u2013 localizable string name.  \nscriptTemplate = this.get(\"Resources.Strings.ContactScriptTemplate\");  \n} else {  \nscriptTemplate = this.get(\"Resources.Strings.ScriptTemplate\");  \n}  \nreturn scriptTemplate;  \n}  \n},  \ndiff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/  \n};  \n});  \n3. Save the schema after making the changes.\n4. Add the `ContactScriptTemplate` localizable string. Specify `<div>Test</div>` as the string value (Fig. 4).\nFig. 4. Setting up a localizable string \n![Fig. 4. Setting up a localizable string](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_LocalizableString_Settings.png)\n5. Save the schema after making the changes.\n### 3\\. Map the new landing page type to the created edit page\u200b\n1. Add the record to the **dbo.SysModuleEdit** DB table. Execute the following SQL query to add the record:\n* MSSQL\n* PostgreSQL\n-- Parameters of new landing page  \nDECLARE @editPageName nvarchar(250) = N'UsrContactGeneratedWebFormPage'; -- declare the name of the created schema  \nDECLARE @landingTypeName NVARCHAR(250) = N'Contact'; -- the type name of the landing  \nDECLARE @actionCaption NVARCHAR(250) = N'Contact form'; -- declare the type name for the landing in the section when creating a new record  \n-- Set system parameters based on new landing page  \nDECLARE @generatedWebFormEntityUId uniqueidentifier = '41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967';  \nDECLARE @cardSchemaUId uniqueidentifier = (select top 1 UId from SysSchema where Name = @editPageName);  \nDECLARE @pageCaption nvarchar(250) = (select top 1 Caption from SysSchema where Name = @editPageName);  \nDECLARE @sysModuleEntityId uniqueidentifier = (select top 1 Id from SysModuleEntity where SysEntitySchemaUId = @generatedWebFormEntityUId);  \nDECLARE @landingTypeId uniqueidentifier = (SELECT TOP 1 Id FROM LandingType WHERE Name = @landingTypeName);  \n-- Adding new Landing page variant to application interface  \nINSERT INTO SysModuleEdit  \n(Id, SysModuleEntityId, TypeColumnValue, UseModuleDetails, CardSchemaUId, ActionKindCaption, ActionKindName, PageCaption)  \nVALUES  \n(NEWID(), @sysModuleEntityId, @landingTypeId, 1, @cardSchemaUId, @actionCaption, @editPageName, @pageCaption)  \nDO $$  \nDECLARE  \nv_editPageName VARCHAR(250) := N'ContactGeneratedWebFormPageV2';  \nv_landingTypeName VARCHAR(250) := N'Contact';  \nv_actionCaption VARCHAR(250) := N'Contact form';  \nv_pageCaption varchar(250) := (select \"Caption\" from \"SysSchema\" where \"Name\" = v_editPageName);  \nv_generatedWebFormEntityUId UUID := '41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967';  \nv_cardSchemaUId UUID := (select \"UId\" from \"SysSchema\" where \"Name\" = v_editPageName);  \nv_sysModuleEntityId UUID := (select \"Id\" from \"SysModuleEntity\" where \"SysEntitySchemaUId\" = v_generatedWebFormEntityUId);  \nv_landingTypeId UUID := (SELECT \"Id\" FROM \"LandingType\" WHERE \"Name\" = v_landingTypeName);  \nBEGIN  \nINSERT INTO \"SysModuleEdit\"  \n(\"SysModuleEntityId\", \"TypeColumnValue\", \"UseModuleDetails\", \"CardSchemaUId\", \"ActionKindCaption\", \"ActionKindName\", \"PageCaption\")  \nVALUES  \n(v_sysModuleEntityId, v_landingTypeId, true, v_cardSchemaUId, v_actionCaption, v_editPageName, v_pageCaption);  \nEND;  \n$$  LANGUAGE plpgsql;  \nImportant\n`41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967` \u2013 non-editable identifier of the `GeneratedWebForm` entity schema in the **dbo.SysSchema** DB table. The ID is relevant for any case featuring adding a landing page for a custom entity.\n2. Clear the browser cache after running the script. As a result, you will be able to add the new **Contact form** landing type in the **Landing pages and web forms** section. However, the script that must be added to the source code of the landing page will not be immediately available on the landing record page (Fig. 6).\nFig. 5. The record list of the [Landing pages and web forms] section \n![Fig. 5. The record list of the \\[Landing pages and web forms\\] section](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_ContactForm.png)\nFig. 6. Landing edit page \n![Fig. 6. Landing edit page](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_LandingWithoutCode.png)\n### 4\\. Update the scripts for the web form record page\u200b\n1. The value of the variable contains an escaped HTML string with tags and other information for setting up web form field clusters \u2013 the columns for the created entity. This value must be localizable. To do so, execute the following SQL query:\n-- Landing edit page schema name  \nDECLARE @editPageName nvarchar(250) = N'UsrContactGeneratedWebFormPage'; -- declare the name of the created schema  \n-- region Scripts' structure  \nDECLARE @sqriptPrefix nvarchar(max) = N'<div style=\"font-family: \"Courier New\", monospace; font-size: 10pt;\"><script\u00a0src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js\"></script><br><script\u00a0src=\"https://webtracking-v01.bpmonline.com/JS/track-cookies.js\"></script><br><script\u00a0src=##apiUrl##></script><br><script><br>/**<br>*\u00a0Replace\u00a0the\u00a0\"<span style=\"color: #0c0cec;\">css-selector</span>\"\u00a0placeholders\u00a0in\u00a0the\u00a0code\u00a0below\u00a0with\u00a0the\u00a0element\u00a0selectors\u00a0on\u00a0your\u00a0landing\u00a0page.<br>*\u00a0You\u00a0can\u00a0use\u00a0#id\u00a0or\u00a0any\u00a0other\u00a0CSS\u00a0selector\u00a0that\u00a0will\u00a0define\u00a0the\u00a0input\u00a0field\u00a0explicitly.<br>*\u00a0Example:\u00a0\"Email\":\u00a0\"#MyEmailField\".<br>*\u00a0If\u00a0you\u00a0don\"t\u00a0have\u00a0a\u00a0field\u00a0from\u00a0the\u00a0list\u00a0below\u00a0placed\u00a0on\u00a0your\u00a0landing,\u00a0leave\u00a0the\u00a0placeholder\u00a0or\u00a0remove\u00a0the\u00a0line.<br>*/<br>var\u00a0config\u00a0=\u00a0{<br>\u00a0\u00a0\u00a0\u00a0fields:\u00a0{<br>\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0';  \nDECLARE @sqriptDelimiter nvarchar(max) = N'<br>\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0';  \nDECLARE @sqriptSuffix nvarchar(max) = N'<br>\u00a0\u00a0\u00a0\u00a0},<br>\u00a0\u00a0\u00a0\u00a0landingId:\u00a0##landingId##,<br>\u00a0\u00a0\u00a0\u00a0serviceUrl:\u00a0##serviceUrl##,<br>\u00a0\u00a0\u00a0\u00a0redirectUrl:\u00a0##redirectUrl##<br>};<br>/**<br>*\u00a0The\u00a0function\u00a0below\u00a0creates\u00a0a\u00a0object\u00a0from\u00a0the\u00a0submitted\u00a0data.<br>*\u00a0Bind\u00a0this\u00a0function\u00a0call\u00a0to\u00a0the\u00a0\"onSubmit\"\u00a0event\u00a0of\u00a0the\u00a0form\u00a0or\u00a0any\u00a0other\u00a0elements\u00a0events.<br>*\u00a0Example:\u00a0<form\u00a0class=\"mainForm\"\u00a0name=\"landingForm\"\u00a0onSubmit=\"createObject();\u00a0return\u00a0false\"><br>*/<br>function\u00a0createObject()\u00a0{<br>\u00a0\u00a0\u00a0\u00a0landing.createObjectFromLanding(config)<br>}<br>/**<br>*\u00a0The\u00a0function\u00a0below\u00a0inits\u00a0landing\u00a0page\u00a0using\u00a0URL\u00a0parameters.<br>*/<br>function\u00a0initLanding()\u00a0{<br>\u00a0\u00a0\u00a0\u00a0landing.initLanding(config)<br>}<br>jQuery(document).ready(initLanding)<br></script></div>';  \n-- endregion  \n-- region Scripts' variables  \nDECLARE @sqriptNameColumn nvarchar(max); -- declare column variables to map to the landing  \nDECLARE @sqriptEmailColumn nvarchar(max);  \nDECLARE @scriptResult nvarchar(max);  \n-- endregion  \n-- Adding entity columns.  \nSET @sqriptNameColumn = N'\"Name\":\u00a0\"css-selector\",\u00a0//\u00a0Name\u00a0of\u00a0a\u00a0contact';  \nSET @sqriptEmailColumn = N'\"Email\":\u00a0\"css-selector\",\u00a0//\u00a0Email';  \n-- Concat result scripts.  \nSET @scriptResult = @sqriptPrefix + @sqriptNameColumn + @sqriptDelimiter + @sqriptEmailColumn + @sqriptSuffix;  \n-- Set new localizable scripts value for resource with name like '%ScriptTemplate'  \nUPDATE SysLocalizableValue  \nSET [Value] = @scriptResult  \nWHERE SysSchemaId = (SELECT TOP 1 Id FROM SysSchema WHERE [Name] = @editPageName)  \nand [Key] like '%ScriptTemplate.Value'  \n2. In the **Adding entity columns** block, add the names of the entity columns to be filled with the values from the web form.\nImportant\nReplace the double quote (\") and space ( ) characters with the `&quot;` and `&nbsp;` HTML character entity references.\nImportant\nAdd the `@scriptVariableNameColumn` variable and [concatenate](https://en.wikipedia.org/wiki/Concatenation) it to `scriptResult` for adding a field.\nIf the values of other fields (except for **Name** and **Email**) are required after completing the setup, re-run the script from this paragraph after registering all of the required columns, including the existing ones, in the **Adding entity columns** block. When the script is re-run, the settings created earlier are updated.\n3. After the script execution completes, open the schema created in the configuration and re-save it to re-save the resources as well. As a result, when selecting **Contact form** in the **Landing pages and web forms** section, Creatio will display the landing edit page (Fig. 6) combined with the script to copy to the landing page source code.\nFig. 7. Landing edit page \n![Fig. 7. Landing edit page](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Landing.png)\nThe script contains the `config` configuration object, which has the following properties defined:\n* `fields` \u2013 contains the **Name** and **Email** properties. Their values must match the selectors of the `id` attributes of the corresponding field of the web form.\n* `landingId` \u2013 the landing page ID in the database.\n* `serviceUrl` \u2013 the URL of the service to which the web form data will be sent.\n* `onSuccess` \u2013 the handler function to process a successful contact creation. Optional property.\n* `onError` \u2013 the handler function to process a contact creation error. Optional property.\nConfiguration to be formed\nvar config = {  \nfields: {  \n\"Name\": \"css-selector\", // Contact name  \n\"Email\": \"css-selector\", // Email name  \n},  \nlandingId: \"b73790ab-acb1-4806-baea-4342a1f3b2a8\",  \nserviceUrl: \"http://localhost:85/0/ServiceModel/GeneratedObjectWebFormService.svc/SaveWebFormObjectData\",  \nredirectUrl: \"\"  \n};  \n### 5\\. Create and configure a landing page in the [Landing pages and web forms] section\u200b\n1. Go the **Landing pages and web forms** section and click **Contact form**. \n2. In the created record, specify (Fig. 8):\n* **Name** \u2013 \"Contact\"\n* **Website domains** \u2013 \"<http://localhost:85/Landing/LandingPage.aspx>\"\n* **Status** \u2013 \"Active\".\nFig. 8. Landing edit page \n![Fig. 8. Landing edit page](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Contact_Settings.png)\n3. Save the page to apply the changes.\n### 6\\. Deploy and set up a landing page with a web form\u200b\n1. Create a landing page with a web form using HTML markup in any text editor. Learn more about creating a landing page and adding the landing script in the [Connect your website landing page to Creatio](https://academy.creatio.com/documents?id=1083) article (user documentation).\n2. To register contact data sent via the web form in Creatio, add the following fields ( HTML element) to the source code of the landing page:\n* Contact name.\n* Contact email.\nSpecify the `name` and `id` attributes for each field.\n3. To create a new `Contact` object when sending web form data to Creatio, add the JavaScript code to the landing page. Copy the source code from the **STEP 2. Copy the code and configure and map the fields** field on the landing record page (fig. 8).\nThe `config` object is passed as an argument of the `createObject()` function, which is executed upon submitting the web form.\nEnsure that the `createObject()` function is called upon submitting the web form. To do this, add the `onSubmit=\"createObject(); return false` attribute to the `<form></form>` element. You can retrieve the required attribute value from the **STEP 3. Insert the customized code into the landing page source code. Set up a function to create the object on form submit** field on the landing edit page (Fig. 8).\nComplete source code of the landing page\n<!DOCTYPE html>  \n<html>  \n<head>  \n<meta charset=\"utf-8\"><!--STEP 2--> <!--Copy this part from the STEP 2 field of the landing edit page--><script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js\"></script>  \n<script src=\"https://webtracking-v01.bpmonline.com/JS/track-cookies.js\"></script>  \n<script src=\"https://webtracking-v01.bpmonline.com/JS/create-object.js\"></script>  \n<script>  \n/**  \n* Replace the \"css-selector\" placeholders in the code below with the element selectors on your landing page.  \n* You can use #id or any other CSS selector that will define the input field explicitly.  \n* Example: \"Email\": \"#MyEmailField\".  \n* If you don\"t have a field from the list below placed on your landing, leave the placeholder or remove the line.  \n*/  \nvar config = {  \nfields: {  \n\"Name\": \"#name-field\", // Name of a contact  \n\"Email\": \"#email-field\", // Email  \n},  \nlandingId: \"b73790ab-acb1-4806-baea-4342a1f3b2a8\",  \nserviceUrl: \"http://localhost:85/0/ServiceModel/GeneratedObjectWebFormService.svc/SaveWebFormObjectData\",  \nredirectUrl: \"\",  \nonSuccess: function(response) {  \nwindow.alert(response.resultMessage);  \n},  \nonError: function(response) {  \nwindow.alert(response.resultMessage);  \n}  \n};  \n/**  \n* The function below creates a object from the submitted data.  \n* Bind this function call to the \"onSubmit\" event of the form or any other elements events.  \n* Example: <form class=\"mainForm\" name=\"landingForm\" onSubmit=\"createObject(); return false\">  \n*/  \nfunction createObject() {  \nlanding.createObjectFromLanding(config)  \n}  \n/**  \n* The function below inits landing page using URL parameters.  \n*/  \nfunction initLanding() {  \nlanding.initLanding(config)  \n}  \njQuery(document).ready(initLanding)  \n</script><!--STEP 2--></head>  \n<body>  \n<h1>Landing web-page</h1>  \n<div>  \n<h2>Contact form</h2>  \n<form method=\"POST\" class=\"mainForm\" name=\"landingForm\" onSubmit=\"createObject(); return false\">Name:<br><input type=\"text\" name=\"Name\" id=\"name-field\"><br> Email:<br><input type=\"text\" name=\"Email\" id=\"email-field\"><br><br><br><input type=\"submit\" value=\"Submit\"></form>  \n</div>  \n</body>  \n</html>  \n4. Open the landing page.\n5. Specify the values for the created contact (Fig. 9):\n* **Name** \u2013 \"New User\"\n* **Email** \u2013 \"[new_user@creatio.com](mailto:new_user@creatio.com)\".\nFig. 9. Landing page \n![Fig. 9. Landing page](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_LandingPage.png)\n6. Click **Submit** to create the contact.\nImportant\nThe contact from the landing page will only be added if the domain of the landing page is specified in the **Website domains** field on the landing record page.\nIf you place the page on the local server available via the [\"localhost\" reserved domain name](https://en.wikipedia.org/wiki/Localhost) (as specified in the landing page setup, Fig. 8), then the script for creating a contact from the landing page will work correctly (Fig. 10).\nFig. 10. A message about successful data addition \n![Fig. 10. A message about successful data addition](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_SuccessfullyAdding.png)\nAs a result, Creatio will create contact with the specified parameters (Fig. 11).\nFig. 11. Automatically created contact \n![Fig. 11. Automatically created contact](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_ContactCreating.png)",
+  "code_examples": [
+    {
+      "code": "// UsrContactGeneratedWebFormPage \u2013 unique schema name.define(\"UsrContactGeneratedWebFormPage\", [\"UsrContactGeneratedWebFormPageResources\"], function() {    return {        details: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,        methods: {            /**             * @inheritdoc BaseGeneratedWebFormPageV2#getScriptTemplateFromResources             * @overriden             */            getScriptTemplateFromResources: function() {                var scriptTemplate;                if (this.getIsFeatureEnabled(\"OutboundCampaign\")) {                    // ContactScriptTemplate \u2013 localizable string name.                    scriptTemplate = this.get(\"Resources.Strings.ContactScriptTemplate\");                } else {                    scriptTemplate = this.get(\"Resources.Strings.ScriptTemplate\");                }                return scriptTemplate;            }        },        diff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "Specify the following parameters for the created schema of the edit page view model (Fig. 3):",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "-- Parameters of new landing pageDECLARE @editPageName nvarchar(250) = N'UsrContactGeneratedWebFormPage'; -- declare the name of the created schemaDECLARE @landingTypeName NVARCHAR(250) = N'Contact'; -- the type name of the landingDECLARE @actionCaption NVARCHAR(250) = N'Contact form'; -- declare the type name for the landing in the section when creating a new record-- Set system parameters based on new landing pageDECLARE @generatedWebFormEntityUId uniqueidentifier = '41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967';DECLARE @cardSchemaUId uniqueidentifier = (select top 1 UId from SysSchema where Name = @editPageName);DECLARE @pageCaption nvarchar(250) = (select top 1 Caption from SysSchema where Name = @editPageName);DECLARE @sysModuleEntityId uniqueidentifier = (select top 1 Id from SysModuleEntity where SysEntitySchemaUId = @generatedWebFormEntityUId);DECLARE @landingTypeId uniqueidentifier = (SELECT TOP 1 Id FROM LandingType WHERE Name = @landingTypeName);-- Adding new Landing page variant to application interfaceINSERT INTO SysModuleEdit(Id, SysModuleEntityId, TypeColumnValue, UseModuleDetails, CardSchemaUId, ActionKindCaption, ActionKindName, PageCaption)VALUES(NEWID(), @sysModuleEntityId, @landingTypeId, 1, @cardSchemaUId, @actionCaption, @editPageName, @pageCaption)",
+      "language": "sql",
+      "context": "Add the record to thedbo.SysModuleEditDB table. Execute the following SQL query to add the record:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "DO $$DECLARE    v_editPageName VARCHAR(250) := N'ContactGeneratedWebFormPageV2';    v_landingTypeName VARCHAR(250) := N'Contact';    v_actionCaption VARCHAR(250) := N'Contact form';    v_pageCaption varchar(250) := (select \"Caption\" from \"SysSchema\" where \"Name\" = v_editPageName);    v_generatedWebFormEntityUId UUID := '41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967';    v_cardSchemaUId UUID := (select \"UId\" from \"SysSchema\" where \"Name\" = v_editPageName);    v_sysModuleEntityId UUID := (select \"Id\" from \"SysModuleEntity\" where \"SysEntitySchemaUId\" = v_generatedWebFormEntityUId);    v_landingTypeId UUID := (SELECT \"Id\" FROM \"LandingType\" WHERE \"Name\" = v_landingTypeName);BEGIN    INSERT INTO \"SysModuleEdit\"    (\"SysModuleEntityId\", \"TypeColumnValue\", \"UseModuleDetails\", \"CardSchemaUId\", \"ActionKindCaption\", \"ActionKindName\", \"PageCaption\")    VALUES    (v_sysModuleEntityId, v_landingTypeId, true, v_cardSchemaUId, v_actionCaption, v_editPageName, v_pageCaption);END;$$  LANGUAGE plpgsql;",
+      "language": "sql",
+      "context": "Add the record to thedbo.SysModuleEditDB table. Execute the following SQL query to add the record:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "-- Landing edit page schema nameDECLARE @editPageName nvarchar(250) = N'UsrContactGeneratedWebFormPage'; -- declare the name of the created schema-- region Scripts' structureDECLARE @sqriptPrefix nvarchar(max) = N'<div style=\"font-family: \"Courier New\", monospace; font-size: 10pt;\"><script\u00a0src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js\"></script><br><script\u00a0src=\"https://webtracking-v01.bpmonline.com/JS/track-cookies.js\"></script><br><script\u00a0src=##apiUrl##></script><br><script><br>/**<br>*\u00a0Replace\u00a0the\u00a0\"<span style=\"color: #0c0cec;\">css-selector</span>\"\u00a0placeholders\u00a0in\u00a0the\u00a0code\u00a0below\u00a0with\u00a0the\u00a0element\u00a0selectors\u00a0on\u00a0your\u00a0landing\u00a0page.<br>*\u00a0You\u00a0can\u00a0use\u00a0#id\u00a0or\u00a0any\u00a0other\u00a0CSS\u00a0selector\u00a0that\u00a0will\u00a0define\u00a0the\u00a0input\u00a0field\u00a0explicitly.<br>*\u00a0Example:\u00a0\"Email\":\u00a0\"#MyEmailField\".<br>*\u00a0If\u00a0you\u00a0don\"t\u00a0have\u00a0a\u00a0field\u00a0from\u00a0the\u00a0list\u00a0below\u00a0placed\u00a0on\u00a0your\u00a0landing,\u00a0leave\u00a0the\u00a0placeholder\u00a0or\u00a0remove\u00a0the\u00a0line.<br>*/<br>var\u00a0config\u00a0=\u00a0{<br>\u00a0\u00a0\u00a0\u00a0fields:\u00a0{<br>\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0';DECLARE @sqriptDelimiter nvarchar(max) = N'<br>\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0';DECLARE @sqriptSuffix nvarchar(max) = N'<br>\u00a0\u00a0\u00a0\u00a0},<br>\u00a0\u00a0\u00a0\u00a0landingId:\u00a0##landingId##,<br>\u00a0\u00a0\u00a0\u00a0serviceUrl:\u00a0##serviceUrl##,<br>\u00a0\u00a0\u00a0\u00a0redirectUrl:\u00a0##redirectUrl##<br>};<br>/**<br>*\u00a0The\u00a0function\u00a0below\u00a0creates\u00a0a\u00a0object\u00a0from\u00a0the\u00a0submitted\u00a0data.<br>*\u00a0Bind\u00a0this\u00a0function\u00a0call\u00a0to\u00a0the\u00a0\"onSubmit\"\u00a0event\u00a0of\u00a0the\u00a0form\u00a0or\u00a0any\u00a0other\u00a0elements\u00a0events.<br>*\u00a0Example:\u00a0<form\u00a0class=\"mainForm\"\u00a0name=\"landingForm\"\u00a0onSubmit=\"createObject();\u00a0return\u00a0false\"><br>*/<br>function\u00a0createObject()\u00a0{<br>\u00a0\u00a0\u00a0\u00a0landing.createObjectFromLanding(config)<br>}<br>/**<br>*\u00a0The\u00a0function\u00a0below\u00a0inits\u00a0landing\u00a0page\u00a0using\u00a0URL\u00a0parameters.<br>*/<br>function\u00a0initLanding()\u00a0{<br>\u00a0\u00a0\u00a0\u00a0landing.initLanding(config)<br>}<br>jQuery(document).ready(initLanding)<br></script></div>';-- endregion-- region Scripts' variablesDECLARE @sqriptNameColumn nvarchar(max); -- declare column variables to map to the landingDECLARE @sqriptEmailColumn nvarchar(max);DECLARE @scriptResult nvarchar(max);-- endregion-- Adding entity columns.SET @sqriptNameColumn = N'\"Name\":\u00a0\"css-selector\",\u00a0//\u00a0Name\u00a0of\u00a0a\u00a0contact';SET @sqriptEmailColumn = N'\"Email\":\u00a0\"css-selector\",\u00a0//\u00a0Email';-- Concat result scripts.SET @scriptResult = @sqriptPrefix + @sqriptNameColumn + @sqriptDelimiter + @sqriptEmailColumn + @sqriptSuffix;-- Set new localizable scripts value for resource with name like '%ScriptTemplate'UPDATE SysLocalizableValueSET [Value] = @scriptResultWHERE SysSchemaId = (SELECT TOP 1 Id FROM SysSchema WHERE [Name] = @editPageName)and [Key] like '%ScriptTemplate.Value'",
+      "language": "sql",
+      "context": "The value of the variable contains an escaped HTML string withtags and other information for setting up web form field clusters \u2013 the columns for the created entity. This value must be localizable. To",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var config = {    fields: {        \"Name\": \"css-selector\", // Contact name        \"Email\": \"css-selector\", // Email name    },    landingId: \"b73790ab-acb1-4806-baea-4342a1f3b2a8\",    serviceUrl: \"http://localhost:85/0/ServiceModel/GeneratedObjectWebFormService.svc/SaveWebFormObjectData\",    redirectUrl: \"\"};",
+      "language": "js",
+      "context": "The script contains theconfigconfiguration object, which has the following properties defined:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<!DOCTYPE html><html><head>    <meta charset=\"utf-8\"><!--STEP 2--> <!--Copy this part from the STEP 2 field of the landing edit page--><script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js\"></script>    <script src=\"https://webtracking-v01.bpmonline.com/JS/track-cookies.js\"></script>    <script src=\"https://webtracking-v01.bpmonline.com/JS/create-object.js\"></script>    <script>    /**    * Replace the \"css-selector\" placeholders in the code below with the element selectors on your landing page.    * You can use #id or any other CSS selector that will define the input field explicitly.    * Example: \"Email\": \"#MyEmailField\".    * If you don\"t have a field from the list below placed on your landing, leave the placeholder or remove the line.    */    var config = {        fields: {            \"Name\": \"#name-field\", // Name of a contact            \"Email\": \"#email-field\", // Email        },        landingId: \"b73790ab-acb1-4806-baea-4342a1f3b2a8\",        serviceUrl: \"http://localhost:85/0/ServiceModel/GeneratedObjectWebFormService.svc/SaveWebFormObjectData\",        redirectUrl: \"\",        onSuccess: function(response) {            window.alert(response.resultMessage);        },        onError: function(response) {            window.alert(response.resultMessage);        }    };    /**    * The function below creates a object from the submitted data.    * Bind this function call to the \"onSubmit\" event of the form or any other elements events.    * Example: <form class=\"mainForm\" name=\"landingForm\" onSubmit=\"createObject(); return false\">    */    function createObject() {        landing.createObjectFromLanding(config)    }    /**    * The function below inits landing page using URL parameters.    */    function initLanding() {        landing.initLanding(config)    }    jQuery(document).ready(initLanding)    </script><!--STEP 2--></head><body><h1>Landing web-page</h1><div>    <h2>Contact form</h2>    <form method=\"POST\" class=\"mainForm\" name=\"landingForm\" onSubmit=\"createObject(); return false\">Name:<br><input type=\"text\" name=\"Name\" id=\"name-field\"><br> Email:<br><input type=\"text\" name=\"Email\" id=\"email-field\"><br><br><br><input type=\"submit\" value=\"Submit\"></form></div></body></html>",
+      "language": "js",
+      "context": "Ensure that thecreateObject()function is called upon submitting the web form. To do this, add theonSubmit=\"createObject(); return falseattribute to the<form></form>element. You can retrieve the requir",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTracking website events only works for leads and does not work for custom objects.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Tracking website events only works for leads and does not work for custom objects.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Tracking website events only works for leads and does not work for custom objects.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Tracking website events only works for leads and does not work for custom objects.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "dbo.SysSchema",
+      "content": "Important41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967\u2013 non-editable identifier of theGeneratedWebFormentity schema in thedbo.SysSchemaDB table. The ID is relevant for any case featuring adding a landing page for a custom entity.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p><code>41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967</code> \u2013 non-editable identifier of the <code>GeneratedWebForm</code> entity schema in the <strong>dbo.SysSchema</strong> DB table. The ID is relevant for any case featuring adding a landing page for a custom entity.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "dbo.SysSchema",
+      "content": "41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967\u2013 non-editable identifier of theGeneratedWebFormentity schema in thedbo.SysSchemaDB table. The ID is relevant for any case featuring adding a landing page for a custom entity.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p><code>41AE7D8D-BEC3-41DF-A6F0-2AB0D08B3967</code> \u2013 non-editable identifier of the <code>GeneratedWebForm</code> entity schema in the <strong>dbo.SysSchema</strong> DB table. The ID is relevant for any case featuring adding a landing page for a custom entity.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantReplace the double quote (\") and space ( ) characters with the&quot;and&nbsp;HTML character entity references.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Replace the double quote (\") and space ( ) characters with the <code>&amp;quot;</code> and <code>&amp;nbsp;</code> HTML character entity references.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Replace the double quote (\") and space ( ) characters with the&quot;and&nbsp;HTML character entity references.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Replace the double quote (\") and space ( ) characters with the <code>&amp;quot;</code> and <code>&amp;nbsp;</code> HTML character entity references.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Name",
+      "content": "ImportantAdd the@scriptVariableNameColumnvariable andconcatenateit toscriptResultfor adding a field.If the values of other fields (except forNameandEmail) are required after completing the setup, re-run the script from this paragraph after registering all of the required columns, including the existing ones, in theAdding entity columnsblock. When the script is re-run, the settings created earlier are updated.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Add the <code>@scriptVariableNameColumn</code> variable and <a href=\"https://en.wikipedia.org/wiki/Concatenation\" rel=\"noopener noreferrer\" target=\"_blank\">concatenate</a> it to <code>scriptResult</code> for adding a field.</p><p>If the values of other fields (except for <strong>Name</strong> and <strong>Email</strong>) are required after completing the setup, re-run the script from this paragraph after registering all of the required columns, including the existing ones, in the <strong>Adding entity columns</strong> block. When the script is re-run, the settings created earlier are updated.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Name",
+      "content": "Add the@scriptVariableNameColumnvariable andconcatenateit toscriptResultfor adding a field.If the values of other fields (except forNameandEmail) are required after completing the setup, re-run the script from this paragraph after registering all of the required columns, including the existing ones, in theAdding entity columnsblock. When the script is re-run, the settings created earlier are updated.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add the <code>@scriptVariableNameColumn</code> variable and <a href=\"https://en.wikipedia.org/wiki/Concatenation\" rel=\"noopener noreferrer\" target=\"_blank\">concatenate</a> it to <code>scriptResult</code> for adding a field.</p><p>If the values of other fields (except for <strong>Name</strong> and <strong>Email</strong>) are required after completing the setup, re-run the script from this paragraph after registering all of the required columns, including the existing ones, in the <strong>Adding entity columns</strong> block. When the script is re-run, the settings created earlier are updated.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Website domains",
+      "content": "ImportantThe contact from the landing page will only be added if the domain of the landing page is specified in theWebsite domainsfield on the landing record page.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The contact from the landing page will only be added if the domain of the landing page is specified in the <strong>Website domains</strong> field on the landing record page.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Website domains",
+      "content": "The contact from the landing page will only be added if the domain of the landing page is specified in theWebsite domainsfield on the landing record page.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The contact from the landing page will only be added if the domain of the landing page is specified in the <strong>Website domains</strong> field on the landing record page.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Fig. 1. Setting landing page parameters",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_0b3b9feccd32.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Lookup.png",
+      "alt": "Fig. 1. Setting landing page parameters",
+      "title": "",
+      "context": "In the created record, specify (Fig.1):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_7b9117a297ac.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_SchemaEditPageViewModule.png",
+      "alt": "Fig. 2. \u2013 Adding a view model schema of the edit page",
+      "title": "",
+      "context": "Run theAdd\u2192Schema of the Edit Page View Modelmenu command on theSchemastab in theConfigurationsectio",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_85f439562177.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_ContactGeneratedWebFormPage_Settings.png",
+      "alt": "Fig. 3. Setting up the mini-page view model schema",
+      "title": "",
+      "context": "Specify the following parameters for the created schema of the edit page view model (Fig. 3):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_9930eacf65fc.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_LocalizableString_Settings.png",
+      "alt": "Fig. 4. Setting up a localizable string",
+      "title": "",
+      "context": "Add theContactScriptTemplatelocalizable string. Specify<div>Test</div>as the string value (Fig. 4).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_bd2c0b7129be.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_ContactForm.png",
+      "alt": "Fig. 5. The record list of the [Landing pages and web forms] section",
+      "title": "",
+      "context": "Clear the browser cache after running the script. As a result, you will be able to add the newContac",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_416d75359584.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_LandingWithoutCode.png",
+      "alt": "Fig. 6. Landing edit page",
+      "title": "",
+      "context": "Clear the browser cache after running the script. As a result, you will be able to add the newContac",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_2b42fbf34c49.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Landing.png",
+      "alt": "Fig. 7. Landing edit page",
+      "title": "",
+      "context": "After the script execution completes, open the schema created in the configuration and re-save it to",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_5dec167f319b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_Contact_Settings.png",
+      "alt": "Fig. 8. Landing edit page",
+      "title": "",
+      "context": "In the created record, specify (Fig. 8):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_d949a4b2d237.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_LandingPage.png",
+      "alt": "Fig. 9. Landing page",
+      "title": "",
+      "context": "Specify the values for the created contact (Fig. 9):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_ff46660fe62a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_SuccessfullyAdding.png",
+      "alt": "Fig. 10. A message about successful data addition",
+      "title": "",
+      "context": "If you place the page on the local server available via the\"localhost\" reserved domain name(as speci",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_6961713eb933.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WebFormCustomization/scr_ContactCreating.png",
+      "alt": "Fig. 11. Automatically created contact",
+      "title": "",
+      "context": "As a result, Creatio will create contact with the specified parameters (Fig. 11).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_d60f71a0e53c.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWebFormPackage_20.07.07_16.56.49.zip",
+      "text": "link",
+      "filename": "sdkWebFormPackage_20.07.07_16.56.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/d665df8df67284a5_latform-customization_classic-ui_landings_web-to-object_examples_set-up-web-form_sdkWebFormPackage_20.07.07_16.56.49.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up web form for a custom object",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Case description\u200b",
+      "anchor": "title-1758-2"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-1758-3"
+    },
+    {
+      "level": 2,
+      "text": "Case implementation algorithm\u200b",
+      "anchor": "title-1758-4"
+    },
+    {
+      "level": 3,
+      "text": "1. Register a new landing page type\u200b",
+      "anchor": "title-1758-5"
+    },
+    {
+      "level": 3,
+      "text": "2. Add an edit page for the web form\u200b",
+      "anchor": "title-1758-6"
+    },
+    {
+      "level": 3,
+      "text": "3. Map the new landing page type to the created edit page\u200b",
+      "anchor": "title-1758-7"
+    },
+    {
+      "level": 3,
+      "text": "4. Update the scripts for the web form record page\u200b",
+      "anchor": "title-1758-8"
+    },
+    {
+      "level": 3,
+      "text": "5. Create and configure a landing page in the [Landing pages and web forms] section\u200b",
+      "anchor": "title-1758-9"
+    },
+    {
+      "level": 3,
+      "text": "6. Deploy and set up a landing page with a web form\u200b",
+      "anchor": "title-1758-10"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETISFEATUREENABLED",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "ALERT",
+        "path": "("
+      },
+      {
+        "method": "ALERT",
+        "path": "("
+      },
+      {
+        "method": "CREATEOBJECTFROMLANDING",
+        "path": "("
+      },
+      {
+        "method": "INITLANDING",
+        "path": "("
+      },
+      {
+        "method": "READY",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/landings/web-to-object/examples/set-up-web-form",
+      "text": "Set up web form",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/landings/web-to-object/examples/set-up-web-form",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/landings/web-to-object/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-to-object-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/landings/web-to-object/examples/implement-handler-to-create-entity-web-form",
+      "text": "NextCreate an entity (web form)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/landings/web-to-case/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-to-case-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:53:55.237222"
+}

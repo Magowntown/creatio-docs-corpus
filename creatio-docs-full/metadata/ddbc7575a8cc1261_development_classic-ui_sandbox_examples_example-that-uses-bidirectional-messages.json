@@ -1,0 +1,589 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/example-that-uses-bidirectional-messages",
+  "title": "Example that uses bidirectional messages",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui"
+    },
+    {
+      "text": "Sandbox",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sandbox"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nLevel: intermediate\nThe `BaseEntityPage` schema of the `CrtNUI` package registers the `CardModuleResponse` message. The `BaseEntityPage` schema is the base schema of the record page\u2019s view model.\nBaseEntityPage\ndefine(\"BaseEntityPage\", [...], function(...) {  \nreturn {  \nmessages: {  \n...  \n\"CardModuleResponse\": {  \n\"mode\": this.Terrasoft.MessageMode.PTP,  \n\"direction\": this.Terrasoft.MessageDirectionType.BIDIRECTIONAL  \n},  \n...  \n},  \n...  \n};  \n});  \nFor example, Creatio publishes a message after saving the modified record. The `BasePageV2` child schema of the `CrtNUI` package implements this functionality.\nBasePageV2\ndefine(\"BasePageV2\", [..., \"LookupQuickAddMixin\", ...], function(...) {  \nreturn {  \n...  \nmethods: {  \n...  \nonSaved: function(response, config) {  \n...  \nthis.sendSaveCardModuleResponse(response.success);  \n...  \n},  \n...  \nsendSaveCardModuleResponse: function(success) {  \nvar primaryColumnValue = this.getPrimaryColumnValue();  \nvar infoObject = {  \naction: this.get(\"Operation\"),  \nsuccess: success,  \nprimaryColumnValue: primaryColumnValue,  \nuId: primaryColumnValue,  \nprimaryDisplayColumnValue: this.get(this.primaryDisplayColumnName),  \nprimaryDisplayColumnName: this.primaryDisplayColumnName,  \nisInChain: this.get(\"IsInChain\")  \n};  \nreturn this.sandbox.publish(\"CardModuleResponse\", infoObject, [this.sandbox.id]);  \n},  \n...  \n},  \n...  \n};  \n});  \nThe `LookupQuickAddMixin` mixin is listed in the `BasePageV2` schema as a dependency. The mixin implements the subscription to the `CardModuleResponse` message. Learn more in a separate article: [Client schema](https://academy.creatio.com/documents?ver=8.0&id=15311&anchor=title-3051-4).\nLookupQuickAddMixin\ndefine(\"LookupQuickAddMixin\", [...], function(...) {  \nExt.define(\"Terrasoft.configuration.mixins.LookupQuickAddMixin\", {  \nalternateClassName: \"Terrasoft.LookupQuickAddMixin\",  \n...  \n/* Declare the message. */  \n_defaultMessages: {  \n\"CardModuleResponse\": {  \n\"mode\": this.Terrasoft.MessageMode.PTP,  \n\"direction\": this.Terrasoft.MessageDirectionType.BIDIRECTIONAL  \n}  \n},  \n...  \n/* Register the message. */  \n_registerMessages: function() {  \nthis.sandbox.registerMessages(this._defaultMessages);  \n},  \n...  \n/* Initialize a class instance. */  \ninit: function(callback, scope) {  \n...  \nthis._registerMessages();  \n...  \n},  \n...  \n/* Execute after adding a new record to a lookup. */  \nonLookupChange: function(newValue, columnName) {  \n...  \n/* Execute a chain of method calls.  \nAs a result, the _subscribeNewEntityCardModuleResponse() method is called. */  \n...  \n},  \n...  \n/* The method that subscribes to the \"CardModuleResponse\" message.  \nThe callback function sets the lookup field to the value sent when the message was published. */  \n_subscribeNewEntityCardModuleResponse: function(columnName, config) {  \nthis.sandbox.subscribe(\"CardModuleResponse\", function(createdObj) {  \nvar rows = this._getResponseRowsConfig(createdObj);  \nthis.onLookupResult({  \ncolumnName: columnName,  \nselectedRows: rows  \n});  \n}, this, [config.moduleId]);  \n},  \n...  \n});  \nreturn Terrasoft.LookupQuickAddMixin;  \n});  \nThe procedure that handles bidirectional messages when adding a new address to a contact page is as follows:\n1. Creatio loads the `ContactAddressPageV2` module into the module chain on the **Addresses** detail.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SandboxBidirectionalMessages/scr_add_address.png)\n2. The contact address page is opened.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SandboxBidirectionalMessages/scr_new_city.png)\nSince the `ContactAddressPageV2` schema inherits the `BaseEntityPage` and `BasePageV2` schemas, the `ContactAddressPageV2` schema already has the `CardModuleResponse` message registered. This message is also registered in the `_registerMessages()` method of the `LookupQuickAddMixin` mixin when the mixin is initialized in the `BasePageV2` schema as a dependency.\n3. The `onLookupChange()` method of the `LookupQuickAddMixin` mixin is called when adding a new value, for example, a city, to the lookup fields of the `ContactAddressPageV2` page.\n4. The `CityPageV2` module is loaded into the module chain.\n5. The `onLookupChange()` method calls the `_subscribeNewEntityCardModuleResponse()` method that subscribes to the `CardModuleResponse` message.\n6. The city page (`CityPageV2` schema in the `CrtUIv2` package) is opened.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SandboxBidirectionalMessages/scr_city_page.png)\n7. Since the `CityPageV2` schema inherits the `BasePageV2` schema, the `onSaved()` method of the base schema is executed after the user saves the record ( **Save** button).\n8. The `onSaved()` method calls the `sendSaveCardModuleResponse()` method that publishes the `CardModuleResponse` message. At the same time, the object that contains the necessary results of saving is passed.\n9. After the message is published, the callback function (`_subscribeNewEntityCardModuleResponse()` method in the `LookupQuickAddMixin` mixin) of the subscriber is executed. The method processes the results of saving the new city to the lookup.\nThus, publishing and subscribing to a bidirectional message are executed as part of a single schema inheritance hierarchy. In this hierarchy, the `BasePageV2` base schema contains all required functionality.",
+  "code_examples": [
+    {
+      "code": "define(\"BaseEntityPage\", [...], function(...) {    return {        messages: {            ...            \"CardModuleResponse\": {                \"mode\": this.Terrasoft.MessageMode.PTP,                \"direction\": this.Terrasoft.MessageDirectionType.BIDIRECTIONAL            },            ...        },        ...    };});",
+      "language": "js",
+      "context": "TheBaseEntityPageschema of theCrtNUIpackage registers theCardModuleResponsemessage. TheBaseEntityPageschema is the base schema of the record page\u2019s view model.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"BasePageV2\", [..., \"LookupQuickAddMixin\", ...], function(...) {    return {        ...        methods: {            ...            onSaved: function(response, config) {                ...                    this.sendSaveCardModuleResponse(response.success);                ...            },            ...            sendSaveCardModuleResponse: function(success) {                var primaryColumnValue = this.getPrimaryColumnValue();                var infoObject = {                    action: this.get(\"Operation\"),                    success: success,                    primaryColumnValue: primaryColumnValue,                    uId: primaryColumnValue,                    primaryDisplayColumnValue: this.get(this.primaryDisplayColumnName),                    primaryDisplayColumnName: this.primaryDisplayColumnName,                    isInChain: this.get(\"IsInChain\")                };                return this.sandbox.publish(\"CardModuleResponse\", infoObject, [this.sandbox.id]);            },            ...        },        ...    };});",
+      "language": "js",
+      "context": "For example, Creatio publishes a message after saving the modified record. TheBasePageV2child schema of theCrtNUIpackage implements this functionality.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"LookupQuickAddMixin\", [...], function(...) {    Ext.define(\"Terrasoft.configuration.mixins.LookupQuickAddMixin\", {        alternateClassName: \"Terrasoft.LookupQuickAddMixin\",        ...        /* Declare the message. */        _defaultMessages: {            \"CardModuleResponse\": {                \"mode\": this.Terrasoft.MessageMode.PTP,                \"direction\": this.Terrasoft.MessageDirectionType.BIDIRECTIONAL            }        },        ...        /* Register the message. */        _registerMessages: function() {            this.sandbox.registerMessages(this._defaultMessages);        },        ...        /* Initialize a class instance. */        init: function(callback, scope) {            ...            this._registerMessages();            ...        },        ...        /* Execute after adding a new record to a lookup. */        onLookupChange: function(newValue, columnName) {            ...            /* Execute a chain of method calls.            As a result, the _subscribeNewEntityCardModuleResponse() method is called. */            ...        },        ...        /* The method that subscribes to the \"CardModuleResponse\" message.        The callback function sets the lookup field to the value sent when the message was published. */        _subscribeNewEntityCardModuleResponse: function(columnName, config) {            this.sandbox.subscribe(\"CardModuleResponse\", function(createdObj) {                var rows = this._getResponseRowsConfig(createdObj);                this.onLookupResult({                    columnName: columnName,                    selectedRows: rows                });            }, this, [config.moduleId]);        },        ...    });    return Terrasoft.LookupQuickAddMixin;});",
+      "language": "js",
+      "context": "TheLookupQuickAddMixinmixin is listed in theBasePageV2schema as a dependency. The mixin implements the subscription to theCardModuleResponsemessage. Learn more in a separate article:Client schema.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SandboxBidirectionalMessages/scr_add_address.png",
+      "alt": "",
+      "title": "",
+      "context": "Creatio loads theContactAddressPageV2module into the module chain on theAddressesdetail.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ddbc7575a8cc1261_development_classic-ui_sandbox_examples_example-that-uses-bidirectional-messages_ce24e0bb753c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SandboxBidirectionalMessages/scr_new_city.png",
+      "alt": "",
+      "title": "",
+      "context": "The contact address page is opened.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ddbc7575a8cc1261_development_classic-ui_sandbox_examples_example-that-uses-bidirectional-messages_1dbeab32dc4d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SandboxBidirectionalMessages/scr_city_page.png",
+      "alt": "",
+      "title": "",
+      "context": "The city page (CityPageV2schema in theCrtUIv2package) is opened.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ddbc7575a8cc1261_development_classic-ui_sandbox_examples_example-that-uses-bidirectional-messages_7e714eded73e.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Example that uses bidirectional messages",
+      "anchor": ""
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "ONSAVED",
+        "path": ":"
+      },
+      {
+        "method": "SENDSAVECARDMODULERESPONSE",
+        "path": "("
+      },
+      {
+        "method": "SENDSAVECARDMODULERESPONSE",
+        "path": ":"
+      },
+      {
+        "method": "GETPRIMARYCOLUMNVALUE",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "REGISTERMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "_REGISTERMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "_GETRESPONSEROWSCONFIG",
+        "path": "("
+      },
+      {
+        "method": "ONLOOKUPRESULT",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/example-that-uses-bidirectional-messages",
+      "text": "Example that uses bidirectional messages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/example-that-uses-bidirectional-messages",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/module-basics",
+      "text": "Module basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/types",
+      "text": "Types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/modules/overview",
+      "text": "Class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema-1",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/client-schema/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/classic-client-schema-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/classic-client-schema-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/controls/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/controls-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/implement-message-exchange",
+      "text": "Implement message exchange",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/accept-the-result-from-a-subscriber-module-address-message",
+      "text": "Accept the result from a subscriber module (address message)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/accept-the-result-from-a-subscriber-module-broadcast-message",
+      "text": "Accept the result from a subscriber module (broadcast message)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/implement-asynchronous-message-exchange",
+      "text": "PreviousImplement asynchronous message exchange",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/set-up-module-loading",
+      "text": "NextSet up module loading",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/references/sandbox",
+      "text": "sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/websocket-messages/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/websocket-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/websocket-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/data-operations-front-end/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:22:27.355246"
+}

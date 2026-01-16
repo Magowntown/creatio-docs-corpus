@@ -1,0 +1,1 @@
+Stream GetDashboardViewConfig(Guid id)

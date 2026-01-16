@@ -1,0 +1,833 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-display-condition-of-a-field",
+  "title": "Set up the display condition of a page field",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization"
+    },
+    {
+      "text": "Field",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-fields-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nTo implement the example:\n1. Set up the page UI. Read more >>>\n2. Set up the field display condition. Read more >>>\nExample\nSet up the display condition for the **Sick leave, days left** field on the custom request page. Display the field for requests that originate from employees, i. e., requests whose **Originator type** field is set to \"Employee.\"\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ShowFieldCondition/8.1/scr_result.gif)\n## 1\\. Set up the page UI\u200b\n1. **Create an app** based on the **Records & business processes** template. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.1&id=2377&anchor=title-2232-6) (user documentation).\nFor this example, create a **Requests** app.\n2. **Open the form page** in the Freedom UI Designer.\nFor this example, open **Requests form page**.\n3. **Add a field**.\nFor this example, add the following fields:\n* field that contains the request originator type\n* field that contains the number of sick days left\nTo do this:\n1. Add a field of needed type to the working area of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the field properties.\nElement| Element type| Property| Property value  \n---|---|---|---  \nField that contains the request originator type| Dropdown| Title| Originator type  \nCode| UsrOriginatorType  \nLookup| Contact type  \nField that contains the number of sick days left| Number| Title| Sick leave, days left  \nCode| UsrSickDaysLeft  \n4. **Save the changes**.\n## 2\\. Set up the field display condition\u200b\nConfigure the business logic in the Client Module Designer. For this example, set up the field display condition.\n1. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n2. **Add an attribute**.\n1. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object.\n2. Add an `IsRequestFromEmployee` attribute that stores data about the contact type from which the request originates.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n/* The attribute that stores the request originator type. */  \n\"IsRequestFromEmployee\": {}  \n}  \n},  \n...  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Bind an attribute to the field**.\n1. Go to the `viewConfigDiff` schema section \u2192 `UsrSickDaysLeftField` element.\n2. Bind the `IsRequestFromEmployee` attribute to the `visible` property.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* Field that contains the number of sick days left. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrSickDaysLeft\",  \n\"values\": {  \n...,  \n/* The property that flags the field as visible. Bound to the \"IsRequestFromEmployee\" attribute. */  \n\"visible\": \"$IsRequestFromEmployee\"  \n},  \n...  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n4. **Implement the base request handler**.\n1. Go to the `handlers` schema section.\n2. Add a custom implementation of the `crt.HandleViewModelAttributeChangeRequest` base request handler.\n1. Run the handler when the value of any attribute changes, including changes made after loading the attribute values from the data source.\n2. Find the ID of the \"Employee\" value in the **Contact type** lookup. For this example, the ID is \"60733efc-f36b-1410-a883-16d83cab0980.\"\n3. Save the ID from the previous step to the `employeeOriginatorTypeId` constant.\n4. Check the `UsrOriginatorType` attribute value. If the new attribute value refers to the \"Employee\" contact type, set the `IsRequestFromEmployee` attribute value to `true`, otherwise set it to `false`. I. e., if the request originates from an \"Employee\" contact type, the page displays the **Sick leave, days left** field. Otherwise, the page hides the field.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.HandleViewModelAttributeChangeRequest\",  \n/* The custom implementation of the system request handler. */  \nhandler: async (request, next) => {  \n/* Check the request originator type. */  \nif (request.attributeName === 'UsrOriginatorType') {  \nconst employeeOriginatorTypeId = '60733efc-f36b-1410-a883-16d83cab0980';  \nconst selectedOriginatorType = await request.$context.UsrOriginatorType;  \nconst selectedOriginatorTypeId = selectedOriginatorType?.value;  \n/* If the request originates from an employee, set the \"IsRequestFromEmployee\" to \"true.\" */  \nrequest.$context.IsRequestFromEmployee = selectedOriginatorTypeId === employeeOriginatorTypeId;  \n}  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \n5. **Save the changes**.\n## View the result\u200b\n1. **Open the Requests section**.\n2. **Create a request** that has an arbitrary name. For example, \"Sick leave.\"\n3. **Select \"Employee\"** in the **Originator type** field.\n**As a result** :\n* Creatio will display the **Sick leave, days left** field for requests that originate from an \"Employee\" contact type.\n* Creatio will hide the **Sick leave, days left** field for requests that originate from other contact types, e. g., \"Customer.\" [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=15366&anchor=view-result)\n## Source code\u200b\nUsrRequests_FormPage\n/* AMD module declaration. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Feed\",  \n\"values\": {  \n\"dataSourceName\": \"PDS\",  \n\"entitySchemaName\": \"UsrRequests\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AttachmentList\",  \n\"values\": {  \n\"columns\": [  \n{  \n\"id\": \"7692c437-8b98-4ccc-8c25-c8e4d235795e\",  \n\"code\": \"AttachmentListDS_Name\",  \n\"caption\": \"#ResourceString(AttachmentListDS_Name)#\",  \n\"dataValueType\": 28,  \n\"width\": 200  \n}  \n]  \n}  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrName\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrName\",  \n\"control\": \"$UsrName\",  \n\"labelPosition\": \"auto\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n/* Field that contains the request originator type. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrOriginatorType\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 2,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.ComboBox\",  \n\"label\": \"$Resources.Strings.UsrOriginatorType\",  \n\"labelPosition\": \"auto\",  \n\"control\": \"$UsrOriginatorType\",  \n\"listActions\": [],  \n\"showValueAsLink\": true,  \n\"controlActions\": []  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"addRecord_ul85ru4\",  \n\"values\": {  \n\"code\": \"addRecord\",  \n\"type\": \"crt.ComboboxSearchTextAction\",  \n\"icon\": \"combobox-add-new\",  \n\"caption\": \"#ResourceString(addRecord_ul85ru4_caption)#\",  \n\"clicked\": {  \n\"request\": \"crt.CreateRecordFromLookupRequest\",  \n\"params\": {}  \n}  \n},  \n\"parentName\": \"UsrOriginatorType\",  \n\"propertyName\": \"listActions\",  \n\"index\": 0  \n},  \n/* Field that contains the number of sick days left. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrSickDaysLeft\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 3,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.NumberInput\",  \n\"label\": \"$Resources.Strings.UsrSickDaysLeft\",  \n\"labelPosition\": \"auto\",  \n\"control\": \"$UsrSickDaysLeft\",  \n/* The property that flags the field as visible. Bound to the \"IsRequestFromEmployee\" attribute. */  \n\"visible\": \"$IsRequestFromEmployee\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 2  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"UsrName\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrName\"  \n}  \n},  \n\"UsrOriginatorType\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrOriginatorType\"  \n}  \n},  \n\"UsrSickDaysLeft\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrSickDaysLeft\"  \n}  \n},  \n/* The attribute that stores the request originator type. */  \n\"IsRequestFromEmployee\": {}  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n\"Id\",  \n\"modelConfig\"  \n],  \n\"values\": {  \n\"path\": \"PDS.Id\"  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [],  \n\"values\": {  \n\"primaryDataSourceName\": \"PDS\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"PDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"UsrRequests\"  \n},  \n\"scope\": \"page\"  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.HandleViewModelAttributeChangeRequest\",  \n/* The custom implementation of the system request handler. */  \nhandler: async (request, next) => {  \n/* Check the request originator type. */  \nif (request.attributeName === 'UsrOriginatorType') {  \nconst employeeOriginatorTypeId = '60733efc-f36b-1410-a883-16d83cab0980';  \nconst selectedOriginatorType = await request.$context.UsrOriginatorType;  \nconst selectedOriginatorTypeId = selectedOriginatorType?.value;  \n/* If the request originates from an employee, set the \"IsRequestFromEmployee\" to \"true.\" */  \nrequest.$context.IsRequestFromEmployee = selectedOriginatorTypeId === employeeOriginatorTypeId;  \n}  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/docs/sites/academy_en/files/packages/ShowFieldCondition/8.1/UsrRequests_2024-04-18_10.43.49.zip)",
+  "code_examples": [
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            /* The attribute that stores the request originator type. */            \"IsRequestFromEmployee\": {}        }    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Add an attribute.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* Field that contains the number of sick days left. */    {        \"operation\": \"insert\",        \"name\": \"UsrSickDaysLeft\",        \"values\": {            ...,            /* The property that flags the field as visible. Bound to the \"IsRequestFromEmployee\" attribute. */            \"visible\": \"$IsRequestFromEmployee\"        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Bind an attribute to the field.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"crt.HandleViewModelAttributeChangeRequest\",        /* The custom implementation of the system request handler. */        handler: async (request, next) => {            /* Check the request originator type. */            if (request.attributeName === 'UsrOriginatorType') {                const employeeOriginatorTypeId = '60733efc-f36b-1410-a883-16d83cab0980';                const selectedOriginatorType = await request.$context.UsrOriginatorType;                const selectedOriginatorTypeId = selectedOriginatorType?.value;                /* If the request originates from an employee, set the \"IsRequestFromEmployee\" to \"true.\" */                request.$context.IsRequestFromEmployee = selectedOriginatorTypeId === employeeOriginatorTypeId;            }            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "Add a custom implementation of thecrt.HandleViewModelAttributeChangeRequestbase request handler.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* AMD module declaration. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"name\": \"Feed\",                \"values\": {                    \"dataSourceName\": \"PDS\",                    \"entitySchemaName\": \"UsrRequests\"                }            },            {                \"operation\": \"merge\",                \"name\": \"AttachmentList\",                \"values\": {                    \"columns\": [                        {                            \"id\": \"7692c437-8b98-4ccc-8c25-c8e4d235795e\",                            \"code\": \"AttachmentListDS_Name\",                            \"caption\": \"#ResourceString(AttachmentListDS_Name)#\",                            \"dataValueType\": 28,                            \"width\": 200                        }                    ]                }            },            {                \"operation\": \"insert\",                \"name\": \"UsrName\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrName\",                    \"control\": \"$UsrName\",                    \"labelPosition\": \"auto\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 0            },            /* Field that contains the request originator type. */            {                \"operation\": \"insert\",                \"name\": \"UsrOriginatorType\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 2,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.ComboBox\",                    \"label\": \"$Resources.Strings.UsrOriginatorType\",                    \"labelPosition\": \"auto\",                    \"control\": \"$UsrOriginatorType\",                    \"listActions\": [],                    \"showValueAsLink\": true,                    \"controlActions\": []                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 1            },            {                \"operation\": \"insert\",                \"name\": \"addRecord_ul85ru4\",                \"values\": {                    \"code\": \"addRecord\",                    \"type\": \"crt.ComboboxSearchTextAction\",                    \"icon\": \"combobox-add-new\",                    \"caption\": \"#ResourceString(addRecord_ul85ru4_caption)#\",                    \"clicked\": {                        \"request\": \"crt.CreateRecordFromLookupRequest\",                        \"params\": {}                    }                },                \"parentName\": \"UsrOriginatorType\",                \"propertyName\": \"listActions\",                \"index\": 0            },            /* Field that contains the number of sick days left. */            {                \"operation\": \"insert\",                \"name\": \"UsrSickDaysLeft\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 3,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.NumberInput\",                    \"label\": \"$Resources.Strings.UsrSickDaysLeft\",                    \"labelPosition\": \"auto\",                    \"control\": \"$UsrSickDaysLeft\",                    /* The property that flags the field as visible. Bound to the \"IsRequestFromEmployee\" attribute. */                    \"visible\": \"$IsRequestFromEmployee\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 2            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"UsrName\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrName\"                        }                    },                    \"UsrOriginatorType\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrOriginatorType\"                        }                    },                    \"UsrSickDaysLeft\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrSickDaysLeft\"                        }                    },                    /* The attribute that stores the request originator type. */                    \"IsRequestFromEmployee\": {}                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\",                    \"Id\",                    \"modelConfig\"                ],                \"values\": {                    \"path\": \"PDS.Id\"                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [],                \"values\": {                    \"primaryDataSourceName\": \"PDS\"                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"dataSources\"                ],                \"values\": {                    \"PDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"UsrRequests\"                        },                        \"scope\": \"page\"                    }                }            }        ]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[            {            request: \"crt.HandleViewModelAttributeChangeRequest\",            /* The custom implementation of the system request handler. */            handler: async (request, next) => {                /* Check the request originator type. */                if (request.attributeName === 'UsrOriginatorType') {                    const employeeOriginatorTypeId = '60733efc-f36b-1410-a883-16d83cab0980';                    const selectedOriginatorType = await request.$context.UsrOriginatorType;                    const selectedOriginatorTypeId = selectedOriginatorType?.value;                    /* If the request originates from an employee, set the \"IsRequestFromEmployee\" to \"true.\" */                    request.$context.IsRequestFromEmployee = selectedOriginatorTypeId === employeeOriginatorTypeId;                }                /* Call the next handler if it exists and return its result. */                return next?.handle(request);            }        }        ]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Element type",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Field that contains the request originator type",
+          "Dropdown",
+          "Title",
+          "Originator type"
+        ],
+        [
+          "Code",
+          "UsrOriginatorType"
+        ],
+        [
+          "Lookup",
+          "Contact type"
+        ],
+        [
+          "Field that contains the number of sick days left",
+          "Number",
+          "Title",
+          "Sick leave, days left"
+        ],
+        [
+          "Code",
+          "UsrSickDaysLeft"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Element type</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"3\"><p>Field that contains the request originator type</p></td><td rowspan=\"3\"><center><p>Dropdown</p></center></td><td><center><p>Title</p></center></td><td><center><p>Originator type</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrOriginatorType</p></center></td></tr><tr><td><center><p>Lookup</p></center></td><td><center><p>Contact type</p></center></td></tr><tr><td rowspan=\"2\"><p>Field that contains the number of sick days left</p></td><td rowspan=\"2\"><center><p>Number</p></center></td><td><center><p>Title</p></center></td><td><center><p>Sick leave, days left</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrSickDaysLeft</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Sick leave, days left",
+      "content": "ExampleSet up the display condition for theSick leave, days leftfield on the custom request page. Display the field for requests that originate from employees, i.\u00a0e., requests whoseOriginator typefield is set to \"Employee.\"",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Set up the display condition for the <strong>Sick leave, days left</strong> field on the custom request page. Display the field for requests that originate from employees, i.\u00a0e., requests whose <strong>Originator type</strong> field is set to \"Employee.\"</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ShowFieldCondition/8.1/scr_result.gif\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Sick leave, days left",
+      "content": "Set up the display condition for theSick leave, days leftfield on the custom request page. Display the field for requests that originate from employees, i.\u00a0e., requests whoseOriginator typefield is set to \"Employee.\"",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Set up the display condition for the <strong>Sick leave, days left</strong> field on the custom request page. Display the field for requests that originate from employees, i.\u00a0e., requests whose <strong>Originator type</strong> field is set to \"Employee.\"</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ShowFieldCondition/8.1/scr_result.gif\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ShowFieldCondition/8.1/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Set up the display condition for theSick leave, days leftfield on the custom request page. Display t",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/77271b3c79b87929_reedom-ui_customize-page-fields_examples_set-up-the-display-condition-of-a-field_2c70ac9136cf.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the field properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/77271b3c79b87929_reedom-ui_customize-page-fields_examples_set-up-the-display-condition-of-a-field_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/77271b3c79b87929_reedom-ui_customize-page-fields_examples_set-up-the-display-condition-of-a-field_0022b8eb0588.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/docs/sites/academy_en/files/packages/ShowFieldCondition/8.1/UsrRequests_2024-04-18_10.43.49.zip",
+      "text": "Package with example implementation",
+      "filename": "UsrRequests_2024-04-18_10.43.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/77271b3c79b87929_reedom-ui_customize-page-fields_examples_set-up-the-display-condition-of-a-field_UsrRequests_2024-04-18_10.43.49.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up the display condition of a page field",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Set up the page UI\u200b",
+      "anchor": "title-3818-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up the field display condition\u200b",
+      "anchor": "title-3818-2"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-3818-3"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-3818-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-display-condition-of-a-field",
+      "text": "Set up the display condition of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-display-condition-of-a-field",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-display-condition-of-a-field",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-display-condition-of-a-field",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-fields-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-condition-that-locks-the-field",
+      "text": "NextSet up the condition that locks the field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-condition-that-populates-a-field",
+      "text": "Set up the condition that populates a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-requirement-condition-of-a-field",
+      "text": "Set up the requirement condition of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/implement-the-field-value-validation",
+      "text": "Implement the field value validation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/implement-the-field-value-conversion",
+      "text": "Implement the field value conversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/sites/academy_en/files/packages/ShowFieldCondition/8.1/UsrRequests_2024-04-18_10.43.49.zip",
+      "text": "Package with example implementation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:54:26.565773"
+}

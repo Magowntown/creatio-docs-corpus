@@ -1,0 +1,976 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/examples/add-a-new-channel",
+  "title": "Add a new channel to the action panel",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Record page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page"
+    },
+    {
+      "text": "Action dashboard",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/action-dashboard-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\n## Case description\u200b\nAdd a new custom channel to the action dashboard of the contact edit page. The channel must have the same functionality as the call results channel (`CallMessagePublisher` channel).\n## Source code\u200b\nYou can download the package with case implementation using the following [link](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip).\n## Case implementation algorithm\u200b\n### 1\\. Add the UsrCallsMessagePublisher source code schema\u200b\nPerform the **Add** > **Source code** menu command on the **Schema** tab in the **Configuration** section (Fig. 1).\nFig. 1. Adding source code schema\n![Fig. 1. Adding source code schema](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_add_source_code.png)\nFor the created schema specify (Fig. 2):\n* **Title** \u2013 \"Call message logging publisher\"\n* **Name** \u2013 \"UsrCallsMessagePublisher\"\nFig. 2. The Source code schema properties\n![Fig. 2. The Source code schema properties](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_source_code_props.png)\nIn the created schema, add the new `CallsMessagePublisher` class inherited from the `BaseMessagePublisher` class to the `Terrasoft.Configuration` namespace. The `BaseMessagePublisher` class contains the basic logic to save an object in the database and the basic logic of event handlers. The inheritor class will contain the logic for a particular sender, for example, filling of columns of the `Activity` object and the subsequent sending of the message.\nTo implement the new `CallsMessagePublisher` class, you must add the following source code in the created schema.\nusing System.Collections.Generic;  \nusing Terrasoft.Core;  \nnamespace Terrasoft.Configuration  \n{  \n// The BaseMessagePublisher heir class.  \npublic class CallsMessagePublisher : BaseMessagePublisher  \n{  \n// Class constructor.  \npublic CallsMessagePublisher(UserConnection userConnection, Dictionary<string, string> entityFieldsData)  \n: base(userConnection, entityFieldsData) {  \n//The schema the CallsMessagePublisher works with.  \nEntitySchemaName = \"Activity\";  \n}  \n}  \n}  \nSave and publish the schema.\n### 2\\. Create the SectionActionsDashboard replacing client schema\u200b\nCreate a replacing client module and specify the `SectionActionsDashboard` as parent object (Fig. 3). The procedure of creating a replacing page is covered in the [Client module](https://academy.creatio.com/documents?ver=8.0&id=15106) article.\nFig. 3. Properties of the replacing schema\n![Fig. 3. Properties of the replacing schema](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_client_schema_props.png)\nExample\nIf you want to add a channel to only one edit page, you must create a new module named **`section_name`** `SectionActionsDashboard` (e.g. `BooksSectionActionsDashboard`) and set `SectionActionsDashboard` as the parent schema.\nSpecify the module which should be rendered in this channel on one of the tabs in the replacing schema `diff` property. Set the operations of inserting the `CallsMessageTab` tab and message container in this property. The new channel will be visible on the edit pages of those sections, which are connected to `SectionActionsDashboard`.\nIn the `methods` property override the `getSectionPublishers()` method that will add the new channel to the list of message publishers, and the `getExtendedConfig()` method, in which the tab settings are configured.\nFor the `getExtendedConfig()` method to run correctly, you must upload the channel icon and specify it in the `ImageSrc` parameter. The icons used in this example can be downloaded [here](https://academy.creatio.com/sites/default/files/documents/docs/technic/SDK/7.15.0/Screenshots/ActionsDashboardNewChannel/CallsMessageTabImage.svg).\nYou should also override the `onGetRecordInfoForPublisher()` method and add the `getContactEntityParameterValue()` method that defines the contact value from the edit page.\nReplacing schema source code\ndefine(\"SectionActionsDashboard\", [\"SectionActionsDashboardResources\", \"UsrCallsMessagePublisherModule\"], function(resources) {  \nreturn {  \nattributes: {},  \nmessages: {},  \nmethods: {  \n// Method sets the channel tab display settings in the action dashboard.  \ngetExtendedConfig: function() {  \n// Parent method calling.  \nvar config = this.callParent(arguments);  \nvar lczImages = resources.localizableImages;  \nconfig.CallsMessageTab = {  \n// Tab image.  \n\"ImageSrc\": this.Terrasoft.ImageUrlBuilder.getUrl(lczImages.CallsMessageTabImage),  \n// Marker value.  \n\"MarkerValue\": \"calls-message-tab\",  \n// Alignment.  \n\"Align\": this.Terrasoft.Align.RIGHT,  \n// Tag.  \n\"Tag\": \"UsrCalls\"  \n};  \nreturn config;  \n},  \n// Redefines the parent object and adds the contact value from the edit page  \n// of the section that contains the action dashboard.  \nonGetRecordInfoForPublisher: function() {  \nvar info = this.callParent(arguments);  \ninfo.additionalInfo.contact = this.getContactEntityParameterValue(info.relationSchemaName);  \nreturn info;  \n},  \n// Defines the contact value from the section edit page  \n// that contains the action dashboard.  \ngetContactEntityParameterValue: function(relationSchemaName) {  \nvar contact;  \nif (relationSchemaName === \"Contact\") {  \nvar id = this.getMasterEntityParameterValue(\"Id\");  \nvar name = this.getMasterEntityParameterValue(\"Name\");  \nif (id && name) {  \ncontact = {value: id, displayValue: name};  \n}  \n} else {  \ncontact = this.getMasterEntityParameterValue(\"Contact\");  \n}  \nreturn contact;  \n},  \n//Adds the created channel to the message publisher list.  \ngetSectionPublishers: function() {  \nvar publishers = this.callParent(arguments);  \npublishers.push(\"UsrCalls\");  \nreturn publishers;  \n}  \n},  \n// An array of modifications, with which the representation of the module is built in the interface of the system.  \ndiff: /**SCHEMA_DIFF*/[  \n// Adding the CallsMessageTab tab.  \n{  \n// operation type \u2013 insertion.  \n\"operation\": \"insert\",  \n// Tab name.  \n\"name\": \"CallsMessageTab\",  \n// Parent element name.  \n\"parentName\": \"Tabs\",  \n// Property name.  \n\"propertyName\": \"tabs\",  \n// Property configuration object.  \n\"values\": {  \n// Child elements array.  \n\"items\": []  \n}  \n},  \n// Adding message container.  \n{  \n\"operation\": \"insert\",  \n\"name\": \"CallsMessageTabContainer\",  \n\"parentName\": \"CallsMessageTab\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n// Element type \u2013 container.  \n\"itemType\": this.Terrasoft.ViewItemType.CONTAINER,  \n// Container CSS class.  \n\"classes\": {  \n\"wrapClassName\": [\"calls-message-content\"]  \n},  \n\"items\": []  \n}  \n},  \n// Adding the UsrCallsMessageModule module.  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrCallsMessageModule\",  \n\"parentName\": \"CallsMessageTab\",  \n\"propertyName\": \"items\",  \n\"values\": {  \n// Tab module CSS class.  \n\"classes\": {  \n\"wrapClassName\": [\"calls-message-module\", \"message-module\"]  \n},  \n// Element type \u2013 module.  \n\"itemType\": this.Terrasoft.ViewItemType.MODULE,  \n// Module name.  \n\"moduleName\": \"UsrCallsMessagePublisherModule\",  \n// Binding the method executed after the element has been rendered.  \n\"afterrender\": {  \n\"bindTo\": \"onMessageModuleRendered\"  \n},  \n// Binding the method executed after the element has been rerendered.  \n\"afterrerender\": {  \n\"bindTo\": \"onMessageModuleRendered\"  \n}  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n};  \n});  \n### 3\\. Create the UsrCallsMessagePublisherModule module\u200b\nThe `UsrCallsMessagePublisherModule` serves as container that renders the `SectionActionsDashboard` page with implemented logic of added channel in the `UsrCallsMessagePublisherPage`.\nSet following properties for the module (Fig. 4):\n* **Title** \u2013 \"Call messages logging publisher module\"\n* **Name** \u2013 \"UsrCallsMessagePublisherModule\"\n* **Parent object** \u2013 `BaseMessagePublisherModule.`\nFig. 4. Properties of the module\n![Fig. 4. Properties of the module](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_module_props.png)\nModule source code\ndefine(\"UsrCallsMessagePublisherModule\", [\"BaseMessagePublisherModule\"], function() {  \n// Defining the class.  \nExt.define(\"Terrasoft.configuration.UsrCallsMessagePublisherModule\", {  \n// Basic class.  \nextend: \"Terrasoft.BaseMessagePublisherModule\",  \n// Short class name.  \nalternateClassName: \"Terrasoft.UsrCallsMessagePublisherModule\",  \n// Initialization of the page that will be rendered in this module.   \ninitSchemaName: function() {  \nthis.schemaName = \"UsrCallsMessagePublisherPage\";  \n}  \n});  \n// Returns the class object defined in the module.  \nreturn Terrasoft.UsrCallsMessagePublisherModule;  \n});  \n### 4\\. Create the UsrCallsMessagePublisherPage page\u200b\nFor the created page set the `BaseMessagePublisherPage` schema of the `MessagePublisher` package as parent object. Set the \"UsrCallsMessagePublisherPage\" value as the title and name.\nIn the source code page, specify the schema name of the object that will run along with the page (in this case, `Activity`), implement the logic of message publication and override the `getServiceConfig` method, in which you must set the class name from the configuration.\n//Sets the class that will work with this page.  \ngetServiceConfig: function() {  \nreturn {  \nclassName: \"Terrasoft.Configuration.CallsMessagePublisher\"  \n};  \n}  \nImplementation of message publication logic contains big number of methods, attributes and properties. The full source code of the `UsrCallsMessagePublisherPage` schema can be found in the [sdkActionsDashboardNewChannel](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip) package. The source code shows the implementation of the `CallMessagePublisher` channel that is used for logging incoming and outgoing calls.  \nAs a result you will get the new channel in the `SectionActionsDashboard` (Fig. 5)`.`\nFig. 5. An example of a custom CallsMessagePublisher channel in the SectionActionsDashboard of the Contacts section.\n![Fig. 5. An example of a custom CallsMessagePublisher channel in the SectionActionsDashboard of the Contacts section.](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_calls_message_publisher_result.png)",
+  "code_examples": [
+    {
+      "code": "using System.Collections.Generic;using Terrasoft.Core;namespace Terrasoft.Configuration{    // The BaseMessagePublisher heir class.    public class CallsMessagePublisher : BaseMessagePublisher    {        // Class constructor.        public CallsMessagePublisher(UserConnection userConnection, Dictionary<string, string> entityFieldsData)            : base(userConnection, entityFieldsData) {            //The schema the CallsMessagePublisher works with.            EntitySchemaName = \"Activity\";        }    }}",
+      "language": "cs",
+      "context": "To implement the newCallsMessagePublisherclass, you must add the following source code in the created schema.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"SectionActionsDashboard\", [\"SectionActionsDashboardResources\", \"UsrCallsMessagePublisherModule\"], function(resources) {    return {        attributes: {},        messages: {},        methods: {            // Method sets the channel tab display settings in the action dashboard.            getExtendedConfig: function() {                // Parent method calling.                var config = this.callParent(arguments);                var lczImages = resources.localizableImages;                config.CallsMessageTab = {                    // Tab image.                    \"ImageSrc\": this.Terrasoft.ImageUrlBuilder.getUrl(lczImages.CallsMessageTabImage),                    // Marker value.                    \"MarkerValue\": \"calls-message-tab\",                    // Alignment.                    \"Align\": this.Terrasoft.Align.RIGHT,                    // Tag.                    \"Tag\": \"UsrCalls\"                };                return config;            },            // Redefines the parent object and adds the contact value from the edit page            // of the section that contains the action dashboard.            onGetRecordInfoForPublisher: function() {                var info = this.callParent(arguments);                info.additionalInfo.contact = this.getContactEntityParameterValue(info.relationSchemaName);                return info;            },            // Defines the contact value from the section edit page            // that contains the action dashboard.            getContactEntityParameterValue: function(relationSchemaName) {                var contact;                if (relationSchemaName === \"Contact\") {                    var id = this.getMasterEntityParameterValue(\"Id\");                    var name = this.getMasterEntityParameterValue(\"Name\");                    if (id && name) {                        contact = {value: id, displayValue: name};                    }                } else {                    contact = this.getMasterEntityParameterValue(\"Contact\");                }                return contact;            },            //Adds the created channel to the message publisher list.            getSectionPublishers: function() {                var publishers = this.callParent(arguments);                publishers.push(\"UsrCalls\");                return publishers;            }        },        // An array of modifications, with which the representation of the module is built in the interface of the system.        diff: /**SCHEMA_DIFF*/[            // Adding the CallsMessageTab tab.            {                // operation type \u2013 insertion.                \"operation\": \"insert\",                // Tab name.                \"name\": \"CallsMessageTab\",                // Parent element name.                \"parentName\": \"Tabs\",                // Property name.                \"propertyName\": \"tabs\",                // Property configuration object.                \"values\": {                    // Child elements array.                    \"items\": []                }            },            // Adding message container.            {                \"operation\": \"insert\",                \"name\": \"CallsMessageTabContainer\",                \"parentName\": \"CallsMessageTab\",                \"propertyName\": \"items\",                \"values\": {                    // Element type \u2013 container.                    \"itemType\": this.Terrasoft.ViewItemType.CONTAINER,                    // Container CSS class.                    \"classes\": {                        \"wrapClassName\": [\"calls-message-content\"]                    },                    \"items\": []                }            },            // Adding the UsrCallsMessageModule module.            {                \"operation\": \"insert\",                \"name\": \"UsrCallsMessageModule\",                \"parentName\": \"CallsMessageTab\",                \"propertyName\": \"items\",                \"values\": {                    // Tab module CSS class.                    \"classes\": {                        \"wrapClassName\": [\"calls-message-module\", \"message-module\"]                    },                    // Element type \u2013 module.                    \"itemType\": this.Terrasoft.ViewItemType.MODULE,                    // Module name.                    \"moduleName\": \"UsrCallsMessagePublisherModule\",                    // Binding the method executed after the element has been rendered.                    \"afterrender\": {                        \"bindTo\": \"onMessageModuleRendered\"                    },                    // Binding the method executed after the element has been rerendered.                    \"afterrerender\": {                        \"bindTo\": \"onMessageModuleRendered\"                    }                }            }        ]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "You should also override theonGetRecordInfoForPublisher()method and add thegetContactEntityParameterValue()method that defines the contact value from the edit page.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"UsrCallsMessagePublisherModule\", [\"BaseMessagePublisherModule\"], function() {    // Defining the class.    Ext.define(\"Terrasoft.configuration.UsrCallsMessagePublisherModule\", {        // Basic class.        extend: \"Terrasoft.BaseMessagePublisherModule\",        // Short class name.        alternateClassName: \"Terrasoft.UsrCallsMessagePublisherModule\",        // Initialization of the page that will be rendered in this module.         initSchemaName: function() {            this.schemaName = \"UsrCallsMessagePublisherPage\";        }    });    // Returns the class object defined in the module.    return Terrasoft.UsrCallsMessagePublisherModule;});",
+      "language": "js",
+      "context": "Set following properties for the module (Fig. 4):",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "//Sets the class that will work with this page.getServiceConfig: function() {   return {      className: \"Terrasoft.Configuration.CallsMessagePublisher\"  };}",
+      "language": "js",
+      "context": "In the source code page, specify the schema name of the object that will run along with the page (in this case,Activity), implement the logic of message publication and override thegetServiceConfigmet",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "section_name",
+      "content": "ExampleIf you want to add a channel to only one edit page, you must create a new module namedsection_nameSectionActionsDashboard(e.g.BooksSectionActionsDashboard) and setSectionActionsDashboardas the parent schema.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>If you want to add a channel to only one edit page, you must create a new module named <strong><code>section_name</code></strong> <code>SectionActionsDashboard</code> (e.g. <code>BooksSectionActionsDashboard</code>) and set <code>SectionActionsDashboard</code> as the parent schema.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "section_name",
+      "content": "If you want to add a channel to only one edit page, you must create a new module namedsection_nameSectionActionsDashboard(e.g.BooksSectionActionsDashboard) and setSectionActionsDashboardas the parent schema.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you want to add a channel to only one edit page, you must create a new module named <strong><code>section_name</code></strong> <code>SectionActionsDashboard</code> (e.g. <code>BooksSectionActionsDashboard</code>) and set <code>SectionActionsDashboard</code> as the parent schema.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_add_source_code.png",
+      "alt": "Fig. 1. Adding source code schema",
+      "title": "",
+      "context": "Perform theAdd>Source codemenu command on theSchematab in theConfigurationsection (Fig. 1).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/a6ca246f68ad3c4f_customization_classic-ui_record-page_action-dashboard_examples_add-a-new-channel_45664d20b477.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_source_code_props.png",
+      "alt": "Fig. 2. The Source code schema properties",
+      "title": "",
+      "context": "For the created schema specify (Fig. 2):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/a6ca246f68ad3c4f_customization_classic-ui_record-page_action-dashboard_examples_add-a-new-channel_0afa7be5fe42.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_client_schema_props.png",
+      "alt": "Fig. 3. Properties of the replacing schema",
+      "title": "",
+      "context": "Create a replacing client module and specify theSectionActionsDashboardas parent object (Fig. 3). Th",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/a6ca246f68ad3c4f_customization_classic-ui_record-page_action-dashboard_examples_add-a-new-channel_16328b3b4ff0.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_module_props.png",
+      "alt": "Fig. 4. Properties of the module",
+      "title": "",
+      "context": "Set following properties for the module (Fig. 4):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/a6ca246f68ad3c4f_customization_classic-ui_record-page_action-dashboard_examples_add-a-new-channel_44c153262e2c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ActionsDashboardNewChannel/scr_calls_message_publisher_result.png",
+      "alt": "Fig. 5. An example of a custom CallsMessagePublisher channel in the SectionActionsDashboard of the Contacts section.",
+      "title": "",
+      "context": "Implementation of message publication logic contains big number of methods, attributes and propertie",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/a6ca246f68ad3c4f_customization_classic-ui_record-page_action-dashboard_examples_add-a-new-channel_913fa0edab2a.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip",
+      "text": "link",
+      "filename": "sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/a6ca246f68ad3c4f_customization_classic-ui_record-page_action-dashboard_examples_add-a-new-channel_sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip",
+      "text": "sdkActionsDashboardNewChannel",
+      "filename": "sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/a6ca246f68ad3c4f_customization_classic-ui_record-page_action-dashboard_examples_add-a-new-channel_sdkActionsDashboardNewChannel_18.05.14_04.16.49.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add a new channel to the action panel",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Case description\u200b",
+      "anchor": "title-1333-2"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-1333-3"
+    },
+    {
+      "level": 2,
+      "text": "Case implementation algorithm\u200b",
+      "anchor": "title-1333-4"
+    },
+    {
+      "level": 3,
+      "text": "1. Add the UsrCallsMessagePublisher source code schema\u200b",
+      "anchor": "title-1333-5"
+    },
+    {
+      "level": 3,
+      "text": "2. Create the SectionActionsDashboard replacing client schema\u200b",
+      "anchor": "title-1333-6"
+    },
+    {
+      "level": 3,
+      "text": "3. Create the UsrCallsMessagePublisherModule module\u200b",
+      "anchor": "title-1333-7"
+    },
+    {
+      "level": 3,
+      "text": "4. Create the UsrCallsMessagePublisherPage page\u200b",
+      "anchor": "title-1333-8"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "GETURL",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "GETCONTACTENTITYPARAMETERVALUE",
+        "path": "("
+      },
+      {
+        "method": "GETMASTERENTITYPARAMETERVALUE",
+        "path": "("
+      },
+      {
+        "method": "GETMASTERENTITYPARAMETERVALUE",
+        "path": "("
+      },
+      {
+        "method": "GETMASTERENTITYPARAMETERVALUE",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "PUSH",
+        "path": "("
+      },
+      {
+        "method": "DEFINE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/examples/add-a-new-channel",
+      "text": "Add a new channel to the action panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/action-dashboard/examples/add-a-new-channel",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/record-page-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/field-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/action-dashboard-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/examples/add-an-action-panel",
+      "text": "PreviousAdd an action panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/examples/add-multi-language-email-templates",
+      "text": "NextAdd multi-language email templates to a section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/examples/create-verification-action-page",
+      "text": "Implement a verification action page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/timeline/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/timeline-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/connected-entity-profile/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/sites/default/files/documents/docs/technic/SDK/7.15.0/Screenshots/ActionsDashboardNewChannel/CallsMessageTabImage.svg",
+      "text": "here",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:16:38.945003"
+}

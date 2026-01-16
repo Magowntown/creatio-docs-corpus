@@ -1,0 +1,1 @@
+override QueryColumnExpression CreateQueryColumnExpression(DBSecurityEngine dbSecurityEngine)

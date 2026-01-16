@@ -1,0 +1,1 @@
+// Sending the configured email message. To ignore access permissions when sending the message. // set the ignoreRight parameter to "true".emailSender.Send(message, ignoreRights);

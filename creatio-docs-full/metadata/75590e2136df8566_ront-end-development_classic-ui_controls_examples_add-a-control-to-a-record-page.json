@@ -1,0 +1,603 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/controls/examples/add-a-control-to-a-record-page",
+  "title": "Add a custom control to a record page",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui"
+    },
+    {
+      "text": "Controls",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/controls"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/controls-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: advanced\nExample\nAdd a custom control to a contact page. The control must take integers. Upon pressing `Enter`, check the entered value and display a message if the integer is out of the `[-300; 300]` range. Use `Terrasoft.controls.IntegerEdit` as the parent control.\n## 1\\. Create a module\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Module** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_module.png)\n3. Fill out the schema properties in the Module Designer.\n* Set **Code** to \"UsrLimitedIntegerEdit.\"\n* Set **Title** to \"LimitedIntegerEdit.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/LimitedIntegerEdit/scr_LimitedIntegerEdit_Settings.png)\nClick **Apply** to apply the changes.\n4. Add the source code in the Module Designer.\n* Besides the standard `extend` and `alternateClassName` properties, set the range of allowed values (`minLimit` and `maxLimit` properties). Use default values for the properties.\n* Implement the business logic of the control. To do this, overload the `onEnterKeyPressed()` method. Call base logic to generate value change events and implement the `isOutOfLimits()` method after the call. The method checks if the entered value is within the range of allowed values. If the number is out of range, display a warning message in the input field.\nRegardless of displaying the warning message, Creatio saves the entered value and transfers it to the schema view model that uses the control.\nUsrLimitedIntegerEdit\n/* Declare a module called UsrLimitedIntegerEdit. The module has no dependencies. Therefore, an empty array is passed as the second module parameter. */  \ndefine(\"UsrLimitedIntegerEdit\", [], function () {  \n/* Declare a class of the control. */  \nExt.define(\"Terrasoft.controls.UsrLimitedIntegerEdit\", {  \n/* Base class. */  \nextend: \"Terrasoft.controls.IntegerEdit\",  \n/* Class alias. */  \nalternateClassName: \"Terrasoft.UsrLimitedIntegerEdit\",  \n/* The minimum allowed value. */  \nminLimit: -1000,  \n/* The maximum allowed value. */  \nmaxLimit: 1000,  \n/* Check if the entered value is within the range of allowed values. */  \nisOutOfLimits: function (numericValue) {  \nif (numericValue < this.minLimit || numericValue > this.maxLimit) {  \nreturn true;  \n}  \nreturn false;  \n},  \n/* Overload the method that handles Enter press. */  \nonEnterKeyPressed: function () {  \n/* Call base functionality. */  \nthis.callParent(arguments);  \n/* Receive the entered value. */  \nvar value = this.getTypedValue();  \n/* Convert the value to a numeric type. */  \nvar numericValue = this.parseNumber(value);  \n/*  Check if the entered value is within the range of allowed values. */  \nvar outOfLimits = this.isOutOfLimits(numericValue);  \nif (outOfLimits) {  \n/* Generate a warning message. */  \nvar msg = \"Value \" + numericValue + \" is out of limits [\" + this.minLimit + \", \" + this.maxLimit + \"]\";  \n/* Modify the configuration object to display the warning message. */  \nthis.validationInfo.isValid = false;  \nthis.validationInfo.invalidMessage = msg;  \n}  \nelse{  \n/* Modify the configuration object to hide the warning message. */  \nthis.validationInfo.isValid = true;  \nthis.validationInfo.invalidMessage =\"\";  \n}  \n/* Call the logic that displays the warning message. */  \nthis.setMarkOut();  \n},  \n});  \n});  \n5. Click **Save** on the Module Designer\u2019s toolbar.\nnote\nYou can use the business logic of the `onEnterKeyPressed()` method when implementing the business logic of the `onBlur()` method that handles focus loss event.\n## 2\\. Add the control to a contact page\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"ContactPageV2.\"\n* Set **Title** to \"Display schema - Contact card.\"\n* Select \"ContactPageV2\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/LimitedIntegerEdit/scr_ContactPageV2_Settings.png)\n4. Add the source code in the Module Designer.\n* Add the `ScoresAttribute` attribute to the `attributes` property. The attribute is bound to the value of the control\u2019s input field. Instead of an attribute, you can use an integer column of an object that is linked to a record page schema.\n* Add a configuration object that defines the property values of a control instance to the `diff` array of modifications.\n* Bind the value of the `value` property to the `ScoresAttribute` attribute.\n* Set the range of allowed values (`minLimit` and `maxLimit` properties). If you do not enter the `minLimit` and `maxLimit` properties in the configuration object explicitly, the default range of valid values is `[-1000; 1000]`.\nView the source code of the replacing view model schema of the contact page below.\nContactPageV2\n/* Declare a module. Specify the module that declares the control class as a dependency. */  \ndefine(\"ContactPageV2\", [\"UsrLimitedIntegerEdit\"], function () {  \nreturn {  \nattributes: {  \n/* The attribute that is bound to the control value. */  \n\"ScoresAttribute\": {  \n/* The attribute data type is integer. */  \n\"dataValueType\": this.Terrasoft.DataValueType.INTEGER,  \n/* The attribute type is virtual column. */  \n\"type\": this.Terrasoft.ViewModelColumnType.VIRTUAL_COLUMN,  \n/* The default value. */  \n\"value\": 0  \n}  \n},  \ndiff: /**SCHEMA_DIFF*/[  \n{  \n\"operation\": \"insert\",  \n\"parentName\": \"ProfileContainer\",  \n\"propertyName\": \"items\",  \n\"name\": \"Scores\",  \n\"values\": {  \n\"contentType\": Terrasoft.ContentType.LABEL,  \n\"caption\": {\"bindTo\": \"Resources.Strings.ScoresCaption\"},  \n\"layout\": {  \n\"column\": 0,  \n\"row\": 6,  \n\"colSpan\": 24  \n}  \n}  \n},  \n{  \n/* Add the control to the page. */  \n\"operation\": \"insert\",  \n/* The meta name of the parent container to add the field. */  \n\"parentName\": \"ProfileContainer\",  \n/* Add the field to the parent element's collection of elements. */  \n\"propertyName\": \"items\",  \n/* The meta name of the schema column to which the component is bound. */  \n\"name\": \"ScoresValue\",  \n/* The properties to pass to the element's constructor. */  \n\"values\": {  \n/* Set the type of the control to \"component.\" */  \n\"itemType\": Terrasoft.ViewItemType.COMPONENT,  \n/* The class name. */  \n\"className\": \"Terrasoft.UsrLimitedIntegerEdit\",  \n/* The value of the \"value\" component property is linked to the ScoresAttribute attribute. */  \n\"value\": { \"bindTo\": \"ScoresAttribute\" },  \n/* The minLimit property value. */  \n\"minLimit\": -300,  \n/* The maxLimit property value. */  \n\"maxLimit\": 300,  \n/* Set up the component layout in the container. */  \n\"layout\": {  \n/* The column number. */  \n\"column\": 0,  \n/* The row number. */  \n\"row\": 6,  \n/* The column span. */  \n\"colSpan\": 24  \n}  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n};  \n});  \n5. Click **Save** on the Designer's toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** :\n1. Open the contact page.\n2. Enter a value that is out of the range of valid values in the **Scores** field.\nAs a result, Creatio will display the corresponding warning message on the contact page.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/LimitedIntegerEdit/scr_Result_In_Interface_Message.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkLimitedIntegerEditPackage_2021-02-26_09.54.23.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare a module called UsrLimitedIntegerEdit. The module has no dependencies. Therefore, an empty array is passed as the second module parameter. */define(\"UsrLimitedIntegerEdit\", [], function () {    /* Declare a class of the control. */    Ext.define(\"Terrasoft.controls.UsrLimitedIntegerEdit\", {        /* Base class. */        extend: \"Terrasoft.controls.IntegerEdit\",        /* Class alias. */        alternateClassName: \"Terrasoft.UsrLimitedIntegerEdit\",        /* The minimum allowed value. */        minLimit: -1000,        /* The maximum allowed value. */        maxLimit: 1000,        /* Check if the entered value is within the range of allowed values. */        isOutOfLimits: function (numericValue) {            if (numericValue < this.minLimit || numericValue > this.maxLimit) {                return true;            }            return false;        },        /* Overload the method that handles Enter press. */        onEnterKeyPressed: function () {            /* Call base functionality. */            this.callParent(arguments);            /* Receive the entered value. */            var value = this.getTypedValue();            /* Convert the value to a numeric type. */            var numericValue = this.parseNumber(value);            /*  Check if the entered value is within the range of allowed values. */            var outOfLimits = this.isOutOfLimits(numericValue);            if (outOfLimits) {                /* Generate a warning message. */                var msg = \"Value \" + numericValue + \" is out of limits [\" + this.minLimit + \", \" + this.maxLimit + \"]\";                /* Modify the configuration object to display the warning message. */                this.validationInfo.isValid = false;                this.validationInfo.invalidMessage = msg;            }            else{                /* Modify the configuration object to hide the warning message. */                this.validationInfo.isValid = true;                this.validationInfo.invalidMessage =\"\";            }            /* Call the logic that displays the warning message. */            this.setMarkOut();        },    });});",
+      "language": "js",
+      "context": "Regardless of displaying the warning message, Creatio saves the entered value and transfers it to the schema view model that uses the control.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare a module. Specify the module that declares the control class as a dependency. */define(\"ContactPageV2\", [\"UsrLimitedIntegerEdit\"], function () {    return {        attributes: {            /* The attribute that is bound to the control value. */            \"ScoresAttribute\": {                /* The attribute data type is integer. */                \"dataValueType\": this.Terrasoft.DataValueType.INTEGER,                /* The attribute type is virtual column. */                \"type\": this.Terrasoft.ViewModelColumnType.VIRTUAL_COLUMN,                /* The default value. */                \"value\": 0            }        },        diff: /**SCHEMA_DIFF*/[            {                \"operation\": \"insert\",                \"parentName\": \"ProfileContainer\",                \"propertyName\": \"items\",                \"name\": \"Scores\",                \"values\": {                    \"contentType\": Terrasoft.ContentType.LABEL,                    \"caption\": {\"bindTo\": \"Resources.Strings.ScoresCaption\"},                    \"layout\": {                        \"column\": 0,                        \"row\": 6,                        \"colSpan\": 24                    }                }            },            {                /* Add the control to the page. */                \"operation\": \"insert\",                /* The meta name of the parent container to add the field. */                \"parentName\": \"ProfileContainer\",                /* Add the field to the parent element's collection of elements. */                \"propertyName\": \"items\",                /* The meta name of the schema column to which the component is bound. */                \"name\": \"ScoresValue\",                /* The properties to pass to the element's constructor. */                \"values\": {                    /* Set the type of the control to \"component.\" */                    \"itemType\": Terrasoft.ViewItemType.COMPONENT,                    /* The class name. */                    \"className\": \"Terrasoft.UsrLimitedIntegerEdit\",                    /* The value of the \"value\" component property is linked to the ScoresAttribute attribute. */                    \"value\": { \"bindTo\": \"ScoresAttribute\" },                    /* The minLimit property value. */                    \"minLimit\": -300,                    /* The maxLimit property value. */                    \"maxLimit\": 300,                    /* Set up the component layout in the container. */                    \"layout\": {                        /* The column number. */                        \"column\": 0,                        /* The row number. */                        \"row\": 6,                        /* The column span. */                        \"colSpan\": 24                    }                }            }        ]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the contact page below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd a custom control to a contact page. The control must take integers. Upon pressingEnter, check the entered value and display a message if the integer is out of the[-300; 300]range. UseTerrasoft.controls.IntegerEditas the parent control.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a custom control to a contact page. The control must take integers. Upon pressing <code>Enter</code>, check the entered value and display a message if the integer is out of the <code>[-300; 300]</code> range. Use <code>Terrasoft.controls.IntegerEdit</code> as the parent control.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add a custom control to a contact page. The control must take integers. Upon pressingEnter, check the entered value and display a message if the integer is out of the[-300; 300]range. UseTerrasoft.controls.IntegerEditas the parent control.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a custom control to a contact page. The control must take integers. Upon pressing <code>Enter</code>, check the entered value and display a message if the integer is out of the <code>[-300; 300]</code> range. Use <code>Terrasoft.controls.IntegerEdit</code> as the parent control.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteYou can use the business logic of theonEnterKeyPressed()method when implementing the business logic of theonBlur()method that handles focus loss event.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can use the business logic of the <code>onEnterKeyPressed()</code> method when implementing the business logic of the <code>onBlur()</code> method that handles focus loss event.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You can use the business logic of theonEnterKeyPressed()method when implementing the business logic of theonBlur()method that handles focus loss event.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can use the business logic of the <code>onEnterKeyPressed()</code> method when implementing the business logic of the <code>onBlur()</code> method that handles focus loss event.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Moduleon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/75590e2136df8566_ront-end-development_classic-ui_controls_examples_add-a-control-to-a-record-page_b3a1a8a90b83.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/LimitedIntegerEdit/scr_LimitedIntegerEdit_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Module Designer.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/75590e2136df8566_ront-end-development_classic-ui_controls_examples_add-a-control-to-a-record-page_a23a60519c27.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/75590e2136df8566_ront-end-development_classic-ui_controls_examples_add-a-control-to-a-record-page_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/LimitedIntegerEdit/scr_ContactPageV2_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/75590e2136df8566_ront-end-development_classic-ui_controls_examples_add-a-control-to-a-record-page_45d34890eaee.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/LimitedIntegerEdit/scr_Result_In_Interface_Message.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will display the corresponding warning message on the contact page.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/75590e2136df8566_ront-end-development_classic-ui_controls_examples_add-a-control-to-a-record-page_0cb18b37a1a0.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkLimitedIntegerEditPackage_2021-02-26_09.54.23.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkLimitedIntegerEditPackage_2021-02-26_09.54.23.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/75590e2136df8566_ront-end-development_classic-ui_controls_examples_add-a-control-to-a-record-page_sdkLimitedIntegerEditPackage_2021-02-26_09.54.23.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add a custom control to a record page",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a module\u200b",
+      "anchor": "title-3199-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Add the control to a contact page\u200b",
+      "anchor": "title-3199-3"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-3199-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDVALUE",
+        "path": "("
+      },
+      {
+        "method": "PARSENUMBER",
+        "path": "("
+      },
+      {
+        "method": "ISOUTOFLIMITS",
+        "path": "("
+      },
+      {
+        "method": "SETMARKOUT",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/controls/examples/add-a-control-to-a-record-page",
+      "text": "Add a control to a record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/controls/examples/add-a-control-to-a-record-page",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/module-basics",
+      "text": "Module basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/types",
+      "text": "Types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/modules/overview",
+      "text": "Class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema-1",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/client-schema/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/classic-client-schema-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/classic-client-schema-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/controls/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/controls-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sandbox",
+      "text": "NextSandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/websocket-messages/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/websocket-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/websocket-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/data-operations-front-end/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:21:41.152779"
+}

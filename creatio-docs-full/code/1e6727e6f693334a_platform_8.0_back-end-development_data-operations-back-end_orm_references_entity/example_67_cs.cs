@@ -1,0 +1,1 @@
+void ReadData(DataReader reader)void ReadData(DataReader reader, EntitySchema schema)

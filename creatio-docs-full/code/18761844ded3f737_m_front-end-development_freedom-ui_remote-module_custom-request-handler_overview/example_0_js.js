@@ -1,0 +1,1 @@
+/* Import the required functionality from the libraries. */import { BaseRequest } from "@creatio-devkit/common";export class SomeRequestNameRequest extends BaseRequest{  /* The type and parameters of the request. */  public someParameterName!: someParameterType;}

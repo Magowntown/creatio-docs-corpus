@@ -1,0 +1,1 @@
+bool FetchPrimaryInfoFromDB(EntitySchemaColumn conditionColumn, object conditionValue)bool FetchPrimaryInfoFromDB(string conditionColumnName, object conditionValue)

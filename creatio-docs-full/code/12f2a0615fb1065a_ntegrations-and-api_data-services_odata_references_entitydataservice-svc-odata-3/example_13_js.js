@@ -1,0 +1,1 @@
+Accept application/atom+xml; type=entry required

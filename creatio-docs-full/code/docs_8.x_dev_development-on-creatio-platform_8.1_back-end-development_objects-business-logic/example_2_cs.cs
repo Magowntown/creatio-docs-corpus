@@ -1,0 +1,1 @@
+/* The class that implements asynchronous operation calls. */public class DoSomethingActivityAsyncOperation: IEntityEventAsyncOperation {    /* The start method of the class. */    public void Execute(UserConnection userConnection, EntityEventAsyncOperationArgs arguments) {        /* ... */    }}

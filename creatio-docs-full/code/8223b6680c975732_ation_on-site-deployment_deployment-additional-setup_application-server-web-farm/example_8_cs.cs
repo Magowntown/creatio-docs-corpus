@@ -1,0 +1,1 @@
+server node_1 [server address]:[port] weightserver node_2 [server address]:[port] weight

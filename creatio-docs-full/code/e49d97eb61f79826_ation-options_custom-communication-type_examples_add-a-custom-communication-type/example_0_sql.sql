@@ -1,0 +1,1 @@
+update "Communication"    set "ImageLinkId" = '1bb30ed3-8a2b-8225-4c13-aad2700af726'where "Name" = 'Other'

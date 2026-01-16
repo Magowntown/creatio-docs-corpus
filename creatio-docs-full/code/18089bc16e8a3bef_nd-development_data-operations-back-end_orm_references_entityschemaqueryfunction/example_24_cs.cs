@@ -1,0 +1,1 @@
+EntitySchemaIsNullQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression checkExpression, EntitySchemaQueryExpression replacementExpression)

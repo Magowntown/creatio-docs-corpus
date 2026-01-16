@@ -1,0 +1,1 @@
+/* Load the module without using additional parameters. */this.sandbox.loadModule("ProcessListenerV2");/* Load the module using additional parameters. */this.sandbox.loadModule("CardModuleV2", {    renderTo: "centerPanel",    keepAlive: true,    id: moduleId});

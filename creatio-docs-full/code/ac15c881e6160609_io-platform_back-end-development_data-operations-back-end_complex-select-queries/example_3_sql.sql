@@ -1,0 +1,1 @@
+USE [master]GOALTER FUNCTION [dbo].[fnProtoClassifier]()    RETURNS sysname    WITH SCHEMABINDINGASBEGIN    IF(app_name() like '%_Limited')    BEGIN        RETURN N'groupLimited'    END    RETURN N'default'END;

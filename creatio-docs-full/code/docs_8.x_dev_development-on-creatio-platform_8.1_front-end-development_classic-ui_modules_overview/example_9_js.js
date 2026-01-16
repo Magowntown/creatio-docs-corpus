@@ -1,0 +1,1 @@
+sandbox.loadModule("selectDataModule", {     /* The view ID of the module to load. */     id: "selectDataModule_id",     /* Add the view to the current page container. */     renderTo: "cardModuleContainer",     /* Specify not to unload the module. */     keepAlive: true });

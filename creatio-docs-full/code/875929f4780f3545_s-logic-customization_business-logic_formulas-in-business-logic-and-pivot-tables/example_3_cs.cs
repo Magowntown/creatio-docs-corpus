@@ -1,0 +1,1 @@
+Target field: [Efficiency, %] Elements: [Cases closed during the month], [Cases processed during the month], [Cases escalated during the month], 100 (percentage conversion multiplier). Formula: = (([Cases closed during the month] + Cases escalated during the month])/ [Cases processed during the month])*100

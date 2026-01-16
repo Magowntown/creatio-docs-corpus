@@ -1,0 +1,1 @@
+(CASE    WHEN EXISTS        (SELECT 1            FROM [SysSSPEntitySchemaAccessList]            WHERE [SysSSPEntitySchemaAccessList].[EntitySchemaUId] = [BaseSchemas].[UId] ) THEN 1    ELSE 0END) AS [IsInSSPEntitySchemaAccessList]

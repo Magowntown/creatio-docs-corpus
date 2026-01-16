@@ -1,0 +1,966 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/set-up-the-identity-service-instruction",
+  "title": "Deploy the Identity Service",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment"
+    },
+    {
+      "text": "Additional setup",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/additional-setup"
+    },
+    {
+      "text": "Identity Service",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/identity-service"
+    }
+  ],
+  "content_markdown": "Version: 8.2On-site\nOn this page\nIdentity Service implements OAuth 2.0 in Creatio.\nnote\nIf you use Creatio **in the cloud** , the Identity Service is deployed out of the box. Proceed to getting OAuth 2.0 credentials. Instructions: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?id=2508&anchor=title-2508-1).\n## Install the Identity Service\u200b\nThis is a one-time procedure. Before you install the Identity Service, deploy the database and Creatio application servers.\nYou can install the Identity Service in multiple ways:\n* Using IIS. Read more >>>\n* Using Docker. Read more >>>\nTo encrypt access tokens, the Identity Service utilizes OpenSSL certificates. You can use a certificate issued by a trusted certificate authority (CA) or alternatively, a manually generated certificate. Learn more: [Generate PFX certificate using OpenSSL](https://academy.creatio.com/documents?id=2565).\nImportant\nTo maintain robust security standards, it is strongly recommended to use unique certificates for each individual instance of the Identity Service.\n### Install the Identity Service using IIS\u200b\nInstall the Identity Service into the Creatio application server. Each Creatio instance needs an individual Identity Service.\nTo install the Identity Service using IIS:\n1. **Install additional components**.\nFor Creatio 8.2.1 and later\n.NET 8 Runtime. [Download the install file](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)\n.NET 8 Hosting Bundle. [Download the install file](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-8.0.10-windows-hosting-bundle-installer)\nFor Creatio 8.2.0\n.NET 6 Runtime. [Download the install file](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)\n.NET 6 Hosting Bundle. [Download the install file](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-6.0.14-windows-hosting-bundle-installer)\n2. **Restart the IIS**.\n3. **Extract the IdentityService.zip archive** to an arbitrary directory in the root Creatio directory. For example, \"IdentityService.\"\n4. **Add the Identity Service application pool** to the IIS. Use dedicated application pool for every Creatio instance.\n1. Open the **Application Pools** section in the **Connections** area of the IIS.\n2. Select **Add Application Pool...** in the **Actions** area (Fig. 1). This opens the **Add Application Pool** window.\nFig. 1 Add the pool to the IIS\n![Fig.\u00a01 Add the pool to the IIS](https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/add_pool.png)\n3. Fill out the settings.\nSetting| Setting value  \n---|---  \nName| Must be unique. For example, \"IDServicePool.\"  \n.NET CLR Version| No Managed Code  \nManaged pipeline mode| Integrated  \n4. Save the changes.\nAs a result, the \"IDServicePool\" pool will be added (Fig. 2).\nFig. 2 Identity Service pool\n![Fig.\u00a02 Identity Service pool](https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/identity_service_pool.png)\n5. **Set up access to the application pool** (optional for development environment). By default, the Windows user accesses the application pool.\n1. Select \"IDServicePool\" in the **Application Pools** area.\n2. Select **Advanced Settings...** in the **Actions** area (Fig. 3). This opens the **Advanced Settings** window.\nFig. 3 Set up access\n![Fig.\u00a03 Set up access](https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/identity_service_pool_access.png)\n3. Set **Load User Profile** parameter to \"True.\"\n4. Click ![](https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/details_button.png) in the **Identity** setting of the **Advanced Settings** window (Fig. 3). This opens the **Application Pool Identity** window.\n5. Select the **Custom account** checkbox and click **Set...** (Fig. 4). This opens the **Set Credentials** window.\nFig. 4 Add a new user\n![Fig.\u00a04 Add a new user](https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/add_a_new_user.png)\n6. Fill out the **User name** , **Password** , **Confirm password** user settings.\n7. Save the changes.\n6. **Create the Identity Service website** in the IIS.\n1. Click **Sites** \u2192 **Add Website** in the **Connections** area of the IIS. This opens the **Add Website** window.\n2. Fill out the website settings.\nSetting| Setting value  \n---|---  \nSite name| An arbitrary website name. For example, \"IDServiceWebsite.\"  \nApplication pool| Click **Select...** and select the \"IDServicePool\" in the **Application pool** setting.  \nPhysical path| The path to the root Identity Service directory.  \nPort| The port for the Identity Service. Must be unique. For example, \"8090.\"  \n3. Save the changes.\nAs a result, the website for Identity Service will be created (Fig. 5).\nFig. 5 Website for Identity Service\n![Fig.\u00a05 Website for Identity Service](https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/website_for_identity_service.png)\n7. **Connect the website to your Creatio DBMS**.\n1. Open the appsettings.json file in the root Identity Service directory.\n2. Modify the file parameters.\nParameter| Parameter value  \n---|---  \nDbProvider| \"MsSqlServer\" or \"Postgres\"  \nDatabaseConnectionString| Use the same connection string you specified in the `connectionString` attribute of the ConnectionStrings.config file. Use escaped characters.  \nThe user that connects to the database must have permissions to create and update the tables.\nIf you need to connect the Identity Service to Creatio that uses **Oracle DBMS** , deploy an additional PostgreSQL or Microsoft SQL database instance.\n3. Save the changes.\n8. **Set up the Identity Service system client**.\n1. Open the appsettings.json file in the root Identity Service directory.\n2. Modify the file parameters. The Identity Service uses these values to interact with Creatio. All parameters support uppercase and lowercase letters, numbers, and special characters, for example, brackets or punctuation marks.\nParameter| Parameter value| Requirements for parameter value  \n---|---|---  \nClientId| An arbitrary client ID. For example, \"IdServiceUser.\"| 16 characters  \nClientName| An arbitrary client name. For example, \"MyIdentityServiceApp.\"| Any number of characters  \nSecrets| An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"| 32 characters  \nappsettings.json file\n\"[{\\\"ClientId\\\":\\\"SOME_CLIENT_ID\\\",\\\"ClientName\\\":\\\"SOME_CLIENT_NAME\\\",\\\"Secrets\\\":[\\\"SOME_CLIENT_SECRET\\\"],\\\"AllowedGrantTypes\\\":[\\\"implicit\\\",\\\"client_credentials\\\"],\\\"RedirectUris\\\":[\\\"http://localhost:8090\\\",\\\"http://localhost:8090/lib\\\",\\\"http://localhost:8090/lib/\\\"],\\\"PostLogoutRedirectUris\\\":[\\\"http://localhost:8090\\\"],\\\"IdentityTokenLifetime\\\": 300,\\\"AccessTokenLifetime\\\": 3600,\\\"Properties\\\": {\\\"AllowedQueryParameters\\\": \\\"[\\\\\\\"invitationHash\\\\\\\",\\\\\\\"targetSubject\\\\\\\"]\\\"},\\\"AllowedScopes\\\": [\\\"register_own_resource\\\", \\\"get_resource_list\\\", \\\"get_client_info\\\", \\\"find_clients\\\", \\\"remove_client\\\", \\\"update_client\\\", \\\"add_registrar_client\\\", \\\"IdentityServerApi\\\"]}]\",  \n3. Save the changes.\n9. **Generate openssl.pfx certificate** by a trusted certificate authority (CA) or manually. Instructions: [Generate PFX certificate using OpenSSL](https://academy.creatio.com/documents?id=2565).\nSince Creatio version 8.2.3, OAuth and OpenID authorization functionality support certificates encrypted with RSA, or ECDSA using the following combinations: P-256 with SHA-256, P-384 with SHA-384, or P-521 with SHA-512. When using certificates from a certificate authority, ensure they are signed with a supported encryption type to guarantee compatibility.\n10. **Set up the access to openssl.pfx certificate**.\n1. Open the appsettings.json file in the root Identity Service directory.\n2. Specify the full path to openssl.pfx certificate from the root Identity Service directory in the `X509CertificatePath` parameter. Use escaped characters.\n3. Save the changes.\n11. **Switch the Identity Service to HTTPS** (optional for development environment). The setup process is similar to switching Creatio to HTTPS. Instructions: [Switch a Creatio website from HTTP to HTTPS](https://academy.creatio.com/documents?id=1632).\n12. **Set up the Identity Service logging**. Enable logging to verify that the Identity Service operates as expected. For optimal performance, enable logging only while testing and debugging.\n1. Open the web.config file in the root Identity Service directory.\n2. Set the `stdoutLogEnabled` parameter to \"true.\"\n3. Specify the directory to store the Identity Service logs in the `stdoutLogFile` parameter. You can leave default parameter value. The directory will be created automatically when you first launch the IdentityService.dll library.\n4. Save the changes.\n5. Open the appsettings.json file in the root Identity Service directory.\n6. Configure the log level.\nappsettings.json file\n\"Logging\": {  \n\"LogLevel\": {  \n\"Default\": \"Debug\"  \n}  \n}  \nSpecify the log level based on your business goals. Learn more: [Define the log rules](https://academy.creatio.com/documents?id=15181&anchor=title-2121-4) (developer documentation).\n7. Save the changes.\n**As a result** :\n* The application pool and website for Identity Service will be created.\n* The Identity Service will be launched.\n* The Identity Service will create a set of database tables (Fig. 6).\n* The client settings from the appsettings.json file will be added to the \"Clients\" database table.\nFig. 6 Database tables created by Identity Service\n![Fig.\u00a06 Database tables created by Identity Service](https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/database_tables.png)\nIf you need to **change the client settings** :\n1. Delete the record from \"Clients,\" \"ClientScopes,\" \"ClientSecrets,\" \"ClientClaims\" Identity Service database tables.\n2. Relaunch the IdentityService.dll library.\n3. Restart the Identity Service application pool.\n4. Test the Identity Service.\n### Install the Identity Service using Docker\u200b\n1. **Extract the IdentityService.zip archive** to an arbitrary directory in the root Creatio directory. For example, \"IdentityService.\"\n2. **Connect the website to your Creatio DBMS**. You can do this in multiple ways:\n* Modify the appsettings.json file in the Identity Service root directory before building.\n* Modify the Dockerfile-OAuth file and add environment variables using the ENV directive. For example, specify \"Postgres\" in the `ENV DbProvider` parameter. The parameter value will be set when the container starts.\n* Specify the environment variables when running the container. For example, use the `docker run --env=DbProvider=Postgres` command.\nRegardless of the chosen method, configure the following parameters:\nParameter| Parameter value  \n---|---  \nDbProvider| \"MsSqlServer\" or \"Postgres\"  \nMsSqlConnection or PostgresConnection| Use the same connection string you specified in the `connectionString` attribute of the ConnectionStrings.config file.  \nThe user that connects to the database must have permissions to create and update the tables.\nIf you need to connect the Identity Service to Creatio that uses **Oracle DBMS** , deploy an additional PostgreSQL or Microsoft SQL database instance.\n3. **Generate openssl.pfx certificate** by a trusted certificate authority (CA) or manually. Instructions: [Generate PFX certificate using OpenSSL](https://academy.creatio.com/documents?id=2565).\nSince Creatio version 8.2.3, OAuth and OpenID authorization functionality support certificates encrypted with RSA, or ECDSA using the following combinations: P-256 with SHA-256, P-384 with SHA-384, or P-521 with SHA-512. When using certificates from a certificate authority, ensure they are signed with a supported encryption type to guarantee compatibility.\n4. **Set up the Identity Service system client**. To do this, modify the file parameters. The Identity Service uses these values to interact with Creatio. All parameters support uppercase and lowercase letters, numbers, and special characters, for example, brackets or punctuation marks.\nParameter| Parameter value| Requirements for parameter value  \n---|---|---  \nClientId| An arbitrary client ID. For example, \"IdServiceUser.\"| 16 characters  \nClientName| An arbitrary client name. For example, \"MyIdentityServiceApp.\"| Any number of characters  \nSecrets| An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"| 32 characters  \nExample that sets up the Identity Service system client\n\"[{\\\"ClientId\\\":\\\"SOME_CLIENT_ID\\\",\\\"ClientName\\\":\\\"SOME_CLIENT_NAME\\\",\\\"Secrets\\\":[\\\"SOME_CLIENT_SECRET\\\"],\\\"AllowedGrantTypes\\\":[\\\"implicit\\\",\\\"client_credentials\\\"],\\\"RedirectUris\\\":[\\\"http://localhost:8090\\\",\\\"http://localhost:8090/lib\\\",\\\"http://localhost:8090/lib/\\\"],\\\"PostLogoutRedirectUris\\\":[\\\"http://localhost:8090\\\"],\\\"IdentityTokenLifetime\\\": 300,\\\"AccessTokenLifetime\\\": 3600,\\\"Properties\\\": {\\\"AllowedQueryParameters\\\": \\\"[\\\\\\\"invitationHash\\\\\\\",\\\\\\\"targetSubject\\\\\\\"]\\\"},\\\"AllowedScopes\\\": [\\\"register_own_resource\\\", \\\"get_resource_list\\\", \\\"get_client_info\\\", \\\"find_clients\\\", \\\"remove_client\\\", \\\"update_client\\\", \\\"add_registrar_client\\\", \\\"IdentityServerApi\\\"]}]\",  \n5. **Build the Docker image**. To do this, run the `docker build -t creatio-identity-service -f ./Dockerfile-OAuth .` command.\n6. **Run the container** using the following command:\n* For Creatio 8.2.1 and later\n* For Creatio 8.2.0\ndocker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin   \n--env=ASPNETCORE_URLS=http://+:80 --env=DOTNET_RUNNING_IN_CONTAINER=true   \n--env=DOTNET_VERSION=8.0.10 --env=ASPNET_VERSION=8.0.10 --workdir=/app   \n-p 80:80 -d creatio-identity-service:latest  \ndocker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin   \n--env=ASPNETCORE_URLS=http://+:80 --env=DOTNET_RUNNING_IN_CONTAINER=true   \n--env=DOTNET_VERSION=6.0.15 --env=ASPNET_VERSION=6.0.15 --workdir=/app   \n-p 80:80 -d creatio-identity-service:latest  \n7. **Switch the Identity Service to HTTPS**.\n1. Obtain a digital certificate from the certification center. Instructions: [Windows using Linux containers](https://learn.microsoft.com/en-us/aspnet/core/security/docker-https?view=aspnetcore-7.0#windows-using-linux-containers) (vendor documentation).\n2. Run the following command:\n* For Creatio 8.2.1 and later\n* For Creatio 8.2.0\ndocker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin   \n-e ASPNETCORE_URLS=\"https://+;http://+\" -e ASPNETCORE_HTTPS_PORT=443   \n-e DOTNET_RUNNING_IN_CONTAINER=true -e DOTNET_VERSION=8.0.10   \n-e ASPNET_VERSION=8.0.10 -e ASPNETCORE_Kestrel__Certificates__Default__Password=SOME_CERTIFICATE_PASSWORD   \n-e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx   \n-v %USERPROFILE%\\.aspnet\\https:/https/ --workdir=/app -p SOME_HTTP_PORT:80 -p SOME_HTTPS_PORT:443   \n-d creatio-identity-service:latest  \ndocker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin   \n-e ASPNETCORE_URLS=\"https://+;http://+\" -e ASPNETCORE_HTTPS_PORT=443   \n-e DOTNET_RUNNING_IN_CONTAINER=true -e DOTNET_VERSION=6.0.15   \n-e ASPNET_VERSION=6.0.15 -e ASPNETCORE_Kestrel__Certificates__Default__Password=SOME_CERTIFICATE_PASSWORD   \n-e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx   \n-v %USERPROFILE%\\.aspnet\\https:/https/ --workdir=/app -p SOME_HTTP_PORT:80 -p SOME_HTTPS_PORT:443   \n-d creatio-identity-service:latest  \nParameter| Parameter value| Parameter description  \n---|---|---  \n-e ASPNETCORE_URLS| https://+;http://+| Environment variable that switches the Identity Service to HTTPS  \n-e ASPNETCORE_HTTPS_PORT| 443| Environment variable that sets the port number for HTTPS  \n-e DOTNET_RUNNING_IN_CONTAINER| true| Variables for working via .NET  \n-e DOTNET_VERSION| 6.0.15  \n-e ASPNET_VERSION| 6.0.15  \n-e ASPNETCORE_Kestrel__Certificates__Default__Password| SOME_CERTIFICATE_PASSWORD| Password for the openssl.pfx certificate  \n-e ASPNETCORE_Kestrel__Certificates__Default__Path| SOME_CERTIFICATE_PATH. For example, \"/https/aspnetapp.pfx.\"| Path to the openssl.pfx certificate  \n-v %USERPROFILE%.aspnet\\https:/https/|  | Path to the certificate storage  \n\\--workdir| /app| Working directory  \n-p SOME_HTTP_PORT:80|  | Port numbers that map the container to Docker environment. Docker serves the HTTP version of Identity Service via this port.  \n-p SOME_HTTPS_PORT:443|  | Port numbers that map the container to Docker environment. Docker serves the HTTPS version of Identity Service via this port.  \n-d|  | A container startup format. Does not depend on the process that runs the container.  \ncreatio-identity-service:latest|  | The name of the Docker image to run.  \n8. **Set up the Identity Service logging**. Enable logging to verify that the Identity Service operates as expected. For optimal performance, enable logging only while testing and debugging.\n1. Open the appsettings.json file in the root Identity Service directory.\n2. Configure the log level.\nappsettings.json file\n\"Logging\": {  \n\"LogLevel\": {  \n\"Default\": \"Debug\"  \n}  \n}  \nSpecify the log level based on your business goals. Learn more: [Define the log rules](https://academy.creatio.com/documents?id=15181&anchor=title-2121-4) (developer documentation).\n3. Save the changes.\n**As a result** :\n* The application pool and website for Identity Service will be created.\n* The Identity Service will be launched.\n* The Identity Service will create a set of database tables (Fig. 6).\n* The client settings from the appsettings.json file will be added to the \"Clients\" database table.\nIf you need to **change the client settings** :\n1. Delete the record from \"Clients,\" \"ClientScopes,\" \"ClientSecrets,\" \"ClientClaims\" Identity Service database tables.\n2. Relaunch the IdentityService.dll library.\n3. Restart the Identity Service application pool.\n4. Test the Identity Service.\n## Test the Identity Service (optional)\u200b\nTo test the Identity Service, access the `[Identity Service URL]/.well-known/openid-configuration` URL from the browser.\n**As a result** , the list of Identity Service settings will be displayed.\nYou can **set up automated monitoring systems** based on OAuth health monitoring. Instructions: [OAuth health monitoring](https://academy.creatio.com/documents?id=2513). If needed, use **Postman** to test the Identity Service and check the health of OAuth functionality. The Postman request collection that tests requests is available in [Creatio API documentation](https://documenter.getpostman.com/view/10204500/SztHX5Qb?version=latest#0e2dd1ce-1a5d-4870-bb0b-c0cc2eb25a31).\nNow you can connect the Identity Service to Creatio. Instructions: [Connect the Identity Service to Creatio](https://academy.creatio.com/documents?id=2467).\n* * *\n## See also\u200b\n[Connect the Identity Service to Creatio](https://academy.creatio.com/documents?id=2467)\n[Manage the OAuth 2.0 client credentials](https://academy.creatio.com/documents?id=2508)\n[OAuth health monitoring](https://academy.creatio.com/documents?id=2513)\n[Authorize external requests using OAuth 2.0 (developer documentation)](https://academy.creatio.com/documents?id=15058)\n[NLog (developer documentation)](https://academy.creatio.com/documents?id=15182)\n* * *\n## E-learning courses\u200b\n[Tech Hour - Integrate like a boss with Creatio, part 2 (Odata)](https://www.youtube.com/watch?v=ehjfcBxpLsQ)",
+  "code_examples": [
+    {
+      "code": "\"[{\\\"ClientId\\\":\\\"SOME_CLIENT_ID\\\",\\\"ClientName\\\":\\\"SOME_CLIENT_NAME\\\",\\\"Secrets\\\":[\\\"SOME_CLIENT_SECRET\\\"],\\\"AllowedGrantTypes\\\":[\\\"implicit\\\",\\\"client_credentials\\\"],\\\"RedirectUris\\\":[\\\"http://localhost:8090\\\",\\\"http://localhost:8090/lib\\\",\\\"http://localhost:8090/lib/\\\"],\\\"PostLogoutRedirectUris\\\":[\\\"http://localhost:8090\\\"],\\\"IdentityTokenLifetime\\\": 300,\\\"AccessTokenLifetime\\\": 3600,\\\"Properties\\\": {\\\"AllowedQueryParameters\\\": \\\"[\\\\\\\"invitationHash\\\\\\\",\\\\\\\"targetSubject\\\\\\\"]\\\"},\\\"AllowedScopes\\\": [\\\"register_own_resource\\\", \\\"get_resource_list\\\", \\\"get_client_info\\\", \\\"find_clients\\\", \\\"remove_client\\\", \\\"update_client\\\", \\\"add_registrar_client\\\", \\\"IdentityServerApi\\\"]}]\",",
+      "language": "json",
+      "context": "32 characters",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"Logging\": {  \"LogLevel\": {    \"Default\": \"Debug\"  }}",
+      "language": "json",
+      "context": "Configure the log level.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env=ASPNETCORE_URLS=http://+:80 --env=DOTNET_RUNNING_IN_CONTAINER=true --env=DOTNET_VERSION=8.0.10 --env=ASPNET_VERSION=8.0.10 --workdir=/app -p 80:80 -d creatio-identity-service:latest",
+      "language": "cli",
+      "context": "Run the containerusing the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env=ASPNETCORE_URLS=http://+:80 --env=DOTNET_RUNNING_IN_CONTAINER=true --env=DOTNET_VERSION=6.0.15 --env=ASPNET_VERSION=6.0.15 --workdir=/app -p 80:80 -d creatio-identity-service:latest",
+      "language": "cli",
+      "context": "Run the containerusing the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin -e ASPNETCORE_URLS=\"https://+;http://+\" -e ASPNETCORE_HTTPS_PORT=443 -e DOTNET_RUNNING_IN_CONTAINER=true -e DOTNET_VERSION=8.0.10 -e ASPNET_VERSION=8.0.10 -e ASPNETCORE_Kestrel__Certificates__Default__Password=SOME_CERTIFICATE_PASSWORD -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx -v %USERPROFILE%\\.aspnet\\https:/https/ --workdir=/app -p SOME_HTTP_PORT:80 -p SOME_HTTPS_PORT:443 -d creatio-identity-service:latest",
+      "language": "cli",
+      "context": "Run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker run --env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin -e ASPNETCORE_URLS=\"https://+;http://+\" -e ASPNETCORE_HTTPS_PORT=443 -e DOTNET_RUNNING_IN_CONTAINER=true -e DOTNET_VERSION=6.0.15 -e ASPNET_VERSION=6.0.15 -e ASPNETCORE_Kestrel__Certificates__Default__Password=SOME_CERTIFICATE_PASSWORD -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx -v %USERPROFILE%\\.aspnet\\https:/https/ --workdir=/app -p SOME_HTTP_PORT:80 -p SOME_HTTPS_PORT:443 -d creatio-identity-service:latest",
+      "language": "cli",
+      "context": "Run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Setting",
+          "Setting value"
+        ],
+        [
+          "Name",
+          "Must be unique. For example, \"IDServicePool.\""
+        ],
+        [
+          ".NET CLR Version",
+          "No Managed Code"
+        ],
+        [
+          "Managed pipeline mode",
+          "Integrated"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Setting</p></center></th><th><center><p>Setting value</p></center></th></tr><tr><td><p>Name</p></td><td><p>Must be unique. For example, \"IDServicePool.\"</p></td></tr><tr><td><p>.NET CLR Version</p></td><td><p>No Managed Code</p></td></tr><tr><td><p>Managed pipeline mode</p></td><td><p>Integrated</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Setting",
+          "Setting value"
+        ],
+        [
+          "Site name",
+          "An arbitrary website name. For example, \"IDServiceWebsite.\""
+        ],
+        [
+          "Application pool",
+          "ClickSelect...and select the \"IDServicePool\" in theApplication poolsetting."
+        ],
+        [
+          "Physical path",
+          "The path to the root Identity Service directory."
+        ],
+        [
+          "Port",
+          "The port for the Identity Service. Must be unique. For example, \"8090.\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Setting</p></center></th><th><center><p>Setting value</p></center></th></tr><tr><td><p>Site name</p></td><td><p>An arbitrary website name. For example, \"IDServiceWebsite.\"</p></td></tr><tr><td><p>Application pool</p></td><td><p>Click <strong>Select...</strong> and select the \"IDServicePool\" in the <strong>Application pool</strong> setting.</p></td></tr><tr><td><p>Physical path</p></td><td><p>The path to the root Identity Service directory.</p></td></tr><tr><td><p>Port</p></td><td><p>The port for the Identity Service. Must be unique. For example, \"8090.\"</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter value"
+        ],
+        [
+          "DbProvider",
+          "\"MsSqlServer\" or \"Postgres\""
+        ],
+        [
+          "DatabaseConnectionString",
+          "Use the same connection string you specified in theconnectionStringattribute of the ConnectionStrings.config file. Use escaped characters."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter value</p></center></th></tr><tr><td><p>DbProvider</p></td><td><p>\"MsSqlServer\" or \"Postgres\"</p></td></tr><tr><td><p>DatabaseConnectionString</p></td><td><p>Use the same connection string you specified in the <code>connectionString</code> attribute of the ConnectionStrings.config file. Use escaped characters.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter value",
+          "Requirements for parameter value"
+        ],
+        [
+          "ClientId",
+          "An arbitrary client ID. For example, \"IdServiceUser.\"",
+          "16 characters"
+        ],
+        [
+          "ClientName",
+          "An arbitrary client name. For example, \"MyIdentityServiceApp.\"",
+          "Any number of characters"
+        ],
+        [
+          "Secrets",
+          "An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"",
+          "32 characters"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter value</p></center></th><th><center><p>Requirements for parameter value</p></center></th></tr><tr><td><p>ClientId</p></td><td><p>An arbitrary client ID. For example, \"IdServiceUser.\"</p></td><td><p>16 characters</p></td></tr><tr><td><p>ClientName</p></td><td><p>An arbitrary client name. For example, \"MyIdentityServiceApp.\"</p></td><td><p>Any number of characters</p></td></tr><tr><td><p>Secrets</p></td><td><p>An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"</p></td><td><p>32 characters</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter value"
+        ],
+        [
+          "DbProvider",
+          "\"MsSqlServer\" or \"Postgres\""
+        ],
+        [
+          "MsSqlConnection or PostgresConnection",
+          "Use the same connection string you specified in theconnectionStringattribute of the ConnectionStrings.config file."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter value</p></center></th></tr><tr><td><p>DbProvider</p></td><td><p>\"MsSqlServer\" or \"Postgres\"</p></td></tr><tr><td><p>MsSqlConnection or PostgresConnection</p></td><td><p>Use the same connection string you specified in the <code>connectionString</code> attribute of the ConnectionStrings.config file.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter value",
+          "Requirements for parameter value"
+        ],
+        [
+          "ClientId",
+          "An arbitrary client ID. For example, \"IdServiceUser.\"",
+          "16 characters"
+        ],
+        [
+          "ClientName",
+          "An arbitrary client name. For example, \"MyIdentityServiceApp.\"",
+          "Any number of characters"
+        ],
+        [
+          "Secrets",
+          "An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"",
+          "32 characters"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter value</p></center></th><th><center><p>Requirements for parameter value</p></center></th></tr><tr><td><p>ClientId</p></td><td><p>An arbitrary client ID. For example, \"IdServiceUser.\"</p></td><td><p>16 characters</p></td></tr><tr><td><p>ClientName</p></td><td><p>An arbitrary client name. For example, \"MyIdentityServiceApp.\"</p></td><td><p>Any number of characters</p></td></tr><tr><td><p>Secrets</p></td><td><p>An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"</p></td><td><p>32 characters</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter value",
+          "Parameter description"
+        ],
+        [
+          "-e ASPNETCORE_URLS",
+          "https://+;http://+",
+          "Environment variable that switches the Identity Service to HTTPS"
+        ],
+        [
+          "-e ASPNETCORE_HTTPS_PORT",
+          "443",
+          "Environment variable that sets the port number for HTTPS"
+        ],
+        [
+          "-e DOTNET_RUNNING_IN_CONTAINER",
+          "true",
+          "Variables for working via .NET"
+        ],
+        [
+          "-e DOTNET_VERSION",
+          "6.0.15"
+        ],
+        [
+          "-e ASPNET_VERSION",
+          "6.0.15"
+        ],
+        [
+          "-e ASPNETCORE_Kestrel__Certificates__Default__Password",
+          "SOME_CERTIFICATE_PASSWORD",
+          "Password for the openssl.pfx certificate"
+        ],
+        [
+          "-e ASPNETCORE_Kestrel__Certificates__Default__Path",
+          "SOME_CERTIFICATE_PATH. For example, \"/https/aspnetapp.pfx.\"",
+          "Path to the openssl.pfx certificate"
+        ],
+        [
+          "-v %USERPROFILE%.aspnet\\https:/https/",
+          "",
+          "Path to the certificate storage"
+        ],
+        [
+          "--workdir",
+          "/app",
+          "Working directory"
+        ],
+        [
+          "-p SOME_HTTP_PORT:80",
+          "",
+          "Port numbers that map the container to Docker environment. Docker serves the HTTP version of Identity Service via this port."
+        ],
+        [
+          "-p SOME_HTTPS_PORT:443",
+          "",
+          "Port numbers that map the container to Docker environment. Docker serves the HTTPS version of Identity Service via this port."
+        ],
+        [
+          "-d",
+          "",
+          "A container startup format. Does not depend on the process that runs the container."
+        ],
+        [
+          "creatio-identity-service:latest",
+          "",
+          "The name of the Docker image to run."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter value</p></center></th><th><center><p>Parameter description</p></center></th></tr><tr><td><p>-e ASPNETCORE_URLS</p></td><td><p>https://+;http://+</p></td><td><p>Environment variable that switches the Identity Service to HTTPS</p></td></tr><tr><td><p>-e ASPNETCORE_HTTPS_PORT</p></td><td><p>443</p></td><td><p>Environment variable that sets the port number for HTTPS</p></td></tr><tr><td><p>-e DOTNET_RUNNING_IN_CONTAINER</p></td><td><p>true</p></td><td rowspan=\"3\"><p>Variables for working via .NET</p></td></tr><tr><td><p>-e DOTNET_VERSION</p></td><td><p>6.0.15</p></td></tr><tr><td><p>-e ASPNET_VERSION</p></td><td><p>6.0.15</p></td></tr><tr><td><p>-e ASPNETCORE_Kestrel__Certificates__Default__Password</p></td><td><p>SOME_CERTIFICATE_PASSWORD</p></td><td><p>Password for the openssl.pfx certificate</p></td></tr><tr><td><p>-e ASPNETCORE_Kestrel__Certificates__Default__Path</p></td><td><p>SOME_CERTIFICATE_PATH. For example, \"/https/aspnetapp.pfx.\"</p></td><td><p>Path to the openssl.pfx certificate</p></td></tr><tr><td><p>-v %USERPROFILE%.aspnet\\https:/https/</p></td><td><p>\u00a0</p></td><td><p>Path to the certificate storage</p></td></tr><tr><td><p>--workdir</p></td><td><p>/app</p></td><td><p>Working directory</p></td></tr><tr><td><p>-p SOME_HTTP_PORT:80</p></td><td><p>\u00a0</p></td><td><p>Port numbers that map the container to Docker environment. Docker serves the HTTP version of Identity Service via this port.</p></td></tr><tr><td><p>-p SOME_HTTPS_PORT:443</p></td><td><p>\u00a0</p></td><td><p>Port numbers that map the container to Docker environment. Docker serves the HTTPS version of Identity Service via this port.</p></td></tr><tr><td><p>-d</p></td><td><p>\u00a0</p></td><td><p>A container startup format. Does not depend on the process that runs the container.</p></td></tr><tr><td><p>creatio-identity-service<!-- -->:latest</p></td><td><p>\u00a0</p></td><td><p>The name of the Docker image to run.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "in the cloud",
+      "content": "noteIf you use Creatioin the cloud, the Identity Service is deployed out of the box. Proceed to getting OAuth 2.0 credentials. Instructions:Generate OAuth 2.0 client credentials.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you use Creatio <strong>in the cloud</strong>, the Identity Service is deployed out of the box. Proceed to getting OAuth 2.0 credentials. Instructions: <a href=\"https://academy.creatio.com/documents?id=2508&amp;anchor=title-2508-1\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "in the cloud",
+      "content": "If you use Creatioin the cloud, the Identity Service is deployed out of the box. Proceed to getting OAuth 2.0 credentials. Instructions:Generate OAuth 2.0 client credentials.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you use Creatio <strong>in the cloud</strong>, the Identity Service is deployed out of the box. Proceed to getting OAuth 2.0 credentials. Instructions: <a href=\"https://academy.creatio.com/documents?id=2508&amp;anchor=title-2508-1\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a>.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTo maintain robust security standards, it is strongly recommended to use unique certificates for each individual instance of the Identity Service.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>To maintain robust security standards, it is strongly recommended to use unique certificates for each individual instance of the Identity Service.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To maintain robust security standards, it is strongly recommended to use unique certificates for each individual instance of the Identity Service.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To maintain robust security standards, it is strongly recommended to use unique certificates for each individual instance of the Identity Service.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "For Creatio 8.2.1 and later.NET 8 Runtime.Download the install file.NET 8 Hosting Bundle.Download the install file",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>For Creatio 8.2.1 and later</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 230ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>.NET 8 Runtime. <a href=\"https://dotnet.microsoft.com/en-us/download/dotnet/8.0\" rel=\"noopener noreferrer\" target=\"_blank\">Download the install file</a></p><p>.NET 8 Hosting Bundle. <a href=\"https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-8.0.10-windows-hosting-bundle-installer\" rel=\"noopener noreferrer\" target=\"_blank\">Download the install file</a></p></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "For Creatio 8.2.0.NET 6 Runtime.Download the install file.NET 6 Hosting Bundle.Download the install file",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>For Creatio 8.2.0</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 230ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>.NET 6 Runtime. <a href=\"https://dotnet.microsoft.com/en-us/download/dotnet/6.0\" rel=\"noopener noreferrer\" target=\"_blank\">Download the install file</a></p><p>.NET 6 Hosting Bundle. <a href=\"https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-6.0.14-windows-hosting-bundle-installer\" rel=\"noopener noreferrer\" target=\"_blank\">Download the install file</a></p></div></div></div></details>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/add_pool.png",
+      "alt": "Fig.\u00a01 Add the pool to the IIS",
+      "title": "",
+      "context": "SelectAdd Application Pool...in theActionsarea (Fig.\u00a01). This opens theAdd Application Poolwindow.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_19416a3ce4bc.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/identity_service_pool.png",
+      "alt": "Fig.\u00a02 Identity Service pool",
+      "title": "",
+      "context": "As a result, the \"IDServicePool\" pool will be added (Fig.\u00a02).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_e6a76457c715.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/identity_service_pool_access.png",
+      "alt": "Fig.\u00a03 Set up access",
+      "title": "",
+      "context": "SelectAdvanced Settings...in theActionsarea (Fig. 3). This opens theAdvanced Settingswindow.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_cd8f0aebf95a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/details_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickin theIdentitysetting of theAdvanced Settingswindow (Fig.\u00a03). This opens theApplication Pool Id",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_617d5f7cdcf3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/add_a_new_user.png",
+      "alt": "Fig.\u00a04 Add a new user",
+      "title": "",
+      "context": "Select theCustom accountcheckbox and clickSet...(Fig.\u00a04). This opens theSet Credentialswindow.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_4770c5465e74.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/website_for_identity_service.png",
+      "alt": "Fig.\u00a05 Website for Identity Service",
+      "title": "",
+      "context": "As a result, the website for Identity Service will be created (Fig.\u00a05).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_541ea213479d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/images/Setup_and_Administration/setup_oauth20_for_external_apps/8.0/database_tables.png",
+      "alt": "Fig.\u00a06 Database tables created by Identity Service",
+      "title": "",
+      "context": "As a result:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_32f4e720fc5e.png"
+    }
+  ],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=ehjfcBxpLsQ",
+      "text": "Tech Hour - Integrate like a boss with Creatio, part 2 (Odata)"
+    }
+  ],
+  "downloadables": [
+    {
+      "url": "https://dotnet.microsoft.com/en-us/download/dotnet/8.0",
+      "text": "Download the install file",
+      "filename": "8.0",
+      "type": "unknown",
+      "local_path": "creatio-docs-supplementary/downloads/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_8.0"
+    },
+    {
+      "url": "https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-8.0.10-windows-hosting-bundle-installer",
+      "text": "Download the install file",
+      "filename": "runtime-aspnetcore-8.0.10-windows-hosting-bundle-installer",
+      "type": "unknown",
+      "local_path": "creatio-docs-supplementary/downloads/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_runtime-aspnetcore-8.0.10-windows-hosting-bundle-installer"
+    },
+    {
+      "url": "https://dotnet.microsoft.com/en-us/download/dotnet/6.0",
+      "text": "Download the install file",
+      "filename": "6.0",
+      "type": "unknown",
+      "local_path": "creatio-docs-supplementary/downloads/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_6.0"
+    },
+    {
+      "url": "https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-6.0.14-windows-hosting-bundle-installer",
+      "text": "Download the install file",
+      "filename": "runtime-aspnetcore-6.0.14-windows-hosting-bundle-installer",
+      "type": "unknown",
+      "local_path": "creatio-docs-supplementary/downloads/66f219f4887f1676_oyment-additional-setup_identity-service_set-up-the-identity-service-instruction_runtime-aspnetcore-6.0.14-windows-hosting-bundle-installer"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Deploy the Identity Service",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Install the Identity Service\u200b",
+      "anchor": "title-2002-1"
+    },
+    {
+      "level": 3,
+      "text": "Install the Identity Service using IIS\u200b",
+      "anchor": "title-2002-5"
+    },
+    {
+      "level": 3,
+      "text": "Install the Identity Service using Docker\u200b",
+      "anchor": "title-2002-6"
+    },
+    {
+      "level": 2,
+      "text": "Test the Identity Service (optional)\u200b",
+      "anchor": "title-2002-7"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "E-learning courses\u200b",
+      "anchor": "e-learning-courses"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "DbProvider",
+        "type": "\"MsSqlServer\" or \"Postgres\"",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "DatabaseConnectionString",
+        "type": "Use the same connection string you specified in theconnectionStringattribute of the ConnectionStrings.config file. Use escaped characters.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "ClientId",
+        "type": "An arbitrary client ID. For example, \"IdServiceUser.\"",
+        "description": "16 characters",
+        "required": false
+      },
+      {
+        "name": "ClientName",
+        "type": "An arbitrary client name. For example, \"MyIdentityServiceApp.\"",
+        "description": "Any number of characters",
+        "required": false
+      },
+      {
+        "name": "Secrets",
+        "type": "An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"",
+        "description": "32 characters",
+        "required": false
+      },
+      {
+        "name": "DbProvider",
+        "type": "\"MsSqlServer\" or \"Postgres\"",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "MsSqlConnection or PostgresConnection",
+        "type": "Use the same connection string you specified in theconnectionStringattribute of the ConnectionStrings.config file.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "ClientId",
+        "type": "An arbitrary client ID. For example, \"IdServiceUser.\"",
+        "description": "16 characters",
+        "required": false
+      },
+      {
+        "name": "ClientName",
+        "type": "An arbitrary client name. For example, \"MyIdentityServiceApp.\"",
+        "description": "Any number of characters",
+        "required": false
+      },
+      {
+        "name": "Secrets",
+        "type": "An arbitrary client secret. For example, \"ItIsMyPasswordForIdentityService.\"",
+        "description": "32 characters",
+        "required": false
+      },
+      {
+        "name": "-e ASPNETCORE_URLS",
+        "type": "https://+;http://+",
+        "description": "Environment variable that switches the Identity Service to HTTPS",
+        "required": false
+      },
+      {
+        "name": "-e ASPNETCORE_HTTPS_PORT",
+        "type": "443",
+        "description": "Environment variable that sets the port number for HTTPS",
+        "required": false
+      },
+      {
+        "name": "-e DOTNET_RUNNING_IN_CONTAINER",
+        "type": "true",
+        "description": "Variables for working via .NET",
+        "required": false
+      },
+      {
+        "name": "-e DOTNET_VERSION",
+        "type": "6.0.15",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-e ASPNET_VERSION",
+        "type": "6.0.15",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-e ASPNETCORE_Kestrel__Certificates__Default__Password",
+        "type": "SOME_CERTIFICATE_PASSWORD",
+        "description": "Password for the openssl.pfx certificate",
+        "required": false
+      },
+      {
+        "name": "-e ASPNETCORE_Kestrel__Certificates__Default__Path",
+        "type": "SOME_CERTIFICATE_PATH. For example, \"/https/aspnetapp.pfx.\"",
+        "description": "Path to the openssl.pfx certificate",
+        "required": false
+      },
+      {
+        "name": "-v %USERPROFILE%.aspnet\\https:/https/",
+        "type": "",
+        "description": "Path to the certificate storage",
+        "required": false
+      },
+      {
+        "name": "--workdir",
+        "type": "/app",
+        "description": "Working directory",
+        "required": false
+      },
+      {
+        "name": "-p SOME_HTTP_PORT:80",
+        "type": "",
+        "description": "Port numbers that map the container to Docker environment. Docker serves the HTTP version of Identity Service via this port.",
+        "required": false
+      },
+      {
+        "name": "-p SOME_HTTPS_PORT:443",
+        "type": "",
+        "description": "Port numbers that map the container to Docker environment. Docker serves the HTTPS version of Identity Service via this port.",
+        "required": false
+      },
+      {
+        "name": "-d",
+        "type": "",
+        "description": "A container startup format. Does not depend on the process that runs the container.",
+        "required": false
+      },
+      {
+        "name": "creatio-identity-service:latest",
+        "type": "",
+        "description": "The name of the Docker image to run.",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/set-up-the-identity-service-instruction",
+      "text": "Deploy the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/identity-service/set-up-the-identity-service-instruction",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/identity-service/set-up-the-identity-service-instruction",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-oracle-database-for-creatio",
+      "text": "Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-oracle-database",
+      "text": "ConnectionStrings.config for Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/use-external-file-storages",
+      "text": "External file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/set-up-s3-file-storage-integration",
+      "text": "S3 file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/set-up-azure-blob-file-storage-integration",
+      "text": "Azure Blob file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/file-migration",
+      "text": "File migration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/identity-service",
+      "text": "PreviousIdentity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/connect-the-identity-service",
+      "text": "NextConnect the Identity Service to Creatio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/oauth-health-monitoring",
+      "text": "OAuth health monitoring",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/update-the-identity-service-using-iis-instruction",
+      "text": "Update the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/openssl",
+      "text": "PFX certificate",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T08:11:38.327904"
+}

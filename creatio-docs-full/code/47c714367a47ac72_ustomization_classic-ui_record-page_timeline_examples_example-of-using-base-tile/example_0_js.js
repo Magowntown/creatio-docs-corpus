@@ -1,0 +1,1 @@
+[  {    "entityConfigKey": "0ef5bd15-f3d3-4673-8af7-f2e61bc44cf0",    "entitySchemaName": "Contract",    "referenceColumnName": "Order",    "orderColumnName": "StartDate",    "authorColumnName": "Owner",    "captionColumnName": "Number",    "messageColumnName": "Notes",    "caption": "My Contracts",    "masterRecordColumnName": "Id"  }]

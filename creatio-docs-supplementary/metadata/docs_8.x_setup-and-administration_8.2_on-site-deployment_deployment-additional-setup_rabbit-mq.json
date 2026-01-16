@@ -1,0 +1,553 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/rabbit-mq",
+  "title": "Optimize Creatio performance with RabbitMQ",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment"
+    },
+    {
+      "text": "Additional setup",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/additional-setup"
+    }
+  ],
+  "content_markdown": "Version: 8.2All Creatio products\nOn this page\nA message broker is a software app that facilitates communication between different software applications or systems. It acts as a central hub, that receives, stores, and forwards messages between various components. This allows for asynchronous communication, where systems can send messages without waiting for immediate responses, making applications more scalable, resilient, and efficient. \nCreatio uses its own background task execution subsystem to manage the number of concurrent background tasks. This prevents overutilization of resources like the database server, Redis server, CPU, and RAM on Creatio web nodes, ensuring timely responses to user requests while executing background tasks. Out of the box Creatio uses queue stored in web node RAM.\nYou can integrate RabbitMQ as a message broker. It helps to **facilitate the Message Bus background task execution subsystem**. The Message Bus system is used to run background parts of business processes (when **Run following elements in the background** or **Run current and the following elements in the background** checkboxes are selected in the Business Process Designer) and can also be used directly through the C# code of the **Script task** element.\nKey reasons to integrate RabbitMQ with Creatio:\n* **Reliability**. All background tasks will be stored in the RabbitMQ instance, so a reboot or crash of a Creatio instance will not affect the background task queue.\nnote\nMessage brokers offer \"at least once\" delivery, necessitating idempotency in message handlers to prevent duplicate processing. While \"at least once delivery\" is guaranteed, exactly-once delivery is not. System crashes during long-running processes can lead to data loss or incomplete execution.\n* **Scalability**. All web-farm nodes will consume messages from a single queue, allowing workloads to be distributed evenly across multiple application nodes.\n* **Load balancing**. It becomes possible to configure some Creatio nodes to consume messages from the message broker without routing HTTP traffic to these nodes, so resource restrictions on these nodes will not affect the user experience in the runtime.\n## RabbitMQ connection and operation modes\u200b\nUpon startup, Creatio establishes a connection to the RabbitMQ instance and switches to broker mode, leveraging RabbitMQ for task queuing and processing.\n**In-memory mode**. If the initial connection attempt fails or the connection is lost during operation, Creatio transitions to in-memory mode. In this mode, tasks are temporarily stored in memory until the connection to RabbitMQ is restored.\n**Task scheduling and processing**. When a new background task is scheduled, Creatio publishes a message to RabbitMQ, containing essential information about the task, including the user context. The message is routed to the `creatio_main` queue, where it is consumed and processed by a Creatio node.\n**Log tracking**. Creatio records mode changes in the ServiceBus.log file. To check the current mode of a specific node, access the following URL: `https://creatio-instance/0/ServiceModel/MessageBusManagementService.svc/GetStatistics`.\nFig. 1 RabbitMQ workflow\n![Fig. 1 RabbitMQ workflow](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/On-site_deployment/rabbitmq/scr_rabbitmq_workflow.png)\nFor a deeper understanding of message broker interactions, refer to the [RabbitMQ official documentation](https://www.rabbitmq.com/tutorials/amqp-concepts#amqp-model).\n## Set up RabbitMQ integration\u200b\nBefore deploying RabbitMQ, ensure that your resources follow the resource allocation recommendations:\n* **Shared RabbitMQ instance**. If you are going to use both the Email Listener and Creatio, a single RabbitMQ instance can be shared across both applications.\n* **Equal resource allocation**. If you don't use the Email Listener, allocate equal resources to each RabbitMQ node for optimal performance.\nvCPU| RAM| Disk space  \n---|---|---  \n0.5| 4 GB| 10 GB  \n**Kubernetes resource limits** for RabbitMQ:\n* Set absolute memory limit. Configure an absolute memory limit in the RabbitMQ configuration file.\n* Allocate sufficient RAM. Ensure the Kubernetes pod's RAM limit is at least twice the configured RabbitMQ memory limit.\n* Set recovery time. Set a generous liveness probe timeout (e.g., 5 minutes) to accommodate potential recovery delays, especially for single-virtual-host setups with typical Creatio queues and exchanges.\nThe **general setup procedure** consists of the following steps:\n1. Deploy the RabbitMQ instance.\n2. Create a virtual host.\n3. Create a new user in RabbitMQ for Creatio integration and grant sufficient permissions to the created user.\n4. Update the ConnectionStrings.config file in Creatio.\n5. Enable the automatic broker mode in the Web.config file for .NET Framework or in the Terrasoft.WebHost.dll.config file for .NET in the Creatio root directory.\nLearn more about the steps performed in RabbitMQ: [RabbitMQ official documentation](https://www.rabbitmq.com/docs/download#installation-guides).\n### Setup in RabbitMQ\u200b\n#### Deploy RabbitMQ\u200b\nRabbit MQ offers a variety of **installation options** to cover different needs. Review the available options and select the one that best fits your requirements.\n* A **single-node** RabbitMQ setup is the simplest configuration. This setup option offers the advantage of storing background task queues outside of Creatio web nodes. This allows for persistence on disk, ensuring that tasks are not lost even if Creatio restarts.\nHowever, this setup has a significant drawback: a single point of failure. If the RabbitMQ server goes down, your background tasks will be disrupted, and any queued tasks might be lost, depending on the configuration.\nInstructions: [RabbitMQ official documentation](https://www.rabbitmq.com/docs/download#installation-guides).\n* A **clustered** RabbitMQ deployment is a more robust configuration that involves multiple RabbitMQ nodes working together. This setup option offers high availability, meaning that if one node fails, other nodes can take over its workload. This redundancy significantly reduces the risk of downtime and data loss.\nOut of the box, Creatio uses [quorum queues](https://www.rabbitmq.com/docs/quorum-queues#overview), that ensures a highly available solution in a clustered deployment without configuring additional components. You can also disable quorum queue usage if your RabbitMQ instance (for example Amazon MQ) does not support them.\nInstructions: [RabbitMQ official documentation](https://www.rabbitmq.com/kubernetes/operator/install-operator).\n#### Create a virtual host and a new user\u200b\nIf your RabbitMQ is **deployed in Docker** , run the following commands:\ndocker exec rabbitmq rabbitmqctl add_vhost creatio  \ndocker exec rabbitmq rabbitmqctl add_user creatio_user changeme  \ndocker exec rabbitmq rabbitmqctl set_permissions -p creatio creatio_user \".*\" \".*\" \".*  \nIf you manage your RabbitMQ via **RabbitMQ Management UI** :\n1. **Open** RabbitMQ Management UI in your web browser.\n2. **Log in** using your RabbitMQ credentials.\n3. **Add a new virtual host** :\n1. Go to the **Admin** tab at the top of the page.\n2. Click **Add a new virtual host** in the **Virtual Hosts** section.\n3. Enter the name of the new virtual host, for example, \"creatio.\"\n4. Click **Add virtual host**.\n4. **Add a new user** :\n1. Scroll down to the **Users** section in the **Admin** tab \u2192 click **Add a user**.\n2. Enter the username and password.\n3. Choose tags for the user, for example, \"creatio_user\" for admin privileges.\n4. Click **Add user**.\n5. **Set permissions for the user** :\n1. Click on the newly created user in the list of the **Users** section.\n2. Click **Add a permission** under the **Permissions** section.\n3. Select the virtual host you created.\n4. Set the permissions (`.*` to configure, write, and read).\n5. Click **Set permission**.\n### Setup in Creatio\u200b\n**Update the ConnectionStrings.config file** in the Creatio root directory.\n1. **Go to the root directory** of the Creatio application.\n2. **Open** the ConnectionStrings.config file.\n3. **Specify the connection parameters** for RabbitMQ.\n<add name=\"messageBroker\" connectionString=\"amqp://creatio_user:changeme@localhost:5672/creatio\" />  \n4. **Save the changes**.\n**Enable the automatic broker mode** in the the Web.config file for .NET Framework or in the Terrasoft.WebHost.dll.config for .NET.\n1. **Go to the root directory** of the Creatio application.\n2. **Open** the Web.config file for .NET Framework or the Terrasoft.WebHost.dll.config for .NET.\n3. **Go to ~/configuration/serviceBus** and set `operatingMode=\"Auto\"`.\n<!-- OperatingMode determines a message bus operating mode. Possible values are: InMemory and Auto. -->  \n<serviceBus incomingQueueName=\"creatio_main\" defaultSendAddress=\"exchange:creatio_exchange\" operatingMode=\"Auto\" messageProcessingThreadsCount=\"10\" />  \n4. **Save the changes**.\n## Monitor RabbitMQ\u200b\nA robust logging strategy is crucial for effective monitoring, troubleshooting, and security in a RabbitMQ environment. By carefully configuring and collecting logs, you can gain valuable insights into the health and performance of your message broker. This step is optional but recommended. Instructions: [RabbitMQ official documentation](https://www.rabbitmq.com/docs/logging).\nInclude RabbitMQ server in your monitoring system. This also will be useful to analyze amount of background tasks Creatio is executing and current queue size. Consider monitoring:\n* consumers count (must be 1 per Creatio node)\n* `creatio_main` queue size\n* `creatio_main_error` queue size (must be zero)\n* publish/consumption rate\n* available memory\n* free disk space\nInstructions: [RabbitMQ official documentation](https://www.rabbitmq.com/docs/prometheus).\n## Update RabbitMQ\u200b\nYou can update your RabbitMQ instance in multiple ways:\n* Deploy a new version alongside the existing version\n* Upgrade the existing instance/cluster\n### Deploy a new version alongside the existing version\u200b\nYou can use this way if RabbitMQ is exclusively used by Creatio and you have scheduled maintenance windows.\n1. Deploy the newer version of RabbitMQ.\n2. Set up virtual host and user for Creatio.\n3. Switch to the new instance.\n4. If the old RabbitMQ instance contains messages that need to be preserved, [utilize the Shovel Plugin](https://www.rabbitmq.com/docs/shovel) `rabbitmq_shovel` to transfer these messages to the new instance. This ensures a seamless transition and avoids data loss.\nAlternatively, consider a more complex approach outlined in the RabbitMQ documentation: [Upgrading RabbitMQ Using Blue-Green Deployment Strategy](https://www.rabbitmq.com/docs/blue-green-upgrade). This strategy involves deploying a new RabbitMQ instance alongside the existing instance, gradually migrating traffic to the new instance, and then decommissioning the old instance.\n### Upgrade the existing instance of RabbitMQ\u200b\nCertain Creatio queues are replicated across multiple RabbitMQ nodes. When updating a RabbitMQ cluster that gas quorum queues, it is essential to upgrade one node at a time to avoid potential inconsistencies and data loss. Learn more: [RabbitMQ official documentation](https://www.rabbitmq.com/docs/upgrade#quorum-queues).\nIf you use the RabbitMQ Kubernetes Operator, upgrading to a newer version typically involves updating the operator manifest. Learn more: [RabbitMQ official documentation](https://www.rabbitmq.com/kubernetes/operator/upgrade-operator#overview).\n* * *\n## See also\u200b\n[Modify ConnectionStrings.config for MS SQL Server](https://academy.creatio.com/documents?id=2138)\n[Modify ConnectionStrings.config for Oracle Database](https://academy.creatio.com/documents?id=2139)\n[Modify ConnectionStrings.config for PostgreSQL](https://academy.creatio.com/documents?id=2140)\n[RabbitMQ official documentation](https://www.rabbitmq.com/docs)",
+  "code_examples": [
+    {
+      "code": "docker exec rabbitmq rabbitmqctl add_vhost creatiodocker exec rabbitmq rabbitmqctl add_user creatio_user changemedocker exec rabbitmq rabbitmqctl set_permissions -p creatio creatio_user \".*\" \".*\" \".*",
+      "language": "cli",
+      "context": "If your RabbitMQ isdeployed in Docker, run the following commands:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add name=\"messageBroker\" connectionString=\"amqp://creatio_user:changeme@localhost:5672/creatio\" />",
+      "language": "xml",
+      "context": "Specify the connection parametersfor RabbitMQ.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<!-- OperatingMode determines a message bus operating mode. Possible values are: InMemory and Auto. --><serviceBus incomingQueueName=\"creatio_main\" defaultSendAddress=\"exchange:creatio_exchange\" operatingMode=\"Auto\" messageProcessingThreadsCount=\"10\" />",
+      "language": "xml",
+      "context": "Go to ~/configuration/serviceBusand setoperatingMode=\"Auto\".",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "vCPU",
+          "RAM",
+          "Disk space"
+        ],
+        [
+          "0.5",
+          "4 GB",
+          "10 GB"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>vCPU</p></center></th><th><center><p>RAM</p></center></th><th><center><p>Disk space</p></center></th></tr><tr><td><center><p>0.5</p></center></td><td><center><p>4 GB</p></center></td><td><center><p>10 GB</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteMessage brokers offer \"at least once\" delivery, necessitating idempotency in message handlers to prevent duplicate processing. While \"at least once delivery\" is guaranteed, exactly-once delivery is not. System crashes during long-running processes can lead to data loss or incomplete execution.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Message brokers offer \"at least once\" delivery, necessitating idempotency in message handlers to prevent duplicate processing. While \"at least once delivery\" is guaranteed, exactly-once delivery is not. System crashes during long-running processes can lead to data loss or incomplete execution.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Message brokers offer \"at least once\" delivery, necessitating idempotency in message handlers to prevent duplicate processing. While \"at least once delivery\" is guaranteed, exactly-once delivery is not. System crashes during long-running processes can lead to data loss or incomplete execution.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Message brokers offer \"at least once\" delivery, necessitating idempotency in message handlers to prevent duplicate processing. While \"at least once delivery\" is guaranteed, exactly-once delivery is not. System crashes during long-running processes can lead to data loss or incomplete execution.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/On-site_deployment/rabbitmq/scr_rabbitmq_workflow.png",
+      "alt": "Fig. 1 RabbitMQ workflow",
+      "title": "",
+      "context": "Log tracking. Creatio records mode changes in the ServiceBus.log file. To check the current mode of ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/docs_8.x_setup-and-administration_8.2_on-site-deployment_deployment-additional-setup_rabbit-mq_b632c342b8ad.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://www.rabbitmq.com/docs/download#installation-guides",
+      "text": "RabbitMQ official documentation",
+      "filename": "download#installation-guides",
+      "type": "unknown",
+      "local_path": "creatio-docs-supplementary/downloads/docs_8.x_setup-and-administration_8.2_on-site-deployment_deployment-additional-setup_rabbit-mq_download#installation-guides"
+    },
+    {
+      "url": "https://www.rabbitmq.com/docs/download#installation-guides",
+      "text": "RabbitMQ official documentation",
+      "filename": "download#installation-guides",
+      "type": "unknown",
+      "local_path": "creatio-docs-supplementary/downloads/docs_8.x_setup-and-administration_8.2_on-site-deployment_deployment-additional-setup_rabbit-mq_download#installation-guides"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Optimize Creatio performance with RabbitMQ",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "RabbitMQ connection and operation modes\u200b",
+      "anchor": "rabbitmq-connection-and-operation-modes"
+    },
+    {
+      "level": 2,
+      "text": "Set up RabbitMQ integration\u200b",
+      "anchor": "set-up-rabbitmq-integration"
+    },
+    {
+      "level": 3,
+      "text": "Setup in RabbitMQ\u200b",
+      "anchor": "setup-in-rabbitmq"
+    },
+    {
+      "level": 4,
+      "text": "Deploy RabbitMQ\u200b",
+      "anchor": "deploy-rabbitmq"
+    },
+    {
+      "level": 4,
+      "text": "Create a virtual host and a new user\u200b",
+      "anchor": "create-a-virtual-host-and-a-new-user"
+    },
+    {
+      "level": 3,
+      "text": "Setup in Creatio\u200b",
+      "anchor": "setup-in-creatio"
+    },
+    {
+      "level": 2,
+      "text": "Monitor RabbitMQ\u200b",
+      "anchor": "monitor-rabbitmq"
+    },
+    {
+      "level": 2,
+      "text": "Update RabbitMQ\u200b",
+      "anchor": "update-rabbitmq"
+    },
+    {
+      "level": 3,
+      "text": "Deploy a new version alongside the existing version\u200b",
+      "anchor": "deploy-a-new-version-alongside-the-existing-version"
+    },
+    {
+      "level": 3,
+      "text": "Upgrade the existing instance of RabbitMQ\u200b",
+      "anchor": "upgrade-the-existing-instance-of-rabbitmq"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-access-overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-oracle-database-for-creatio",
+      "text": "Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-oracle-database",
+      "text": "ConnectionStrings.config for Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/use-external-file-storages",
+      "text": "External file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/set-up-s3-file-storage-integration",
+      "text": "S3 file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/set-up-azure-blob-file-storage-integration",
+      "text": "Azure Blob file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/file-storage/file-migration",
+      "text": "File migration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "PreviousLanding page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/identity-service",
+      "text": "NextIdentity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/set-up-the-identity-service-instruction",
+      "text": "Deploy the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/connect-the-identity-service",
+      "text": "Connect the Identity Service to Creatio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/oauth-health-monitoring",
+      "text": "OAuth health monitoring",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/update-the-identity-service-using-iis-instruction",
+      "text": "Update the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/openssl",
+      "text": "PFX certificate",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/download#installation-guides",
+      "text": "RabbitMQ official documentation",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/quorum-queues#overview",
+      "text": "quorum queues",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/logging",
+      "text": "RabbitMQ official documentation",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/prometheus",
+      "text": "RabbitMQ official documentation",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/shovel",
+      "text": "utilize the Shovel Plugin",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/blue-green-upgrade",
+      "text": "Upgrading RabbitMQ Using Blue-Green Deployment Strategy",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/upgrade#quorum-queues",
+      "text": "RabbitMQ official documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:57:12.168336"
+}

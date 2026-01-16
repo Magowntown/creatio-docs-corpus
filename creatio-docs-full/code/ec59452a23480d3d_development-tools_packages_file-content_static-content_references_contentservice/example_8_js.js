@@ -1,0 +1,1 @@
+"InfluxDbConnectionString": "url=http://1.2.3.4:5678; db=content; user=User1; password=QwErTy; version=v_1_3"

@@ -1,0 +1,1 @@
+/* Create a class instance using the full name. */ var exampleObject = Ext.create("Terrasoft.configuration.ExampleClass");

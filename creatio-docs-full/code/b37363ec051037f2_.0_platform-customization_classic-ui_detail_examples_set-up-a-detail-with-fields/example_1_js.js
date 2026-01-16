@@ -1,0 +1,1 @@
+define("UsrMedDocumentRowViewModel", ["BaseFieldRowViewModel"], function() {    Ext.define("Terrasoft.configuration.UsrMedDocumentRowViewModel", {        extend: "Terrasoft.BaseFieldRowViewModel",        alternateClassName: "Terrasoft.UsrMedDocumentRowViewModel"    });    return Terrasoft.UsrMedDocumentRowViewModel;});

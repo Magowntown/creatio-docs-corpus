@@ -1,0 +1,1 @@
+Terrasoft.sdk.GridPage.setGroupColumns("Case", ["Symptoms"]);

@@ -1,0 +1,1 @@
+update "Communication"    set "ImageLinkId" = 'some-image-link'where "Name" = 'some_communication_type_name'

@@ -1,0 +1,1 @@
+IEnumerable CreateSchemaColumnExpressionsWithoutCoalesce(params string[] columnPaths)

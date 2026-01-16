@@ -1,0 +1,642 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/read-records",
+  "title": "Read records using DataService",
+  "breadcrumbs": [
+    {
+      "text": "Integrations tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools"
+    },
+    {
+      "text": "Data services",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services"
+    },
+    {
+      "text": "DataService",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dataservice"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nTo implement the example:\n1. Set up the page UI. Read more >>>\n2. Set up how to read records. Read more >>>\nExample\nAdd a **Receive summarized contacts** button to the **Contacts** section. Using the `Model` class, the button must receive the following data of all contacts:\n* **Full name**\n* **Number of activities** that contains aggregated number of contact activities.\nDisplay the result in the browser console.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ReadRecords/8.2/scr_result.gif)\n## 1\\. Set up the page UI\u200b\n1. **Open the Customer 360 app** in the No-Code Designer.\n2. **Open the Advanced settings tab** in the No-Code Designer. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 \"Application management\" \u2192 \"Application Hub\" \u2192 **Customer 360** app \u2192 \"Advanced settings.\"\n3. **Create a user-made package** to add the report. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png) \u2192 **Create new package** \u2192 fill out the package properties \u2192 **Save**.\nFor this example, create the `sdkReadContactsViaSelectQuery` user-made package.\n4. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.0&id=15072&anchor=change-the-current-package).\nFor this example, change the current package to `sdkReadContactsViaSelectQuery` user-made package.\n5. **Open list page** in the Freedom UI Designer.\nFor this example, open the **Contacts list page**.\n6. **Add a button**.\nFor this example, add the button that receives summarized contact data.\nTo do this:\n1. Add a **Button** type component to the toolbar of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the button properties.\nElement| Property| Property value  \n---|---|---  \nButton that receives summarized contact data| Title| Receive summarized contacts  \nStyle| Focus  \n7. **Save the changes**.\n## 2\\. Set up how to read records\u200b\nConfigure the business logic in the Client Module Designer. For this example, set up how to read records.\n1. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n2. **Add the dependencies**. To do this, add `@creatio-devkit/common` library as a dependency. The library includes the `Model` class to access the data source.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"Contacts_ListPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \n...  \n}  \n});  \n3. **Set up how to handle the action** executed on button click.\n1. Go to the `viewConfigDiff` schema section \u2192 `UsrReceiveContactsButton` element.\n2. Bind the sending of the custom `usr.ReceiveContactsRequest` request to the `clicked` button event.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that receives summarized contact data. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrReceiveContactsButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the \"clicked\" button event. */  \n\"request\": \"usr.ReceiveContactsRequest\"  \n}  \n},  \n...  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n4. **Implement the custom request handler**.\nFor this example, implement the custom `usr.ReceiveContactsRequest` request handler.\n1. Go to the `handlers` schema section.\n2. Create an instance of the model from `@creatio-devkit/common`. For this example, create an instance of the `Contact` model.\n3. Load required data of the model.\n4. Add columns to the query. For this example, add **Full name** , **Number of activities** using the `Name`, `ActivitiesCount` codes respectively.\n5. Receive required data from the collection.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.ReceiveContactsRequest\",  \n/* The implementation of the custom request handler. */  \nhandler: async (request, next) => {  \n/* Create an instance of the \"Contact\" model from \"@creatio-devkit/common.\" */  \nconst model = await sdk.Model.create('Contact');  \n/* Load required data of the \"Contact\" model. */  \nconst result = await model.load({  \n/* Add columns to the query. */  \nattributes: [  \n{  \nname: 'Name',  \npath: 'Name',  \n},  \n{  \nname: 'ActivitiesCount',  \npath: '[Activity:Contact].Id',  \ntype: 'aggregation',  \naggregationConfig: {  \naggregationFunction: 'Count',  \n}  \n}  \n],  \nparameters: [],  \nloadOptions: {},  \n});  \n/* Query result. */  \nvar message = \"\";  \n/* Receive required data from the collection. */  \nresult.forEach(function(item) {  \nmessage += `Full name: ${item.Name}. Number of activities: ${item.ActivitiesCount}\\n`;  \n});  \n/* Display the result in the browser console. */  \nconsole.info(message);  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n},  \n}  \n] /**SCHEMA_HANDLERS*/,  \n5. **Save the changes**.\n## View the result\u200b\n1. **Open the Contacts section**.\n2. **Click Receive summarized contacts**.\n**As a result** , Creatio will display **Full name** and **Number of activities** data of all contacts in the browser console. [View the result >>>](https://academy.creatio.com/documents?ver=8.0&id=15413&anchor=view-result)\n## Source code\u200b\nContacts_ListPage\n/* Declare the AMD module. */  \ndefine(\"Contacts_ListPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that receives summarized contact data. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrReceiveContactsButton\",  \n\"values\": {  \n\"type\": \"crt.Button\",  \n\"caption\": \"#ResourceString(UsrReceiveContactsButton_caption)#\",  \n\"color\": \"accent\",  \n\"disabled\": false,  \n\"size\": \"large\",  \n\"iconPosition\": \"only-text\",  \n\"visible\": true,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the \"clicked\" button event. */  \n\"request\": \"usr.ReceiveContactsRequest\"  \n}  \n},  \n\"parentName\": \"ActionButtonsContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.ReceiveContactsRequest\",  \n/* The implementation of the custom request handler. */  \nhandler: async (request, next) => {  \n/* Create an instance of the \"Contact\" model from \"@creatio-devkit/common.\" */  \nconst model = await sdk.Model.create('Contact');  \n/* Load required data of the \"Contact\" model. */  \nconst result = await model.load({  \n/* Add columns to the query. */  \nattributes: [  \n{  \nname: 'Name',  \npath: 'Name',  \n},  \n{  \nname: 'ActivitiesCount',  \npath: '[Activity:Contact].Id',  \ntype: 'aggregation',  \naggregationConfig: {  \naggregationFunction: 'Count',  \n}  \n}  \n],  \nparameters: [],  \nloadOptions: {},  \n});  \n/* Query result. */  \nvar message = \"\";  \n/* Receive required data from the collection. */  \nresult.forEach(function(item) {  \nmessage += `Full name: ${item.Name}. Number of activities: ${item.ActivitiesCount}\\n`;  \n});  \n/* Display the result in the browser console. */  \nconsole.info(message);  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n},  \n}  \n] /**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ReadRecords/8.2/sdkReadContactsViaSelectQuery_2024-11-20_11.36.34.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"Contacts_ListPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        ...    }});",
+      "language": "js",
+      "context": "Add the dependencies. To do this, add@creatio-devkit/commonlibrary as a dependency. The library includes theModelclass to access the data source.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    /* Button that receives summarized contact data. */    {        \"operation\": \"insert\",        \"name\": \"UsrReceiveContactsButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the custom request to the \"clicked\" button event. */                \"request\": \"usr.ReceiveContactsRequest\"            }        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Set up how to handle the actionexecuted on button click.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.ReceiveContactsRequest\",        /* The implementation of the custom request handler. */        handler: async (request, next) => {            /* Create an instance of the \"Contact\" model from \"@creatio-devkit/common.\" */            const model = await sdk.Model.create('Contact');            /* Load required data of the \"Contact\" model. */            const result = await model.load({                /* Add columns to the query. */                attributes: [                    {                        name: 'Name',                        path: 'Name',                    },                    {                        name: 'ActivitiesCount',                        path: '[Activity:Contact].Id',                        type: 'aggregation',                        aggregationConfig: {                            aggregationFunction: 'Count',                        }                    }                ],                parameters: [],                loadOptions: {},            });            /* Query result. */            var message = \"\";            /* Receive required data from the collection. */            result.forEach(function(item) {                message += `Full name: ${item.Name}. Number of activities: ${item.ActivitiesCount}\\n`;            });            /* Display the result in the browser console. */            console.info(message);            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        },    }] /**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "For this example, implement the customusr.ReceiveContactsRequestrequest handler.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"Contacts_ListPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            /* Button that receives summarized contact data. */            {                \"operation\": \"insert\",                \"name\": \"UsrReceiveContactsButton\",                \"values\": {                    \"type\": \"crt.Button\",                    \"caption\": \"#ResourceString(UsrReceiveContactsButton_caption)#\",                    \"color\": \"accent\",                    \"disabled\": false,                    \"size\": \"large\",                    \"iconPosition\": \"only-text\",                    \"visible\": true,                    \"clicked\": {                        /* Bind the sending of the custom request to the \"clicked\" button event. */                        \"request\": \"usr.ReceiveContactsRequest\"                    }                },                \"parentName\": \"ActionButtonsContainer\",                \"propertyName\": \"items\",                \"index\": 0            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[            {                request: \"usr.ReceiveContactsRequest\",                /* The implementation of the custom request handler. */                handler: async (request, next) => {                    /* Create an instance of the \"Contact\" model from \"@creatio-devkit/common.\" */                    const model = await sdk.Model.create('Contact');                    /* Load required data of the \"Contact\" model. */                    const result = await model.load({                        /* Add columns to the query. */                        attributes: [                            {                                name: 'Name',                                path: 'Name',                            },                            {                                name: 'ActivitiesCount',                                path: '[Activity:Contact].Id',                                type: 'aggregation',                                aggregationConfig: {                                    aggregationFunction: 'Count',                                }                            }                        ],                        parameters: [],                        loadOptions: {},                    });                    /* Query result. */                    var message = \"\";                    /* Receive required data from the collection. */                    result.forEach(function(item) {                        message += `Full name: ${item.Name}. Number of activities: ${item.ActivitiesCount}\\n`;                    });                    /* Display the result in the browser console. */                    console.info(message);                    /* Call the next handler if it exists and return its result. */                    return next?.handle(request);                },            }        ] /**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Button that receives summarized contact data",
+          "Title",
+          "Receive summarized contacts"
+        ],
+        [
+          "Style",
+          "Focus"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"2\"><p>Button that receives summarized contact data</p></td><td><center><p>Title</p></center></td><td><center><p>Receive summarized contacts</p></center></td></tr><tr><td><center><p>Style</p></center></td><td><center><p>Focus</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Receive summarized contacts",
+      "content": "ExampleAdd aReceive summarized contactsbutton to theContactssection. Using theModelclass, the button must receive the following data of all contacts:Full nameNumber of activitiesthat contains aggregated number of contact activities.Display the result in the browser console.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a <strong>Receive summarized contacts</strong> button to the <strong>Contacts</strong> section. Using the <code>Model</code> class, the button must receive the following data of all contacts:</p><ul>\n<li><strong>Full name</strong></li>\n<li><strong>Number of activities</strong> that contains aggregated number of contact activities.</li>\n</ul><p>Display the result in the browser console.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ReadRecords/8.2/scr_result.gif\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Receive summarized contacts",
+      "content": "Add aReceive summarized contactsbutton to theContactssection. Using theModelclass, the button must receive the following data of all contacts:Full nameNumber of activitiesthat contains aggregated number of contact activities.Display the result in the browser console.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a <strong>Receive summarized contacts</strong> button to the <strong>Contacts</strong> section. Using the <code>Model</code> class, the button must receive the following data of all contacts:</p><ul>\n<li><strong>Full name</strong></li>\n<li><strong>Number of activities</strong> that contains aggregated number of contact activities.</li>\n</ul><p>Display the result in the browser console.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ReadRecords/8.2/scr_result.gif\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ReadRecords/8.2/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Display the result in the browser console.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/408d1b200b4f21c9_latform_8.0_integrations-and-api_data-services_dataservice_examples_read-records_f6341ce671a1.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Advanced settings tabin the No-Code Designer. To do this, clickin the top right \u2192 \"Applicat",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/408d1b200b4f21c9_latform_8.0_integrations-and-api_data-services_dataservice_examples_read-records_822ea55f9414.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a user-made packageto add the report. To do this, click\u2192Create new package\u2192 fill out the pack",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/408d1b200b4f21c9_latform_8.0_integrations-and-api_data-services_dataservice_examples_read-records_520896d23b28.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the button properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/408d1b200b4f21c9_latform_8.0_integrations-and-api_data-services_dataservice_examples_read-records_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/408d1b200b4f21c9_latform_8.0_integrations-and-api_data-services_dataservice_examples_read-records_0022b8eb0588.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ReadRecords/8.2/sdkReadContactsViaSelectQuery_2024-11-20_11.36.34.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkReadContactsViaSelectQuery_2024-11-20_11.36.34.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/408d1b200b4f21c9_latform_8.0_integrations-and-api_data-services_dataservice_examples_read-records_sdkReadContactsViaSelectQuery_2024-11-20_11.36.34.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Read records using DataService",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Set up the page UI\u200b",
+      "anchor": "title-1400-2"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up how to read records\u200b",
+      "anchor": "title-1400-3"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-1400-4"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15413-1"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "LOAD",
+        "path": "("
+      },
+      {
+        "method": "FOREACH",
+        "path": "("
+      },
+      {
+        "method": "INFO",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "LOAD",
+        "path": "("
+      },
+      {
+        "method": "FOREACH",
+        "path": "("
+      },
+      {
+        "method": "INFO",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/read-records",
+      "text": "Read records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/data-services/dataservice/examples/read-records",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/data-services/dataservice/examples/read-records",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/data-services/dataservice/examples/read-records",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication-basics",
+      "text": "Authentication basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dataservice",
+      "text": "DataService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/create-a-record",
+      "text": "PreviousCreate a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/filter-records",
+      "text": "NextFilter records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/filter-records-macro",
+      "text": "Filter records using a macro",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/update-a-record",
+      "text": "Update a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/delete-a-record",
+      "text": "Delete a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/add-and-update-a-record",
+      "text": "Add and update a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/insertquery",
+      "text": "InsertQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/selectquery",
+      "text": "SelectQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/filters",
+      "text": "Filters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/entityschemaquerymacrostype",
+      "text": "EntitySchemaQueryMacrosType",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/updatequery",
+      "text": "UpdateQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/deletequery",
+      "text": "DeleteQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/batchquery",
+      "text": "BatchQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/odata",
+      "text": "OData",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/odata/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/odata-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/odata-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/business-process-service/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/process-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/process-service-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/working-with-requests",
+      "text": "Requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/working-with-request-collections",
+      "text": "Request collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T02:51:34.028460"
+}

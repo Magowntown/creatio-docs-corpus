@@ -1,0 +1,973 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/examples/connect-a-web-service-to-the-machine-learning#title-1464-2",
+  "title": "Connect a custom web service to machine learning service",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Machine learning",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: intermediate\nExample\nConnect a custom web service to machine learning (ML) functionality. The service implements custom predictive scoring and is developed using Microsoft Visual Studio Code.\n## 1\\. Implement custom predictive scoring\u200b\nDownload and unpack the *.zip archive that includes the web service. The service implements custom predictive scoring in a Microsoft Visual Studio Code project.\n[For **.NET 6**](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService_net6.zip)\n[For **.NET Core 3.1**](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService.zip)\nTo develop a custom web service using a Microsoft Visual Studio Code project, follow the instructions in a separate article: [Develop C# code in a configuration project](https://academy.creatio.com/documents?ver=8.0&id=15112).\nThe `MLService` web service implements the following **endpoints** :\n* `session/start`\n* `data/upload`\n* `session/info/get`\n* `fakeScorer/beginTraining`\n* `fakeScorer/predict`\n## 2\\. Expand the problem list of the ML service\u200b\n1. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SectionConfigurationGeneralInfo/scr_Settings_button.png) to open the System Designer.\n2. Go to the **System setup** block \u2192 **Lookups**.\n3. Open the **ML problem types** lookup.\n4. Add a problem type.\n1. Click **New** on the lookup toolbar.\n2. Fill out the **problem type properties**.\n* Set **Name** to \"Fake scoring.\"\n* Set **Service endpoint Url** to \"<http://localhost:5000/>.\"\n* Set **Training endpoint** to \"/fakeScorer/beginTraining.\"\n5. Find an ID of the problem type. To do this, **display the corresponding column** in the lookup list.\n1. Click **View** \u2192 **Select fields to display** on the lookup toolbar.\n2. Add the column to the lookup list. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SectionEditableList/7.18/scr_add_button.png) and select the **Id** column.\n3. Click **Select** \u2192 **Save**.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_FakeScoring_props.png)\nThe ID of the **Fake scoring** problem type is `19fcfff1-98b9-4933-8f26-457ca45c35ed`.\n## 3\\. Implement a ML model\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Page view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_add_page_view_model.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"UsrMLModelPage.\"\n* Set **Title** to \"MLModelPage.\"\n* Select \"MLModelPage\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrMLModelPage_props.png)\n4. Implement the style of the new mini page similar to the mini page for creating a predictive scoring model. To do this, overload the `getIsScoring()` method.\nView the source code of the view model schema of the page below.\nUsrMLModelPage\ndefine(\"UsrMLModelPage\", [], function() {  \nreturn {  \n/* The name of the page object schema. */  \nentitySchemaName: \"MLModel\",  \n/* The properties of the page view model. */  \nproperties: {  \nFakeScoringProblemTypeId: \"19fcfff1-98b9-4933-8f26-457ca45c35ed\"  \n},  \n/* The methods of the page view model. */  \nmethods: {  \ngetIsScoring: function() {  \nconst parentResult = this.callParent(arguments);  \nreturn parentResult || this.getLookupValue(\"MLProblemType\") === this.FakeScoringProblemTypeId;  \n}  \n}  \n};  \n});  \n5. Click **Save** on the Module Designer's toolbar.\n## 4\\. Implement the handling of the ML model results\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-1) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SourceCode/8.0/scr_AddList.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"UsrFakeScoringEntityPredictor.\"\n* Set **Title** to \"FakeScoringEntityPredictor.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrFakeScoringEntityPredictor_props.png)\nClick **Apply** to apply the properties.\n4. Implement the handling of the ML model results.\n* Implement the `Predict()` method that receives data exported from Creatio by object and returns the prediction value. The method uses a proxy class that implements the `IMLServiceProxy` interface to facilitate web service calls.\n* Initialize the `ProblemTypeId` property using the ID of the **Fake scoring** problem type from the **ML problem types** lookup.\n* Implement the `SaveEntityPredictedValues()` and `SavePrediction()` methods.\nView the source code of the `UsrFakeScoringEntityPredictor` class below.\nUsrFakeScoringEntityPredictor\nnamespace Terrasoft.Configuration.ML  \n{  \nusing System;  \nusing System.Collections.Generic;  \nusing Core;  \nusing Core.Factories;  \nusing Terrasoft.Core.Process.Configuration;  \nusing Terrasoft.ML.Interfaces;  \n[DefaultBinding(typeof(IMLEntityPredictor), Name = \"19fcfff1-98b9-4933-8f26-457ca45c35ed\")]  \n[DefaultBinding(typeof(IMLPredictor<ScoringOutput>), Name = \"19fcfff1-98b9-4933-8f26-457ca45c35ed\")]  \npublic class FakeScoringEntityPredictor: MLBaseEntityPredictor<ScoringOutput>, IMLEntityPredictor, IMLPredictor<ScoringOutput>{  \npublic FakeScoringEntityPredictor(UserConnection userConnection) : base(userConnection) {  \n}  \nprotected override Guid ProblemTypeId => new Guid(\"19fcfff1-98b9-4933-8f26-457ca45c35ed\");  \nprotected override ScoringOutput Predict(IMLServiceProxy proxy, MLModelConfig model, Dictionary<string, object> data, MLDataPredictionUserTask predictionUserTask) {  \nreturn proxy.FakeScore(model, data, true);  \n}  \nprotected override List<ScoringOutput> Predict(MLModelConfig model, IList<Dictionary<string, object>> dataList, IMLServiceProxy proxy, MLDataPredictionUserTask predictionUserTask) {  \nreturn proxy.FakeScore(model, dataList, true);  \n}  \nprotected override void SaveEntityPredictedValues(MLModelConfig model, Guid entityId, ScoringOutput predictedResult) {  \nvar predictedValues = new Dictionary<MLModelConfig, double> {  \n{   \nmodel, predictedResult.Score  \n}  \n};  \nPredictionSaver.SaveEntityScoredValues(model.EntitySchemaId, entityId, predictedValues);  \n}  \nprotected override void SavePrediction(MLModelConfig model, Guid entityId, ScoringOutput predictedResult) {  \nPredictionSaver.SavePrediction(model.Id, model.ModelInstanceUId, entityId, predictedResult.Score);  \n}  \n}  \n}  \n5. Click **Publish** on the Source Code Designer\u2019s toolbar to apply the changes on the database level.\n## 5\\. Add a new problem type to the prediction method\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-1) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n3. Fill out the **schema properties**.\n* Set **Code** to \"UsrFakeScoringProxy.\"\n* Set **Title** to \"FakeScoringProxy.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrFakeScoringProxy_props.png)\nClick **Apply** to apply the properties.\n4. Add the **Fake scoring** problem type to the prediction method. To do this, extend the `IMLServiceProxy` base interface and implementations in the prediction method of the current problem type. The `MLServiceProxy` class implements the `Predict()` method that receives contracts for input data and prediction results.\nView the source code of the `UsrFakeScoringProxy` class below.\nUsrFakeScoringProxy\nnamespace Terrasoft.Configuration.ML  \n{  \nusing System;  \nusing System.Collections.Generic;  \nusing System.Linq;  \nusing Terrasoft.ML.Interfaces;  \nusing Terrasoft.ML.Interfaces.Requests;  \nusing Terrasoft.ML.Interfaces.Responses;  \npublic partial interface IMLServiceProxy  \n{  \nScoringOutput FakeScore(MLModelConfig model, Dictionary<string, object> data, bool predictContributions);  \nList<ScoringOutput> FakeScore(MLModelConfig model, IList<Dictionary<string, object>> dataList, bool predictContributions);  \n}  \npublic partial class MLServiceProxy : IMLServiceProxy  \n{  \npublic ScoringOutput FakeScore(MLModelConfig model, Dictionary<string, object> data, bool predictContributions) {  \nScoringResponse response = Predict<ExplainedScoringRequest, ScoringResponse>(model.ModelInstanceUId, new List<Dictionary<string, object>> { data }, model.PredictionEndpoint, 100, predictContributions);  \nreturn response.Outputs.FirstOrDefault();  \n}  \npublic List<ScoringOutput> FakeScore(MLModelConfig model, IList<Dictionary<string, object>> dataList, bool predictContributions) {  \nint count = Math.Min(1, dataList.Count);  \nint timeout = Math.Max(ScoreTimeoutSec * count, BatchScoreTimeoutSec);  \nScoringResponse response = Predict<ScoringRequest, ScoringResponse>(model.ModelInstanceUId, dataList, model.PredictionEndpoint, timeout, predictContributions);  \nreturn response.Outputs;  \n}  \n}  \n}  \n5. Click **Publish** on the Source Code Designer\u2019s toolbar to apply the changes on the database level.\n## 6\\. Implement the batch prediction functionality\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-1) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n3. Fill out the **schema properties**.\n* Set **Code** to \"UsrFakeBatchScorer.\"\n* Set **Title** to \"FakeBatchScorer.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrFakeBatchScorer_props.png)\nClick **Apply** to apply the properties.\n4. Implement the batch prediction functionality.\n* Implement the `IMLBatchPredictor` interface.\n* Implement the `FormatValueForSaving()` and `SavePredictionResult()` methods.\nView the source code of the `UsrFakeBatchScorer` class below.\nUsrFakeBatchScorer\nnamespace Terrasoft.Configuration.ML  \n{  \nusing System;  \nusing Core;  \nusing Terrasoft.Core.Factories;  \nusing Terrasoft.ML.Interfaces;  \n[DefaultBinding(typeof(IMLBatchPredictor), Name = \"19fcfff1-98b9-4933-8f26-457ca45c35ed\")]  \npublic class FakeBatchScorer : MLBatchPredictor<ScoringOutput>  \n{  \npublic FakeBatchScorer(UserConnection userConnection) : base(userConnection) {  \n}  \nprotected override object FormatValueForSaving(ScoringOutput scoringOutput) {  \nreturn Convert.ToInt32(scoringOutput.Score * 100);  \n}  \nprotected override void SavePredictionResult(MLModelConfig modelConfigDiff, Guid entityId, ScoringOutput value) {  \nPredictionSaver.SavePrediction(modelConfigDiff.Id, modelConfigDiff.ModelInstanceUId, entityId, value);  \n}  \n}  \n}  \n5. Click **Publish** on the Source Code Designer\u2019s toolbar to apply the changes on the database level.\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/MLExtensionExample.zip)\n[Configuration project with web service functionality implementation (for .NET 6)](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService_net6.zip)\n[Configuration project with web service functionality implementation (for .NET Core 3.1)](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService.zip)",
+  "code_examples": [
+    {
+      "code": "define(\"UsrMLModelPage\", [], function() {    return {        /* The name of the page object schema. */        entitySchemaName: \"MLModel\",        /* The properties of the page view model. */        properties: {            FakeScoringProblemTypeId: \"19fcfff1-98b9-4933-8f26-457ca45c35ed\"        },        /* The methods of the page view model. */        methods: {            getIsScoring: function() {                const parentResult = this.callParent(arguments);                return parentResult || this.getLookupValue(\"MLProblemType\") === this.FakeScoringProblemTypeId;            }        }    };});",
+      "language": "js",
+      "context": "View the source code of the view model schema of the page below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.ML{    using System;    using System.Collections.Generic;    using Core;    using Core.Factories;    using Terrasoft.Core.Process.Configuration;    using Terrasoft.ML.Interfaces;    [DefaultBinding(typeof(IMLEntityPredictor), Name = \"19fcfff1-98b9-4933-8f26-457ca45c35ed\")]    [DefaultBinding(typeof(IMLPredictor<ScoringOutput>), Name = \"19fcfff1-98b9-4933-8f26-457ca45c35ed\")]    public class FakeScoringEntityPredictor: MLBaseEntityPredictor<ScoringOutput>, IMLEntityPredictor, IMLPredictor<ScoringOutput>{        public FakeScoringEntityPredictor(UserConnection userConnection) : base(userConnection) {        }        protected override Guid ProblemTypeId => new Guid(\"19fcfff1-98b9-4933-8f26-457ca45c35ed\");        protected override ScoringOutput Predict(IMLServiceProxy proxy, MLModelConfig model, Dictionary<string, object> data, MLDataPredictionUserTask predictionUserTask) {            return proxy.FakeScore(model, data, true);        }        protected override List<ScoringOutput> Predict(MLModelConfig model, IList<Dictionary<string, object>> dataList, IMLServiceProxy proxy, MLDataPredictionUserTask predictionUserTask) {            return proxy.FakeScore(model, dataList, true);        }        protected override void SaveEntityPredictedValues(MLModelConfig model, Guid entityId, ScoringOutput predictedResult) {            var predictedValues = new Dictionary<MLModelConfig, double> {                {                     model, predictedResult.Score                }            };            PredictionSaver.SaveEntityScoredValues(model.EntitySchemaId, entityId, predictedValues);        }        protected override void SavePrediction(MLModelConfig model, Guid entityId, ScoringOutput predictedResult) {            PredictionSaver.SavePrediction(model.Id, model.ModelInstanceUId, entityId, predictedResult.Score);        }    }}",
+      "language": "js",
+      "context": "View the source code of theUsrFakeScoringEntityPredictorclass below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.ML{    using System;    using System.Collections.Generic;    using System.Linq;    using Terrasoft.ML.Interfaces;    using Terrasoft.ML.Interfaces.Requests;    using Terrasoft.ML.Interfaces.Responses;    public partial interface IMLServiceProxy    {        ScoringOutput FakeScore(MLModelConfig model, Dictionary<string, object> data, bool predictContributions);        List<ScoringOutput> FakeScore(MLModelConfig model, IList<Dictionary<string, object>> dataList, bool predictContributions);    }    public partial class MLServiceProxy : IMLServiceProxy    {        public ScoringOutput FakeScore(MLModelConfig model, Dictionary<string, object> data, bool predictContributions) {            ScoringResponse response = Predict<ExplainedScoringRequest, ScoringResponse>(model.ModelInstanceUId, new List<Dictionary<string, object>> { data }, model.PredictionEndpoint, 100, predictContributions);            return response.Outputs.FirstOrDefault();        }        public List<ScoringOutput> FakeScore(MLModelConfig model, IList<Dictionary<string, object>> dataList, bool predictContributions) {            int count = Math.Min(1, dataList.Count);            int timeout = Math.Max(ScoreTimeoutSec * count, BatchScoreTimeoutSec);            ScoringResponse response = Predict<ScoringRequest, ScoringResponse>(model.ModelInstanceUId, dataList, model.PredictionEndpoint, timeout, predictContributions);            return response.Outputs;        }    }}",
+      "language": "js",
+      "context": "View the source code of theUsrFakeScoringProxyclass below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.ML{    using System;    using Core;    using Terrasoft.Core.Factories;    using Terrasoft.ML.Interfaces;    [DefaultBinding(typeof(IMLBatchPredictor), Name = \"19fcfff1-98b9-4933-8f26-457ca45c35ed\")]    public class FakeBatchScorer : MLBatchPredictor<ScoringOutput>    {        public FakeBatchScorer(UserConnection userConnection) : base(userConnection) {        }        protected override object FormatValueForSaving(ScoringOutput scoringOutput) {            return Convert.ToInt32(scoringOutput.Score * 100);        }        protected override void SavePredictionResult(MLModelConfig modelConfigDiff, Guid entityId, ScoringOutput value) {            PredictionSaver.SavePrediction(modelConfigDiff.Id, modelConfigDiff.ModelInstanceUId, entityId, value);        }    }}",
+      "language": "js",
+      "context": "View the source code of theUsrFakeBatchScorerclass below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleConnect a custom web service to machine learning (ML) functionality. The service implements custom predictive scoring and is developed using Microsoft Visual Studio Code.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Connect a custom web service to machine learning (ML) functionality. The service implements custom predictive scoring and is developed using Microsoft Visual Studio Code.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Connect a custom web service to machine learning (ML) functionality. The service implements custom predictive scoring and is developed using Microsoft Visual Studio Code.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Connect a custom web service to machine learning (ML) functionality. The service implements custom predictive scoring and is developed using Microsoft Visual Studio Code.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SectionConfigurationGeneralInfo/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickto open the System Designer.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_94f32fb88b48.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SectionEditableList/7.18/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_bf8f118a3dba.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_FakeScoring_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Find an ID of the problem type. To do this,display the corresponding columnin the lookup list.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_1cf30770370d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_add_page_view_model.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Page view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_7aefe4e345a1.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrMLModelPage_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_cc51d1b7ff63.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/SourceCode/8.0/scr_AddList.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Source codeon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_e40e85df992b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrFakeScoringEntityPredictor_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_078d202733c0.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrFakeScoringProxy_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_36cf3ab649c4.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MLService/8.0/scr_UsrFakeBatchScorer_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_e141e5d37ca9.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService_net6.zip",
+      "text": "For.NET 6",
+      "filename": "FakeScoringService_net6.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_FakeScoringService_net6.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService.zip",
+      "text": "For.NET Core 3.1",
+      "filename": "FakeScoringService.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_FakeScoringService.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/MLExtensionExample.zip",
+      "text": "Package with example implementation",
+      "filename": "MLExtensionExample.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_MLExtensionExample.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService_net6.zip",
+      "text": "Configuration project with web service functionality implementation (for .NET 6)",
+      "filename": "FakeScoringService_net6.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_FakeScoringService_net6.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/FakeScoringService.zip",
+      "text": "Configuration project with web service functionality implementation (for .NET Core 3.1)",
+      "filename": "FakeScoringService.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/5bc2ffdfe8b5c6db_assic-ui_machine-learning_examples_connect-a-web-service-to-the-machine-learning_FakeScoringService.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Connect a custom web service to machine learning service",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement custom predictive scoring\u200b",
+      "anchor": "title-1464-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Expand the problem list of the ML service\u200b",
+      "anchor": "title-1464-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement a ML model\u200b",
+      "anchor": "title-1464-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Implement the handling of the ML model results\u200b",
+      "anchor": "title-1464-4"
+    },
+    {
+      "level": 2,
+      "text": "5. Add a new problem type to the prediction method\u200b",
+      "anchor": "title-1464-5"
+    },
+    {
+      "level": 2,
+      "text": "6. Implement the batch prediction functionality\u200b",
+      "anchor": "title-1464-6"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "GETLOOKUPVALUE",
+        "path": "("
+      },
+      {
+        "method": "FAKESCORE",
+        "path": "("
+      },
+      {
+        "method": "FAKESCORE",
+        "path": "("
+      },
+      {
+        "method": "SAVEENTITYSCOREDVALUES",
+        "path": "("
+      },
+      {
+        "method": "SAVEPREDICTION",
+        "path": "("
+      },
+      {
+        "method": "FIRSTORDEFAULT",
+        "path": "("
+      },
+      {
+        "method": "MIN",
+        "path": "("
+      },
+      {
+        "method": "MAX",
+        "path": "("
+      },
+      {
+        "method": "TOINT32",
+        "path": "("
+      },
+      {
+        "method": "SAVEPREDICTION",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/examples/connect-a-web-service-to-the-machine-learning",
+      "text": "Connect a web service to machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+      "text": "NextImplement prediction model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/references/imlmodeltrainerjob",
+      "text": "IMLModelTrainerJob",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/references/imlmodeltrainer",
+      "text": "IMLModelTrainer",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/references/imlserviceproxy",
+      "text": "IMLServiceProxy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/references/imlentitypredictor",
+      "text": "IMLEntityPredictor",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/references/imlpredictionsaver",
+      "text": "IMLPredictionSaver",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+      "text": "QueryExtensions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:16:53.901310"
+}

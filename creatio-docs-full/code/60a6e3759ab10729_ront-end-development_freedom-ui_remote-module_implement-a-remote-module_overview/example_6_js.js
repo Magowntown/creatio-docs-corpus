@@ -1,0 +1,1 @@
+const translateService = this._injector.get(TranslateService);bootstrapCrtModule(AppModule, {  localizeMetadata: (key: string) => translateService.instant(key),});

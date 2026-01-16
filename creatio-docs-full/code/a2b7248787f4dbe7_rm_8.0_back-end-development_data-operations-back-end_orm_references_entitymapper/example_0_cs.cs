@@ -1,0 +1,1 @@
+virtual EntityResult GetMappedEntity(Guid recId, MapConfig config)

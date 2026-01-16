@@ -1,0 +1,1 @@
+select Id from SysImage where Id = (select PhotoId from Contact where Name = 'Alexander Wilson')

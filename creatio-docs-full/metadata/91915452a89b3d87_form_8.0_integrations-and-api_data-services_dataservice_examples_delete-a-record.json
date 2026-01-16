@@ -1,0 +1,575 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/delete-a-record",
+  "title": "Delete a record in the section using DataService",
+  "breadcrumbs": [
+    {
+      "text": "Integrations tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools"
+    },
+    {
+      "text": "Data services",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services"
+    },
+    {
+      "text": "DataService",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dataservice"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nExample\nCreate a console application that, using the DataService service, will delete the \"John Best\" contact record added in the [example](https://academy.creatio.com/documents?ver=8.0&id=15412).\n## Example implementation algorithm\u200b\n### 1\\. Create and configure a C# console application project\u200b\nUsing the Microsoft Visual Studio (version 2017 and up) development environment, create a Visual C# console application project and name it _DataServiceDeleteExample_. The `Target framework` project property must be set to .NET Framework 4.7.\nIn the `References` section of the project you need to add dependencies of the following libraries:\n* `System.Web.Extensions.dll` is a class library included in the .NET Framework\n* `Terrasoft.Core.dll` is a main class library of the application server kernel. Can be found by the following path: `[Directory with the installed application]\\Terrasoft.WebApp\\bin\\Terrasoft.Core.dll`\n* `Terrasoft.Nui.ServiceModel.dll` class library the application services. Can be found by the following path: `[Directory with the application installed]\\Terrasoft.WebApp\\bin\\Terrasoft.Nui.ServiceModel.dll`.\n* `Terrasoft.Common.dll` is a main class library of the application server kernel. Can be found by the following path: `[Directory with the installed application]\\Terrasoft.WebApp\\bin\\Terrasoft.Common.dll`.\nAdd `using` directives to the application source code file:\nAdding using directives\nusing System;  \nusing System.Text;  \nusing System.IO;  \nusing System.Net;  \nusing System.Collections.Generic;  \nusing Terrasoft.Nui.ServiceModel.DataContract;  \nusing Terrasoft.Core.Entities;  \nusing System.Web.Script.Serialization;  \nusing Terrasoft.Common;  \n### 2\\. Add field declarations and constants to the application source code\u200b\nTo access the DataService features, you must add the fields and constants to the application source code.\nAdding the fields and constants\n// Main Creatio URL. Has to be changed to a custom one.  \nprivate const string baseUri = @\"https://example.creatio.com\";  \n// Query string to the Login method of the AuthService.svc service.  \nprivate const string authServiceUri = baseUri + @\"/ServiceModel/AuthService.svc/Login\";  \n// DeleteQuery query path string.  \nprivate const string deleteQueryUri = baseUri + @\"/0/DataService/json/reply/DeleteQuery\";  \n// Creatio cookie authentication.  \nprivate static CookieContainer AuthCookie = new CookieContainer();  \nThree string constant fields that are used to carry out the authentication requests and requests to read data are declared here. The authentication data will be stored in the `AuthCookie` field.\n### 3\\. Add a method that performs authentication in the Creatio application\u200b\nYou need to [authenticate](https://academy.creatio.com/documents?ver=8.0&id=15402) the newly created application to access the DataService web service.\n### 4\\. Implement a query to add a record\u200b\nAs the previously declared `updateQueryUri` constant contains the path for sending data in JSON format, the data sent must be pre-configured in the form of a string containing a description of the JSON object corresponding to the `UpdateQuery` data contract. This can be done directly in a lowercase variable but it is much easier and safer to create an instance of the `UpdateQuery` class, fill its properties, and then serialize it to a string.\nImplementation the request to adding a record\n// Query class instance.  \nvar deleteQuery = new DeleteQuery()  \n{  \n// Root schema name.  \nRootSchemaName = \"Contact\",  \n// Query filters.  \nFilters = new Filters()  \n{  \n// Filter type \u2013 group.  \nFilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.FilterGroup,  \n// Filter collection.  \nItems = new Dictionary<string, Filter>()  \n{  \n// Filtration by name.  \n{  \n// Key.  \n\"FilterByName\",  \n// Value.  \nnew Filter  \n{  \n// Filter type \u2013 comparison filter.  \nFilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.CompareFilter,  \n// Comparison type \u2013 starts with an expression.  \nComparisonType = FilterComparisonType.Equal,  \n// Expression to be checked.  \nLeftExpression = new BaseExpression()  \n{  \n// Expression type \u2013 schema column.  \nExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,  \n// Column path.  \nColumnPath = \"Name\"  \n},  \n// Filtration expression.  \nRightExpression = new BaseExpression()  \n{  \n// Expression type \u2013 parameter.  \nExpressionType = EntitySchemaQueryExpressionType.Parameter,  \n// Expression parameter.  \nParameter = new Parameter()  \n{  \n// Parameter data type \u2013 text.  \nDataValueType = DataValueType.Text,  \n// Parameter value.  \nValue = \"John Best\"  \n}  \n}  \n}  \n}  \n}  \n}  \n};  \n// Class instance serialization of the JSON string adding query.  \nvar json = new JavaScriptSerializer().Serialize(updateQuery);  \nThis creates an instance of the `DeleteQuery` class. The `Contact` value is set in the `RootSchemaName` property. To delete a particular record or group of records, you need to set a link to the correctly initialized `Filters` class instance to the `Filters` property. In this case, a single filter that selects only records with the John Best value in the **Full name** column is added to the filter collection.\nIn the final step you must perform `POST` query to the DataService service. To do this, create an instance of the `[HttpWebRequest](https://msdn.microsoft.com/en-us/library/system.net.httpwebrequest(v=vs.110).aspx)` class, fill in its properties, attach a previously created string with the JSON object to a request, and then execute and process the result of the query to the DataService service. To do this, add the following source code:\nRequest implementation\n// Converting a JSON object string to a byte array.  \nbyte[] jsonArray = Encoding.UTF8.GetBytes(json);  \n// Creating an insrance of HTTP request.  \nvar updateRequest = HttpWebRequest.Create(updateQueryUri) as HttpWebRequest;  \n// Defining a request method.  \nupdateRequest.Method = \"POST\";  \n// Determining type of request content.  \nupdateRequest.ContentType = \"application/json\";  \n// Adding authentication cookie received earlier to a request.  \nupdateRequest.CookieContainer = AuthCookie;  \n// Set length for request content.  \nupdateRequest.ContentLength = jsonArray.Length;  \n// Putting BPMCSRF token to the request header.  \nCookieCollection cookieCollection = AuthCookie.GetCookies(new Uri(authServiceUri));  \nstring csrfToken = cookieCollection[\"BPMCSRF\"].Value;  \nupdateRequest.Headers.Add(\"BPMCSRF\", csrfToken);  \n// Plase a JSON-object to request content.  \nusing (var requestStream = updateRequest.GetRequestStream())  \n{  \nrequestStream.Write(jsonArray, 0, jsonArray.Length);  \n}  \n// Executing HTTP request and getting a response from server.  \nusing (var response = (HttpWebResponse)updateRequest.GetResponse())  \n{  \n// Displaying response in console.  \nusing (StreamReader reader = new StreamReader(response.GetResponseStream()))  \n{  \nConsole.WriteLine(reader.ReadToEnd());  \n}  \n}  \n* * *\n## Resources\u200b\n[GitHub (example implementation)](https://github.com/bpmonline-academy/sdkDataServiceExamples)",
+  "code_examples": [
+    {
+      "code": "using System;using System.Text;using System.IO;using System.Net;using System.Collections.Generic;using Terrasoft.Nui.ServiceModel.DataContract;using Terrasoft.Core.Entities;using System.Web.Script.Serialization;using Terrasoft.Common;",
+      "language": "js",
+      "context": "Addusingdirectives to the application source code file:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Main Creatio URL. Has to be changed to a custom one.private const string baseUri = @\"https://example.creatio.com\";// Query string to the Login method of the AuthService.svc service.private const string authServiceUri = baseUri + @\"/ServiceModel/AuthService.svc/Login\";// DeleteQuery query path string.private const string deleteQueryUri = baseUri + @\"/0/DataService/json/reply/DeleteQuery\";// Creatio cookie authentication.private static CookieContainer AuthCookie = new CookieContainer();",
+      "language": "js",
+      "context": "To access the DataService features, you must add the fields and constants to the application source code.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Query class instance.var deleteQuery = new DeleteQuery(){    // Root schema name.    RootSchemaName = \"Contact\",    // Query filters.    Filters = new Filters()    {        // Filter type \u2013 group.        FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.FilterGroup,        // Filter collection.        Items = new Dictionary<string, Filter>()        {             // Filtration by name.            {                // Key.                \"FilterByName\",                // Value.                new Filter                {                    // Filter type \u2013 comparison filter.                    FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.CompareFilter,                    // Comparison type \u2013 starts with an expression.                    ComparisonType = FilterComparisonType.Equal,                    // Expression to be checked.                    LeftExpression = new BaseExpression()                    {                        // Expression type \u2013 schema column.                        ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,                        // Column path.                        ColumnPath = \"Name\"                    },                    // Filtration expression.                    RightExpression = new BaseExpression()                    {                        // Expression type \u2013 parameter.                        ExpressionType = EntitySchemaQueryExpressionType.Parameter,                         // Expression parameter.                        Parameter = new Parameter()                        {                            // Parameter data type \u2013 text.                            DataValueType = DataValueType.Text,                            // Parameter value.                            Value = \"John Best\"                        }                    }                }            }        }    }};// Class instance serialization of the JSON string adding query.var json = new JavaScriptSerializer().Serialize(updateQuery);",
+      "language": "js",
+      "context": "As the previously declaredupdateQueryUriconstant contains the path for sending data in JSON format, the data sent must be pre-configured in the form of a string containing a description of the JSON ob",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Converting a JSON object string to a byte array.byte[] jsonArray = Encoding.UTF8.GetBytes(json);// Creating an insrance of HTTP request.var updateRequest = HttpWebRequest.Create(updateQueryUri) as HttpWebRequest;// Defining a request method.updateRequest.Method = \"POST\";// Determining type of request content.updateRequest.ContentType = \"application/json\";// Adding authentication cookie received earlier to a request.updateRequest.CookieContainer = AuthCookie;// Set length for request content.updateRequest.ContentLength = jsonArray.Length;// Putting BPMCSRF token to the request header.CookieCollection cookieCollection = AuthCookie.GetCookies(new Uri(authServiceUri));string csrfToken = cookieCollection[\"BPMCSRF\"].Value;updateRequest.Headers.Add(\"BPMCSRF\", csrfToken);// Plase a JSON-object to request content.using (var requestStream = updateRequest.GetRequestStream()){    requestStream.Write(jsonArray, 0, jsonArray.Length);}// Executing HTTP request and getting a response from server.using (var response = (HttpWebResponse)updateRequest.GetResponse()){    // Displaying response in console.    using (StreamReader reader = new StreamReader(response.GetResponseStream()))    {        Console.WriteLine(reader.ReadToEnd());    }}",
+      "language": "js",
+      "context": "In the final step you must performPOSTquery to the DataService service. To do this, create an instance of the[HttpWebRequest](https://msdn.microsoft.com/en-us/library/system.net.httpwebrequest(v=vs.11",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleCreate a console application that, using the DataService service, will delete the \"John Best\" contact record added in theexample.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create a console application that, using the DataService service, will delete the \"John Best\" contact record added in the <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15412\" rel=\"noopener noreferrer\" target=\"_blank\">example</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Create a console application that, using the DataService service, will delete the \"John Best\" contact record added in theexample.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create a console application that, using the DataService service, will delete the \"John Best\" contact record added in the <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15412\" rel=\"noopener noreferrer\" target=\"_blank\">example</a>.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Delete a record in the section using DataService",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Example implementation algorithm\u200b",
+      "anchor": "title-1404-2"
+    },
+    {
+      "level": 3,
+      "text": "1. Create and configure a C# console application project\u200b",
+      "anchor": "title-1404-3"
+    },
+    {
+      "level": 3,
+      "text": "2. Add field declarations and constants to the application source code\u200b",
+      "anchor": "title-1404-4"
+    },
+    {
+      "level": 3,
+      "text": "3. Add a method that performs authentication in the Creatio application\u200b",
+      "anchor": "title-1404-5"
+    },
+    {
+      "level": 3,
+      "text": "4. Implement a query to add a record\u200b",
+      "anchor": "title-1404-6"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "SERIALIZE",
+        "path": "("
+      },
+      {
+        "method": "GETBYTES",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "GETCOOKIES",
+        "path": "("
+      },
+      {
+        "method": "ADD",
+        "path": "("
+      },
+      {
+        "method": "GETREQUESTSTREAM",
+        "path": "("
+      },
+      {
+        "method": "WRITE",
+        "path": "("
+      },
+      {
+        "method": "GETRESPONSE",
+        "path": "("
+      },
+      {
+        "method": "GETRESPONSESTREAM",
+        "path": "("
+      },
+      {
+        "method": "WRITELINE",
+        "path": "("
+      },
+      {
+        "method": "READTOEND",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/delete-a-record",
+      "text": "Delete a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/data-services/dataservice/examples/delete-a-record",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/data-services/dataservice/examples/delete-a-record",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/data-services/dataservice/examples/delete-a-record",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication-basics",
+      "text": "Authentication basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dataservice",
+      "text": "DataService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/create-a-record",
+      "text": "Create a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/read-records",
+      "text": "Read records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/filter-records",
+      "text": "Filter records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/filter-records-macro",
+      "text": "Filter records using a macro",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/update-a-record",
+      "text": "PreviousUpdate a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/add-and-update-a-record",
+      "text": "NextAdd and update a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/insertquery",
+      "text": "InsertQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/selectquery",
+      "text": "SelectQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/filters",
+      "text": "Filters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/entityschemaquerymacrostype",
+      "text": "EntitySchemaQueryMacrosType",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/updatequery",
+      "text": "UpdateQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/deletequery",
+      "text": "DeleteQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/batchquery",
+      "text": "BatchQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/odata",
+      "text": "OData",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/odata/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/odata-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/odata-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/business-process-service/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/process-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/process-service-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/working-with-requests",
+      "text": "Requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/working-with-request-collections",
+      "text": "Request collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T03:00:15.526853"
+}

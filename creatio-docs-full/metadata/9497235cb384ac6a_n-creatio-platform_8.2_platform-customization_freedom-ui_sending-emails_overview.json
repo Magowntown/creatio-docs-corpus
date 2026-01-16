@@ -1,0 +1,862 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/overview",
+  "title": "Customize sending emails",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization"
+    },
+    {
+      "text": "Emails",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\nImportant\nCreatio supports sending emails using the explicit account credentials.\nIn Creatio, you can send emails using both customer and developer means. By developer means, you can send emails:\n* Using an existing account\n* Using the explicit account credentials\nSending an email is done by using a business process. To set up a business process, use the [**Auto-generated page**](https://academy.creatio.com/documents?ver=8.2&id=7007) and [**Script task**](https://academy.creatio.com/documents?ver=8.2&id=7015) elements.\n## Sending an email from an existing account algorithm\u200b\nTo send an email from an existing account:\n1. Create a business process. The process must include **Auto-generated page** and **Script task** required elements.\n2. Create a config file for the email.\n3. Add an attachment (optional).\n4. Run the business process to send the email.\n### Creating a config file for the email\u200b\nTo create a configuration file of the email, use the `Terrasoft.Mail.Sender.EmailMessage` class. Populate the parameters below to ensure the validity of your email:\nCreating a configuration file of the email\nvar message = new Terrasoft.Mail.Sender.EmailMessage {  \n// Sender email address.  \nFrom = \"Sender@email.com\",  \n// Recipient email addresses.  \nTo = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},  \n// Copy optional  \nCc = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},  \n// Hidden copy optional  \nBcc = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},  \n// The subject of the email.  \nSubject = \"Message subject\",  \n// Email body.  \nBody = \"Body\",  \n// Priority, Terrasoft.Mail.Sender.EmailPriority enumeration values.  \nPriority = Terrasoft.Mail.Sender.EmailPriority.Normal  \n};  \n### Adding attachments optional\u200b\nYou can add attachments to your email. To do this, populate the **Attachments** field. Attachments are essentially a list of `Terrasoft.Mail.Sender.EmailAttachments` instances.\nAdding attachments to email\n// Creating an attachment.  \nvar attachment = new Terrasoft.Mail.Sender.EmailAttachment {  \n// Attachment ID.  \nId = new Guid(\"844F0837-EAA0-4F40-B965-71F5DB9EAE6E\"),  \n// Attachment name.  \nName = \"attachName.txt\",  \n// Data.  \nData = byteData  \n};  \n// Adding the attachment to the message.  \nmessage.Attachments.Add(attachment);  \n### Sending the email\u200b\nTo send the email, use the `Send` method of the `EmailSender` class with the email parameters and the connection configuration file.\nSending the email\n// Sending the configured email message. To ignore access permissions when sending the message.   \n// set the ignoreRight parameter to \"true\".  \nemailSender.Send(message, ignoreRights);  \n## Sending an email using the explicit account credentials algorithm\u200b\n1. Create a business process. The process must include **Auto-generated page** and **Script task** required elements.\n2. Create an instance of the `EmailClientFactory` class.\n3. Create an instance of the `EmailSender` class.\n4. Create a config file for connecting to the mailbox.\n5. Create a config file of the email.\n6. Add an attachment (if applicable).\n7. Run the business process to send the email.\n### Creating an instance of the EmailClientFactory class\u200b\nTo create an instance of the `EmailClientFactory` class, make sure you have `UserConnection` established.\nCreating an instance of the EmailClientFactoryclass\nvar emailClientFactory = ClassFactory.Get<IEmailClientFactory>(  \nnew ConstructorArgument(\"userConnection\", UserConnection));  \n### Creating an instance of the EmailSender class\u200b\nTo create an instance of the `EmailSender` class, pass the created `EmailClientFactory` instance and the `UserConnection` to the constructor.\nCreating an instance of the EmailSender class\nvar emailSender = ClassFactory.Get<IEmailSender>(  \nnew ConstructorArgument(\"emailClientFactory\", emailClientFactory),  \nnew ConstructorArgument(\"userConnection\", UserConnection));  \n### Creating a config file for connecting to the mailbox\u200b\nTo create a config file for connecting to the mailbox, use the `EmailContract.DTO.Credentials` class. Populate the following parameters:\nCreating a config file for connecting to the mailbox\nvar credentialConfig = new EmailContract.DTO.Credentials {  \n// Outbound mailserver IP address or domain  \nServiceUrl = \"mail service host\",  \n// Can be left empty for some protocols  \nPort = \"Port\",  \n// Use SSL to encrypt the connection.  \nUseSsl = false,  \n// Mailbox user name  \nUserName = \"EmailUserName\",  \n// Mailbox user password  \nPassword = \"UserPassword\",  \n// Mail server type (Exchange or IMAP/SMTP)  \nServerTypeId = EmailDomain.IntegrationConsts.ExchangeMailServerTypeId ||  \nEmailDomain.IntegrationConsts.ImapMailServerTypeId,  \n// Sender mailbox  \nSenderEmailAddress = \"sender@test.com\"  \n};  \nImportant\nThe `ServiceUrl`, `UserName`, `Password`, `ServerTypeId`, `SenderMailbox` parameters are required.\n### Creating a config file of the email\u200b\nTo create a configuration file of the email that you are sending, use the `EmailContract.DTO.Email` class. Populate the parameters shown below to ensure the validity of your email:\nCreating a config file of the email\nvar message = new EmailContract.DTO.Email {  \n// Sender email address.  \nSender = \"Sender@email.com\",  \n// Recipient email addresses.  \nRecepients = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},  \n// The subject of the email.  \nSubject = \"Message subject\",  \n// Email body.  \nBody = \"Body\",  \n// Priority, EmailContract.EmailImportance enumeration values.  \nImportance = EmailContract.EmailImportance.High  \n};  \n#### Adding attachments (if applicable)\u200b\nYou can add attachments to your email. To do this, populate the **Attachments** field. Attachments are essentially a list of `EmailContract.DTO.Attachment` instances.\nAdding attachments\n// Creating an attachment.  \nvar attachment = new EmailContract.DTO.Attachment {  \nName = \"FileName\",  \nId = \"844F0837-EAA0-4F40-B965-71F5DB9EAE6E\"  \n};  \n// Setting data for the attachment  \nattachment.SetData(byteData);  \n// Adding the attachment to the message.  \nmessage.Attachments.Add(attachment);  \n### Sending the email\u200b\nTo send the email, use the `Send` method of the `EmailSender` class with the passed arguments of the email and the connection configuration file.\nSending the email\n// Sending a configured email message with connection parameters  \n// for the mailbox of the sender To ignore access permissions when sending the message.   \n// set the ignoreRight parameter to \"true\".  \nemailSender.Send(message, credentialConfig, ignoreRights);",
+  "code_examples": [
+    {
+      "code": "var message = new Terrasoft.Mail.Sender.EmailMessage {    // Sender email address.    From = \"Sender@email.com\",    // Recipient email addresses.    To = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},    // Copy optional    Cc = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},    // Hidden copy optional    Bcc = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},    // The subject of the email.    Subject = \"Message subject\",    // Email body.    Body = \"Body\",    // Priority, Terrasoft.Mail.Sender.EmailPriority enumeration values.    Priority = Terrasoft.Mail.Sender.EmailPriority.Normal};",
+      "language": "cs",
+      "context": "To create a configuration file of the email, use theTerrasoft.Mail.Sender.EmailMessageclass. Populate the parameters below to ensure the validity of your email:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Creating an attachment.var attachment = new Terrasoft.Mail.Sender.EmailAttachment {    // Attachment ID.    Id = new Guid(\"844F0837-EAA0-4F40-B965-71F5DB9EAE6E\"),    // Attachment name.    Name = \"attachName.txt\",    // Data.    Data = byteData};// Adding the attachment to the message.message.Attachments.Add(attachment);",
+      "language": "cs",
+      "context": "You can add attachments to your email. To do this, populate theAttachmentsfield. Attachments are essentially a list ofTerrasoft.Mail.Sender.EmailAttachmentsinstances.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Sending the configured email message. To ignore access permissions when sending the message. // set the ignoreRight parameter to \"true\".emailSender.Send(message, ignoreRights);",
+      "language": "cs",
+      "context": "To send the email, use theSendmethod of theEmailSenderclass with the email parameters and the connection configuration file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var emailClientFactory = ClassFactory.Get<IEmailClientFactory>(       new ConstructorArgument(\"userConnection\", UserConnection));",
+      "language": "cs",
+      "context": "To create an instance of theEmailClientFactoryclass, make sure you haveUserConnectionestablished.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var emailSender = ClassFactory.Get<IEmailSender>(     new ConstructorArgument(\"emailClientFactory\", emailClientFactory),     new ConstructorArgument(\"userConnection\", UserConnection));",
+      "language": "cs",
+      "context": "To create an instance of theEmailSenderclass, pass the createdEmailClientFactoryinstance and theUserConnectionto the constructor.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var credentialConfig = new EmailContract.DTO.Credentials {    // Outbound mailserver IP address or domain    ServiceUrl = \"mail service host\",    // Can be left empty for some protocols    Port = \"Port\",    // Use SSL to encrypt the connection.    UseSsl = false,    // Mailbox user name    UserName = \"EmailUserName\",    // Mailbox user password    Password = \"UserPassword\",    // Mail server type (Exchange or IMAP/SMTP)    ServerTypeId = EmailDomain.IntegrationConsts.ExchangeMailServerTypeId ||             EmailDomain.IntegrationConsts.ImapMailServerTypeId,    // Sender mailbox    SenderEmailAddress = \"sender@test.com\"};",
+      "language": "cs",
+      "context": "To create a config file for connecting to the mailbox, use theEmailContract.DTO.Credentialsclass. Populate the following parameters:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var message = new EmailContract.DTO.Email {    // Sender email address.    Sender = \"Sender@email.com\",    // Recipient email addresses.    Recepients = List<string>{ \"first@recepient.co\", \"second@recepient.co\"},    // The subject of the email.    Subject = \"Message subject\",    // Email body.    Body = \"Body\",    // Priority, EmailContract.EmailImportance enumeration values.    Importance = EmailContract.EmailImportance.High};",
+      "language": "cs",
+      "context": "To create a configuration file of the email that you are sending, use theEmailContract.DTO.Emailclass. Populate the parameters shown below to ensure the validity of your email:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Creating an attachment.var attachment = new EmailContract.DTO.Attachment {    Name = \"FileName\",    Id = \"844F0837-EAA0-4F40-B965-71F5DB9EAE6E\"};// Setting data for the attachmentattachment.SetData(byteData);// Adding the attachment to the message.message.Attachments.Add(attachment);",
+      "language": "cs",
+      "context": "You can add attachments to your email. To do this, populate theAttachmentsfield. Attachments are essentially a list ofEmailContract.DTO.Attachmentinstances.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Sending a configured email message with connection parameters// for the mailbox of the sender To ignore access permissions when sending the message. // set the ignoreRight parameter to \"true\".emailSender.Send(message, credentialConfig, ignoreRights);",
+      "language": "cs",
+      "context": "To send the email, use theSendmethod of theEmailSenderclass with the passed arguments of the email and the connection configuration file.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantCreatio supports sending emails using the explicit account credentials.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Creatio supports sending emails using the explicit account credentials.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio supports sending emails using the explicit account credentials.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio supports sending emails using the explicit account credentials.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTheServiceUrl,UserName,Password,ServerTypeId,SenderMailboxparameters are required.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The <code>ServiceUrl</code>, <code>UserName</code>, <code>Password</code>, <code>ServerTypeId</code>, <code>SenderMailbox</code> parameters are required.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "TheServiceUrl,UserName,Password,ServerTypeId,SenderMailboxparameters are required.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The <code>ServiceUrl</code>, <code>UserName</code>, <code>Password</code>, <code>ServerTypeId</code>, <code>SenderMailbox</code> parameters are required.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Customize sending emails",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Sending an email from an existing account algorithm\u200b",
+      "anchor": "title-1474-1"
+    },
+    {
+      "level": 3,
+      "text": "Creating a config file for the email\u200b",
+      "anchor": "title-1474-2"
+    },
+    {
+      "level": 3,
+      "text": "Adding attachments optional\u200b",
+      "anchor": "title-1474-3"
+    },
+    {
+      "level": 3,
+      "text": "Sending the email\u200b",
+      "anchor": "title-1474-4"
+    },
+    {
+      "level": 2,
+      "text": "Sending an email using the explicit account credentials algorithm\u200b",
+      "anchor": "title-1474-5"
+    },
+    {
+      "level": 3,
+      "text": "Creating an instance of the EmailClientFactory class\u200b",
+      "anchor": "title-1474-6"
+    },
+    {
+      "level": 3,
+      "text": "Creating an instance of the EmailSender class\u200b",
+      "anchor": "title-1474-7"
+    },
+    {
+      "level": 3,
+      "text": "Creating a config file for connecting to the mailbox\u200b",
+      "anchor": "title-1474-8"
+    },
+    {
+      "level": 3,
+      "text": "Creating a config file of the email\u200b",
+      "anchor": "title-1474-9"
+    },
+    {
+      "level": 4,
+      "text": "Adding attachments (if applicable)\u200b",
+      "anchor": "title-1474-10"
+    },
+    {
+      "level": 3,
+      "text": "Sending the email\u200b",
+      "anchor": "title-1474-4"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IEmailClientFactory"
+      },
+      {
+        "method": "IEMAILCLIENTFACTORY",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IEmailSender"
+      },
+      {
+        "method": "IEMAILSENDER",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "PreviousEmails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-sending-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/examples/send-email-an-existing-account",
+      "text": "Send email (an existing account)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/examples/send-email-the-account-credentials",
+      "text": "Send email (the account credentials)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/examples/add-the-macro-handler",
+      "text": "Implement email template (custom macro)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:37:40.904304"
+}

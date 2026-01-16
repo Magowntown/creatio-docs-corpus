@@ -1,0 +1,1 @@
+// Substring search function is used to search for data."PreferedFilterFuncType": "Terrasoft.FilterFunctions.SubStringOf"

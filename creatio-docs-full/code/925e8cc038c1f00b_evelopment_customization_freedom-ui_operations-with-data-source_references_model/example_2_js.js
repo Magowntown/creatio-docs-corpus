@@ -1,0 +1,1 @@
+const result = await model.load({    attributes: ['Name'],    parameters: [{        type: ModelParameterType.PrimaryColumnValue,        value: 'd4f93b6c-362c-4954-8bd6-1658e9206d4e'    }]});

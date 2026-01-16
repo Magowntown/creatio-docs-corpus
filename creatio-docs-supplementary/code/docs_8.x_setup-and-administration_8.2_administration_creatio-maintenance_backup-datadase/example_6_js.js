@@ -1,0 +1,1 @@
+"C:\\PostgreSQL\\pg_dump.exe" --host=#ServerIP# --port #ServerPort# --username #SysUserName# --format=c --blobs --verbose -clean -file=#BackupFilePath# #DatabaseName#

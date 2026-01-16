@@ -1,0 +1,693 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-that-receives-parameters-from-a-client-module",
+  "title": "Run the business process that receives parameters from a client module",
+  "breadcrumbs": [
+    {
+      "text": "Integrations tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools"
+    },
+    {
+      "text": "Business process service",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1  \nOn this page\nLevel: intermediate\nExample\nAdd the **Receive parameters** custom action to the account page and **Accounts** section list. The action must run the **Result parameters** custom business process. The action must be active if the account has a primary contact, i. e., the **Primary contact** field of the account page is filled out. Pass the primary contact of the account to the business process as a parameter. Display the job title and age of the account\u2019s primary contact as resulting parameters in the business process dialog.\n## 1\\. Implement the Result parameters custom business process\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101#title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the business process.\n2. Click **Add** \u2192 **Business process** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_AddProcess.png)\n3. Fill out the **business process properties**.\n* Set **Title** to \"Result parameters.\"\n* Set **Code** to \"UsrParametersProcess.\"\nUse default values for the other properties.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_UsrParametersProcess.png)\n4. Add **business process parameters**.\nView the process parameters values to fil out in the table below.\nProcess parameters values\nTitle| Code| Data type| Direction  \n---|---|---|---  \n\"Primary contact\"| \"ProcessSchemaContactParameter\"| \"Unique identifier\"| \"Input\"  \n\"Contact age\"| \"ProcessContactAge\"| \"Integer\"| \"Output\"  \n\"Full job title\"| \"ProcessFullJob\"| \"Text (500 characters)\"| \"Output\"  \n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ProcessParameters.png)\n5. Implement data reading.\n1. Add the **Read data** element to the Process Designer workspace.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ProcessFlow.png)\n2. Fill out the **element properties**.\n* Set **Which data read mode to use?** to \"Read the first record in the selection.\"\n* Set **Which object to read data from?** to \"Contact.\"\n* Set the filter by the **Id** column in the **How to filter records?** property. Set the value of the \"Primary contact\" incoming parameter as the column value.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ReadData.png)\n6. Add the **values of the outgoing parameters**.\n1. Go to the **Parameters** tab.\n2. Enter \"[#Read data.First item of resulting collection.Full job title#]\" in the **Value** field for the `Full job title` parameter.\n3. Enter \"[#Read data.First item of resulting collection.Age#]\" in the **Value** field for the `Contact age` parameter.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ProcessParametersValue.png)\n7. Click **Save** on the Process Designer\u2019s toolbar.\n## 2\\. Create a replacing view model schema of the account page\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101#title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"AccountPageV2.\"\n* Set **Title** to \"Account edit page.\"\n* Set **Parent object** to \"AccountPageV2.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_AccountPageV2.png)\n4. Add a **localizable string** that contains the menu item caption.\n1. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_button.png) button in the context menu of the **Localizable strings**) node.\n2. Fill out the **localizable string properties**.\n* Set **Code** to \"CallProcessParametersCaption.\"\n* Set **Value** to \"Recieve parameters.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_LocalizableString.png)\n3. Click **Add** to add a localizable string.\n5. Implement the **menu item logic**.\nImplement the following **methods** in the `methods` property:\n* `isAccountPrimaryContactSet()`. Checks whether the primary contact of the account is filled out and defines the visibility of the menu item.\n* `callCustomProcess()`. Action handler method. Runs the business process and displays the values of the resulting parameters in the dialog.\n* `getActions()`. An overloaded base method. Returns the action collection of the replacing page.\nView the source code of the replacing view model schema of the account page below.\nAccountPageV2\ndefine(\"AccountPageV2\", [], function() {   \nreturn {   \n/* The name of the record page object\u2019s schema. */    \nentitySchemaName: \"Account\",   \n/* The methods of the record page\u2019s view model. */   \nmethods: {   \n/* Check the [Primary contact] field of the account is filled out to define the visibility of the menu item. */   \nisAccountPrimaryContactSet: function() {   \n/* Return true if the primary contact is filled out, return false otherwise. */  \nreturn this.get(\"PrimaryContact\") ? true : false;  \n},   \n/* Overload the base virtual method that returns the collection of record page actions. */   \ngetActions: function() {   \n/* Call the parent method implementation to retrieve the collection of base page\u2019s initialized actions. */   \nvar actionMenuItems = this.callParent(arguments);   \n/* Add a separator line. */   \nactionMenuItems.addItem(this.getActionsMenuItem({   \nType: \"Terrasoft.MenuSeparator\",  \nCaption: \"\"   \n}));   \n/* Add a menu item to the action list of the record page. */  \nactionMenuItems.addItem(this.getActionsMenuItem({   \n/* Bind the menu item caption to the localizable schema string. */  \n\"Caption\": {   \nbindTo: \"Resources.Strings.CallProcessParametersCaption\"   \n},   \n/* Bind the action handler method. */  \n\"Tag\": \"callCustomProcess\",   \n/* Bind the property of the menu item visibility to the value returned by the isAccountPrimaryContactSet() method. */   \n\"Visible\": {   \nbindTo: \"isAccountPrimaryContactSet\"   \n}   \n}));   \nreturn actionMenuItems;   \n},   \n/* The action handler method. Run the business process and display the values of the resulting parameters in the dialog. */  \ncallCustomProcess: function() {   \n/* Receive the ID of the account\u2019s primary contact. */   \nvar contactParameter = this.get(\"PrimaryContact\");   \n/* Create an object of the Terrasoft.RunProcessRequest class. */  \nconst runProcessRequest = Ext.create(\"Terrasoft.RunProcessRequest\", {   \n/* The process schema code. */  \n\"schemaName\": \"UsrParametersProcess\",   \n/* The ID of the process diagram. */  \n\"schemaUId\": \"9ff60fa7-314e-4b9e-b9fc-57f91b8b2e21\",   \n/* Incoming process parameters. */  \n\"parameterValues\": {   \n\"ProcessSchemaContactParameter\": contactParameter.value   \n},   \n/* Outgoing process parameters. */  \n\"resultParameterNames\": [   \n\"ProcessContactAge\",   \n\"ProcessFullJob\"   \n]   \n});   \n/* Run the custom business process. */  \nrunProcessRequest.execute(function(response) {   \n/* If the process is executed successfully, display the values of the resulting parameters in the dialog. */   \nif (response.isSuccess()) {   \nvar job = response.resultParameterValues[\"ProcessFullJob\"];   \nvar age = response.resultParameterValues[\"ProcessContactAge\"];   \nTerrasoft.showInformation(\"Full job title: \" + job + \" Age: \" + age);   \n}   \n}, this);   \n}   \n}   \n};   \n});  \n6. Click **Save** on the Module Designer\u2019s toolbar.\nCreatio does not display the custom account page action in combined mode.\n## 3\\. Create a replacing view model schema of the section page\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101#title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"AccountSectionV2.\"\n* Set **Title** to \"Accounts section.\"\n* Set **Parent object** to \"AccountSectionV2.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_AccountSectionV2.png)\n4. Add a **localizable string** that contains the menu item caption. To do this, take step 4 of the [procedure to create a replacing view model schema of the account page](https://academy.creatio.com/documents?ver=8.1&id=15965&anchor=localizable-string).\n5. Implement the **menu item behavior**. To do this, implement the `isAccountPrimaryContactSet()` method in the `methods` property. The method checks whether the primary contact of the account is filled out and defines the visibility of the menu item.\nView the source code of the replacing view model schema of the section page below.\nAccountSectionV2\ndefine(\"AccountSectionV2\", [], function() {   \nreturn {   \n/* The name of the section page schema. */   \nentitySchemaName: \"Account\",   \n/* The methods of the section page\u2019s view model. */  \nmethods: {   \n/* Check whether the [Primary contact] field of the account is filled out. */  \nisAccountPrimaryContactSet: function() {   \n/* Define the active record. */  \nvar activeRowId = this.get(\"ActiveRow\");   \nif (!activeRowId) {   \nreturn false;   \n}   \n/* Retrieve the data collection of the section list\u2019s list view. Retrieve the model of the account by the specified primary column value. */  \nvar selectedAccount = this.get(\"GridData\").get(activeRowId);   \nif (selectedAccount) {   \n/* Receive the [Primary contact] model property. */  \nvar selectedPrimaryContact = selectedAccount.get(\"PrimaryContact\");   \n/* Return true if the primary contact is filled out, return false otherwise. */   \nreturn selectedPrimaryContact ? true : false;   \n}   \nreturn false;   \n}   \n}   \n};   \n});  \n6. Click **Save** on the Module Designer\u2019s toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** : \n1. Refresh the **Accounts** section page.\n2. Open an account page, for example, `Vertigo Systems`.\nAs a result, Creatio will add the **Receive parameters** action to the account page.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_PageAction.png)\nClick the **Receive parameters** action to run the **Result parameters** business process. The primary contact of the account will be passed to the business process as a parameter. The job title and age of the account\u2019s primary contact will be displayed as the resulting parameters of the business process.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_Result.png)\nThe action will be active if the account has a primary contact, i. e., the **Primary contact** field of the account page is filled out. For example, the action is inactive for the `Wilson & Young` account.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_Result2.png)\nThe **Receive parameters** custom action will be displayed on the **Accounts** section page and active for the selected account that has a primary contact.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_Result3.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkResultProcessParameters_2022-08-16_17.09.43.zip)",
+  "code_examples": [
+    {
+      "code": "define(\"AccountPageV2\", [], function() {     return {         /* The name of the record page object\u2019s schema. */          entitySchemaName: \"Account\",         /* The methods of the record page\u2019s view model. */         methods: {             /* Check the [Primary contact] field of the account is filled out to define the visibility of the menu item. */             isAccountPrimaryContactSet: function() {                 /* Return true if the primary contact is filled out, return false otherwise. */                return this.get(\"PrimaryContact\") ? true : false;            },             /* Overload the base virtual method that returns the collection of record page actions. */             getActions: function() {                 /* Call the parent method implementation to retrieve the collection of base page\u2019s initialized actions. */                 var actionMenuItems = this.callParent(arguments);                 /* Add a separator line. */                 actionMenuItems.addItem(this.getActionsMenuItem({                     Type: \"Terrasoft.MenuSeparator\",                    Caption: \"\"                 }));                 /* Add a menu item to the action list of the record page. */                actionMenuItems.addItem(this.getActionsMenuItem({                     /* Bind the menu item caption to the localizable schema string. */                    \"Caption\": {                         bindTo: \"Resources.Strings.CallProcessParametersCaption\"                     },                     /* Bind the action handler method. */                    \"Tag\": \"callCustomProcess\",                     /* Bind the property of the menu item visibility to the value returned by the isAccountPrimaryContactSet() method. */                     \"Visible\": {                         bindTo: \"isAccountPrimaryContactSet\"                     }                 }));                 return actionMenuItems;             },             /* The action handler method. Run the business process and display the values of the resulting parameters in the dialog. */            callCustomProcess: function() {                 /* Receive the ID of the account\u2019s primary contact. */                 var contactParameter = this.get(\"PrimaryContact\");                 /* Create an object of the Terrasoft.RunProcessRequest class. */                const runProcessRequest = Ext.create(\"Terrasoft.RunProcessRequest\", {                     /* The process schema code. */                    \"schemaName\": \"UsrParametersProcess\",                     /* The ID of the process diagram. */                    \"schemaUId\": \"9ff60fa7-314e-4b9e-b9fc-57f91b8b2e21\",                     /* Incoming process parameters. */                    \"parameterValues\": {                         \"ProcessSchemaContactParameter\": contactParameter.value                     },                     /* Outgoing process parameters. */                    \"resultParameterNames\": [                         \"ProcessContactAge\",                         \"ProcessFullJob\"                     ]                 });                 /* Run the custom business process. */                runProcessRequest.execute(function(response) {                     /* If the process is executed successfully, display the values of the resulting parameters in the dialog. */                     if (response.isSuccess()) {                         var job = response.resultParameterValues[\"ProcessFullJob\"];                         var age = response.resultParameterValues[\"ProcessContactAge\"];                         Terrasoft.showInformation(\"Full job title: \" + job + \" Age: \" + age);                     }                 }, this);             }         }     }; });",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the account page below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"AccountSectionV2\", [], function() {     return {         /* The name of the section page schema. */         entitySchemaName: \"Account\",         /* The methods of the section page\u2019s view model. */        methods: {             /* Check whether the [Primary contact] field of the account is filled out. */            isAccountPrimaryContactSet: function() {                 /* Define the active record. */                var activeRowId = this.get(\"ActiveRow\");                 if (!activeRowId) {                     return false;                 }                 /* Retrieve the data collection of the section list\u2019s list view. Retrieve the model of the account by the specified primary column value. */                var selectedAccount = this.get(\"GridData\").get(activeRowId);                 if (selectedAccount) {                     /* Receive the [Primary contact] model property. */                    var selectedPrimaryContact = selectedAccount.get(\"PrimaryContact\");                     /* Return true if the primary contact is filled out, return false otherwise. */                     return selectedPrimaryContact ? true : false;                 }                 return false;             }         }     }; });",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the section page below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Title",
+          "Code",
+          "Data type",
+          "Direction"
+        ],
+        [
+          "\"Primary contact\"",
+          "\"ProcessSchemaContactParameter\"",
+          "\"Unique identifier\"",
+          "\"Input\""
+        ],
+        [
+          "\"Contact age\"",
+          "\"ProcessContactAge\"",
+          "\"Integer\"",
+          "\"Output\""
+        ],
+        [
+          "\"Full job title\"",
+          "\"ProcessFullJob\"",
+          "\"Text (500 characters)\"",
+          "\"Output\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Title</p></th><th><p>Code</p></th><th><p>Data type</p></th><th><p>Direction</p></th></tr><tr><td><p>\"Primary contact\"</p></td><td><p>\"ProcessSchemaContactParameter\"</p></td><td><p>\"Unique identifier\"</p></td><td><p>\"Input\"</p></td></tr><tr><td><p>\"Contact age\"</p></td><td><p>\"ProcessContactAge\"</p></td><td><p>\"Integer\"</p></td><td><p>\"Output\"</p></td></tr><tr><td><p>\"Full job title\"</p></td><td><p>\"ProcessFullJob\"</p></td><td><p>\"Text (500 characters)\"</p></td><td><p>\"Output\"</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Receive parameters",
+      "content": "ExampleAdd theReceive parameterscustom action to the account page andAccountssection list. The action must run theResult parameterscustom business process. The action must be active if the account has a primary contact, i.\u00a0e., thePrimary contactfield of the account page is filled out. Pass the primary contact of the account to the business process as a parameter. Display the job title and age of the account\u2019s primary contact as resulting parameters in the business process dialog.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add the <strong>Receive parameters</strong> custom action to the account page and <strong>Accounts</strong> section list. The action must run the <strong>Result parameters</strong> custom business process. The action must be active if the account has a primary contact, i.\u00a0e., the <strong>Primary contact</strong> field of the account page is filled out. Pass the primary contact of the account to the business process as a parameter. Display the job title and age of the account\u2019s primary contact as resulting parameters in the business process dialog.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Receive parameters",
+      "content": "Add theReceive parameterscustom action to the account page andAccountssection list. The action must run theResult parameterscustom business process. The action must be active if the account has a primary contact, i.\u00a0e., thePrimary contactfield of the account page is filled out. Pass the primary contact of the account to the business process as a parameter. Display the job title and age of the account\u2019s primary contact as resulting parameters in the business process dialog.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add the <strong>Receive parameters</strong> custom action to the account page and <strong>Accounts</strong> section list. The action must run the <strong>Result parameters</strong> custom business process. The action must be active if the account has a primary contact, i.\u00a0e., the <strong>Primary contact</strong> field of the account page is filled out. Pass the primary contact of the account to the business process as a parameter. Display the job title and age of the account\u2019s primary contact as resulting parameters in the business process dialog.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_AddProcess.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Business processon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_c9c40f3411a7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_UsrParametersProcess.png",
+      "alt": "",
+      "title": "",
+      "context": "Use default values for the other properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_f5c8bbc7b2b4.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ProcessParameters.png",
+      "alt": "",
+      "title": "",
+      "context": "\"Output\"",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_6dc0b04281ca.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ProcessFlow.png",
+      "alt": "",
+      "title": "",
+      "context": "Add theRead dataelement to the Process Designer workspace.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_a0b93ff2890d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ReadData.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theelement properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_469cb155154f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_ProcessParametersValue.png",
+      "alt": "",
+      "title": "",
+      "context": "Add thevalues of the outgoing parameters.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_61804cca3b5f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_72cda624920e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_AccountPageV2.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_15af9e63f51e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton in the context menu of theLocalizable strings) node.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_2bc54520fe09.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_LocalizableString.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out thelocalizable string properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_fa43c72a2e59.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_72cda624920e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_AccountSectionV2.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_30b4ea3741da.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_PageAction.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add theReceive parametersaction to the account page.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_1c9e48d9d1b8.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_Result.png",
+      "alt": "",
+      "title": "",
+      "context": "Click theReceive parametersaction to run theResult parametersbusiness process. The primary contact o",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_0f9eb812577f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_Result2.png",
+      "alt": "",
+      "title": "",
+      "context": "The action will be active if the account has a primary contact, i.\u00a0e., thePrimary contactfield of th",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_0a270c3abd64.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ResultProcessParameters/scr_Result3.png",
+      "alt": "",
+      "title": "",
+      "context": "TheReceive parameterscustom action will be displayed on theAccountssection page and active for the s",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_ee667db99366.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkResultProcessParameters_2022-08-16_17.09.43.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkResultProcessParameters_2022-08-16_17.09.43.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/3dc8a2452b1fb672__examples_run-the-business-process-that-receives-parameters-from-a-client-module_sdkResultProcessParameters_2022-08-16_17.09.43.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Run the business process that receives parameters from a client module",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement the Result parameters custom business process\u200b",
+      "anchor": "title-3930-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a replacing view model schema of the account page\u200b",
+      "anchor": "title-3930-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Create a replacing view model schema of the section page\u200b",
+      "anchor": "title-3930-3"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-3930-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETACTIONSMENUITEM",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETACTIONSMENUITEM",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "EXECUTE",
+        "path": "("
+      },
+      {
+        "method": "ISSUCCESS",
+        "path": "("
+      },
+      {
+        "method": "SHOWINFORMATION",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-that-receives-parameters-from-a-client-module",
+      "text": "Run the business process that receives parameters from a client module",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/business-process-service/examples/run-the-business-process-that-receives-parameters-from-a-client-module",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication-basics",
+      "text": "Authentication basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/authentication/cell-connection-provider-2fa",
+      "text": "Integrate the cell connection provider (2FA via SMS)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dataservice",
+      "text": "DataService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/odata",
+      "text": "OData",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-web-service",
+      "text": "Run the business process from the browser address bar (business process service)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-from-console-app",
+      "text": "Run the business process from the C# console app (business process service)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-from-a-client-module",
+      "text": "PreviousRun the business process (client module)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/references/processengineservice-svc",
+      "text": "ProcessEngineService.svc",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/working-with-requests",
+      "text": "Requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/working-with-request-collections",
+      "text": "Request collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:16:38.855589"
+}

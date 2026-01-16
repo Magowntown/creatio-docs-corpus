@@ -1,0 +1,1 @@
+static void Write(DataWriter dataWriter, Entity entity, string propertyName)static void Write(DataWriter dataWriter, Entity entity, string propertyName, bool couldConvertForXml)

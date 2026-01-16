@@ -1,0 +1,1 @@
+diff: /**SCHEMA_DIFF*/[    {        /* ... */        "bindConfig": {            "converter": function(val) {            /* ... */            }        }    }]/**SCHEMA_DIFF*/

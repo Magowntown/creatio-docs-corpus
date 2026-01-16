@@ -1,0 +1,1 @@
+/* Import the required functionality from the libraries. */import { Converter, CrtConverter } from "@creatio-devkit/common";/* Add the CrtConverter decorator to the ConcatConverter interface. */@CrtConverter({  type: 'usr.ConcatConverter',})export class ConcatConverter implements Converter<string, string> {}

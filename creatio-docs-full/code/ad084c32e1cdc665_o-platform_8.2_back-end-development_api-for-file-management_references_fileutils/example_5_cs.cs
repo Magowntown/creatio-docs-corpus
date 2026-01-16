@@ -1,0 +1,1 @@
+static void Copy(this IFile source, IFile target)

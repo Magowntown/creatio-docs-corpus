@@ -1,0 +1,832 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/send-a-web-service-request/examples/call-a-web-service-front-end",
+  "title": "Call a custom web service from the front-end",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization"
+    },
+    {
+      "text": "Web service",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/web-service-request-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.3  \nOn this page\nLevel: intermediate\nTo implement the example:\n1. Implement a custom web service. Read more >>>\n2. Set up the page UI. Read more >>>\n3. Implement the calling of the web service. Read more >>>\nExample\nAdd a **Show contact ID** button to the base contact page. The button calls the `UsrReceiveContactDataService` custom web service that uses cookie-based authentication and returns the ID of the current contact by its name. Creatio must display the data in a dialog window.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CallConfigurationService/8.1/scr_result.gif)\n## 1\\. Implement a custom web service\u200b\nInstructions: [Implement a custom web service that uses cookie-based authentication](https://academy.creatio.com/documents?ver=8.3&id=15263).\n## 2\\. Set up the page UI\u200b\n1. **Open form page** in the Freedom UI Designer.\nFor this example, open the **Contacts form page** in the **Customer 360** app.\n2. **Add a button**.\nFor this example, add the button that calls the `UsrReceiveContactDataService` custom web service.\nTo do this:\n1. Add a **Button** type component to the toolbar of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the button properties.\nElement| Property| Property value  \n---|---|---  \nButton that calls the `UsrReceiveContactDataService` custom web service| Title| Show contact ID  \nStyle| Focus  \n3. **Save the changes**.\n## 3\\. Implement the calling of the web service\u200b\nConfigure the business logic in the Client Module Designer. For this example, implement the calling of the web service.\n1. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n2. **Add the dependencies**. To do this, add `@creatio-devkit/common` library as a dependency. The library includes the `HttpClientService` service that sends HTTP requests.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"Contacts_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \n...  \n}  \n});  \n3. **Add an attribute**.\n1. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object.\n2. Add a `ContactID` attribute that stores data of the contact ID.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n...,  \n],  \n\"values\": {  \n...,  \n/* The attribute that stores data of the contact ID. */  \n\"ContactID\": {},  \n}  \n},  \n...  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n4. **Set up how to handle the action** executed on button click.\n1. Go to the `viewConfigDiff` schema section \u2192 `ShowContactIdButton` element.\n2. Bind the sending of the base `crt.ShowDialog` request to the `clicked` button event.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that calls the \"UsrReceiveContactDataService\" custom web service. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ShowContactIdButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the base request to the \"clicked\" button event. */  \n\"request\": \"crt.ShowDialog\"  \n}  \n},  \n...  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n5. **Implement the base request handler**.\n1. Go to the `handlers` schema section.\n2. Add a custom implementation of the `crt.ShowDialog` base request handler.\n1. Create an instance of the HTTP client from `@creatio-devkit/common`.\n2. Specify the URL to retrieve the contact information by the specified name. Use the `UsrReceiveContactDataService` custom web service.\n3. Retrieve the contact name from the response and specify the contact name in the `ContactName` variable.\n4. Send a `GET` request.\n5. Retrieve the contact ID from the response and specify the contact ID in the `ContactID` attribute.\n6. Create an instance of the dialog service from `@creatio-devkit/common`.\n7. Display the response from the `UsrReceiveContactDataService` custom web service in the dialog window.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.ShowDialog\",  \n/* The custom implementation of the base request handler. */  \nhandler: async (request, next) => {  \n/* Create an instance of the HTTP client from \"@creatio-devkit/common.\" */  \nconst httpClientService = new sdk.HttpClientService();  \n/* Specify the URL to retrieve the contact information by the specified name. Use the \"UsrReceiveContactDataService\" web service. */  \nconst endpoint = \"/rest/UsrReceiveContactDataService/GetContactIdByName?Name=\";  \n/* Retrieve the contact name from the response and specify the contact name in the \"ContactName\" variable. */  \nconst ContactName = await request.$context.PDS_Name_bckhanw;  \n/* Send a GET request. The HTTP client converts the response body from JSON to a JS object automatically. */  \nconst response = await httpClientService.get(`${endpoint}`+ ContactName);  \n/* Retrieve the contact ID from the response and specify the contact ID in the \"ContactID\" attribute. */  \nrequest.$context.ContactID = response?.body?.GetContactIdByNameResult;  \n/* Create an instance of the dialog service from \"@creatio-devkit/common.\" */  \nconst dialogService = new sdk.DialogService();  \n/* Display the response from the \"UsrReceiveContactDataService\" web service in the dialog window. */  \nconst result = await dialogService.open({  \nmessage: request.$context.ContactID,  \nactions: [  \n{  \nkey: 'Yes',  \nconfig: {  \ncolor: 'primary',  \ncaption: 'Close',  \n}  \n},  \n]  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n},  \n},  \n] /**SCHEMA_HANDLERS*/,  \n6. **Save the changes**.\n## View the result\u200b\n1. **Open the Contacts section**.\n2. **Open a contact** that has an arbitrary name. For example, \"Alice Phillips.\"\n3. **Click Show contact ID**.\n**As a result** , Creatio will display the dialog window that includes the ID of the current contact. [View the result >>>](https://academy.creatio.com/documents?ver=8.3&id=15265&anchor=view-result)\n## Source code\u200b\n* UsrReceiveContactDataService\n* Contacts_FormPage\nnamespace Terrasoft.Configuration.UsrReceiveContactDataServiceNamespace {  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \nusing Terrasoft.Core.Entities;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrReceiveContactDataService: BaseService {  \n/* The method that returns the contact ID by the contact name. */  \n[OperationContract]  \n[WebInvoke(Method = \"GET\", RequestFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Wrapped, ResponseFormat = WebMessageFormat.Json)]  \npublic string GetContactIdByName(string Name) {  \n/* The default result. */  \nvar result = \"\";  \n/* The EntitySchemaQuery instance that accesses the \"Contact\" database table. */  \nvar esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"Contact\");  \n/* Add columns to the query. */  \nvar colId = esq.AddColumn(\"Id\");  \nvar colName = esq.AddColumn(\"Name\");  \n/* Filter the query data. */  \nvar esqFilter = esq.CreateFilterWithParameters(FilterComparisonType.Equal, \"Name\", Name);  \nesq.Filters.Add(esqFilter);  \n/* Retrieve the query results. */  \nvar entities = esq.GetEntityCollection(UserConnection);  \n/* If the service receives data. */  \nif (entities.Count > 0) {  \n/* Return the \"Id\" column value of the first query result record. */  \nresult = entities[0].GetColumnValue(colId.Name).ToString();  \n/* You can also use the following option.  \nresult = entities[0].GetTypedColumnValue<string>(colId.Name); */  \n}  \n/* Return the results. */  \nreturn result;  \n}  \n}  \n}  \n/* Declare the AMD module. */  \ndefine(\"Contacts_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"remove\",  \n\"name\": \"AddressSearchFilter\",  \n\"properties\": [  \n\"targetAttributes\"  \n]  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AddressSearchFilter\",  \n\"values\": {  \n\"_filterOptions\": {  \n\"expose\": [  \n{  \n\"attribute\": \"AddressSearchFilter_AddressList\",  \n\"converters\": [  \n{  \n\"converter\": \"crt.SearchFilterAttributeConverter\",  \n\"args\": [  \n\"AddressList\"  \n]  \n}  \n]  \n}  \n],  \n\"from\": [  \n\"AddressSearchFilter_SearchValue\",  \n\"AddressSearchFilter_FilteredColumnsGroups\"  \n]  \n}  \n}  \n},  \n{  \n\"operation\": \"remove\",  \n\"name\": \"CareerSearchFilter\",  \n\"properties\": [  \n\"targetAttributes\"  \n]  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"CareerSearchFilter\",  \n\"values\": {  \n\"_filterOptions\": {  \n\"expose\": [  \n{  \n\"attribute\": \"CareerSearchFilter_CareerList\",  \n\"converters\": [  \n{  \n\"converter\": \"crt.SearchFilterAttributeConverter\",  \n\"args\": [  \n\"CareerList\"  \n]  \n}  \n]  \n}  \n],  \n\"from\": [  \n\"CareerSearchFilter_SearchValue\",  \n\"CareerSearchFilter_FilteredColumnsGroups\"  \n]  \n}  \n}  \n},  \n/* Button that calls the \"UsrReceiveContactDataService\" custom web service. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ShowContactIdButton\",  \n\"values\": {  \n\"type\": \"crt.Button\",  \n\"caption\": \"#ResourceString(ShowContactIdButton_caption)#\",  \n\"color\": \"accent\",  \n\"disabled\": false,  \n\"size\": \"large\",  \n\"iconPosition\": \"only-text\",  \n\"visible\": true,  \n\"clicked\": {  \n/* Bind the sending of the base request to the \"clicked\" button event. */  \n\"request\": \"crt.ShowDialog\"  \n}  \n},  \n\"parentName\": \"ActionButtonsContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"PDS_Name_bckhanw\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.Name\"  \n}  \n}  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n\"AddressList\",  \n\"modelConfig\"  \n],  \n\"values\": {  \n\"filterAttributes\": [  \n{  \n\"name\": \"AddressList_PredefinedFilter\",  \n\"loadOnChange\": true  \n},  \n{  \n\"name\": \"AddressSearchFilter_AddressList\",  \n\"loadOnChange\": true  \n}  \n],  \n/* The attribute that stores data of the contact ID. */  \n\"ContactID\": {},  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n\"CareerList\",  \n\"modelConfig\"  \n],  \n\"values\": {  \n\"filterAttributes\": [  \n{  \n\"name\": \"CareerSearchFilter_CareerList\",  \n\"loadOnChange\": true  \n}  \n]  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.ShowDialog\",  \n/* The custom implementation of the base request handler. */  \nhandler: async (request, next) => {  \n/* Create an instance of the HTTP client from \"@creatio-devkit/common.\" */  \nconst httpClientService = new sdk.HttpClientService();  \n/* Specify the URL to retrieve the contact information by the specified name. Use the \"UsrReceiveContactDataService\" web service. */  \nconst endpoint = \"/rest/UsrReceiveContactDataService/GetContactIdByName?Name=\";  \n/* Retrieve the contact name from the response and specify the contact name in the \"ContactName\" variable. */  \nconst ContactName = await request.$context.PDS_Name_bckhanw;  \n/* Send a GET request. The HTTP client converts the response body from JSON to a JS object automatically. */  \nconst response = await httpClientService.get(`${endpoint}`+ ContactName);  \n/* Retrieve the contact ID from the response and specify the contact ID in the \"ContactID\" attribute. */  \nrequest.$context.ContactID = response?.body?.GetContactIdByNameResult;  \n/* Create an instance of the dialog service from \"@creatio-devkit/common.\" */  \nconst dialogService = new sdk.DialogService();  \n/* Display the response from the \"UsrReceiveContactDataService\" web service in the dialog window. */  \nconst result = await dialogService.open({  \nmessage: request.$context.ContactID,  \nactions: [  \n{  \nkey: 'Yes',  \nconfig: {  \ncolor: 'primary',  \ncaption: 'Close',  \n}  \n},  \n]  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n},  \n},  \n]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CallConfigurationService/8.1/sdkReceiveContactData_2024-09-10_08.35.33.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"Contacts_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        ...    }});",
+      "language": "js",
+      "context": "Add the dependencies. To do this, add@creatio-devkit/commonlibrary as a dependency. The library includes theHttpClientServiceservice that sends HTTP requests.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\",            ...,        ],        \"values\": {            ...,            /* The attribute that stores data of the contact ID. */            \"ContactID\": {},        }    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Add an attribute.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    /* Button that calls the \"UsrReceiveContactDataService\" custom web service. */    {        \"operation\": \"insert\",        \"name\": \"ShowContactIdButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the base request to the \"clicked\" button event. */                \"request\": \"crt.ShowDialog\"            }        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Set up how to handle the actionexecuted on button click.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"crt.ShowDialog\",        /* The custom implementation of the base request handler. */        handler: async (request, next) => {            /* Create an instance of the HTTP client from \"@creatio-devkit/common.\" */            const httpClientService = new sdk.HttpClientService();            /* Specify the URL to retrieve the contact information by the specified name. Use the \"UsrReceiveContactDataService\" web service. */            const endpoint = \"/rest/UsrReceiveContactDataService/GetContactIdByName?Name=\";            /* Retrieve the contact name from the response and specify the contact name in the \"ContactName\" variable. */            const ContactName = await request.$context.PDS_Name_bckhanw;            /* Send a GET request. The HTTP client converts the response body from JSON to a JS object automatically. */            const response = await httpClientService.get(`${endpoint}`+ ContactName);            /* Retrieve the contact ID from the response and specify the contact ID in the \"ContactID\" attribute. */            request.$context.ContactID = response?.body?.GetContactIdByNameResult;            /* Create an instance of the dialog service from \"@creatio-devkit/common.\" */            const dialogService = new sdk.DialogService();            /* Display the response from the \"UsrReceiveContactDataService\" web service in the dialog window. */            const result = await dialogService.open({                message: request.$context.ContactID,                actions: [                    {                        key: 'Yes',                        config: {                            color: 'primary',                            caption: 'Close',                        }                    },                ]            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        },    },] /**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "Add a custom implementation of thecrt.ShowDialogbase request handler.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.UsrReceiveContactDataServiceNamespace {    using System;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using Terrasoft.Core;    using Terrasoft.Web.Common;    using Terrasoft.Core.Entities;    [ServiceContract]    [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    public class UsrReceiveContactDataService: BaseService {        /* The method that returns the contact ID by the contact name. */        [OperationContract]        [WebInvoke(Method = \"GET\", RequestFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Wrapped, ResponseFormat = WebMessageFormat.Json)]        public string GetContactIdByName(string Name) {            /* The default result. */            var result = \"\";            /* The EntitySchemaQuery instance that accesses the \"Contact\" database table. */            var esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"Contact\");            /* Add columns to the query. */            var colId = esq.AddColumn(\"Id\");            var colName = esq.AddColumn(\"Name\");            /* Filter the query data. */            var esqFilter = esq.CreateFilterWithParameters(FilterComparisonType.Equal, \"Name\", Name);            esq.Filters.Add(esqFilter);            /* Retrieve the query results. */            var entities = esq.GetEntityCollection(UserConnection);            /* If the service receives data. */            if (entities.Count > 0) {                /* Return the \"Id\" column value of the first query result record. */                result = entities[0].GetColumnValue(colId.Name).ToString();                /* You can also use the following option.                result = entities[0].GetTypedColumnValue<string>(colId.Name); */            }            /* Return the results. */            return result;        }    }}",
+      "language": "cs",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"Contacts_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"remove\",                \"name\": \"AddressSearchFilter\",                \"properties\": [                    \"targetAttributes\"                ]            },            {                \"operation\": \"merge\",                \"name\": \"AddressSearchFilter\",                \"values\": {                    \"_filterOptions\": {                        \"expose\": [                            {                                \"attribute\": \"AddressSearchFilter_AddressList\",                                \"converters\": [                                    {                                        \"converter\": \"crt.SearchFilterAttributeConverter\",                                        \"args\": [                                            \"AddressList\"                                        ]                                    }                                ]                            }                        ],                        \"from\": [                            \"AddressSearchFilter_SearchValue\",                            \"AddressSearchFilter_FilteredColumnsGroups\"                        ]                    }                }            },            {                \"operation\": \"remove\",                \"name\": \"CareerSearchFilter\",                \"properties\": [                    \"targetAttributes\"                ]            },            {                \"operation\": \"merge\",                \"name\": \"CareerSearchFilter\",                \"values\": {                    \"_filterOptions\": {                        \"expose\": [                            {                                \"attribute\": \"CareerSearchFilter_CareerList\",                                \"converters\": [                                    {                                        \"converter\": \"crt.SearchFilterAttributeConverter\",                                        \"args\": [                                            \"CareerList\"                                        ]                                    }                                ]                            }                        ],                        \"from\": [                            \"CareerSearchFilter_SearchValue\",                            \"CareerSearchFilter_FilteredColumnsGroups\"                        ]                    }                }            },            /* Button that calls the \"UsrReceiveContactDataService\" custom web service. */            {                \"operation\": \"insert\",                \"name\": \"ShowContactIdButton\",                \"values\": {                    \"type\": \"crt.Button\",                    \"caption\": \"#ResourceString(ShowContactIdButton_caption)#\",                    \"color\": \"accent\",                    \"disabled\": false,                    \"size\": \"large\",                    \"iconPosition\": \"only-text\",                    \"visible\": true,                    \"clicked\": {                        /* Bind the sending of the base request to the \"clicked\" button event. */                        \"request\": \"crt.ShowDialog\"                    }                },                \"parentName\": \"ActionButtonsContainer\",                \"propertyName\": \"items\",                \"index\": 1            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"PDS_Name_bckhanw\": {                        \"modelConfig\": {                            \"path\": \"PDS.Name\"                        }                    }                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\",                    \"AddressList\",                    \"modelConfig\"                ],                \"values\": {                    \"filterAttributes\": [                        {                            \"name\": \"AddressList_PredefinedFilter\",                            \"loadOnChange\": true                        },                        {                            \"name\": \"AddressSearchFilter_AddressList\",                            \"loadOnChange\": true                        }                    ],                    /* The attribute that stores data of the contact ID. */                    \"ContactID\": {},                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\",                    \"CareerList\",                    \"modelConfig\"                ],                \"values\": {                    \"filterAttributes\": [                        {                            \"name\": \"CareerSearchFilter_CareerList\",                            \"loadOnChange\": true                        }                    ]                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[            {                request: \"crt.ShowDialog\",                /* The custom implementation of the base request handler. */                handler: async (request, next) => {                    /* Create an instance of the HTTP client from \"@creatio-devkit/common.\" */                    const httpClientService = new sdk.HttpClientService();                    /* Specify the URL to retrieve the contact information by the specified name. Use the \"UsrReceiveContactDataService\" web service. */                    const endpoint = \"/rest/UsrReceiveContactDataService/GetContactIdByName?Name=\";                    /* Retrieve the contact name from the response and specify the contact name in the \"ContactName\" variable. */                    const ContactName = await request.$context.PDS_Name_bckhanw;                    /* Send a GET request. The HTTP client converts the response body from JSON to a JS object automatically. */                    const response = await httpClientService.get(`${endpoint}`+ ContactName);                    /* Retrieve the contact ID from the response and specify the contact ID in the \"ContactID\" attribute. */                    request.$context.ContactID = response?.body?.GetContactIdByNameResult;                    /* Create an instance of the dialog service from \"@creatio-devkit/common.\" */                    const dialogService = new sdk.DialogService();                    /* Display the response from the \"UsrReceiveContactDataService\" web service in the dialog window. */                    const result = await dialogService.open({                        message: request.$context.ContactID,                        actions: [                            {                                key: 'Yes',                                config: {                                    color: 'primary',                                    caption: 'Close',                                }                            },                        ]                    });                    /* Call the next handler if it exists and return its result. */                    return next?.handle(request);                },            },        ]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Button that calls theUsrReceiveContactDataServicecustom web service",
+          "Title",
+          "Show contact ID"
+        ],
+        [
+          "Style",
+          "Focus"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"2\"><p>Button that calls the <code>UsrReceiveContactDataService</code> custom web service</p></td><td><center><p>Title</p></center></td><td><center><p>Show contact ID</p></center></td></tr><tr><td><center><p>Style</p></center></td><td><center><p>Focus</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Show contact ID",
+      "content": "ExampleAdd aShow contact IDbutton to the base contact page. The button calls theUsrReceiveContactDataServicecustom web service that uses cookie-based authentication and returns the ID of the current contact by its name. Creatio must display the data in a dialog window.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a <strong>Show contact ID</strong> button to the base contact page. The button calls the <code>UsrReceiveContactDataService</code> custom web service that uses cookie-based authentication and returns the ID of the current contact by its name. Creatio must display the data in a dialog window.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CallConfigurationService/8.1/scr_result.gif\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Show contact ID",
+      "content": "Add aShow contact IDbutton to the base contact page. The button calls theUsrReceiveContactDataServicecustom web service that uses cookie-based authentication and returns the ID of the current contact by its name. Creatio must display the data in a dialog window.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a <strong>Show contact ID</strong> button to the base contact page. The button calls the <code>UsrReceiveContactDataService</code> custom web service that uses cookie-based authentication and returns the ID of the current contact by its name. Creatio must display the data in a dialog window.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CallConfigurationService/8.1/scr_result.gif\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CallConfigurationService/8.1/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Add aShow contact IDbutton to the base contact page. The button calls theUsrReceiveContactDataServic",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1feea0b5c64061a7_tion_freedom-ui_send-a-web-service-request_examples_call-a-web-service-front-end_2a61d4a48aac.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the button properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1feea0b5c64061a7_tion_freedom-ui_send-a-web-service-request_examples_call-a-web-service-front-end_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1feea0b5c64061a7_tion_freedom-ui_send-a-web-service-request_examples_call-a-web-service-front-end_0022b8eb0588.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CallConfigurationService/8.1/sdkReceiveContactData_2024-09-10_08.35.33.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkReceiveContactData_2024-09-10_08.35.33.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/1feea0b5c64061a7_tion_freedom-ui_send-a-web-service-request_examples_call-a-web-service-front-end_sdkReceiveContactData_2024-09-10_08.35.33.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Call a custom web service from the front-end",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement a custom web service\u200b",
+      "anchor": "title-1241-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up the page UI\u200b",
+      "anchor": "title-1241-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement the calling of the web service\u200b",
+      "anchor": "title-1241-3"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-1241-4"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15265-1"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "OPEN",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "OPEN",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/send-a-web-service-request/examples/call-a-web-service-front-end",
+      "text": "Call a custom web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/send-a-web-service-request/examples/call-a-web-service-front-end",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/send-a-web-service-request/examples/call-a-web-service-front-end",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/send-a-web-service-request/examples/send-a-request-to-a-web-service-and-handle-its-result",
+      "text": "PreviousHandle the result of an external web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/additional-feature",
+      "text": "NextAdditional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/opening-the-page",
+      "text": "Opening the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/anonymous-access",
+      "text": "Retrieve allowed features before login",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:25:09.053980"
+}

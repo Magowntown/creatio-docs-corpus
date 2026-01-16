@@ -1,0 +1,438 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/machine-learning-service",
+  "title": "Machine learning service",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment"
+    },
+    {
+      "text": "\u0421ontainerized components",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/\u0441ontainerized-components"
+    }
+  ],
+  "content_markdown": "Version: 8.2All Creatio products\nOn this page\nMachine learning service predicts values based on large volumes of historical data and current facts. Learn more in a separate article: [Predictive data analysis](https://academy.creatio.com/documents?id=1825).\nImportant\nBase knowledge of Docker, Linux or Windows administration is required to set up the machine learning service.\n## Getting started\u200b\nNote. Creatio on-site requires the \"creatio predictive service on-site\" [license](https://academy.creatio.com/documents?id=1264) for the service to operate as intended. If you need to purchase the license, contact the responsible manager.\nTo set up the service, you need to have a server (physical or virtual machine) with Linux or Windows OS installed. Docker software is used for installing the service components. Download the archive containing the configuration files and installation scripts. [Download archive](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/downloads/machine_learning/ml_docker-compose_4.0.103_2024_12_20.zip). Depending on your company needs, you can use either Docker Community Edition (CE) or Enterprise Edition (EE). Learn more in the [Docker Guide](https://docs.docker.com/install/overview/).\nAttention. We recommend using a Linux-based server for production environment. You can only use a Windows based server for the development environment. Contact the support service to receive Docker containers that care compatible with Windows.\nUse the [requirements calculator](https://academy.creatio.com/docs/requirements/calculator) to check the server requirements.\n## Machine learning service components\u200b\nThe machine learning service uses the following components (Fig. 1):\n* **ML Service**. Machine learning web service. The only component enabling external access.\n* **Python Engine**. Machine learning wrapper service for open-source machine learning libraries.\n* **ML Task Scheduler**. Task scheduler.\n* **MySQL**. MySQL database. You can access it via the standard 3306 port.\nFig. 1 Machine learning service components\n![Fig.\u00a01 Machine learning service components](https://academy.creatio.com/sites/default/files/pictures/SchemyBezOU_EN/BezOU+ML.png)\nAll the components are packed as Docker images for the convenient on-site installation of the service.\n## Set up machine learning service\u200b\nFollow this procedure to set up the machine learning service:\n1. Install Docker. Read more >>>\n2. Install Docker Compose. Read more >>>\n3. Install and set up the service components. Read more >>>\n4. Verify the installation. Read more >>>\n### Install Docker\u200b\nDocker installation on Linux platforms is covered in the [Docker guide](https://docs.docker.com/install/).\nRun the \"docker --version\" command on Linux machine to verify the installed Docker version.\n### Install Docker Compose\u200b\nDocker Compose installation on Linux platforms is covered in the [Docker guide](https://docs.docker.com/install/).\nRun the \"docker-compose --version\" command on Linux machine to verify the installed Docker Compose version.\n### Set up the machine learning service components\u200b\nDeploy the containers of the machine learning service components via the Docker Compose utility. Download the configuration files and scripts that are necessary to deploy and configure the service components. [Download the archive](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/downloads/machine_learning/ml_docker-compose_4.0.103_2024_12_20.zip)\nNote. The configuration files contain all necessary default settings for a Linux based server.\nThe **archive structure of the configuration files and scripts** is as follows:\n**/etc/**\n**../ml-service/appsettings.json**. The ML web service configuration.\n**../ml-service/log4net.config**. The setup of the web service logging level.\n**../task-scheduler/appsettings.json**. The \"ML Task Scheduler\" utility configuration.\n**../task-scheduler/log4net.config**. The setup of \"ML Task Scheduler\" logging level.\n**Docker-compose.yml**. The \"Docker Compose\" utility configuration.\n**.env**. The file that contains environment variables for running the components. For example, MySQL password.\nAttention. If you need to change the password to MySQL database, update it in the .env file and other configuration files that contain database access setup sections.\n#### Install the machine learning service components\u200b\n1. Download and unzip the archive with the configuration files and scripts to a custom directory, for example, /opt/ml.\n2. Using the Linux terminal, go to the /docker-compose catalog of the unzipped archive, for example, /opt/ml/docker-compose.\n3. Run the \"sudo docker-compose pull\" command in the terminal. Wait until the download of the required service component images from the [Docker Hub](https://hub.docker.com/) is complete.\nAttention. If the server is disconnected from the Internet, download all required images to an Internet-connected computer manually (see the \"docker-compose.yml\" configuration file). Then use the [sudo docker export](https://docs.docker.com/engine/reference/commandline/export/) and [sudo docker import](https://docs.docker.com/engine/reference/commandline/import/) commands to transfer the images to the target computer as files.\n4. Run the **sudo docker-compose run dbmigration** command to initialize the database structure. Wait until the command execution is complete.\n5. Run the **sudo docker-compose up -d** command to launch the services. A \"logs\" folder will be created in the current catalog.\n### Verify the setup of the machine learning service components\u200b\n1. To verify the installation of ML web service, run the following command in Linux:\n**curl -X GET localhost:5005/readiness**\nThe service must return the following response:\n**Healthy**\n2. To verify the running of ML Task Scheduler, execute the following command in the Linux terminal:\n**curl -X GET localhost:5004/readiness**\nThe service must return the following response:\n**Healthy**\n3. To verify the running of R Engine, execute the following command in the Linux terminal:\n**curl -X GET localhost:8081/readiness**\nThe service must return the following response:\n**R Service is ready**\n4. To verify creating of tables, run the following command in the terminal:\n**docker exec -it DB Container Id mysql -u root --password=Supervisor ml -e \"show tables;\"**\nwhere DB Container Id is an identifier of the container with a database component. You can find out the container identifier using the **sudo docker ps** command.\nExample. Verification of creating tables:\ndocker exec -it DB Container Id mysql -u root --password=Supervisor ml -e \"show tables;\"\nAs a result, the names of primary service tables should be displayed: \"modelinstance\", \"traindata\", \"trainsession\", etc.\n### Perform the setup in Creatio\u200b\nTo work with the prediction service in Creatio, fill out the following settings:\n1. \"Creatio cloud services API key\" (\"CloudServicesAPIKey\" code) system setting. Cloud services need it to authenticate your Creatio instance. For Creatio instances deployed on-site set this setting to value `*`.\n2. \"Periodicity of machine learning model training job\" (\"MLModelTrainingPeriodMinutes\" code) system setting. It determines the models' synchronization launch frequency.\n3. Add the prediction service's URL to the Service endpoint Url field for all the records in the ML problem types lookup.\n## Update the machine learning service components\u200b\nAttention. We recommend saving a backup copy of MySQL database, before you update the services. Learn more in the [Docker Guide](https://dev.mysql.com/doc/refman/8.0/en/backup-and-recovery.html).\n1. Using the Linux terminal, go to the docker-compose catalog with the configured files, for example, /opt/ml/docker-compose.\n2. Run the **sudo docker-compose stop** command to stop the service component containers.\n3. Run the **sudo docker-compose pull** command in the terminal. Wait until the download of the required service component images from the [Docker Hub](https://hub.docker.com/) is complete.\n4. Run the **sudo docker-compose run dbmigration** command to initialize the database structure. Wait until the command execution is complete.\n5. Run the **sudo docker-compose up -d** command to launch the services.\nAttention. If your application already has configured and trained data models, we recommend retraining them after updating the service.\n* * *\n## See also\u200b\n[Predictive analysis](https://academy.creatio.com/documents?id=1825)\n[Machine learning service (development guide)](https://academy.creatio.com/documents?id=15067)\n[System requirements calculator](https://academy.creatio.com/docs/requirements/calculator)",
+  "code_examples": [],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantBase knowledge of Docker, Linux or Windows administration is required to set up the machine learning service.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Base knowledge of Docker, Linux or Windows administration is required to set up the machine learning service.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Base knowledge of Docker, Linux or Windows administration is required to set up the machine learning service.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Base knowledge of Docker, Linux or Windows administration is required to set up the machine learning service.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/pictures/SchemyBezOU_EN/BezOU+ML.png",
+      "alt": "Fig.\u00a01 Machine learning service components",
+      "title": "",
+      "context": "MySQL. MySQL database. You can access it via the standard 3306 port.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/deab6c1c6a41d77f_tration_8.2_on-site-deployment_containerized-components_machine-learning-service_3ec9edd22568.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/downloads/machine_learning/ml_docker-compose_4.0.103_2024_12_20.zip",
+      "text": "Download archive",
+      "filename": "ml_docker-compose_4.0.103_2024_12_20.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-supplementary/downloads/deab6c1c6a41d77f_tration_8.2_on-site-deployment_containerized-components_machine-learning-service_ml_docker-compose_4.0.103_2024_12_20.zip"
+    },
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/downloads/machine_learning/ml_docker-compose_4.0.103_2024_12_20.zip",
+      "text": "Download the archive",
+      "filename": "ml_docker-compose_4.0.103_2024_12_20.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-supplementary/downloads/deab6c1c6a41d77f_tration_8.2_on-site-deployment_containerized-components_machine-learning-service_ml_docker-compose_4.0.103_2024_12_20.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Machine learning service",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Getting started\u200b",
+      "anchor": "title-257-1"
+    },
+    {
+      "level": 2,
+      "text": "Machine learning service components\u200b",
+      "anchor": "title-257-4"
+    },
+    {
+      "level": 2,
+      "text": "Set up machine learning service\u200b",
+      "anchor": "title-257-5"
+    },
+    {
+      "level": 3,
+      "text": "Install Docker\u200b",
+      "anchor": "title-257-6"
+    },
+    {
+      "level": 3,
+      "text": "Install Docker Compose\u200b",
+      "anchor": "title-257-7"
+    },
+    {
+      "level": 3,
+      "text": "Set up the machine learning service components\u200b",
+      "anchor": "title-257-8"
+    },
+    {
+      "level": 4,
+      "text": "Install the machine learning service components\u200b",
+      "anchor": "title-257-9"
+    },
+    {
+      "level": 3,
+      "text": "Verify the setup of the machine learning service components\u200b",
+      "anchor": "title-257-10"
+    },
+    {
+      "level": 3,
+      "text": "Perform the setup in Creatio\u200b",
+      "anchor": "title-257-23"
+    },
+    {
+      "level": 2,
+      "text": "Update the machine learning service components\u200b",
+      "anchor": "title-257-11"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-oracle-database-for-creatio",
+      "text": "Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-oracle-database",
+      "text": "ConnectionStrings.config for Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "PreviousEmail Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/faq",
+      "text": "NextFAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/requirements/calculator",
+      "text": "System requirements calculator",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:59:19.582747"
+}

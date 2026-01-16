@@ -1,0 +1,1 @@
+{    "name": "My_QuickFilter",    "type": "crt.QuickFilter",    "filterType": "lookup",    "config": {        "caption": "Select category",        "icon": "person-button-icon",        "iconPosition": "left-icon",        "entitySchemaName": "AccountCategory"    }}

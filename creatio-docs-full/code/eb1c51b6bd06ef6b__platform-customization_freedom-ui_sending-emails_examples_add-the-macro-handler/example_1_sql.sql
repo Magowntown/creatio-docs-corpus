@@ -1,0 +1,1 @@
+INSERT INTO EmailTemplateMacros(Name, Parentid, ColumnPath)VALUES (    'UsrCompanyName',    (SELECT TOP 1 Id    FROM EmailTemplateMacros    WHERE Name = '@Invoke'),    'Terrasoft.Configuration.UsrCompanyName')

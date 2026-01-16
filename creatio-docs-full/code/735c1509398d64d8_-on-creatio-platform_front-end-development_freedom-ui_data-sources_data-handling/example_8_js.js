@@ -1,0 +1,1 @@
+viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "attributes"        ],        "values": {            "AccountName": {                "modelConfigDiff": {                    "path": "ContactDS.AccountName"                }            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,

@@ -1,0 +1,1 @@
+EntitySchemaWindowQueryFunction(EntitySchemaQuery parentQuery)

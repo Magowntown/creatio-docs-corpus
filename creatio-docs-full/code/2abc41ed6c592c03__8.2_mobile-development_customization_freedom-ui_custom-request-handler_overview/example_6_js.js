@@ -1,0 +1,1 @@
+/* Receive the "Name" column value of a "string" type and save it to the "name" variable. */let name = await request.$context['Name'];/* Change the "Name" column value of a "string" type to the "Some new column value." */request.$context['Name'] = 'Some new column value';

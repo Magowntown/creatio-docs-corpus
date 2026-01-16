@@ -1,0 +1,1 @@
+updateDetail(config)

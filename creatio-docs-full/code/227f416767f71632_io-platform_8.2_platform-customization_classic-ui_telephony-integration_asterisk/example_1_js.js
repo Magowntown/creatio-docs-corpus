@@ -1,0 +1,1 @@
+{    Event: newchannel    Channel: <channel_name>    UniqueID: <unique_id>}

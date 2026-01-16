@@ -1,0 +1,808 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/email-listener-synchronization-service",
+  "title": "Email Listener synchronization service",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment"
+    },
+    {
+      "text": "\u0421ontainerized components",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/\u0441ontainerized-components"
+    }
+  ],
+  "content_markdown": "Version: 8.2All Creatio products\nOn this page\nThe Email Listener (formerly Exchange Listener) service synchronizes Creatio with [Microsoft Exchange](https://academy.creatio.com/documents?id=1418) and [IMAP/SMTP](https://academy.creatio.com/documents?id=1415) mail services using a subscription mechanism. Email Listener lets you use horizontal scaling that enables the active use of email synchronization block and controlled use of resources.\nThe synchronization service is required to manage emails in Creatio .NET Framework and .NET Core since version 7.17.2 and .NET 6 since version 8.0.8. This article covers the deployment of Exchange Listener synchronization service for Creatio on-site.\nThe service consists of the following components:\n1. **Email Listener (EL API)**. Initiates an outgoing connection to EWS API or IMAP. Creates a subscription to \"new message\" events using the mailbox credentials. The open subscription remains in the component memory to ensure fast response time when new emails arrive. The email is downloaded upon receiving the corresponding event. An in-memory repository is sufficient to deploy the service. A required service component.\n2. **NoSQL Redis DBMS**. Creates a scalable and fault tolerant system of handler nodes. The Redis repository holds information about the mailboxes that are served. This enables any container to handle Creatio requests to add a new subscription or check the status of a specific subscription regardless of the subscription node. Redis requires a separate database for the Exchange Listener service operation. A required service component.\n3. **Email Worker (EL Worker)**. Maintains the scalability and fault tolerance of the primary Email Listener module. The additional module downloads emails from the mail server and delivers them to Creatio. This enables high-load services to handle emails smoother during peaks in the email flow. The EL Worker reduces the load on the EL API components that no longer need to download emails. Instead, the components can manage the subscription and send outgoing emails.\n4. **RabbitMQ**. Maintains the scalability and fault tolerance of the service. The queue broker distributes tasks between components in high-load environments.\n## Determine the configuration of the Email Listener service\u200b\nDetermine the configuration of the Email Listener service for your Creatio instance based on the average flow of emails (both incoming and outgoing) that the company mailboxes handle per second.\nFor example, if your company uses a single support mailbox whose email flow is 4, the recommended configuration includes 15 EL Worker replicas, 4 EL API replicas, and RabbitMQ service.\n![](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/scr_exchange_listener_table_system_requirements.png)\nnote\nThe number of active EL Worker replicas directly affects the email handling speed. The email flow in production fluctuates, therefore certain EL Worker replicas might stand idle for some time. The article provides recommended configuration parameters, but you can use fewer replicas than the table specifies. In this case, the service will take longer to handle the emails during peak load. Optimize the ratio between the email handling speed and the number of resources utilized according to business requirements.\n### Component replica system requirements\u200b\nComponent| vCPU| RAM  \n---|---|---  \nEL Worker| 0.1| 1.1 GB  \nEL API| 0.150| 850 MB  \nRedis| 0.5| 3 GB  \nRabbit MQ| 0.5| 4 GB  \nnote\nThe values in the table are recommended, the actual resource consumption might vary by the service use case. We recommend monitoring the CPU and memory resources on the deployed services to optimize the available limits.\n## Email Listener deployment methods\u200b\nWe recommend **using the Kubernetes orchestrator and Helm package manager** to deploy the service. [Read more >>>](https://academy.creatio.com/documents?id=2074&anchor=title-2111-2)\nYou can also **use Docker** to speed up the deployment in the development environment. [Read more >>>](https://academy.creatio.com/documents?id=2074&anchor=title-2111-4)\n### Deploy the synchronization service via Kubernetes\u200b\nDeploy the synchronization service using the RabbitMQ programmable message broker.\nTake the following steps to deploy the service:\n1. Set up the target environment:\n1. **Kubernetes cluster**. Learn more about setting up and managing the cluster in the [Kubernetes documentation](https://kubernetes.io/docs/home/).\n2. **Helm package manager**. Learn more about installing the package manager in the [Helm documentation](https://helm.sh/docs/intro/install/).\n2. **Install Redis**. Redis can be installed as a Kubernetes service or as a standalone service, provided Email Listener pods have access to it. Learn more about installing and using Redis on the [official website](https://redis.io).\n3. **Install the RabbitMQ queue broker**. RabbitMQ can be installed as a Kubernetes service or as a standalone service. Alternatively, you can use any AMQP provider, provided Email Listener pods have access to it. Learn more about RabbitMQ deployment options in the [official documentation](https://www.rabbitmq.com/docs/download).\nAfter the RabbitMQ service is deployed, create a virtual host and Email Listener user in the installed RabbitMQ instance (learn more about accessing remote RabbitMQ server nodes in \"Using CLI Tools against Remote Server Nodes\").\nCreate a virtual host and Email Listener user in the installed RabbitMQ instance:\n1. Connect to RabbitMQ and run the following command:\nkubectl exec\u00a0test-rabbit-rabbitmq-0 -n exchange-listener --stdin --tty shell-demo -- /bin/bash  \n2. Create a virtual host:\nrabbitmqctl add_vhost ExchangeListener  \n3. Create a user and specify the password. Avoid using the \"@\" character in the password as this can affect the Rabbit MQ connection mechanism.\nrabbitmqctl add_user creatio  \n4. Set up the user permissions to the virtual host:\nrabbitmqctl set_permissions --vhost ExchangeListener creatio \".*\" \".*\" \".*\"  \n4. **Install the Email Listener module**. To install the module, request the helm package from [Creatio support](mailto:support@creatio.com). View the available parameters of the helm package in the table below.\nImportant\nYou need **repository access** to set up the current version of the Email Listener service. Contact [Creatio support](mailto:support@creatio.com) to verify your license and gain access to the repository.\nFor newer **Kubernetes versions** , specify the API version by adding the following parameter: `--set apiVersion=apps/v1 `\nExample of a command that uses the address and relative path\nhelm upgrade -i  \n--set ingress.enabled=true  \n--set ingress.path=<listener_path>  \n--set ApiUrl=kubernetes  \n--set apiVersion=apps/v1  \n--set-string Redis.Connection=\"<redis_host>\\,password=<password>\"  \n--namespace <namespace_name>  \n--set WorkerReplicaCount=2  \n--set ReplicaCount=2  \n--set RabbitMQ.ExchangeName=NewExchange;  \n--set RabbitMQ.QueueName=NewQueue;  \n--set RabbitMQ.Host=test-rabbit-rabbitmq;  \n--set RabbitMQ.HostApi=test-rabbit-rabbitmq;  \n--set RabbitMQ.HttpPort=15672;  \n--set RabbitMQ.AmqpPort=5672;  \n--set RabbitMQ.VirtualHost=ExchangeListener;  \n--set RabbitMQ.Login=creatio;  \n--set RabbitMQ.Password=creatio; exchangelistener ./home/creatio/exchangelistener-1.0.17.tgz  \n--set service.type=NodePort  \n--set service.nodePort=port  \nWhere:\n**< redis_host>** is the Redis server address.\n**< password>** is the Redis password.\n**< listener_path>** is the relative service path for the Email Listener.\n**< namespace_name>** is the Kubernetes namespace where the service will be deployed.\n**ReplicaCount** is the number of EL API replicas based on the number of mailboxes and average email flow for your company. View the calculation table above.\n**WorkerReplicaCount** is the number of EL Worker replicas based on the number of mailboxes and average email flow for your company. View the calculation table above.\nTo set up an HTTPS connection, deploy the service with [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) and a valid SSL certificate, as well as specify HTTPS in the `<kubernetes_url>` Email Listener service address, where **< kubernetes_url>** is your Kubernetes cluster's external domain or IP address.\nTo check the service availability, send a GET request to the `/api/listeners/status` endpoint (Fig. 1). For example, if using ingress with a path:\n<kubernetes_url>/<listener_path>/api/listeners/status  \nExample of a command that uses Node IP and port address\nhelm upgrade -i exchangelistener ./home/creatio/exchangelistener-1.0.17.tgz --namespace default -set ApiUrl=kubernetes --set apiVersion=apps/v1 --set-string Redis.Connection=\"redis\\,password=test\" --set WorkerReplicaCount=2 --set ReplicaCount=2 --set RabbitMQ.ExchangeName=NewExchange --set RabbitMQ.QueueName=NewQueue --set RabbitMQ.Host=test-rabbit-rabbitmq --set RabbitMQ.HostApi=test-rabbit-rabbitmq --set RabbitMQ.HttpPort=15672 --set RabbitMQ.AmqpPort=5672 --set RabbitMQ.VirtualHost=ExchangeListener --set RabbitMQ.Login=creatio --set RabbitMQ.Password= creatio --set service.type=NodePort --set service.nodePort=31318  \nFig. 1 Email Listener service response\n![Fig.\u00a01 Email Listener service response](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/chapter_exchange_listener_answer.png)\nAvailable parameters of the Email Listener helm package\nParameter| Parameter description| Default value  \n---|---|---  \nreplicaCount| Number of StatefulSet handlers.| 2  \nservice.type| Service type. Learn more about the Kubernetes service types in the [Kubernetes documentation](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types).| ClusterIP  \nservice.nodePort| If the service.type parameter equals NodePort, specify the external service port in this parameter. Learn more about the NodePort type in the [Kubernetes documentation](https://kubernetes.io/docs/concepts/services-networking/service/#nodeport).|   \nenv.host| Host address for Redis.|   \nenv.port| Host port for Redis.| 6379  \nenv.base| Database number for Redis.| \n0. ingress.enabled| Use address overriding via ingress.| false  \nApiUrl| Service address if ingress.enabled=true|   \ningress.path| Relative service path.|   \nlog4Net.level| Default logging level.| Info  \nUse the [system requirements calculator](https://academy.creatio.com/docs/requirements/calculator) to check the server requirements.\n### Deploy the synchronization service in Docker\u200b\nTo set up the service, use a server (computer or virtual machine) that has Linux or Windows OS installed.\nImportant\nWe recommend deploying the synchronization service in Docker only to the development environment. This method provides a high deployment speed, but does not enable compliance with the requirements of the product environment, namely: function fault tolerance, scaling for the handling of large request volumes, and a unified approach to component management that uses the container orchestration. For the product environment, we strongly recommend using the Kubernetes orchestrator and Helm package manager.\nYou need **repository access** to set up the current version of the Email Listener service. Contact [Creatio support](https://academy.creatio.commailto:support@creatio.com) to verify your license and gain access to the repository.\nTake the following steps to deploy the service:\n1. Set up the Docker container platform first.\nTo install Docker Desktop on Windows Server, follow [special instructions](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/set-up-environment?tabs=Windows-Server) on Microsoft website.\nTo install Docker on Linux, follow the guide in the [Docker documentation](https://docs.docker.com/install/linux/docker-ce/debian/). To check the installed Docker version, run the following command:\ndocker --version.  \nYou can install Docker components using the Docker-Compose instruction file. Learn more about installing Docker-Compose in the Docker documentation.\n2. Install and run Email Listener:\n1. Open the directory to deploy Email Listener on the server dedicated for the service.\n2. Unpack the archive that contains the setup files to the directory. To get the archive contact [Creatio support](https://academy.creatio.commailto:support@creatio.com).\n3. Open the / Creatio Email Listener component directory and run the following command:\ndocker-compose up -d  \nThe command might take up to several minutes to complete.\n3. Make sure the logs contain no errors by running the following command: docker logs ListenerAPI.\n4. Check whether the deployment is complete by opening the <http://localhost:10000/> URL, where localhost is the URL of the Email Listener server.\n## Set up the Email Listener service in Creatio\u200b\n1. Make sure the ExchangeListenerService anonymous service is available at **Creatio application address** /0/ServiceModel/ExchangeListenerService.svc (Fig. 2).\nFig. 2 Exchange Listener Service response\n![Fig.\u00a02 Exchange Listener Service response](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/chapter_exchange_listener_creatio.png)\n2. Set the needed system setting values. To do this:\n1. Open the System Designer, e. g., by clicking ![btn_system_designer.png](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/btn_system_designer.png).\n2. Click \"System settings\" in the \"System setup\" block.\n3. Set the values of the following system settings:\n\"**ExchangeListenerServiceUri** \" (the \"ExchangeListenerServiceUri\" code). The format of the system setting: **the service address used at installation** /api/listeners.\n\"**Creatio exchange events endpoint URL** \" (the \"BpmonlineExchangeEventsEndpointUrl\" code). The format of the system setting value: **the anonymous ExchangeListenerService address** /NewEmail. For example, `https://mycreatio.com/0/ServiceModel/ExchangeListenerService.svc/NewEmail`.\n## Email Listener service diagnostics\u200b\nThe Email Listener service diagnostics page provides tools for troubleshooting the service.\nUse the service page:\n* to check if the features essential for Exchange Listener are enabled\n* to verify the service availability\n* to receive subscription information\n* to validate the \"ExchangeListenerServiceUri\" system setting\n* to check the health of a mailbox\n* to check if the microservice can connect to the Creatio website\nYou can open the Email Listener service diagnostics page in several ways:\n* Use the menu on the Email tab of the communication panel (Fig. 3).\n* Use the page of the configured mail services.\n* Add the `/0/ClientApp/#/IntegrationDiagnostics/` string to the URL of your Creatio website in the browser address bar and press Enter. For example, `http://mycreatio.com/0/ClientApp/#/IntegrationDiagnostics/ExchangeListener`.\nFig. 3 Open the Email Listener service diagnostics\n![Fig.\u00a03 Open the Email Listener service diagnostics](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/scr_open_diagnostics_page.png)\nThe diagnostics page contains several readout blocks and diagnostics controls (Fig. 4). By default, most of the readout blocks do not display diagnostics data unless you click **Run diagnostics** in that block.\nFig. 4 Email Listener service diagnostics\n![Fig.\u00a04 Email Listener service diagnostics](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/chapter_exchange_listener_diagnostics_page_full.png)\nFeature state| This readout block runs diagnostics automatically on page load.  \nChecks if Email Listener features are enabled in your Creatio application:\n* ExchangeListenerEnabled\n* EmailIntegrationV2\n* SendEmailsV2\nLearn more about enabling features in the developer documentation: [Feature Toggle mechanism](https://academy.creatio.com/documents?id=15631).  \n---|---  \nService availability verification| Checks if the Email Listener service is accessible from your Creatio application.  \nReceiving subscription information| Checks the connection to the remote server.  \nValidation of the \"ExchangeListenerServiceUri\" system setting| Checks if the Exchange Listener service endpoint specified in the \"ExchangeListenerServiceUri\" system setting is valid.  \nChecking mailbox health| Checks the operation of Microsoft Exchange mailboxes. Select the **Send test email** checkbox to send a test email to the specified address when clicking the **Run diagnostics** link.  \n* * *\n## See also\u200b\n[Add IMAP/SMTP email provider](https://academy.creatio.com/documents?id=1415)\n[Set up the Microsoft Exchange and Microsoft 365 services](https://academy.creatio.com/documents?id=1418)\n[System requirements calculator](https://academy.creatio.com/docs/requirements/calculator)\n* * *\n## Resources\u200b\n[Tech Hour - Docker for Creatio](https://www.youtube.com/watch?v=cwTI8pIa_5g&list=PLnolcTT5TeE3v8WGd3VqlZSd2D02GWSGa&index=4)",
+  "code_examples": [
+    {
+      "code": "kubectl exec\u00a0test-rabbit-rabbitmq-0 -n exchange-listener --stdin --tty shell-demo -- /bin/bash",
+      "language": "cli",
+      "context": "Connect to RabbitMQ and run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "rabbitmqctl add_vhost ExchangeListener",
+      "language": "cli",
+      "context": "Create a virtual host:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "rabbitmqctl add_user creatio",
+      "language": "cli",
+      "context": "Create a user and specify the password. Avoid using the \"@\" character in the password as this can affect the Rabbit MQ connection mechanism.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "rabbitmqctl set_permissions --vhost ExchangeListener creatio \".*\" \".*\" \".*\"",
+      "language": "cli",
+      "context": "Set up the user permissions to the virtual host:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "helm upgrade -i--set ingress.enabled=true--set ingress.path=<listener_path>--set ApiUrl=kubernetes--set apiVersion=apps/v1--set-string Redis.Connection=\"<redis_host>\\,password=<password>\"--namespace <namespace_name>--set WorkerReplicaCount=2--set ReplicaCount=2--set RabbitMQ.ExchangeName=NewExchange;--set RabbitMQ.QueueName=NewQueue;--set RabbitMQ.Host=test-rabbit-rabbitmq;--set RabbitMQ.HostApi=test-rabbit-rabbitmq;--set RabbitMQ.HttpPort=15672;--set RabbitMQ.AmqpPort=5672;--set RabbitMQ.VirtualHost=ExchangeListener;--set RabbitMQ.Login=creatio;--set RabbitMQ.Password=creatio; exchangelistener ./home/creatio/exchangelistener-1.0.17.tgz--set service.type=NodePort--set service.nodePort=port",
+      "language": "cli",
+      "context": "For newerKubernetes versions, specify the API version by adding the following parameter:--set apiVersion=apps/v1",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<kubernetes_url>/<listener_path>/api/listeners/status",
+      "language": "cli",
+      "context": "To check the service availability, send a GET request to the/api/listeners/statusendpoint (Fig.\u00a01). For example, if using ingress with a path:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "helm upgrade -i exchangelistener ./home/creatio/exchangelistener-1.0.17.tgz --namespace default -set ApiUrl=kubernetes --set apiVersion=apps/v1 --set-string Redis.Connection=\"redis\\,password=test\" --set WorkerReplicaCount=2 --set ReplicaCount=2 --set RabbitMQ.ExchangeName=NewExchange --set RabbitMQ.QueueName=NewQueue --set RabbitMQ.Host=test-rabbit-rabbitmq --set RabbitMQ.HostApi=test-rabbit-rabbitmq --set RabbitMQ.HttpPort=15672 --set RabbitMQ.AmqpPort=5672 --set RabbitMQ.VirtualHost=ExchangeListener --set RabbitMQ.Login=creatio --set RabbitMQ.Password= creatio --set service.type=NodePort --set service.nodePort=31318",
+      "language": "cli",
+      "context": "To check the service availability, send a GET request to the/api/listeners/statusendpoint (Fig.\u00a01). For example, if using ingress with a path:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker --version.",
+      "language": "cli",
+      "context": "To install Docker on Linux, follow the guide in theDocker documentation. To check the installed Docker version, run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker-compose up -d",
+      "language": "cli",
+      "context": "Open the / Creatio Email Listener component directory and run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Component",
+          "vCPU",
+          "RAM"
+        ],
+        [
+          "EL Worker",
+          "0.1",
+          "1.1 GB"
+        ],
+        [
+          "EL API",
+          "0.150",
+          "850 MB"
+        ],
+        [
+          "Redis",
+          "0.5",
+          "3 GB"
+        ],
+        [
+          "Rabbit MQ",
+          "0.5",
+          "4 GB"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Component</p></center></th><th><center><p>vCPU</p></center></th><th><center><p>RAM</p></center></th></tr><tr><td><p>EL Worker</p></td><td><p>0.1</p></td><td><p>1.1 GB</p></td></tr><tr><td><p>EL API</p></td><td><p>0.150</p></td><td><p>850 MB</p></td></tr><tr><td><p>Redis</p></td><td><p>0.5</p></td><td><p>3 GB</p></td></tr><tr><td><p>Rabbit MQ</p></td><td><p>0.5</p></td><td><p>4 GB</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description",
+          "Default value"
+        ],
+        [
+          "replicaCount",
+          "Number of StatefulSet handlers.",
+          "2"
+        ],
+        [
+          "service.type",
+          "Service type. Learn more about the Kubernetes service types in theKubernetes documentation.",
+          "ClusterIP"
+        ],
+        [
+          "service.nodePort",
+          "If the service.type parameter equals NodePort, specify the external service port in this parameter. Learn more about the NodePort type in theKubernetes documentation.",
+          ""
+        ],
+        [
+          "env.host",
+          "Host address for Redis.",
+          ""
+        ],
+        [
+          "env.port",
+          "Host port for Redis.",
+          "6379"
+        ],
+        [
+          "env.base",
+          "Database number for Redis.",
+          ""
+        ],
+        [
+          "ingress.enabled",
+          "Use address overriding via ingress.",
+          "false"
+        ],
+        [
+          "ApiUrl",
+          "Service address if ingress.enabled=true",
+          ""
+        ],
+        [
+          "ingress.path",
+          "Relative service path.",
+          ""
+        ],
+        [
+          "log4Net.level",
+          "Default logging level.",
+          "Info"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter description</p></center></th><th><center><p>Default value</p></center></th></tr><tr><td><p>replicaCount</p></td><td><p>Number of StatefulSet handlers.</p></td><td><p>2</p></td></tr><tr><td><p>service.type</p></td><td><p>Service type. Learn more about the Kubernetes service types in the <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types\" rel=\"noopener noreferrer\" target=\"_blank\">Kubernetes documentation</a>.</p></td><td><p>ClusterIP</p></td></tr><tr><td><p>service.nodePort</p></td><td><p>If the service.type parameter equals NodePort, specify the external service port in this parameter. Learn more about the NodePort type in the <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#nodeport\" rel=\"noopener noreferrer\" target=\"_blank\">Kubernetes documentation</a>.</p></td><td><p>\u00a0</p></td></tr><tr><td><p>env.host</p></td><td><p>Host address for Redis.</p></td><td><p>\u00a0</p></td></tr><tr><td><p>env.port</p></td><td><p>Host port for Redis.</p></td><td><p>6379</p></td></tr><tr><td><p>env.base</p></td><td><p>Database number for Redis.</p></td><td><ol start=\"0\">\n<li></li>\n</ol></td></tr><tr><td><p>ingress.enabled</p></td><td><p>Use address overriding via ingress.</p></td><td><p>false</p></td></tr><tr><td><p>ApiUrl</p></td><td><p>Service address if ingress.enabled=true</p></td><td><p>\u00a0</p></td></tr><tr><td><p>ingress.path</p></td><td><p>Relative service path.</p></td><td><p>\u00a0</p></td></tr><tr><td><p>log4Net.level</p></td><td><p>Default logging level.</p></td><td><p>Info</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Feature state",
+          "This readout block runs diagnostics automatically on page load.Checks if Email Listener features are enabled in your Creatio application:ExchangeListenerEnabledEmailIntegrationV2SendEmailsV2Learn more about enabling features in the developer documentation:Feature Toggle mechanism."
+        ],
+        [
+          "Service availability verification",
+          "Checks if the Email Listener service is accessible from your Creatio application."
+        ],
+        [
+          "Receiving subscription information",
+          "Checks the connection to the remote server."
+        ],
+        [
+          "Validation of the \"ExchangeListenerServiceUri\" system setting",
+          "Checks if the Exchange Listener service endpoint specified in the \"ExchangeListenerServiceUri\" system setting is valid."
+        ],
+        [
+          "Checking mailbox health",
+          "Checks the operation of Microsoft Exchange mailboxes. Select theSend test emailcheckbox to send a test email to the specified address when clicking theRun diagnosticslink."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>Feature state</p></td><td><p>This readout block runs diagnostics automatically on page load.<br/>\n<!-- -->Checks if Email Listener features are enabled in your Creatio application:</p><ul>\n<li>ExchangeListenerEnabled</li>\n<li>EmailIntegrationV2</li>\n<li>SendEmailsV2</li>\n</ul><p>Learn more about enabling features in the developer documentation: <a href=\"https://academy.creatio.com/documents?id=15631\" rel=\"noopener noreferrer\" target=\"_blank\">Feature Toggle mechanism</a>.</p></td></tr><tr><td><p>Service availability verification</p></td><td><p>Checks if the Email Listener service is accessible from your Creatio application.</p></td></tr><tr><td><p>Receiving subscription information</p></td><td><p>Checks the connection to the remote server.</p></td></tr><tr><td><p>Validation of the \"ExchangeListenerServiceUri\" system setting</p></td><td><p>Checks if the Exchange Listener service endpoint specified in the \"ExchangeListenerServiceUri\" system setting is valid.</p></td></tr><tr><td><p>Checking mailbox health</p></td><td><p>Checks the operation of Microsoft Exchange mailboxes. Select the <strong>Send test email</strong> checkbox to send a test email to the specified address when clicking the <strong>Run diagnostics</strong> link.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe number of active EL Worker replicas directly affects the email handling speed. The email flow in production fluctuates, therefore certain EL Worker replicas might stand idle for some time. The article provides recommended configuration parameters, but you can use fewer replicas than the table specifies. In this case, the service will take longer to handle the emails during peak load. Optimize the ratio between the email handling speed and the number of resources utilized according to business requirements.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The number of active EL Worker replicas directly affects the email handling speed. The email flow in production fluctuates, therefore certain EL Worker replicas might stand idle for some time. The article provides recommended configuration parameters, but you can use fewer replicas than the table specifies. In this case, the service will take longer to handle the emails during peak load. Optimize the ratio between the email handling speed and the number of resources utilized according to business requirements.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The number of active EL Worker replicas directly affects the email handling speed. The email flow in production fluctuates, therefore certain EL Worker replicas might stand idle for some time. The article provides recommended configuration parameters, but you can use fewer replicas than the table specifies. In this case, the service will take longer to handle the emails during peak load. Optimize the ratio between the email handling speed and the number of resources utilized according to business requirements.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The number of active EL Worker replicas directly affects the email handling speed. The email flow in production fluctuates, therefore certain EL Worker replicas might stand idle for some time. The article provides recommended configuration parameters, but you can use fewer replicas than the table specifies. In this case, the service will take longer to handle the emails during peak load. Optimize the ratio between the email handling speed and the number of resources utilized according to business requirements.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe values in the table are recommended, the actual resource consumption might vary by the service use case. We recommend monitoring the CPU and memory resources on the deployed services to optimize the available limits.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The values in the table are recommended, the actual resource consumption might vary by the service use case. We recommend monitoring the CPU and memory resources on the deployed services to optimize the available limits.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The values in the table are recommended, the actual resource consumption might vary by the service use case. We recommend monitoring the CPU and memory resources on the deployed services to optimize the available limits.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The values in the table are recommended, the actual resource consumption might vary by the service use case. We recommend monitoring the CPU and memory resources on the deployed services to optimize the available limits.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "repository access",
+      "content": "ImportantYou needrepository accessto set up the current version of the Email Listener service. ContactCreatio supportto verify your license and gain access to the repository.For newerKubernetes versions, specify the API version by adding the following parameter:--set apiVersion=apps/v1",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>You need <strong>repository access</strong> to set up the current version of the Email Listener service. Contact <a href=\"mailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p><p>For newer <strong>Kubernetes versions</strong>, specify the API version by adding the following parameter: <code>--set apiVersion=apps/v1 </code></p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "repository access",
+      "content": "You needrepository accessto set up the current version of the Email Listener service. ContactCreatio supportto verify your license and gain access to the repository.For newerKubernetes versions, specify the API version by adding the following parameter:--set apiVersion=apps/v1",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You need <strong>repository access</strong> to set up the current version of the Email Listener service. Contact <a href=\"mailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p><p>For newer <strong>Kubernetes versions</strong>, specify the API version by adding the following parameter: <code>--set apiVersion=apps/v1 </code></p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "repository access",
+      "content": "ImportantWe recommend deploying the synchronization service in Docker only to the development environment. This method provides a high deployment speed, but does not enable compliance with the requirements of the product environment, namely: function fault tolerance, scaling for the handling of large request volumes, and a unified approach to component management that uses the container orchestration. For the product environment, we strongly recommend using the Kubernetes orchestrator and Helm package manager.You needrepository accessto set up the current version of the Email Listener service. ContactCreatio supportto verify your license and gain access to the repository.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We recommend deploying the synchronization service in Docker only to the development environment. This method provides a high deployment speed, but does not enable compliance with the requirements of the product environment, namely: function fault tolerance, scaling for the handling of large request volumes, and a unified approach to component management that uses the container orchestration. For the product environment, we strongly recommend using the Kubernetes orchestrator and Helm package manager.</p><p>You need <strong>repository access</strong> to set up the current version of the Email Listener service. Contact <a href=\"https://academy.creatio.commailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "repository access",
+      "content": "We recommend deploying the synchronization service in Docker only to the development environment. This method provides a high deployment speed, but does not enable compliance with the requirements of the product environment, namely: function fault tolerance, scaling for the handling of large request volumes, and a unified approach to component management that uses the container orchestration. For the product environment, we strongly recommend using the Kubernetes orchestrator and Helm package manager.You needrepository accessto set up the current version of the Email Listener service. ContactCreatio supportto verify your license and gain access to the repository.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We recommend deploying the synchronization service in Docker only to the development environment. This method provides a high deployment speed, but does not enable compliance with the requirements of the product environment, namely: function fault tolerance, scaling for the handling of large request volumes, and a unified approach to component management that uses the container orchestration. For the product environment, we strongly recommend using the Kubernetes orchestrator and Helm package manager.</p><p>You need <strong>repository access</strong> to set up the current version of the Email Listener service. Contact <a href=\"https://academy.creatio.commailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/scr_exchange_listener_table_system_requirements.png",
+      "alt": "",
+      "title": "",
+      "context": "For example, if your company uses a single support mailbox whose email flow is 4, the recommended co",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8a72f99c7a5c5863_-site-deployment_containerized-components_email-listener-synchronization-service_39cff742f0d2.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/chapter_exchange_listener_answer.png",
+      "alt": "Fig.\u00a01 Email Listener service response",
+      "title": "",
+      "context": "To check the service availability, send a GET request to the/api/listeners/statusendpoint (Fig.\u00a01). ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8a72f99c7a5c5863_-site-deployment_containerized-components_email-listener-synchronization-service_fdb7281b4f2a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/chapter_exchange_listener_creatio.png",
+      "alt": "Fig.\u00a02 Exchange Listener Service response",
+      "title": "",
+      "context": "Make sure the ExchangeListenerService anonymous service is available atCreatio application address/0",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8a72f99c7a5c5863_-site-deployment_containerized-components_email-listener-synchronization-service_0de2b5d9b390.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/btn_system_designer.png",
+      "alt": "btn_system_designer.png",
+      "title": "",
+      "context": "Open the System Designer, e.\u00a0g., by clicking.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8a72f99c7a5c5863_-site-deployment_containerized-components_email-listener-synchronization-service_9e263dd98740.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/scr_open_diagnostics_page.png",
+      "alt": "Fig.\u00a03 Open the Email Listener service diagnostics",
+      "title": "",
+      "context": "You can open the Email Listener service diagnostics page in several ways:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8a72f99c7a5c5863_-site-deployment_containerized-components_email-listener-synchronization-service_0a224ebd6e7c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/exchange_listener/chapter_exchange_listener_diagnostics_page_full.png",
+      "alt": "Fig.\u00a04 Email Listener service diagnostics",
+      "title": "",
+      "context": "The diagnostics page contains several readout blocks and diagnostics controls (Fig.\u00a04). By default, ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8a72f99c7a5c5863_-site-deployment_containerized-components_email-listener-synchronization-service_482a2abe3491.png"
+    }
+  ],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=cwTI8pIa_5g&list=PLnolcTT5TeE3v8WGd3VqlZSd2D02GWSGa&index=4",
+      "text": "Tech Hour - Docker for Creatio"
+    }
+  ],
+  "downloadables": [
+    {
+      "url": "https://www.rabbitmq.com/docs/download",
+      "text": "official documentation",
+      "filename": "download",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/8a72f99c7a5c5863_-site-deployment_containerized-components_email-listener-synchronization-service_download"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Email Listener synchronization service",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Determine the configuration of the Email Listener service\u200b",
+      "anchor": "title-2111-7"
+    },
+    {
+      "level": 3,
+      "text": "Component replica system requirements\u200b",
+      "anchor": "title-2111-8"
+    },
+    {
+      "level": 2,
+      "text": "Email Listener deployment methods\u200b",
+      "anchor": "title-2111-1"
+    },
+    {
+      "level": 3,
+      "text": "Deploy the synchronization service via Kubernetes\u200b",
+      "anchor": "title-2111-2"
+    },
+    {
+      "level": 3,
+      "text": "Deploy the synchronization service in Docker\u200b",
+      "anchor": "title-2111-4"
+    },
+    {
+      "level": 2,
+      "text": "Set up the Email Listener service in Creatio\u200b",
+      "anchor": "title-2111-5"
+    },
+    {
+      "level": 2,
+      "text": "Email Listener service diagnostics\u200b",
+      "anchor": "title-2111-6"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "replicaCount",
+        "type": "Number of StatefulSet handlers.",
+        "description": "2",
+        "required": false
+      },
+      {
+        "name": "service.type",
+        "type": "Service type. Learn more about the Kubernetes service types in theKubernetes documentation.",
+        "description": "ClusterIP",
+        "required": false
+      },
+      {
+        "name": "service.nodePort",
+        "type": "If the service.type parameter equals NodePort, specify the external service port in this parameter. Learn more about the NodePort type in theKubernetes documentation.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "env.host",
+        "type": "Host address for Redis.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "env.port",
+        "type": "Host port for Redis.",
+        "description": "6379",
+        "required": false
+      },
+      {
+        "name": "env.base",
+        "type": "Database number for Redis.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "ingress.enabled",
+        "type": "Use address overriding via ingress.",
+        "description": "false",
+        "required": false
+      },
+      {
+        "name": "ApiUrl",
+        "type": "Service address if ingress.enabled=true",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "ingress.path",
+        "type": "Relative service path.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "log4Net.level",
+        "type": "Default logging level.",
+        "description": "Info",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-oracle-database-for-creatio",
+      "text": "Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-oracle-database",
+      "text": "ConnectionStrings.config for Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "PreviousBulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "NextMachine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/home/",
+      "text": "Kubernetes documentation",
+      "active": false
+    },
+    {
+      "href": "https://helm.sh/docs/intro/install/",
+      "text": "Helm documentation",
+      "active": false
+    },
+    {
+      "href": "https://www.rabbitmq.com/docs/download",
+      "text": "official documentation",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+      "text": "Ingress",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types",
+      "text": "Kubernetes documentation",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/concepts/services-networking/service/#nodeport",
+      "text": "Kubernetes documentation",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/requirements/calculator",
+      "text": "System requirements calculator",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:27:10.735139"
+}

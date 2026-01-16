@@ -1,0 +1,1 @@
+{     "Contact": ["Phone", "MobilePhone", "HomePhone"],     "Account": ["Phone", "AdditionalPhone"],     "Lead": ["MobilePhone", "BusinesPhone"] }

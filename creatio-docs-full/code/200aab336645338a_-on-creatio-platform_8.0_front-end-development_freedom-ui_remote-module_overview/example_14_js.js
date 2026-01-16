@@ -1,0 +1,1 @@
+<ng-container *ngIf="svgImage">    <object type="image/svg+xml" [data]="svgImage" >svg image</object></ng-container>

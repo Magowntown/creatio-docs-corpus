@@ -1,0 +1,1 @@
+ManagerItem Terrasoft.Core.IManagerItem

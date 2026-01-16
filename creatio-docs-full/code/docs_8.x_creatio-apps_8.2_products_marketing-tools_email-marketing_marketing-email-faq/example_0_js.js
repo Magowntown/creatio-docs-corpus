@@ -1,0 +1,1 @@
+<a href="{view}">Anchor text</a>

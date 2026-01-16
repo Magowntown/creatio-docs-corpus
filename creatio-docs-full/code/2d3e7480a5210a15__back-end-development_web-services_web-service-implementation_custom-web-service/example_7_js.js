@@ -1,0 +1,1 @@
+"Terrasoft.Configuration.SomeServiceName": [    "/ServiceModel/SomeServiceName.svc"]

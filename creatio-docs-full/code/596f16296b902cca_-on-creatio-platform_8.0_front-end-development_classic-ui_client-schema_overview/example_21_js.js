@@ -1,0 +1,1 @@
+{  "operation": "insert",  "name": "SomeName",  "propertyName": "items",  "parentName": "SomeContainer",  "values": {}}

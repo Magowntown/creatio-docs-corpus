@@ -1,0 +1,1 @@
+.indicator-module-wrapper {    text-align: center;}

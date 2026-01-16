@@ -1,0 +1,1 @@
+WindowQueryFunction(QueryFunction innerFunction)

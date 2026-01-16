@@ -1,0 +1,1 @@
+static List<FeatureInfo> GetFeaturesInfo(this UserConnection source)

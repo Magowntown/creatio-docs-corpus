@@ -1,0 +1,1 @@
+GET https://[Creatio URL]/0/odata/Account

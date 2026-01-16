@@ -1,0 +1,1 @@
+SELECT [ContactType].[Id] [Id]FROM [dbo].[ContactType] [ContactType] WITH(NOLOCK)WHERE [ContactType].[RecordInactive] = 0

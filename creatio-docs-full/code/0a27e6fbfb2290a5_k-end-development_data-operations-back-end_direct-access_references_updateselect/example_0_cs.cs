@@ -1,0 +1,1 @@
+public UpdateSelect(UserConnection userConnection, string schemaName, string alias)

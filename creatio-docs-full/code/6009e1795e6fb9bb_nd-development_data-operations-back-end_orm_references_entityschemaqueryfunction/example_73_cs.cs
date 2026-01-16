@@ -1,0 +1,1 @@
+EntitySchemaCurrentUserContactQueryFunction(EntitySchemaCurrentUserContactQueryFunction source) : base(source)

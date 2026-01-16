@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/[    "attributes": {        ...,       "GridDetail_jic2y17": {            "viewModelConfig": {                "attributes": {                    ...,                    "PDS_UsrColumn1_List": {}                }            }        }    }    ...]/**SCHEMA_VIEW_MODEL_CONFIG*/,

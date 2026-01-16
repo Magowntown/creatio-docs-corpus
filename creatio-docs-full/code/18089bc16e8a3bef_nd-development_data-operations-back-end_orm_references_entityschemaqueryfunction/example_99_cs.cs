@@ -1,0 +1,1 @@
+EntitySchemaWindowQueryFunction(EntitySchemaQueryExpression function, EntitySchemaQuery esq)

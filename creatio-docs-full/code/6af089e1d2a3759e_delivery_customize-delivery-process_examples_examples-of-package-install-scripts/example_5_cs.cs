@@ -1,0 +1,1 @@
+public static void DeleteContact(UserConnection userConnection, string contactName) {    /* The ContactHelper class is a helper class. */    var contact = ContactHelper.GetContact(userConnection, contactName);    contact.Delete();}

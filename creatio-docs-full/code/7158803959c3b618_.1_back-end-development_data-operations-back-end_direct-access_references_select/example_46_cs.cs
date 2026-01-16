@@ -1,0 +1,1 @@
+Query Union(Select unionSelect)Query Union(Query unionSelectQuery)

@@ -1,0 +1,1 @@
+Select Top(int rowCount)

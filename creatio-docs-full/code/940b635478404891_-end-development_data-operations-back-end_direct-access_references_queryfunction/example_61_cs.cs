@@ -1,0 +1,1 @@
+UpperQueryFunction(QueryColumnExpression expression)UpperQueryFunction(IQueryColumnExpressionConvertible expression)

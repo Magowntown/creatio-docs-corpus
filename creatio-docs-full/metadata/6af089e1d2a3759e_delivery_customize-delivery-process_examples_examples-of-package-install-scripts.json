@@ -1,0 +1,734 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/customize-delivery-process/examples/examples-of-package-install-scripts",
+  "title": "Examples of package install scripts",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools"
+    },
+    {
+      "text": "Delivery tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools"
+    },
+    {
+      "text": "Delivery process customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-process-customization"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/delivery-process-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nInstall scripts let you execute CRUD operations with data using `Entity` and `EntitySchemaQuery` classes. Learn more about the `Entity` class in the [.NET class library](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Entities.Entity.html). Learn more about the `EntitySchemaQuery` class in the [.NET class library](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Entities.EntitySchemaQuery.html).\n## Retrieve data\u200b\n### Retrieve a contact that has specified data\u200b\nExample\nRetrieve a contact record that has the \"SomeContactName\" name.\nExample that retrieves a contact record by name\npublic static Entity GetContact(UserConnection userConnection, string name) {  \nEntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;  \nEntity contact = entitySchemaManager.GetEntityByName(\"Contact\", userConnection);  \nvar contactConditions = new Dictionary<string, object> {  \n{ \"SomeContactName\", name }  \n};  \nreturn !contact.FetchFromDB(contactConditions) ? null : contact;  \n}  \n### Retrieve data using pagination\u200b\nExample\nFill out the type of delivery. Retrieve data using pagination.\nExample that retrieves data using pagination\nnamespace Terrasoft.Configuration {  \nusing System;  \nusing System.Collections.Generic;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Entities;  \npublic class FillDeliveryType: IInstallScriptExecutor {  \npublic void Execute(UserConnection userConnection) {  \n/* Create an ESQ that contains the [Id] column of the product and [Name] column from the [OrderProduct] database table. */  \nEntitySchemaQuery esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"OrderProduct\");  \nEntitySchemaQueryColumn orderIdColumn = esqResult.AddColumn(\"Order.Id\");  \nEntitySchemaQueryColumn productCategoryColumn = esqResult.AddColumn(\"Product.Category.Name\");  \n/* Implement pagination. */  \nvar options = new EntitySchemaQueryOptions {  \nPageableDirection = Core.DB.PageableSelectDirection.First,  \nRowsOffset = 0,  \nPageableRowCount = userConnection.AppConnection.MaxEntityRowCount,  \nPageableConditionValues = new Dictionary <string, object> ()  \n};  \n/* Retrieve the collection of the orders. */  \nEntityCollection productsInOrder = esqResult.GetEntityCollection(userConnection, options);  \nEntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;  \nEntity orderEntity = entitySchemaManager.GetEntityByName(\"Order\", userConnection);  \n/* The first page. */  \nEditOrders(productsInOrder, orderIdColumn, productCategoryColumn, orderEntity);  \nint rowsRead = productsInOrder.Count;  \n/* Use the pagination. */  \nwhile (productsInOrder.Count > 0) {  \noptions.RowsOffset = rowsRead;  \n/* Scroll forward. */  \noptions.PageableDirection = Core.DB.PageableSelectDirection.Next;  \n/* Retrieve next page. */  \nesqResult.ResetSelectQuery();  \nproductsInOrder = esqResult.GetEntityCollection(userConnection, options);  \nrowsRead += productsInOrder.Count;  \nEditOrders(productsInOrder, orderIdColumn, productCategoryColumn, orderEntity);  \n}  \n}  \nprivate void EditOrders(EntityCollection productsInOrder, EntitySchemaQueryColumn orderIdColumn,  \nEntitySchemaQueryColumn productCategoryColumn, Entity orderEntity) {  \n/* Implement the modifying logic. */  \n}  \n}  \n}  \nTo work with big data, follow the recommendations listed in a separate article: [Customize delivery process](https://academy.creatio.com/documents?ver=8.1&id=15009&anchor=title-2454-4).\n## Add data\u200b\n### Add a contact that has specified data\u200b\nExample\nAdd a contact that has the specified name and account.\nExample that adds a contact that has the specified name and account\npublic static void CreateContact(UserConnection userConnection, string contactName, string accountName) {  \nif (GetContact(userConnection, contactName) != null) {  \nreturn;  \n}  \nEntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;  \nEntity contact = entitySchemaManager.GetEntityByName(\"Contact\", userConnection);  \ncontact.SetDefColumnValues();  \ncontact.SetColumnValue(\"Id\", Guid.NewGuid());  \n/* The AccountHelper class is a helper class. */  \ncontact.SetColumnValue(\"AccountId\", AccountHelper.GetAccountId(userConnection, accountName));  \ncontact.SetColumnValue(\"Name\", contactName);  \ncontact.Save();  \n}  \n### Add a new job title that supports different cultures\u200b\nExample\nAdd a new job title that supports Spanish and English cultures.\nExample that adds a new job title that supports different cultures\nnamespace Terrasoft.Configuration {  \nusing System;  \nusing System.Globalization;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Entities;  \npublic class CreateJobTitle: IInstallScriptExecutor {  \npublic void Execute(UserConnection userConnection) {  \nEntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;  \nEntity job = entitySchemaManager.GetEntityByName(\"Job\", userConnection);  \njob.SetDefColumnValues();  \njob.SetColumnValue(\"Id\", Guid.NewGuid());  \nvar jobName = new LocalizableString();  \nvar esCulture = new CultureInfo(\"es-ES\");  \nvar enCulture = new CultureInfo(\"en-US\");  \njobName.SetCultureValue(esCulture, \"Mentor\");  \njobName.SetCultureValue(enCulture, \"Master\");  \njob.SetColumnValue(\"Name\", jobName);  \njob.Save();  \n}  \n}  \n}  \n## Modify data\u200b\nExample\nModify a contact field.\nExample that modifies a contact field\npublic static void SetContactField(UserConnection userConnection, string contactName, string columnValue) {  \n/* The ContactHelper class is a helper class. */  \nvar entity = ContactHelper.GetContact(userConnection, contactName);  \n/* The LanguageHelper class is a helper class. */  \nentity.SetColumnValue(\"ProgrammingLanguageId\", LanguageHelper.GetLanguageId(userConnection, columnValue));  \nentity.Save();  \n}  \n## Delete data\u200b\nExample\nDelete a contact record.\nExample that deletes a contact record\npublic static void DeleteContact(UserConnection userConnection, string contactName) {  \n/* The ContactHelper class is a helper class. */  \nvar contact = ContactHelper.GetContact(userConnection, contactName);  \ncontact.Delete();  \n}",
+  "code_examples": [
+    {
+      "code": "public static Entity GetContact(UserConnection userConnection, string name) {    EntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;    Entity contact = entitySchemaManager.GetEntityByName(\"Contact\", userConnection);    var contactConditions = new Dictionary<string, object> {        { \"SomeContactName\", name }    };    return !contact.FetchFromDB(contactConditions) ? null : contact;}",
+      "language": "cs",
+      "context": "Retrieve a contact record that has the \"SomeContactName\" name.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration {    using System;    using System.Collections.Generic;    using Terrasoft.Core;    using Terrasoft.Core.Entities;    public class FillDeliveryType: IInstallScriptExecutor {        public void Execute(UserConnection userConnection) {            /* Create an ESQ that contains the [Id] column of the product and [Name] column from the [OrderProduct] database table. */            EntitySchemaQuery esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"OrderProduct\");            EntitySchemaQueryColumn orderIdColumn = esqResult.AddColumn(\"Order.Id\");            EntitySchemaQueryColumn productCategoryColumn = esqResult.AddColumn(\"Product.Category.Name\");            /* Implement pagination. */            var options = new EntitySchemaQueryOptions {                PageableDirection = Core.DB.PageableSelectDirection.First,                    RowsOffset = 0,                    PageableRowCount = userConnection.AppConnection.MaxEntityRowCount,                    PageableConditionValues = new Dictionary <string, object> ()            };            /* Retrieve the collection of the orders. */            EntityCollection productsInOrder = esqResult.GetEntityCollection(userConnection, options);            EntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;            Entity orderEntity = entitySchemaManager.GetEntityByName(\"Order\", userConnection);            /* The first page. */            EditOrders(productsInOrder, orderIdColumn, productCategoryColumn, orderEntity);            int rowsRead = productsInOrder.Count;            /* Use the pagination. */            while (productsInOrder.Count > 0) {                options.RowsOffset = rowsRead;                /* Scroll forward. */                options.PageableDirection = Core.DB.PageableSelectDirection.Next;                /* Retrieve next page. */                esqResult.ResetSelectQuery();                productsInOrder = esqResult.GetEntityCollection(userConnection, options);                rowsRead += productsInOrder.Count;                EditOrders(productsInOrder, orderIdColumn, productCategoryColumn, orderEntity);            }        }        private void EditOrders(EntityCollection productsInOrder, EntitySchemaQueryColumn orderIdColumn,            EntitySchemaQueryColumn productCategoryColumn, Entity orderEntity) {            /* Implement the modifying logic. */        }    }}",
+      "language": "cs",
+      "context": "Fill out the type of delivery. Retrieve data using pagination.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public static void CreateContact(UserConnection userConnection, string contactName, string accountName) {    if (GetContact(userConnection, contactName) != null) {        return;    }    EntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;    Entity contact = entitySchemaManager.GetEntityByName(\"Contact\", userConnection);    contact.SetDefColumnValues();    contact.SetColumnValue(\"Id\", Guid.NewGuid());    /* The AccountHelper class is a helper class. */    contact.SetColumnValue(\"AccountId\", AccountHelper.GetAccountId(userConnection, accountName));    contact.SetColumnValue(\"Name\", contactName);    contact.Save();}",
+      "language": "cs",
+      "context": "Add a contact that has the specified name and account.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration {    using System;    using System.Globalization;    using Terrasoft.Common;    using Terrasoft.Core;    using Terrasoft.Core.Entities;    public class CreateJobTitle: IInstallScriptExecutor {        public void Execute(UserConnection userConnection) {            EntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;            Entity job = entitySchemaManager.GetEntityByName(\"Job\", userConnection);            job.SetDefColumnValues();            job.SetColumnValue(\"Id\", Guid.NewGuid());            var jobName = new LocalizableString();            var esCulture = new CultureInfo(\"es-ES\");            var enCulture = new CultureInfo(\"en-US\");            jobName.SetCultureValue(esCulture, \"Mentor\");            jobName.SetCultureValue(enCulture, \"Master\");            job.SetColumnValue(\"Name\", jobName);            job.Save();        }    }}",
+      "language": "cs",
+      "context": "Add a new job title that supports Spanish and English cultures.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public static void SetContactField(UserConnection userConnection, string contactName, string columnValue) {    /* The ContactHelper class is a helper class. */    var entity = ContactHelper.GetContact(userConnection, contactName);    /* The LanguageHelper class is a helper class. */    entity.SetColumnValue(\"ProgrammingLanguageId\", LanguageHelper.GetLanguageId(userConnection, columnValue));    entity.Save();}",
+      "language": "cs",
+      "context": "Modify a contact field.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public static void DeleteContact(UserConnection userConnection, string contactName) {    /* The ContactHelper class is a helper class. */    var contact = ContactHelper.GetContact(userConnection, contactName);    contact.Delete();}",
+      "language": "cs",
+      "context": "Delete a contact record.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleRetrieve a contact record that has the \"SomeContactName\" name.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Retrieve a contact record that has the \"SomeContactName\" name.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Retrieve a contact record that has the \"SomeContactName\" name.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Retrieve a contact record that has the \"SomeContactName\" name.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleFill out the type of delivery. Retrieve data using pagination.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Fill out the type of delivery. Retrieve data using pagination.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Fill out the type of delivery. Retrieve data using pagination.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Fill out the type of delivery. Retrieve data using pagination.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd a contact that has the specified name and account.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a contact that has the specified name and account.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add a contact that has the specified name and account.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a contact that has the specified name and account.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd a new job title that supports Spanish and English cultures.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a new job title that supports Spanish and English cultures.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add a new job title that supports Spanish and English cultures.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a new job title that supports Spanish and English cultures.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleModify a contact field.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Modify a contact field.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Modify a contact field.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Modify a contact field.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleDelete a contact record.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Delete a contact record.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Delete a contact record.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Delete a contact record.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Examples of package install scripts",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Retrieve data\u200b",
+      "anchor": "title-2446-1"
+    },
+    {
+      "level": 3,
+      "text": "Retrieve a contact that has specified data\u200b",
+      "anchor": "title-2446-5"
+    },
+    {
+      "level": 3,
+      "text": "Retrieve data using pagination\u200b",
+      "anchor": "title-2446-6"
+    },
+    {
+      "level": 2,
+      "text": "Add data\u200b",
+      "anchor": "title-2446-2"
+    },
+    {
+      "level": 3,
+      "text": "Add a contact that has specified data\u200b",
+      "anchor": "title-2446-5"
+    },
+    {
+      "level": 3,
+      "text": "Add a new job title that supports different cultures\u200b",
+      "anchor": "title-2446-6"
+    },
+    {
+      "level": 2,
+      "text": "Modify data\u200b",
+      "anchor": "title-2446-3"
+    },
+    {
+      "level": 2,
+      "text": "Delete data\u200b",
+      "anchor": "title-2446-4"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/customize-delivery-process/examples/examples-of-package-install-scripts",
+      "text": "Examples of package install scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/delivery/customize-delivery-process/examples/examples-of-package-install-scripts",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/customize-delivery-process/examples/examples-of-package-install-scripts",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/customize-delivery-process/examples/examples-of-package-install-scripts",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/creatio-ide/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/creatio-ide/transfer-packages",
+      "text": "Transfer packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/creatio-ide/transfer-configuration-element-schemas",
+      "text": "Transfer configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/workspaceconsole/overview1",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/workspaceconsole-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/workspaceconsole-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/customize-delivery-process/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/delivery-process-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/customize-delivery-process/examples/populate-a-field-an-install-script",
+      "text": "NextPopulate a field (an install script)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/delivery-process-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/customize-delivery-process/references/c-sharp-classes-to-avoid-in-install-scripts",
+      "text": "C# classes to avoid in install scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/hotfix-mode",
+      "text": "Hotfix mode",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:03:48.393685"
+}

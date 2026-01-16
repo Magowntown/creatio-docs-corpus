@@ -1,0 +1,1 @@
+<add key="DisableCsrfTokenValidationForPaths" value="/ServiceModel/ MsgUtilService.svc" />

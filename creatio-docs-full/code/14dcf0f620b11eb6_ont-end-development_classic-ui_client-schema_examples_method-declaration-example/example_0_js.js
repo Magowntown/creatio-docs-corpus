@@ -1,0 +1,1 @@
+methods: {    /* Method name. */    setValidationConfig: function() {        /* Call the setValidationConfig method of the parent schema. */        this.callParent(arguments);        /* Set up validation for the [Email] column. */        this.addColumnValidator("Email", EmailHelper.getEmailValidator);    }}

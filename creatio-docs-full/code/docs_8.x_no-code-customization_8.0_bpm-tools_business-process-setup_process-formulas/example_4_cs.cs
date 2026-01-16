@@ -1,0 +1,1 @@
+[#Read opportunity data 1.First element of the resulting collection.Closing date#].Date== [#Read opportunity data 2.First element of the resulting collection.Closing date#].Date

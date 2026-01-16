@@ -1,0 +1,1 @@
+/** * @inheritDoc Terrasoft.Component#initDomEvents * @override */initDomEvents: function() {    this.callParent(arguments);    const el = this.component;    if (el) {        el.on("itemClick", this.onItemClickHandler, this);    }}

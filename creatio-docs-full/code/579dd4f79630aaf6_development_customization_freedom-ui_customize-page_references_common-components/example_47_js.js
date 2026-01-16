@@ -1,0 +1,1 @@
+{    "type": "crt.MenuItem",    "caption": "Menu item",    "clicked": {        "request": "crt.SetViewModelAttributeRequest",        "params": {            "attributeName": "CalendarViewMode",            "value": "day"        }    },}

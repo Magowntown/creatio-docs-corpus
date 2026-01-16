@@ -1,0 +1,1 @@
+EntitySchemaCurrentUserAccountQueryFunction(EntitySchemaQuery parentQuery)

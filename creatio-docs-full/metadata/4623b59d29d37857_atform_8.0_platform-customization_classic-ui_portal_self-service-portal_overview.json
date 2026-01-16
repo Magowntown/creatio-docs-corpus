@@ -1,0 +1,888 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/self-service-portal/overview",
+  "title": "Self-service portal basics",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Portal",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal"
+    },
+    {
+      "text": "Self-service portal",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nThe Self-service Portal (SSP) is an integral part of the Service Creatio, enterprise edition and Creatio customer center products, as well as all bundles that these products are part of.\nThe SSP is a workplace where portal users are automatically redirected after login.\nPortal users have access to the **Cases** and **Knowledge base** sections and to the **Self-service portal main page** , which contains general summary information and works as a single workplace for a portal user.\nThe **Cases** section is used for registration of cases by the customers, viewing the status of their cases, entering additional case information and for obtaining information about case resolution process. By default, a portal user has access to those cases where this user is specified as a contact. The user can enter additional information, publish messages and interact with the service staff on the case page. The case history is displayed on the case page at the **Processing** tab.\nThe portal\u2019s **Knowledge base** section is used for searching for reference information or a solution. This section can be filled only by the helpdesk staff from the main interface of the system.\n## Portal interface\u200b\nFrom the development point of view, the portal is a preconfigured separate workplace. By default, this workplace is not available for the ordinary portal users. A system user with the \"portal user\" type automatically enters this workplace (the portal main page) after authorization.\nPortal sections and pages are the same as [sections](https://academy.creatio.com/documents?ver=8.0&id=15502) and [system edit pages](https://academy.creatio.com/documents?ver=8.0&id=15521) from the main system interface and they work with the same `Entities`. The case edit page on the portal is simpler compared to the regular case page and does not contain the majority of fields. These edit pages are different objects in configuration (`CasePage` and `PortalCasePage`).\nThe system of portal access permissions slightly differs. To grant access to the specific entities (EntitySchema) for the portal users, you need to specify these entities in the **List of objects available for portal users** lookup. Self-service portal licenses limit the number of records that can be added to this lookup. By default, the number is limited to 70 records.\n## Working with the page wizard on the portal\u200b\nThe portal user cannot access the functions of the page-, detail- and section wizards. These functions can be accessed from the main system interface with administrator permissions in the following way:\n1. Enter the **Workplace setup** section in the system designer.\n2. Select the **Portal** workplace and click the **Open** button.\n3. Select the required section and click the **Section wizard** button.\nThe standard section wizard will open.\n## Configuring the portal and portal users\u200b\nTo start using the portal:\n1. Ensure that the `/configuration/terrasoft/auth` option in the `web.config` file of the application loader (the \"external\" `web.config`) has the following in it:\nconfiguration/terrasoft/auth option\n<terrasoft>  \nauth providerNames=\"InternalUserPassword,SSPUserPassword\" ...>  \n...  \n</terrasoft>  \nThis setting is responsible for the authorization in the portal users in the system.\n2. Create a contact for the user.\n3. Create a user with the \"Portal user\" type. Fill out the required fields.\n4. Provide all necessary licenses for the user.\nA portal user is required to have a valid time zone specified in the profile. The time zone is not specified for new users by default. Portal users must edit their profiles and select the proper time zone The system will display all dates and times in the portal user\u2019s local time.\n## Restricting access to web services for portal users\u200b\nThe portal is a Creatio platform component whose main purpose is to implement self-service processes for your customers and partners. You can also use the portal to organize the work of internal users if you need to restrict access permissions to functionality of the primary application.\nUsing portal enables many external users (who are not employees of your organization) to access some of the Creatio data. For this, you need to manage which users (portal or company employees) have access to the [application web services](https://academy.creatio.com/documents?ver=8.0&id=15262).\nImportant\nThis article is valid for applicaation version 7.13.2 and up.\n### Route prefixes for web services configuration\u200b\nRoute prefixes in Creatio enable managing access to the application web services. You can set the needed route prefix using specific `ServiceRoute` attributes of the service class.\nRoute prefixes for configuration web services\nAccess level| Attribute| Route prefix| Example of code  \n---|---|---|---  \nFor self-service portal users only| `SspServiceRoute`| `/ssp`| \n[ServiceContract]  \n[SspServiceRoute]  \npublic class SspOnlyService : BaseService  \n{  \n}  \nExample of call  \n`~/ssp/rest/SspOnlyService`  \n`~/ssp/soap/SspOnlyService`  \nFor internal users only| `DefaultServiceRoute` or no `ServiceRoute` attribute is specified| none| \n[ServiceContract]  \npublic class InternalService : BaseService  \n{  \n}  \nor\n[ServiceContract]  \n[DefaultServiceRoute]  \npublic class InternalService : BaseService  \n{  \n}  \nExample of call  \n`~/rest/InternalService`  \n`~/soap/InternalService`  \nFor both: the internal and portal users| Both the `DefaultServiceRoute` and `SspServiceRoute`| `/ssp` or none| \n[ServiceContract]  \n[DefaultServiceRoute]  \n[SspServiceRoute]  \npublic class CommonService : BaseService  \n{  \n}  \nExample of call  \n`~/rest/CommonService`  \n`~/soap/CommonService`  \n`~/ssp/rest/CommonService`  \n`~/ssp/soap/CommonService`  \n| The `ServiceRoute` attribute with the specified prefix (e.g., \"`custom`\") **ServiceRoute(\"custom\")**|  Arbitrary route prefix of the service| \n[ServiceContract]  \n[ServiceRoute(\"custom\")]  \npublic class CustomPrefixService : BaseService  \n{  \n}  \nExample of call  \n`~/custom/rest/CustomPrefixService`  \n`~/custom/soap/CustomPrefixService`  \nnote\nYou can use several attributes at the same time: `ServiceRoute`, `SspServiceRoute` and `DefaultServiceRoute`. As a result, the routes for services with all prefix variants will be created.\n## Restricting access to the internal API for portal users\u200b\nIf a portal user (`SspUserConnection`) addresses a service with a route that does not contain the \"`/ssp`\" prefix, the service will return error 403 (`Forbidden`).\n## Restricting access to the portal API for internal users\u200b\nIf an internal user (`UserConnection`) addresses the service with the route that contains the \"`/ssp`\" prefix, the service will return a page with code 403 (`Forbidden`).\n### The ServiceStack core services\u200b\nThe `ServiceStack` core services (`DataService`, `ManagerService`, etc.) are available by default to the internal users only.\nTo make any of these methods available on the portal, tag such method with the `SspServiceAccess` attribute \u2013 in this case, the method will have an additional route with the `~/DataService/ssp/...` prefix.\nIf you need to have a different logic for the portal, create a new service by specifying the `SspServiceAccess` attribute for it and pass the name of the original method to its constructor. Example:\nSspServiceAccess attribute\n[SspServiceAccess(nameof(SelectQuery))]  \npublic class SspSelectQuery : SelectQuery  \n{  \n}  \nThis service creates a contract whose method will be registered at the following path: `~/DataService/ssp/SelectQuery`\nAccess to the `ServiceStack` methods with the \"`ssp`\" prefix is denied to the internal users. Access to the `ServiceStack` methods without the \"`ssp`\" prefix is denied to the portal users.\n* * *\n## E-learning courses\u200b\n[Tech Hour - Request management using Creatio Portal](https://www.youtube.com/watch?v=DGz8SFw0fjs)",
+  "code_examples": [
+    {
+      "code": "<terrasoft>    auth providerNames=\"InternalUserPassword,SSPUserPassword\" ...>    ...</terrasoft>",
+      "language": "cs",
+      "context": "Ensure that the/configuration/terrasoft/authoption in theweb.configfile of the application loader (the \"external\"web.config) has the following in it:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[ServiceContract][SspServiceRoute]public class SspOnlyService : BaseService{}",
+      "language": "js",
+      "context": "/ssp",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[ServiceContract]public class InternalService : BaseService{}",
+      "language": "js",
+      "context": "none",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[ServiceContract][DefaultServiceRoute]public class InternalService : BaseService{}",
+      "language": "js",
+      "context": "or",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[ServiceContract][DefaultServiceRoute][SspServiceRoute]public class CommonService : BaseService{}",
+      "language": "js",
+      "context": "/sspor none",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[ServiceContract][ServiceRoute(\"custom\")]public class CustomPrefixService : BaseService{}",
+      "language": "js",
+      "context": "Arbitrary route prefix of the service",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[SspServiceAccess(nameof(SelectQuery))]public class SspSelectQuery : SelectQuery{}",
+      "language": "js",
+      "context": "If you need to have a different logic for the portal, create a new service by specifying theSspServiceAccessattribute for it and pass the name of the original method to its constructor. Example:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Access level",
+          "Attribute",
+          "Route prefix",
+          "Example of code"
+        ],
+        [
+          "For self-service portal users only",
+          "SspServiceRoute",
+          "/ssp",
+          "[ServiceContract][SspServiceRoute]publicclassSspOnlyService:BaseService{}Example of call~/ssp/rest/SspOnlyService~/ssp/soap/SspOnlyService"
+        ],
+        [
+          "For internal users only",
+          "DefaultServiceRouteor noServiceRouteattribute is specified",
+          "none",
+          "[ServiceContract]publicclassInternalService:BaseService{}or[ServiceContract][DefaultServiceRoute]publicclassInternalService:BaseService{}Example of call~/rest/InternalService~/soap/InternalService"
+        ],
+        [
+          "For both: the internal and portal users",
+          "Both theDefaultServiceRouteandSspServiceRoute",
+          "/sspor none",
+          "[ServiceContract][DefaultServiceRoute][SspServiceRoute]publicclassCommonService:BaseService{}Example of call~/rest/CommonService~/soap/CommonService~/ssp/rest/CommonService~/ssp/soap/CommonService"
+        ],
+        [
+          "",
+          "TheServiceRouteattribute with the specified prefix (e.g., \"custom\")ServiceRoute(\"custom\")",
+          "Arbitrary route prefix of the service",
+          "[ServiceContract][ServiceRoute(\"custom\")]publicclassCustomPrefixService:BaseService{}Example of call~/custom/rest/CustomPrefixService~/custom/soap/CustomPrefixService"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Access level</p></th><th><p>Attribute</p></th><th><p>Route prefix</p></th><th><p>Example of code</p></th></tr><tr><td><p>For self-service portal users only</p></td><td><p><code>SspServiceRoute</code></p></td><td><p><code>/ssp</code></p></td><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">ServiceContract</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">SspServiceRoute</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">public</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">class</span><span class=\"token plain\"> </span><span class=\"token class-name\">SspOnlyService</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">BaseService</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div><p>Example of call<br/>\n<code>~/ssp/rest/SspOnlyService</code><br/>\n<code>~/ssp/soap/SspOnlyService</code></p></td></tr><tr><td><p>For internal users only</p></td><td><p><code>DefaultServiceRoute</code> or no <code>ServiceRoute</code> attribute is specified</p></td><td><p>none</p></td><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">ServiceContract</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">public</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">class</span><span class=\"token plain\"> </span><span class=\"token class-name\">InternalService</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">BaseService</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div><p>or</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">ServiceContract</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">DefaultServiceRoute</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">public</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">class</span><span class=\"token plain\"> </span><span class=\"token class-name\">InternalService</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">BaseService</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div><p>Example of call<br/>\n<code>~/rest/InternalService</code><br/>\n<code>~/soap/InternalService</code></p></td></tr><tr><td><p>For both: the internal and portal users</p></td><td><p>Both the <code>DefaultServiceRoute</code> and <code>SspServiceRoute</code></p></td><td><p><code>/ssp</code> or none</p></td><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">ServiceContract</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">DefaultServiceRoute</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">SspServiceRoute</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">public</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">class</span><span class=\"token plain\"> </span><span class=\"token class-name\">CommonService</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">BaseService</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div><p>Example of call<br/>\n<code>~/rest/CommonService</code><br/>\n<code>~/soap/CommonService</code><br/>\n<code>~/ssp/rest/CommonService</code><br/>\n<code>~/ssp/soap/CommonService</code></p></td></tr><tr><td></td><td><p>The <code>ServiceRoute</code> attribute with the specified prefix (e.g., \"<code>custom</code>\") <strong>ServiceRoute(\"custom\")</strong></p></td><td><p>Arbitrary route prefix of the service</p></td><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">ServiceContract</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token function maybe-class-name\" style=\"color: rgb(215, 58, 73);\">ServiceRoute</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"custom\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">public</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">class</span><span class=\"token plain\"> </span><span class=\"token class-name\">CustomPrefixService</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">BaseService</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div><p>Example of call<br/>\n<code>~/custom/rest/CustomPrefixService</code><br/>\n<code>~/custom/soap/CustomPrefixService</code></p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThis article is valid for applicaation version 7.13.2 and up.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>This article is valid for applicaation version 7.13.2 and up.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This article is valid for applicaation version 7.13.2 and up.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This article is valid for applicaation version 7.13.2 and up.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteYou can use several attributes at the same time:ServiceRoute,SspServiceRouteandDefaultServiceRoute. As a result, the routes for services with all prefix variants will be created.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can use several attributes at the same time: <code>ServiceRoute</code>, <code>SspServiceRoute</code> and <code>DefaultServiceRoute</code>. As a result, the routes for services with all prefix variants will be created.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You can use several attributes at the same time:ServiceRoute,SspServiceRouteandDefaultServiceRoute. As a result, the routes for services with all prefix variants will be created.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can use several attributes at the same time: <code>ServiceRoute</code>, <code>SspServiceRoute</code> and <code>DefaultServiceRoute</code>. As a result, the routes for services with all prefix variants will be created.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=DGz8SFw0fjs",
+      "text": "Tech Hour - Request management using Creatio Portal"
+    }
+  ],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Self-service portal basics",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Portal interface\u200b",
+      "anchor": "title-1462-1"
+    },
+    {
+      "level": 2,
+      "text": "Working with the page wizard on the portal\u200b",
+      "anchor": "title-1462-2"
+    },
+    {
+      "level": 2,
+      "text": "Configuring the portal and portal users\u200b",
+      "anchor": "title-1462-3"
+    },
+    {
+      "level": 2,
+      "text": "Restricting access to web services for portal users\u200b",
+      "anchor": "title-1462-4"
+    },
+    {
+      "level": 3,
+      "text": "Route prefixes for web services configuration\u200b",
+      "anchor": "title-1462-5"
+    },
+    {
+      "level": 2,
+      "text": "Restricting access to the internal API for portal users\u200b",
+      "anchor": "title-1462-6"
+    },
+    {
+      "level": 2,
+      "text": "Restricting access to the portal API for internal users\u200b",
+      "anchor": "title-1462-7"
+    },
+    {
+      "level": 3,
+      "text": "The ServiceStack core services\u200b",
+      "anchor": "title-1462-8"
+    },
+    {
+      "level": 2,
+      "text": "E-learning courses\u200b",
+      "anchor": "e-learning-courses"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/self-service-portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/self-service-portal/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "PreviousSelf-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/self-service-portal-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/self-service-portal/examples/change-access-for-portal-users",
+      "text": "Change access for portal users",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/self-service-portal/examples/example-of-using-the-portalmessagepublisherextensions-mixin",
+      "text": "Example of using the PortalMessagePublisherExtensions mixin",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/self-service-portal-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/self-service-portal/references/portalmessagepublisherextensions",
+      "text": "PortalMessagePublisherExtensions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:10:31.621816"
+}

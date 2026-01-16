@@ -1,0 +1,1 @@
+onDiscardChangesClick(callback, scope)

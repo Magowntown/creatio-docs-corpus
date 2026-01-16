@@ -1,0 +1,1 @@
+select    "ClientId",    "AccessTokenLifetime"from "Clients"

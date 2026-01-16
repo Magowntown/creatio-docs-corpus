@@ -1,0 +1,1 @@
+fields: {"Name": "#edit-ts-form-name", // Name of a visitor, submitting the page"Email": "css-selector", // Visitor's email"Zip": "css-selector", // Visitor's ZIP code }

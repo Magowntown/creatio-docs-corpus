@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentHourQueryFunction(EntitySchemaQuery parentQuery, int offset = 0) : base(parentQuery, offset)

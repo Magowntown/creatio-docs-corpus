@@ -1,0 +1,1 @@
+public virtual Dictionary<Guid, string> GetResultParameterAllValues(UserConnection userConnection, ProcessSchemaUserTask userTask)

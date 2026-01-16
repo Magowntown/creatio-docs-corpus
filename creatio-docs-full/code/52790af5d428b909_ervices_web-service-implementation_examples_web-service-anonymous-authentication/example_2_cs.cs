@@ -1,0 +1,1 @@
+<%@ ServiceHost    Service="Terrasoft.Configuration.UsrAnonymousConfigurationServiceNamespace.UsrAnonymousConfigurationService"    Debug="true"    Language="C#"%>

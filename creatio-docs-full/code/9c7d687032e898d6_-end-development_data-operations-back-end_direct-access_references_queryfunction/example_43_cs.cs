@@ -1,0 +1,1 @@
+DatePartQueryFunction(DatePartQueryFunction source)

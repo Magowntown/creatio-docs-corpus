@@ -1,0 +1,1 @@
+formatCellContent(cell, data, column, link)

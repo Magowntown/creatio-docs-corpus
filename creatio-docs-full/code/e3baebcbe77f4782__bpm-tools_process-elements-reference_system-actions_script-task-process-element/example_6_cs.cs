@@ -1,0 +1,1 @@
+Guid lookupValue = Get<Guid>("LookupParameter");if (lookupValue.IsEmpty()) {    lookupValue = (Guid)UserConnection.SystemValueManager.GetValue(UserConnection, "CurrentUserContact");    Set<Guid>("LookupParameter", lookupValue);}

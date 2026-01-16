@@ -1,0 +1,1 @@
+var config = {    fields: {        "Name": "css-selector", // Contact name        "Email": "css-selector", // Email name    },    landingId: "b73790ab-acb1-4806-baea-4342a1f3b2a8",    serviceUrl: "http://localhost:85/0/ServiceModel/GeneratedObjectWebFormService.svc/SaveWebFormObjectData",    redirectUrl: ""};

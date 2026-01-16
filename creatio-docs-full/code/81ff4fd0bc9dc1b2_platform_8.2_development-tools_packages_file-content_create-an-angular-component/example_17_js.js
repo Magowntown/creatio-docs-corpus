@@ -1,0 +1,1 @@
+/** * Emits btn click. */@Output() btnClicked = new EventEmitter<any>();/** * Handles btn click. * @param eventData - Event data. */public onBtnClick(eventData: any) {   this.btnClicked.emit(eventData);}

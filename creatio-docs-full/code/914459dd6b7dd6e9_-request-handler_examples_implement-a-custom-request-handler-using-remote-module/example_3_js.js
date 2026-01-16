@@ -1,0 +1,1 @@
+"viewConfigDiff": "[{\"operation\":\"insert\",\"name\":\"UsrChangeContactTypeButton\",\"parentName\":\"Contact_PrimaryTab_Body_infoColumnSet\",\"index\":1,\"propertyName\":\"items\",\"values\":{\"type\":\"crt.Button\",\"caption\":\"Change to supplier\",\"size\":\"medium\",\"clicked\":{\"request\":\"usr.ChangeContactTypeToSupplierRequest\"}}}]"

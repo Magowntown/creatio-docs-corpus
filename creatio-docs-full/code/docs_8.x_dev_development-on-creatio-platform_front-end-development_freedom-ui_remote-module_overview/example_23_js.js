@@ -1,0 +1,1 @@
+public ngAfterViewInit(): void {    this._renderrer.setStyle(        document.querySelector('p'),        'background-image',        'url(data:image/png;base64,...)'    );}

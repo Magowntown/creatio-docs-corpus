@@ -1,0 +1,1 @@
+<% @ServiceHost    Service = "Terrasoft.Configuration.UsrEncodingServiceNamespace.UsrEncodingService"    Debug = "true"    Language = "C#"%>

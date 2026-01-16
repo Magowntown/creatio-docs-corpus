@@ -1,0 +1,1 @@
+<logger name="IncidentRegistration" writeTo="AdoNetBufferedAppender" minlevel="Trace" final="true" />

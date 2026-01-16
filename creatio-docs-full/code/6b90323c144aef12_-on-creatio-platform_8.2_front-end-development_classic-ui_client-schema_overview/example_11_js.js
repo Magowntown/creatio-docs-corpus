@@ -1,0 +1,1 @@
+methods: {    messageHandler: function(args) {     }}

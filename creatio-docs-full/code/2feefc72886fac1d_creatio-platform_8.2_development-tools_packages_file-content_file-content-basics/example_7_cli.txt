@@ -1,0 +1,1 @@
+Terrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -destinationPath=Terrasoft.WebApp\ -configurationPath=Terrasoft.WebApp\Terrasoft.Configuration\ -useStaticFileContent=false -usePackageFileContent=true -autoExit=true

@@ -1,0 +1,712 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/websocket-messages/examples/implement-a-subscriber-to-a-websocket-message",
+  "title": "Implement a subscriber to a WebSocket message",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui"
+    },
+    {
+      "text": "WebSocket",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/websocket"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/websocket-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1  \nOn this page\nLevel: advanced\nExample\nPublish the `NewMessage` message in the back-end when you save a contact. Send the message via WebSocket. The message must include the contact birthday and name. Implement the `NewMessage` message sending in the front-end. Display messages in the browser console.\n## 1\\. Create a replacing object schema\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing object** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema\\(7.17\\)/scr_add_entity_schema_replaced.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"Contact.\"\n* Set **Title** to \"Contact.\"\n* Select \"Contact\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_schema_props.png)\n4. Add an **event** to the schema.\n1. Open the **Events** node of the object structure.\n2. Go to the **Saving** block \u2192 select the **After record saved** checkbox. Creatio names the event `ContactSaved`.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_ContactSaved_props.png)\n3. Click **Save** on the Object Designer's toolbar.\n5. Implement an **event sub-process**.\n1. Click **Open process** on the Object Designer's toolbar.\n2. Click **System actions** in the element area of the Designer and drag the **Event sub-process** element to the working area of the Process Designer.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutonumberedFieldBackEnd/7.18/src_Add_EventSubProcess.png)\n3. Set the **Title** property in the element setup area to \"Contact Saved Sub-process.\"\n4. Set up the **event sub-process elements**.\n1. Set up the **Message start event**.\n* Set **Title** to \"After contact saved.\"\n* Set **Which message event should start the process?** to \"ContactSaved.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_AfterContactSaved_props.png)\n2. Add the **Script task system action**.\n1. Click **System actions** in the element area of the Designer and drag the **Script task** system action to the working area of the sub-process.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutonumberedFieldBackEnd/7.18/src_Add_ScriptTask.png)\n2. Name the **Script task** system action \"Publish a message via WebSocket.\"\n3. Add the code of the **Script task** system action.\nCode of the Script task system action\n/* Receive the contact name. */  \nstring userName = Entity.GetTypedColumnValue<string>(\"Name\");  \n/* Receive the date of the contact birthday. */  \nDateTime birthDate = Entity.GetTypedColumnValue<DateTime>(\"BirthDate\");  \n/* Generate the message text. */  \nstring messageText = \"{\\\"birthday\\\": \\\"\" + birthDate.ToString(\"s\") + \"\\\", \\\"name\\\": \\\"\" + userName + \"\\\"}\";  \n/* Set the message name. */  \nstring sender = \"NewMessage\";  \n/* Publish the message via WebSocket. */  \nMsgChannelUtilities.PostMessageToAll(sender, messageText);  \nreturn true;  \n4. Click **Save** on the Process Designer's toolbar.\n5. Set up the **sequence flow**. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutonumberedFieldBackEnd/7.18/src_Add_Flow.png) in the menu of the **Message** start event and connect the **Message** start event to the **Publish a message via WebSocket** system action.\nView the event sub-process in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/src_Event_SubProcess.png)\n6. Click **Save** then **Publish** on the Process Designer's toolbar.\n## 2\\. Implement message sending in Creatio\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"ClientMessageBridge.\"\n* Set **Title** to \"ClientMessageBridge.\"\n* Select \"ClientMessageBridge\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_ClientMessageBridge_props.png)\n4. Implement sending of the `NewMessage` broadcast message.\n* In the `messages` property, bind the `NewMessage` broadcast message that can be published in Creatio.\n* Overload the following parent methods in the `methods` property:\n* `init()`. Adds a message received via WebSocket to the schema's message configuration object.\n* `afterPublishMessage`. Monitors the message sending.\nView the source code of the replacing view model schema below.\nClientMessageBridge\ndefine(\"ClientMessageBridge\", [\"ConfigurationConstants\"], function(ConfigurationConstants) {  \nreturn {  \n/* Messages. */  \nmessages: {  \n/* Message name. */  \n\"NewMessage\": {  \n/* Broadcast message. */  \n\"mode\": Terrasoft.MessageMode.BROADCAST,  \n/* The message direction is publishing. */  \n\"direction\": Terrasoft.MessageDirectionType.PUBLISH  \n}  \n},  \n/* Methods. */  \nmethods: {  \n/* Initialize the schema. */  \ninit: function() {  \n/* Call the parent method. */  \nthis.callParent(arguments);  \n/* Add a new configuration object to the collection of configuration objects. */  \nthis.addMessageConfig({  \n/* The name of the message received via WebSocket. */  \nsender: \"NewMessage\",  \n/* The name of the WebSocket message sent in Creatio via sandbox. */  \nmessageName: \"NewMessage\"  \n});  \n},  \n/* Method executed after the message is published. */  \nafterPublishMessage: function(  \n/* The name of the message used to send the message. */  \nsandboxMessageName,  \n/* Message body. */  \nwebSocketBody,  \n/* Result of sending the message. */  \nresult,  \n/* Configuration object that sends the message. */  \npublishConfig) {  \n/* Verify that the message matches the message added to the configuration object. */  \nif (sandboxMessageName === \"NewMessage\") {  \n/* Save the body to local variables. */  \nvar birthday = webSocketBody.birthday;  \nvar name = webSocketBody.name;  \n/* Display the body in the browser console. */  \nwindow.console.info(\"Published message: \" + sandboxMessageName +  \n\". Name: \" + name +  \n\"; birthday: \" + birthday);  \n}  \n}  \n}  \n};  \n});  \n5. Click **Save** on the Designer's toolbar.\n## 3\\. Implement subscription to the message\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n3. Fill out the **schema properties**.\n* Set **Code** to \"ContactPageV2.\"\n* Set **Title** to \"Display schema - Contact card.\"\n* Select \"ContactPageV2\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_ContactPageV2_props.png)\n4. Implement subscription to the `NewMessage` broadcast message.\n* In the `messages` property, bind the `NewMessage` broadcast message to subscribe.\n* Overload the `init()` parent method in the `methods` property. The method subscribes to the `NewMessage` message. Implement the `onNewMessage()` handler method that handles the object received in the message and returns the result to the browser console.\nView the source code of the replacing view model schema below.\nContactPageV2\ndefine(\"ContactPageV2\", [], function(BusinessRuleModule, ConfigurationConstants) {  \nreturn {  \n/* Object schema name. */  \nentitySchemaName: \"Contact\",  \nmessages: {  \n/* Message name. */  \n\"NewMessage\": {  \n/* Broadcast message. */  \n\"mode\": Terrasoft.MessageMode.BROADCAST,  \n/* The message direction is subscription. */  \n\"direction\": Terrasoft.MessageDirectionType.SUBSCRIBE  \n}  \n},  \n/* Methods. */  \nmethods: {  \n/* Initialize the schema. */  \ninit: function() {  \n/* Call the parent method. */  \nthis.callParent(arguments);  \n/* Subscribe to the NewMessage message. */  \nthis.sandbox.subscribe(\"NewMessage\", this.onNewMessage, this);  \n},  \n/* Handle the reception event of the NewMessage message. */  \nonNewMessage: function(args) {  \n/* Save the message body to local variables. */  \nvar birthday = args.birthday;  \nvar name = args.name;  \n/* Display the body in the browser console. */  \nwindow.console.info(\"Received message: NewMessage. Name: \" +  \nname + \"; birthday: \" + birthday);  \n}  \n}  \n};  \n});  \n5. Click **Save** on the Designer's toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** :\n1. Clear the browser cache.\n2. Refresh the **Contacts** section page.\n3. Open the contact page. For example, Alexander Wilson.\n4. Open the **Console** tab in the browser console.\n5. Modify an arbitrary field.\n6. Save the contact.\nAs a result, the browser console will display the received and sent `NewMessage` messages.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_result.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWebSocketPackage_2023-05-16_15.17.38.zip)",
+  "code_examples": [
+    {
+      "code": "/* Receive the contact name. */string userName = Entity.GetTypedColumnValue<string>(\"Name\");/* Receive the date of the contact birthday. */DateTime birthDate = Entity.GetTypedColumnValue<DateTime>(\"BirthDate\");/* Generate the message text. */string messageText = \"{\\\"birthday\\\": \\\"\" + birthDate.ToString(\"s\") + \"\\\", \\\"name\\\": \\\"\" + userName + \"\\\"}\";/* Set the message name. */string sender = \"NewMessage\";/* Publish the message via WebSocket. */MsgChannelUtilities.PostMessageToAll(sender, messageText);return true;",
+      "language": "cs",
+      "context": "Add the code of theScript tasksystem action.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"ClientMessageBridge\", [\"ConfigurationConstants\"], function(ConfigurationConstants) {    return {        /* Messages. */        messages: {            /* Message name. */            \"NewMessage\": {                /* Broadcast message. */                \"mode\": Terrasoft.MessageMode.BROADCAST,                /* The message direction is publishing. */                \"direction\": Terrasoft.MessageDirectionType.PUBLISH            }        },        /* Methods. */        methods: {            /* Initialize the schema. */            init: function() {                /* Call the parent method. */                this.callParent(arguments);                /* Add a new configuration object to the collection of configuration objects. */                this.addMessageConfig({                    /* The name of the message received via WebSocket. */                    sender: \"NewMessage\",                    /* The name of the WebSocket message sent in Creatio via sandbox. */                    messageName: \"NewMessage\"                });            },            /* Method executed after the message is published. */            afterPublishMessage: function(                /* The name of the message used to send the message. */                sandboxMessageName,                /* Message body. */                webSocketBody,                /* Result of sending the message. */                result,                /* Configuration object that sends the message. */                publishConfig) {                /* Verify that the message matches the message added to the configuration object. */                if (sandboxMessageName === \"NewMessage\") {                    /* Save the body to local variables. */                    var birthday = webSocketBody.birthday;                    var name = webSocketBody.name;                    /* Display the body in the browser console. */                    window.console.info(\"Published message: \" + sandboxMessageName +                        \". Name: \" + name +                        \"; birthday: \" + birthday);                }            }        }    };});",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"ContactPageV2\", [], function(BusinessRuleModule, ConfigurationConstants) {    return {        /* Object schema name. */        entitySchemaName: \"Contact\",        messages: {            /* Message name. */            \"NewMessage\": {                /* Broadcast message. */                \"mode\": Terrasoft.MessageMode.BROADCAST,                /* The message direction is subscription. */                \"direction\": Terrasoft.MessageDirectionType.SUBSCRIBE            }        },        /* Methods. */        methods: {            /* Initialize the schema. */            init: function() {                /* Call the parent method. */                this.callParent(arguments);                /* Subscribe to the NewMessage message. */                this.sandbox.subscribe(\"NewMessage\", this.onNewMessage, this);            },            /* Handle the reception event of the NewMessage message. */            onNewMessage: function(args) {                /* Save the message body to local variables. */                var birthday = args.birthday;                var name = args.name;                /* Display the body in the browser console. */                window.console.info(\"Received message: NewMessage. Name: \" +                    name + \"; birthday: \" + birthday);            }        }    };});",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExamplePublish theNewMessagemessage in the back-end when you save a contact. Send the message via WebSocket. The message must include the contact birthday and name. Implement theNewMessagemessage sending in the front-end. Display messages in the browser console.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Publish the <code>NewMessage</code> message in the back-end when you save a contact. Send the message via WebSocket. The message must include the contact birthday and name. Implement the <code>NewMessage</code> message sending in the front-end. Display messages in the browser console.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Publish theNewMessagemessage in the back-end when you save a contact. Send the message via WebSocket. The message must include the contact birthday and name. Implement theNewMessagemessage sending in the front-end. Display messages in the browser console.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Publish the <code>NewMessage</code> message in the back-end when you save a contact. Send the message via WebSocket. The message must include the contact birthday and name. Implement the <code>NewMessage</code> message sending in the front-end. Display messages in the browser console.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema(7.17)/scr_add_entity_schema_replaced.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing objecton the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_e886854da10b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_schema_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_9344ed280116.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_ContactSaved_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to theSavingblock \u2192 select theAfter record savedcheckbox. Creatio names the eventContactSaved.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_94295d40b9f5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutonumberedFieldBackEnd/7.18/src_Add_EventSubProcess.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickSystem actionsin the element area of the Designer and drag theEvent sub-processelement to the w",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_6c04b39b1ff0.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_AfterContactSaved_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Set up theMessage start event.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_ebcfe6854528.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutonumberedFieldBackEnd/7.18/src_Add_ScriptTask.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickSystem actionsin the element area of the Designer and drag theScript tasksystem action to the w",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_8325ad8ff923.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutonumberedFieldBackEnd/7.18/src_Add_Flow.png",
+      "alt": "",
+      "title": "",
+      "context": "Set up thesequence flow. Clickin the menu of theMessagestart event and connect theMessagestart event",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_eda443d71d61.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/src_Event_SubProcess.png",
+      "alt": "",
+      "title": "",
+      "context": "View the event sub-process in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_124a01a117a5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_ClientMessageBridge_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_0abc4e7132d4.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_ContactPageV2_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_8d75ceecb75b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateNewSubsciber/8.0/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the browser console will display the received and sentNewMessagemessages.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_a522853e41f7.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWebSocketPackage_2023-05-16_15.17.38.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkWebSocketPackage_2023-05-16_15.17.38.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/22573517b2dc7607_sic-ui_websocket-messages_examples_implement-a-subscriber-to-a-websocket-message_sdkWebSocketPackage_2023-05-16_15.17.38.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement a subscriber to a WebSocket message",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a replacing object schema\u200b",
+      "anchor": "title-2188-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Implement message sending in Creatio\u200b",
+      "anchor": "title-2188-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement subscription to the message\u200b",
+      "anchor": "title-2188-3"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-2188-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "DateTime"
+      },
+      {
+        "method": "DATETIME",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "ADDMESSAGECONFIG",
+        "path": "("
+      },
+      {
+        "method": "INFO",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "INFO",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/websocket-messages/examples/implement-a-subscriber-to-a-websocket-message",
+      "text": "Implement a subscriber to a WebSocket message",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/websocket-messages/examples/implement-a-subscriber-to-a-websocket-message",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/creatio-devkit-common",
+      "text": "@creatio-devkit/common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/module-basics",
+      "text": "Module basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/types",
+      "text": "Types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/modules/overview",
+      "text": "Class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/controls/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/controls-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sandbox-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sandbox-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/websocket-messages/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/websocket-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/websocket-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/websocket-messages/references/clientmessagebridge",
+      "text": "ClientMessageBridge",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/data-operations-front-end/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T02:24:14.156444"
+}

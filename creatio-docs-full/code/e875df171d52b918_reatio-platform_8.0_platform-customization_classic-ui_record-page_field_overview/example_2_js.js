@@ -1,0 +1,1 @@
+diff: /**SCHEMA_DIFF*/[    {        "operation": "merge",        "name": "CardContentWrapper",        "values": {            "generator": "DisableControlsGenerator.generatePartial"        }    }]/**SCHEMA_DIFF*/

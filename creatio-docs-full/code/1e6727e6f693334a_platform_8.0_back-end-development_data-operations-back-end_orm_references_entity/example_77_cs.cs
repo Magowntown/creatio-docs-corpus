@@ -1,0 +1,1 @@
+bool SetStreamValue(string valueName, Stream value)

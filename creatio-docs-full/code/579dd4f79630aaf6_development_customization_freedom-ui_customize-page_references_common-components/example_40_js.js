@@ -1,0 +1,1 @@
+{    "type": "crt.Sort",    "value": "\$ItemsSorting",    "sortItems": [        {            "attributeName": "Name",            "caption": "Name"        }    ],    "valueChange": {        "request": "crt.SortChangeRequest"    }}

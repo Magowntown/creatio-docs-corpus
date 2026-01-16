@@ -1,0 +1,1 @@
+CustomQueryFunction(string functionName, QueryColumnExpressionCollection expressions)

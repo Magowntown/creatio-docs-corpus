@@ -1,0 +1,1 @@
+var data = new UsrActivityData {    Title = "Activity created by background task",        TypeId = ActivityConsts.TaskTypeUId};Terrasoft.Core.Tasks.Task.StartNewWithUserConnection <UsrBackgroundActivityCreator, UsrActivityData> (data);return true;

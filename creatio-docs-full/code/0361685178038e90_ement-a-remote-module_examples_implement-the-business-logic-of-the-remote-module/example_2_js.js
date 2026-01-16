@@ -1,0 +1,1 @@
+<div class="wrapper">    <label class="label">{{label}}</label>    <input        #input        class="input"        type="text"        [value]="value"        (keyup)="valueChange.emit(input.value)"    /></div>

@@ -1,0 +1,1 @@
+addFunctionColumn(columnPath, functionType, [columnAlias])

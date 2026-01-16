@@ -1,0 +1,1 @@
+IsInherited bool

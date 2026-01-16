@@ -1,0 +1,1 @@
+loadConfig?: {    attributes?: string[];    parameters?: DataSourceParameters;    options?: DataSourceLoadOptions;}

@@ -1,0 +1,1 @@
+extendTabsConfig(config) : Object

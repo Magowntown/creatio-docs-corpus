@@ -1,0 +1,1 @@
+void SetCultureValue(CultureInfo culture, T value)

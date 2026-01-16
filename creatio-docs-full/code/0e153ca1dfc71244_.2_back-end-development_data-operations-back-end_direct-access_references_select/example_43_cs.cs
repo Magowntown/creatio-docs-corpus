@@ -1,0 +1,1 @@
+Query OrderByDesc(string sourceColumnAlias)Query OrderByDesc(string sourceAlias, string sourceColumnAlias)Query OrderByDesc(Select subSelect)Query OrderByDesc(Query subSelectQuery)Query OrderByDesc(QueryColumnExpression columnExpression)

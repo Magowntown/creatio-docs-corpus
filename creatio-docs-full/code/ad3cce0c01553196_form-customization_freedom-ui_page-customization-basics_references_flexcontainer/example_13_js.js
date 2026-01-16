@@ -1,0 +1,1 @@
+"layoutConfig": {    "minWidth": 368,    "maxWidth": 368}

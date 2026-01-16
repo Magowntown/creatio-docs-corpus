@@ -1,0 +1,1 @@
+EntitySchemaCurrentDateTimeQueryFunction(EntitySchemaQuery parentQuery)

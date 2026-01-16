@@ -1,0 +1,484 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/overview",
+  "title": "Replacing class factory",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development"
+    },
+    {
+      "text": "Replacing class factory",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory"
+    }
+  ],
+  "content_markdown": "Version: 8.1  \nOn this page\nLevel: advanced\nInstantiate the replacing class using the **replacing class object factory**. Creatio requests the replaced type instance from the factory. The factory returns the instance of the corresponding replacing type, which the factory computes using the dependency tree in source code schemas.\nTo **create a replacing configuration element** of the appropriate type, follow the procedure covered in a separate guide: [Configuration elements](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/configuration-elements).\n## [Override] attribute\u200b\nThe `[Override]` attribute type belongs to the `Terrasoft.Core.Factories` namespace and directly inherits the `System.Attribute` base type. Learn more about the `Terrasoft.Core.Factories` namespace in the [.NET class library](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Factories_namespace.html). Learn more about the `System.Attribute` base type in the official [Microsoft documentation](https://docs.microsoft.com/en-us/dotnet/api/system.attribute?redirectedfrom=MSDN&view=netcore-3.1).\nThe `[Override]` attribute only applies to classes. The **purpose** of the `[Override]` attribute is to define classes to take into account when building a dependency tree of replacing and replaced factory types.\nView how to apply the `[Override]` attribute to the `MySubstituteClass` replacing class below. `SubstitutableClass` is the replaced class.\n* Template to apply the [Override] attribute\n* Example that applies the [Override] attribute\n[Override]  \npublic class ReplacingClassName : ReplacedClassName  \n{  \n/* Implement the class. */  \n}  \n[Override]  \npublic class MySubstituteClass : SubstitutableClass  \n{  \n/* Implement the class. */  \n}  \n## ClassFactory class\u200b\nThe **purpose** of the `ClassFactory` class is to implement the factory of replacing Creatio objects. The factory uses the [Ninject](http://www.ninject.org/) open-source framework to inject dependencies. Learn more about the `ClassFactory` static class in the [.NET class library](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Factories.ClassFactory.html).\nCreatio **initializes the factory** during the first call to it, i. e. at the first attempt to retrieve the replacing type instance. The factory collects data about the replaced configuration types as part of the initialization.\nThe **operating procedure of the factory** :\n1. Search for replacing types. The factory analyzes the configuration build types. The factory interprets the class marked with the `[Override]` attribute as a replacing class and its parent class as a replaced class.\n2. Build the type dependency tree as a list of `Replaced type \u2192 Replacing type` value pairs. The replacement hierarchy tree does not take transitional types into account.\n3. Replace the source class with the last inheritor in the replacement hierarchy.\n4. Bind replacement types based on the type dependency tree. The factory uses the Ninject framework.\nView the factory workflow based on the class hierarchy example below.\nClass hierarchy example\n/* Source class. */  \npublic class ClassA { }  \n/* Class that replaces ClassA. */  \n[Override]  \npublic class ClassB : ClassA { }  \n/* Class that replaces ClassB. */  \n[Override]  \npublic class ClassC : ClassB { }  \nThe factory will use the class hierarchy to build a dependency tree you can view below.\nDependency tree example\nClassA \u2192 ClassC  \nClassB \u2192 ClassC  \nThe factory will not take the transitional types into account when building the dependency tree.\nType replacement hierarchy example\nClassA \u2192 ClassB \u2192 ClassC  \nHere, the `ClassC` type, and not the transitional `ClassB` type, replaces `ClassA`. This is because `ClassC` is the last inheritor in the replacement hierarchy. As such, the factory will return the `ClassC` instance if you request the `ClassA` or `ClassB` type instance.\n## Replaced type instance\u200b\nTo **retrieve a replaced type instance** , use the `Get<T>` public static parameterized method. The `ClassFactory` factory provides this method. The replaced type serves as a generic method parameter. Learn more about the `Get<T>` method in the [.NET class library](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Factories.ClassFactory~Get%60%601\\(ConstructorArgument%5B%5D\\).html).\nExample that retrieves the replaced type instance\nvar substituteObject = ClassFactory.Get<SubstitutableClass>();  \nAs a result, Creatio will create the `MySubstituteClass` class instance. You do not have to state the type of the new instance explicitly. The preliminary initialization lets the factory determine the type to replace the requested type and create the corresponding instance.\nThe `Get<T>` method can accept an array of `ConstructorArgument` objects as parameters. Each of the objects in the array is a class constructor argument the factory created. As such, the factory lets you instantiate replacing objects with parameterized constructors. The factory core resolves the dependencies required for the creation or operation of the object independently.\nWe recommend ensuring the signature of the replaced class constructors matches the signature of the replacing class. If the replacing class implementation logic must declare the constructor that has a custom signature, make sure to follow the rules listed below.\n**Rules for creating and calling replaced and replacing class constructors** :\n* If the replaced class **lacks an explicitly parameterized constructor** (the class only has a default constructor), you can implement an explicitly parameterized independent constructor in the replacing class without any restrictions. Follow the standard order of calls to the parent (replaced) and child (replacing) class constructors. When instantiating the replaced class via the factory, make sure to pass the correct parameters to initialize the replacing class properties to the factory.\n* If the replaced class **has a parameterized constructor** , implement the constructor in the replacing class. The replacing class constructor must call the parameterized constructor of the parent (replaced) class explicitly and pass the parameters for the correct initialization of the parent properties to the parent class. Other than that, the replacing class constructor may initialize its properties or remain empty.\nFailure to comply with the rules will result in a runtime error. The developer is responsible for the correct initialization of replacing and replaced class properties.\n* * *\n## See also\u200b\n[Configuration elements](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/configuration-elements)\n* * *\n## Resources\u200b\n[Terrasoft.Core.Factories namespace](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Factories_namespace.html) (.NET classes reference)\n[System.Attribute base type](https://docs.microsoft.com/en-us/dotnet/api/system.attribute?redirectedfrom=MSDN&view=netcore-3.1) (official Microsoft documentation)\n[Official Ninject site](http://www.ninject.org/)\n[ClassFactory static class](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Factories.ClassFactory.html) (.NET classes reference)\n[Get<T> method](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Factories.ClassFactory~Get%60%601\\(ConstructorArgument%5B%5D\\).html) (.NET classes reference)",
+  "code_examples": [
+    {
+      "code": "[Override]public class ReplacingClassName : ReplacedClassName{    /* Implement the class. */}",
+      "language": "cs",
+      "context": "View how to apply the[Override]attribute to theMySubstituteClassreplacing class below.SubstitutableClassis the replaced class.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[Override]public class MySubstituteClass : SubstitutableClass{    /* Implement the class. */}",
+      "language": "cs",
+      "context": "View how to apply the[Override]attribute to theMySubstituteClassreplacing class below.SubstitutableClassis the replaced class.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Source class. */public class ClassA { }/* Class that replaces ClassA. */[Override]public class ClassB : ClassA { }/* Class that replaces ClassB. */[Override]public class ClassC : ClassB { }",
+      "language": "cs",
+      "context": "View the factory workflow based on the class hierarchy example below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ClassA \u2192 ClassCClassB \u2192 ClassC",
+      "language": "cli",
+      "context": "The factory will use the class hierarchy to build a dependency tree you can view below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ClassA \u2192 ClassB \u2192 ClassC",
+      "language": "cli",
+      "context": "The factory will not take the transitional types into account when building the dependency tree.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var substituteObject = ClassFactory.Get<SubstitutableClass>();",
+      "language": "cs",
+      "context": "Toretrieve a replaced type instance, use theGet<T>public static parameterized method. TheClassFactoryfactory provides this method. The replaced type serves as a generic method parameter. Learn more ab",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Replacing class factory",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "[Override] attribute\u200b",
+      "anchor": "title-1238-6"
+    },
+    {
+      "level": 2,
+      "text": "ClassFactory class\u200b",
+      "anchor": "title-1238-7"
+    },
+    {
+      "level": 2,
+      "text": "Replaced type instance\u200b",
+      "anchor": "title-1238-8"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "SubstitutableClass"
+      },
+      {
+        "method": "SUBSTITUTABLECLASS",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/replacing-class-factory/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/replacing-class-factory/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "PreviousReplacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/class-factory-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/examples/replacing-class-management-examples",
+      "text": "Replacing examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/examples/create-a-replacing-class",
+      "text": "Create a replacing class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:17:30.455144"
+}

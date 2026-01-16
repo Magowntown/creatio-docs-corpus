@@ -1,0 +1,1 @@
+[#Invoice approval.Result#] == "Rejected" || [#Invoice approval.Result#] == "Approval pending"

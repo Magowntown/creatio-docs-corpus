@@ -1,0 +1,1 @@
+delete(parameters: DataSourceParameters)

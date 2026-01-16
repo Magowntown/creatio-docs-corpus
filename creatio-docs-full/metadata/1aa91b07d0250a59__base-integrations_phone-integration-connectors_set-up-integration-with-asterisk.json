@@ -1,0 +1,751 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/set-up-integration-with-asterisk",
+  "title": "Set up integration with Asterisk",
+  "breadcrumbs": [
+    {
+      "text": "Base integrations",
+      "href": "/docs/8.x/no-code-customization/8.2/category/base-integrations"
+    },
+    {
+      "text": "Phone integration connectors",
+      "href": "/docs/8.x/no-code-customization/8.2/category/phone-integration-connectors"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: intermediate\nFollow these steps to set up an Asterisk integration with Creatio:\n1. **Prepare Asterisk for integration**. Read more >>>\n2. **Set up Creatio Messaging Service**. Read more >>>\n3. **Set up the message exchange library**. Read more >>>\n4. **Set up the Asterisk parameters**. Read more >>>\nThe Asterisk integration requires a separate license in Creatio. You need to generate a license request, send it to our support team, upload the received license file into Creatio, and distribute licenses among users. Learn more: [Creatio licensing](https://academy.creatio.com/documents?id=1264) and [Manage user licenses](https://academy.creatio.com/documents?id=1472).\nIntegration is only possible after complete preliminary Asterisk setup by the phone integration administrator.\nImportant\nWhen setting up telephony for a Creatio production environment, deploy Creatio Messaging Service on a separate node, not on the Creatio application server. For fault tolerance, we recommend configuring at least two nodes with Creatio Messaging Service and a balancer that redirects users if connection to one node is lost.\n## 1\\. Prepare Asterisk for integration\u200b\nThe **AMI (Asterisk Manager Interface)** facilitates interaction with Asterisk. Use AMI to connect to Asterisk servers and manage client programs.\nTo prepare Asterisk for integration, **create an AMI user** for Creatio by adding their parameters to the **manager.conf** file:\n[creatio]  \nsecret = creatio  \ndeny=0.0.0.0/0.0.0.0  \npermit=0.0.0.0/0.0.0.0  \nread = call,agent,originate  \nwrite = call,agent,originate  \nReplace the `deny` and `permit` values with appropriate network addresses.\nImportant\nWhile software phones or agent phones can place calls on hold, the Communication panel only handles call status changes. It displays when calls are placed on hold or resumed but cannot itself place calls on hold.\n## 2\\. Set up Creatio Messaging Service (formerly Terrasoft Messaging Service)\u200b\nThe messaging service lets you connect Creatio to Asterisk via AMI protocol and distributes call events between Creatio users. Some configuration settings differ depending on the Creatio platform: .NET Framework or .NET 6.\n### Set up Creatio Messaging Service on .NET Framework\u200b\n1. Before installing the Creatio Messaging Service (CMS), **verify that your environment meets these requirements** :\n* .NET Framework 4.7.2 or later on the server where you are going to install Creatio Messaging Service\n* at least 2 Gb RAM and 20 Gb free disk space\n2. **Contact Creatio support** for the messaging service installation files or [download the archive](https://academy.creatio.com/sites/default/files/documents/downloads/CreatioMessagingService/8.0.1.199.zip). Unpack the archive to a folder for smooth installation rather than running directly from the archive.\nImportant\nDeploy CMS on a server connected to both the Creatio application server and the PBX. Learn more: [Telephony integration basics](https://academy.creatio.com/documents?id=15751).\n3. **Run Creatio Messaging Service Install.msi** on your designated message exchange server and complete the installation.\n4. **Verify** that the **TerrasoftMessagingService** is running in Windows Services. Start it manually if not.\n5. **Navigate** to \"**C:\\Program Files (x86)\\Terrasoft Messaging Service** \" and configure Asterisk connector parameters in the **Terrasoft.Messaging.Service.exe.config** file:\n* Setup template for Creatio Messaging Service\n* Setup example for Creatio Messaging Service\n<asterisk filePath=\"\" url=\"Asterisk server name or URL\" port=\"Asterisk server port\" userName=\"Asterisk login\" secret=\"Asterisk password\" originateContext=\"Outbound context\" autoPauseOnCommutationStart=\"true\" queueExtensionFormat=\"Local/{0}@from-queue/n\" asyncOriginate=\"true\" sendRingStartedOnRingingState=\"true\" traceQueuesState=\"false\" protocol=\"The protocol type used: SIP/ or PJSIP/\" packetInfoConfig=\"Additional packet parameters to handle within the configuration\" />  \n<asterisk filePath=\"\" url=\"10.0.15.185\" port=\"5038\" userName=\"creatio\" secret=\"creatio\" originateContext=\"from-internal\" autoPauseOnCommutationStart=\"true\" queueExtensionFormat=\"Local/{0}@from-queue/n\" asyncOriginate=\"true\" sendRingStartedOnRingingState=\"true\" traceQueuesState=\"false\" protocol=\"PJSIP/\" packetInfoConfig=\"\"/>  \nSee the **index of Asterisk connector parameters** in the following table:\nParameter caption| Parameter function  \n---|---  \n`filePath`| Used for system diagnostics to repeat a set of events from a pre-configured scenario file. Should be empty by default.  \n`url`| The IP address of the Asterisk server.  \n`port`| AMI protocol port. By default, `5038`.  \n`originateContext`| Initiates a call to a phone number from Creatio. Contains the context name for outbound calls. The default value for FreePBX is `from-internal`.  \n`autoPauseOnCommutationStart`| Ensures Asterisk queues work as intended. If enabled, Creatio puts the agent on pause in all queues after they answer a call. Prevents receiving additional calls while handling the first call or putting the first call on hold.  \n`queueExtensionFormat`| The format that determines the call channel for incoming calls from the queue. The default value for LocalChannel in FreePBX is `Local/{0}@from-queue`.  \n`sendRingStartedOnRingingState`| Ensures the retrieval of calls from the queue is handled correctly. If you select the checkbox, Creatio displays the calls to the user after receiving a `NewState` AMI event that has the `Ringing` parameter. By default, \"On.\"  \n`traceQueuesState`| Diagnoses the agent status in the queue. Use the parameter to debug the queue if the agent receives a second call from the queue while handling the first call in Creatio. Logs agent status data to the connector log file. By default, \"Off.\"  \n`protocol`| The protocol type: SIP or PJSIP. Contact your PBX administrator to determine the correct protocol type.  \n6. **Restart the CMS** and test the phone integration. The connection to Asterisk is established on CMS startup, but packet handling begins only after an agent goes online.\nnote\nFollow these [instructions](https://academy.creatio.com/documents?id=2343&anchor=title-1974-14) if you need to update Creatio Messaging Service.\n### Set up Creatio Messaging Service on .NET 6\u200b\n1. **Install Docker**. To install Docker on Linux, follow the guide in the [Docker documentation](https://docs.docker.com/install/). Check the Docker version by running the following command in the Linux terminal:\ndocker --version  \n2. **Install Docker Compose**. To install Docker Compose on Linux, follow the guide in the [Docker documentation](https://docs.docker.com/install/). Check the installed Docker Compose version by running the following command in the Linux terminal:\ndocker-compose --version  \n3. **Install and set up the Docker Compose components**. Deploy the container of the messaging service via the Docker Compose utility. Download the archive via the following link: [Download the archive](https://academy.creatio.com/sites/default/files/documents/downloads/messaging.host.docker-compose.7.16.3.1.zip) and extract it to a directory, for example, `/opt/messaging.host`.\nnote\nThe configuration files contain all necessary default settings for a Linux-based server.\n**The structure of the archive that contains the configuration files and scripts** :\n**/etc/**\n**...\\appsettings.json** : service configuration.\n**...\\nlog.config** : setup of the service logging level.\n**docker-compose.yml** : configuration of the Docker Compose utility.\n**.env** : environment variables to run the components.\n4. Use Linux terminal to **navigate to the docker-compose directory of the unpacked archive** , for example, `/opt/messaging.host/docker-compose`.\n5. **Run the`sudo docker-compose pull` command** at the terminal. Wait until the required service component images are downloaded from the [Docker Hub](https://hub.docker.com/) completely.\nImportant\nIf the Internet access on the server is restricted, download the needed images (see the `docker-compose.yml` configuration file) to a machine with unrestricted access manually and transfer the images as files to the target machine using [sudo docker export](https://docs.docker.com/engine/reference/commandline/export/) and [sudo docker import](https://docs.docker.com/engine/reference/commandline/import/) commands.\n6. **Configure Asterisk connector parameters** in the **etc/appsettings.json** file:\n* Setup template for Creatio Messaging Service\n* Setup example for Creatio Messaging Service\n{  \n\"url\": \"Asterisk server name or URL\",  \n\"port\": \"Asterisk server port\",  \n\"userName\": \"Asterisk login\",  \n\"secret\": \"Asterisk password\",  \n\"originateContext\": \"Outbound context\",  \n\"autoPauseOnCommutationStart\": \"true\",  \n\"queueExtensionFormat\": \"Local/{0}@from-queue/n\",  \n\"asyncOriginate\": \"true\",  \n\"sendRingStartedOnRingingState\": \"true\",  \n\"traceQueuesState\": \"false\",  \n\"protocol\": \"The protocol type used: SIP/ or PJSIP/\",  \n\"packetInfoConfig\": \"Additional packet parameters to handle within the configuration\",  \n\"filePath\": \"\"  \n}  \n{  \n\"url\": \"10.0.15.185\",  \n\"port\": \"5038\",  \n\"userName\": \"creatio\",  \n\"secret\": \"creatio\",  \n\"originateContext\": \"from-internal\",  \n\"autoPauseOnCommutationStart\": \"true\",  \n\"queueExtensionFormat\": \"Local/{0}@from-queue/n\",  \n\"asyncOriginate\": \"true\",  \n\"sendRingStartedOnRingingState\": \"true\",  \n\"traceQueuesState\": \"false\",  \n\"protocol\": \"PJSIP/\",  \n\"packetInfoConfig\": \"\",  \n\"filePath\": \"\"  \n}  \n7. **Run the`sudo docker-compose up -d` command** to launch the service. A logs directory will be created in the current catalog.\nSee the **list of Asterisk connector parameters** in the following table:\nParameter caption| Parameter function  \n---|---  \n`url`| The IP address of the Asterisk server.  \n`port`| AMI protocol port. By default, `5038`.  \n`originateContext`| Initiates a call to a phone number from Creatio. Contains the context name for outbound calls. The default value for FreePBX is `from-internal`.  \n`autoPauseOnCommutationStart`| Ensures Asterisk queues work as intended. If enabled, Creatio puts the agent on pause in all queues after they answer a call. Prevents receiving additional calls while handling the first call or putting the first call on hold.  \n`queueExtensionFormat`| The format that determines the call channel for incoming calls from the queue. The default value for LocalChannel in FreePBX is `Local/{0}@from-queue`.  \n`sendRingStartedOnRingingState`| Ensures the retrieval of calls from the queue is handled correctly. If you select the checkbox, Creatio displays the calls to the user after receiving a `NewState` AMI event that has the `Ringing` parameter. By default, \"On.\"  \n`traceQueuesState`| Diagnoses the agent status in the queue. Use the parameter to debug the queue if the agent receives a second call from the queue while handling the first call in Creatio. Logs agent status data to the connector log file. By default, \"Off.\"  \n`protocol`| The protocol type: SIP or PJSIP. Contact your PBX administrator to determine the correct protocol type.  \n`filePath`| Use the parameter for system diagnostics. It lets you repeat a set of events from a pre-configured scenario file. The default value must be empty.  \n8. **Restart the CMS** and test the phone integration. The connection to Asterisk is established on CMS startup, but packet handling begins only after an agent goes online.\n## 3\\. Set up the message exchange library\u200b\nMessage exchange library selection and setup is performed once by the system administrator. Some configuration settings differ depending on the platform on which the Asterisk telephony service is deployed: .NET Framework or .NET 6.\n### Set up the library on .NET Framework\u200b\n1. **Open the System Designer** by clicking ![btn_system_designer.png](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/More_Apps/phone_integration_connectors/btn_system_designer.png) in the top right corner of the application.\n2. **Click System settings** in the **System setup** block.\n3. **Open the \"Default messages exchange library\"** (\"SysMsgLib\" code) system setting and set its default value to \"Asterisk 13/16/18 (AMI) telephony integration library.\"\n4. **Open the \"Message exchange server\"** (\"SysMsgServerNode\" code) system setting and specify the connection parameters of the system messages service. Specify the network address of the message exchange server in the **Default value** field. Use the following format: \"ws://**server** :2013\" for sites served over HTTP or \"wss://**server** :2013\" for sites served over HTTPS, where:\n* **server** is the domain name of the server that hosts the message exchange service. We do not recommend using IP addresses or \"localhost.\"\n* `2013` is the default port to connect to the messaging service. You can change the port number in the \"**C:\\Program Files (x86)\\Terrasoft Messaging Service\\Terrasoft.Messaging.Service.exe.config** \" file. We do not recommend using \"localhost\" as it might cause errors when connecting to the phone integration server. When using a wss connection, make sure that server address matches the address in the SSL certificate.\nnote\nIf your website is served over HTTPS and secure (WSS) connection is used for WebSockets, you will need to install a security certificate on the message exchange server and specify it in the configuration files of the message service. Learn more: [Configure a WSS phone service connection](https://academy.creatio.com/documents?id=1755).\n### Set up the library on .NET 6\u200b\n1. **Open the System Designer** , for example, by clicking ![btn_system_designer.png](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/More_Apps/phone_integration_connectors/btn_system_designer.png) in the top right corner of the application.\n2. **Click System settings** in the **System setup** block.\n3. **Open the \"Default messages exchange library\"** (\"SysMsgLib\" code) system setting and set its default value to \"Asterisk 13/16/18 (AMI) telephony integration library.\"\n4. **Open the \"Message exchange server\"** (\"SysMsgServerNode\" code) system setting and specify the connection parameters of the message service. Specify the network address of the message exchange server in the **Default value** field. Use the following format: \"http://**server** :2013\" for sites served over HTTP or \"http://**server** :2014\" for sites served over HTTPS, where:\n* **server** is the domain name of the server that hosts the message exchange service. We do not recommend using IP addresses or \"localhost.\"\n* `2013` or `2014` is the default port to connect to the messaging service. You can change the port number in the **docker-compose.yml** configuration file. We do not recommend using \"localhost\" as it might cause errors when connecting to the phone integration server. When using an HTTPS connection, make sure that server address matches the address in the SSL certificate.\nnote\nIf your website is served over HTTPS and secure connection is used for WebSockets, install a security certificate on the message exchange server and specify the certificate in the docker-compose configuration. For more information about the setup process, contact Creatio support.\n## 4\\. Set up the Asterisk parameters\u200b\nApply the Asterisk parameters to every Creatio user who received Asterisk integration license. To do this:\n1. **Open the user profile page** by clicking the **Profile** image button on the main page of the application.\n2. **Click the Call Center parameters setup** button. This opens a page.\n3. **Fill out the following fields** :\n1. Select the **Disable Call Center integration** checkbox to disable Creatio integration with the phone service. This hides the call button from the Creatio communication panel.\n2. Specify the Asterisk user line number in the **Number** field. The line number typically matches the phone number. For example, to track the SIP/305 user line, specify `305`, and to track the SIP/office line, specify `office`.\nImportant\nEach user should have an individual line. We recommend against assigning the same line to multiple users as this may cause errors.\n3. Specify the context of the outgoing call in the **Outgoing call context** field if the context for the user must differ from the system context specified in the \"**C:\\Program Files (x86)\\Terrasoft Messaging Service\\Terrasoft.Messaging.Service.exe.config** \" file.\n4. Select the **Enable debugging** checkbox to display troubleshooting information in the browser console. You can use the information if you encounter phone integration and customer contact issues.\n4. **Save the changes**.\n5. **Refresh the browser page** to apply the changes.\n* * *\n## See also\u200b\n[Manage calls](https://academy.creatio.com/documents?id=1027)\n[Communication panel](https://academy.creatio.com/documents?id=15597)\n[Set up integration with Avaya](https://academy.creatio.com/documents?id=1373)\n[Set up integration with Cisco Finesse](https://academy.creatio.com/documents?id=1369)\n[Set up integration with CallWay](https://academy.creatio.com/documents?id=1371)",
+  "code_examples": [
+    {
+      "code": "[creatio]secret = creatiodeny=0.0.0.0/0.0.0.0permit=0.0.0.0/0.0.0.0read = call,agent,originatewrite = call,agent,originate",
+      "language": "cli",
+      "context": "To prepare Asterisk for integration,create an AMI userfor Creatio by adding their parameters to themanager.conffile:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<asterisk filePath=\"\" url=\"Asterisk server name or URL\" port=\"Asterisk server port\" userName=\"Asterisk login\" secret=\"Asterisk password\" originateContext=\"Outbound context\" autoPauseOnCommutationStart=\"true\" queueExtensionFormat=\"Local/{0}@from-queue/n\" asyncOriginate=\"true\" sendRingStartedOnRingingState=\"true\" traceQueuesState=\"false\" protocol=\"The protocol type used: SIP/ or PJSIP/\" packetInfoConfig=\"Additional packet parameters to handle within the configuration\" />",
+      "language": "xml",
+      "context": "Navigateto \"C:\\Program Files (x86)\\Terrasoft Messaging Service\" and configure Asterisk connector parameters in theTerrasoft.Messaging.Service.exe.configfile:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<asterisk filePath=\"\" url=\"10.0.15.185\" port=\"5038\" userName=\"creatio\" secret=\"creatio\" originateContext=\"from-internal\" autoPauseOnCommutationStart=\"true\" queueExtensionFormat=\"Local/{0}@from-queue/n\" asyncOriginate=\"true\" sendRingStartedOnRingingState=\"true\" traceQueuesState=\"false\" protocol=\"PJSIP/\" packetInfoConfig=\"\"/>",
+      "language": "xml",
+      "context": "Navigateto \"C:\\Program Files (x86)\\Terrasoft Messaging Service\" and configure Asterisk connector parameters in theTerrasoft.Messaging.Service.exe.configfile:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker --version",
+      "language": "cli",
+      "context": "Install Docker. To install Docker on Linux, follow the guide in theDocker documentation. Check the Docker version by running the following command in the Linux terminal:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker-compose --version",
+      "language": "cli",
+      "context": "Install Docker Compose. To install Docker Compose on Linux, follow the guide in theDocker documentation. Check the installed Docker Compose version by running the following command in the Linux termin",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"url\": \"Asterisk server name or URL\",    \"port\": \"Asterisk server port\",    \"userName\": \"Asterisk login\",    \"secret\": \"Asterisk password\",    \"originateContext\": \"Outbound context\",    \"autoPauseOnCommutationStart\": \"true\",    \"queueExtensionFormat\": \"Local/{0}@from-queue/n\",    \"asyncOriginate\": \"true\",    \"sendRingStartedOnRingingState\": \"true\",    \"traceQueuesState\": \"false\",    \"protocol\": \"The protocol type used: SIP/ or PJSIP/\",    \"packetInfoConfig\": \"Additional packet parameters to handle within the configuration\",    \"filePath\": \"\"}",
+      "language": "js",
+      "context": "Configure Asterisk connector parametersin theetc/appsettings.jsonfile:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"url\": \"10.0.15.185\",    \"port\": \"5038\",    \"userName\": \"creatio\",    \"secret\": \"creatio\",    \"originateContext\": \"from-internal\",    \"autoPauseOnCommutationStart\": \"true\",    \"queueExtensionFormat\": \"Local/{0}@from-queue/n\",    \"asyncOriginate\": \"true\",    \"sendRingStartedOnRingingState\": \"true\",    \"traceQueuesState\": \"false\",    \"protocol\": \"PJSIP/\",    \"packetInfoConfig\": \"\",    \"filePath\": \"\"}",
+      "language": "js",
+      "context": "Configure Asterisk connector parametersin theetc/appsettings.jsonfile:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter caption",
+          "Parameter function"
+        ],
+        [
+          "filePath",
+          "Used for system diagnostics to repeat a set of events from a pre-configured scenario file. Should be empty by default."
+        ],
+        [
+          "url",
+          "The IP address of the Asterisk server."
+        ],
+        [
+          "port",
+          "AMI protocol port. By default,5038."
+        ],
+        [
+          "originateContext",
+          "Initiates a call to a phone number from Creatio. Contains the context name for outbound calls. The default value for FreePBX isfrom-internal."
+        ],
+        [
+          "autoPauseOnCommutationStart",
+          "Ensures Asterisk queues work as intended. If enabled, Creatio puts the agent on pause in all queues after they answer a call. Prevents receiving additional calls while handling the first call or putting the first call on hold."
+        ],
+        [
+          "queueExtensionFormat",
+          "The format that determines the call channel for incoming calls from the queue. The default value for LocalChannel in FreePBX isLocal/{0}@from-queue."
+        ],
+        [
+          "sendRingStartedOnRingingState",
+          "Ensures the retrieval of calls from the queue is handled correctly. If you select the checkbox, Creatio displays the calls to the user after receiving aNewStateAMI event that has theRingingparameter. By default, \"On.\""
+        ],
+        [
+          "traceQueuesState",
+          "Diagnoses the agent status in the queue. Use the parameter to debug the queue if the agent receives a second call from the queue while handling the first call in Creatio. Logs agent status data to the connector log file. By default, \"Off.\""
+        ],
+        [
+          "protocol",
+          "The protocol type: SIP or PJSIP. Contact your PBX administrator to determine the correct protocol type."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter caption</p></th><th><p>Parameter function</p></th></tr><tr><td><p><code>filePath</code></p></td><td><p>Used for system diagnostics to repeat a set of events from a pre-configured scenario file. Should be empty by default.</p></td></tr><tr><td><p><code>url</code></p></td><td><p>The IP address of the Asterisk server.</p></td></tr><tr><td><p><code>port</code></p></td><td><p>AMI protocol port. By default, <code>5038</code>.</p></td></tr><tr><td><p><code>originateContext</code></p></td><td><p>Initiates a call to a phone number from Creatio. Contains the context name for outbound calls. The default value for FreePBX is <code>from-internal</code>.</p></td></tr><tr><td><p><code>autoPauseOnCommutationStart</code></p></td><td><p>Ensures Asterisk queues work as intended. If enabled, Creatio puts the agent on pause in all queues after they answer a call. Prevents receiving additional calls while handling the first call or putting the first call on hold.</p></td></tr><tr><td><p><code>queueExtensionFormat</code></p></td><td><p>The format that determines the call channel for incoming calls from the queue. The default value for LocalChannel in FreePBX is <code>Local/{0}@from-queue</code>.</p></td></tr><tr><td><p><code>sendRingStartedOnRingingState</code></p></td><td><p>Ensures the retrieval of calls from the queue is handled correctly. If you select the checkbox, Creatio displays the calls to the user after receiving a <code>NewState</code> AMI event that has the <code>Ringing</code> parameter. By default, \"On.\"</p></td></tr><tr><td><p><code>traceQueuesState</code></p></td><td><p>Diagnoses the agent status in the queue. Use the parameter to debug the queue if the agent receives a second call from the queue while handling the first call in Creatio. Logs agent status data to the connector log file. By default, \"Off.\"</p></td></tr><tr><td><p><code>protocol</code></p></td><td><p>The protocol type: SIP or PJSIP. Contact your PBX administrator to determine the correct protocol type.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter caption",
+          "Parameter function"
+        ],
+        [
+          "url",
+          "The IP address of the Asterisk server."
+        ],
+        [
+          "port",
+          "AMI protocol port. By default,5038."
+        ],
+        [
+          "originateContext",
+          "Initiates a call to a phone number from Creatio. Contains the context name for outbound calls. The default value for FreePBX isfrom-internal."
+        ],
+        [
+          "autoPauseOnCommutationStart",
+          "Ensures Asterisk queues work as intended. If enabled, Creatio puts the agent on pause in all queues after they answer a call. Prevents receiving additional calls while handling the first call or putting the first call on hold."
+        ],
+        [
+          "queueExtensionFormat",
+          "The format that determines the call channel for incoming calls from the queue. The default value for LocalChannel in FreePBX isLocal/{0}@from-queue."
+        ],
+        [
+          "sendRingStartedOnRingingState",
+          "Ensures the retrieval of calls from the queue is handled correctly. If you select the checkbox, Creatio displays the calls to the user after receiving aNewStateAMI event that has theRingingparameter. By default, \"On.\""
+        ],
+        [
+          "traceQueuesState",
+          "Diagnoses the agent status in the queue. Use the parameter to debug the queue if the agent receives a second call from the queue while handling the first call in Creatio. Logs agent status data to the connector log file. By default, \"Off.\""
+        ],
+        [
+          "protocol",
+          "The protocol type: SIP or PJSIP. Contact your PBX administrator to determine the correct protocol type."
+        ],
+        [
+          "filePath",
+          "Use the parameter for system diagnostics. It lets you repeat a set of events from a pre-configured scenario file. The default value must be empty."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter caption</p></th><th><p>Parameter function</p></th></tr><tr><td><p><code>url</code></p></td><td><p>The IP address of the Asterisk server.</p></td></tr><tr><td><p><code>port</code></p></td><td><p>AMI protocol port. By default, <code>5038</code>.</p></td></tr><tr><td><p><code>originateContext</code></p></td><td><p>Initiates a call to a phone number from Creatio. Contains the context name for outbound calls. The default value for FreePBX is <code>from-internal</code>.</p></td></tr><tr><td><p><code>autoPauseOnCommutationStart</code></p></td><td><p>Ensures Asterisk queues work as intended. If enabled, Creatio puts the agent on pause in all queues after they answer a call. Prevents receiving additional calls while handling the first call or putting the first call on hold.</p></td></tr><tr><td><p><code>queueExtensionFormat</code></p></td><td><p>The format that determines the call channel for incoming calls from the queue. The default value for LocalChannel in FreePBX is <code>Local/{0}@from-queue</code>.</p></td></tr><tr><td><p><code>sendRingStartedOnRingingState</code></p></td><td><p>Ensures the retrieval of calls from the queue is handled correctly. If you select the checkbox, Creatio displays the calls to the user after receiving a <code>NewState</code> AMI event that has the <code>Ringing</code> parameter. By default, \"On.\"</p></td></tr><tr><td><p><code>traceQueuesState</code></p></td><td><p>Diagnoses the agent status in the queue. Use the parameter to debug the queue if the agent receives a second call from the queue while handling the first call in Creatio. Logs agent status data to the connector log file. By default, \"Off.\"</p></td></tr><tr><td><p><code>protocol</code></p></td><td><p>The protocol type: SIP or PJSIP. Contact your PBX administrator to determine the correct protocol type.</p></td></tr><tr><td><p><code>filePath</code></p></td><td><p>Use the parameter for system diagnostics. It lets you repeat a set of events from a pre-configured scenario file. The default value must be empty.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWhen setting up telephony for a Creatio production environment, deploy Creatio Messaging Service on a separate node, not on the Creatio application server. For fault tolerance, we recommend configuring at least two nodes with Creatio Messaging Service and a balancer that redirects users if connection to one node is lost.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>When setting up telephony for a Creatio production environment, deploy Creatio Messaging Service on a separate node, not on the Creatio application server. For fault tolerance, we recommend configuring at least two nodes with Creatio Messaging Service and a balancer that redirects users if connection to one node is lost.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "When setting up telephony for a Creatio production environment, deploy Creatio Messaging Service on a separate node, not on the Creatio application server. For fault tolerance, we recommend configuring at least two nodes with Creatio Messaging Service and a balancer that redirects users if connection to one node is lost.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>When setting up telephony for a Creatio production environment, deploy Creatio Messaging Service on a separate node, not on the Creatio application server. For fault tolerance, we recommend configuring at least two nodes with Creatio Messaging Service and a balancer that redirects users if connection to one node is lost.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWhile software phones or agent phones can place calls on hold, the Communication panel only handles call status changes. It displays when calls are placed on hold or resumed but cannot itself place calls on hold.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>While software phones or agent phones can place calls on hold, the Communication panel only handles call status changes. It displays when calls are placed on hold or resumed but cannot itself place calls on hold.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "While software phones or agent phones can place calls on hold, the Communication panel only handles call status changes. It displays when calls are placed on hold or resumed but cannot itself place calls on hold.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>While software phones or agent phones can place calls on hold, the Communication panel only handles call status changes. It displays when calls are placed on hold or resumed but cannot itself place calls on hold.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantDeploy CMS on a server connected to both the Creatio application server and the PBX. Learn more:Telephony integration basics.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Deploy CMS on a server connected to both the Creatio application server and the PBX. Learn more: <a href=\"https://academy.creatio.com/documents?id=15751\" rel=\"noopener noreferrer\" target=\"_blank\">Telephony integration basics</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Deploy CMS on a server connected to both the Creatio application server and the PBX. Learn more:Telephony integration basics.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Deploy CMS on a server connected to both the Creatio application server and the PBX. Learn more: <a href=\"https://academy.creatio.com/documents?id=15751\" rel=\"noopener noreferrer\" target=\"_blank\">Telephony integration basics</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteFollow theseinstructionsif you need to update Creatio Messaging Service.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Follow these <a href=\"https://academy.creatio.com/documents?id=2343&amp;anchor=title-1974-14\" rel=\"noopener noreferrer\" target=\"_blank\">instructions</a> if you need to update Creatio Messaging Service.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Follow theseinstructionsif you need to update Creatio Messaging Service.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Follow these <a href=\"https://academy.creatio.com/documents?id=2343&amp;anchor=title-1974-14\" rel=\"noopener noreferrer\" target=\"_blank\">instructions</a> if you need to update Creatio Messaging Service.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe configuration files contain all necessary default settings for a Linux-based server.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The configuration files contain all necessary default settings for a Linux-based server.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The configuration files contain all necessary default settings for a Linux-based server.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The configuration files contain all necessary default settings for a Linux-based server.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf the Internet access on the server is restricted, download the needed images (see thedocker-compose.ymlconfiguration file) to a machine with unrestricted access manually and transfer the images as files to the target machine usingsudo docker exportandsudo docker importcommands.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If the Internet access on the server is restricted, download the needed images (see the <code>docker-compose.yml</code> configuration file) to a machine with unrestricted access manually and transfer the images as files to the target machine using <a href=\"https://docs.docker.com/engine/reference/commandline/export/\" rel=\"noopener noreferrer\" target=\"_blank\">sudo docker export</a> and <a href=\"https://docs.docker.com/engine/reference/commandline/import/\" rel=\"noopener noreferrer\" target=\"_blank\">sudo docker import</a> commands.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If the Internet access on the server is restricted, download the needed images (see thedocker-compose.ymlconfiguration file) to a machine with unrestricted access manually and transfer the images as files to the target machine usingsudo docker exportandsudo docker importcommands.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If the Internet access on the server is restricted, download the needed images (see the <code>docker-compose.yml</code> configuration file) to a machine with unrestricted access manually and transfer the images as files to the target machine using <a href=\"https://docs.docker.com/engine/reference/commandline/export/\" rel=\"noopener noreferrer\" target=\"_blank\">sudo docker export</a> and <a href=\"https://docs.docker.com/engine/reference/commandline/import/\" rel=\"noopener noreferrer\" target=\"_blank\">sudo docker import</a> commands.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf your website is served over HTTPS and secure (WSS) connection is used for WebSockets, you will need to install a security certificate on the message exchange server and specify it in the configuration files of the message service. Learn more:Configure a WSS phone service connection.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If your website is served over HTTPS and secure (WSS) connection is used for WebSockets, you will need to install a security certificate on the message exchange server and specify it in the configuration files of the message service. Learn more: <a href=\"https://academy.creatio.com/documents?id=1755\" rel=\"noopener noreferrer\" target=\"_blank\">Configure a WSS phone service connection</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If your website is served over HTTPS and secure (WSS) connection is used for WebSockets, you will need to install a security certificate on the message exchange server and specify it in the configuration files of the message service. Learn more:Configure a WSS phone service connection.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If your website is served over HTTPS and secure (WSS) connection is used for WebSockets, you will need to install a security certificate on the message exchange server and specify it in the configuration files of the message service. Learn more: <a href=\"https://academy.creatio.com/documents?id=1755\" rel=\"noopener noreferrer\" target=\"_blank\">Configure a WSS phone service connection</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf your website is served over HTTPS and secure connection is used for WebSockets, install a security certificate on the message exchange server and specify the certificate in the docker-compose configuration. For more information about the setup process, contact Creatio support.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If your website is served over HTTPS and secure connection is used for WebSockets, install a security certificate on the message exchange server and specify the certificate in the docker-compose configuration. For more information about the setup process, contact Creatio support.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If your website is served over HTTPS and secure connection is used for WebSockets, install a security certificate on the message exchange server and specify the certificate in the docker-compose configuration. For more information about the setup process, contact Creatio support.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If your website is served over HTTPS and secure connection is used for WebSockets, install a security certificate on the message exchange server and specify the certificate in the docker-compose configuration. For more information about the setup process, contact Creatio support.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantEach user should have an individual line. We recommend against assigning the same line to multiple users as this may cause errors.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Each user should have an individual line. We recommend against assigning the same line to multiple users as this may cause errors.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Each user should have an individual line. We recommend against assigning the same line to multiple users as this may cause errors.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Each user should have an individual line. We recommend against assigning the same line to multiple users as this may cause errors.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/More_Apps/phone_integration_connectors/btn_system_designer.png",
+      "alt": "btn_system_designer.png",
+      "title": "",
+      "context": "Open the System Designerby clickingin the top right corner of the application.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1aa91b07d0250a59__base-integrations_phone-integration-connectors_set-up-integration-with-asterisk_08799d1ec6cb.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/More_Apps/phone_integration_connectors/btn_system_designer.png",
+      "alt": "btn_system_designer.png",
+      "title": "",
+      "context": "Open the System Designer, for example, by clickingin the top right corner of the application.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1aa91b07d0250a59__base-integrations_phone-integration-connectors_set-up-integration-with-asterisk_08799d1ec6cb.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/CreatioMessagingService/8.0.1.199.zip",
+      "text": "download the archive",
+      "filename": "8.0.1.199.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/1aa91b07d0250a59__base-integrations_phone-integration-connectors_set-up-integration-with-asterisk_8.0.1.199.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/messaging.host.docker-compose.7.16.3.1.zip",
+      "text": "Download the archive",
+      "filename": "messaging.host.docker-compose.7.16.3.1.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/1aa91b07d0250a59__base-integrations_phone-integration-connectors_set-up-integration-with-asterisk_messaging.host.docker-compose.7.16.3.1.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up integration with Asterisk",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Prepare Asterisk for integration\u200b",
+      "anchor": "title-2358-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up Creatio Messaging Service (formerly Terrasoft Messaging Service)\u200b",
+      "anchor": "title-2358-3"
+    },
+    {
+      "level": 3,
+      "text": "Set up Creatio Messaging Service on .NET Framework\u200b",
+      "anchor": "title-2358-8"
+    },
+    {
+      "level": 3,
+      "text": "Set up Creatio Messaging Service on .NET 6\u200b",
+      "anchor": "title-2358-9"
+    },
+    {
+      "level": 2,
+      "text": "3. Set up the message exchange library\u200b",
+      "anchor": "title-2358-4"
+    },
+    {
+      "level": 3,
+      "text": "Set up the library on .NET Framework\u200b",
+      "anchor": "title-2358-11"
+    },
+    {
+      "level": 3,
+      "text": "Set up the library on .NET 6\u200b",
+      "anchor": "title-2358-12"
+    },
+    {
+      "level": 2,
+      "text": "4. Set up the Asterisk parameters\u200b",
+      "anchor": "title-2358-5"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/set-up-integration-with-asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/base-integrations/phone-integration-connectors/set-up-integration-with-asterisk",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-asterisk",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/base-integrations/phone-integration-connectors/set-up-integration-with-asterisk",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/customization-tools",
+      "text": "Customization tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/recommendations",
+      "text": "Recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/app-management",
+      "text": "App management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/ui-and-business-logic-customization",
+      "text": "UI and business logic customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/custom-localization",
+      "text": "Custom localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/system-settings-and-lookups",
+      "text": "System settings and lookups",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/ai-tools",
+      "text": "AI tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/print-ready-reports",
+      "text": "Print-ready reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/appearance-customization",
+      "text": "Appearance customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/mobile-app-setup",
+      "text": "Mobile app setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/tags-setup",
+      "text": "Tags setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/base-integrations",
+      "text": "Base integrations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/add-imap-smtp-email-provider",
+      "text": "IMAP / SMTP email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/ms-exchange--microsoft-365-email-and-calendar",
+      "text": "MS Exchange / Microsoft 365 email and calendar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/microsoft-email-contacts-and-calendar/set-up-the-ms-exchange-and-microsoft-365-services",
+      "text": "Set up Microsoft Exchange and Office 365",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/microsoft-email-contacts-and-calendar/synchronizing-creatio-calendar-with-ms-exchange-and-microsoft-365-calendars",
+      "text": "Synchronize calendar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/microsoft-email-contacts-and-calendar/set-up-oauth-authentication-for-ms-office-365",
+      "text": "Set up OAuth authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/google-services",
+      "text": "Google services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/google-mail-contacts-and-calendar/register-creatio-application-in-gsuite",
+      "text": "Register with Google Workspace",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/google-mail-contacts-and-calendar/synchronize-contacts-and-activities-with-google",
+      "text": "Synchronize Google services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/google-mail-contacts-and-calendar/delete-your-google-account-from-creatio",
+      "text": "Delete the account",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/mailbox-setup",
+      "text": "Mailbox setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/mailbox-setup/set-up-a-secure-mailbox-connection",
+      "text": "Set up a secure connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/mailbox-setup/set-up-a-personal-mailbox",
+      "text": "Set up a personal mailbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/mailbox-setup/configure-a-shared-mailbox",
+      "text": "Set up a shared mailbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/mailbox-setup/email-account-individual-settings",
+      "text": "Email settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/mailbox-setup/mailbox-setup-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/webhook-service-integration",
+      "text": "Webhook service integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/webhook-service-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/webhook-service-integration/retrieve-a-webhook",
+      "text": "Retrieve a webhook",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/webhook-service-integration/process-webhooks",
+      "text": "Process webhooks",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/chat-setup",
+      "text": "Chat setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/set-up-chats/set-up-chat-processing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/set-up-chats/set-up-facebook-messenger-integration",
+      "text": "Set up Facebook Messenger",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/set-up-chats/set-up-telegram-integration",
+      "text": "Set up Telegram",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/set-up-whatsapp",
+      "text": "Set up WhatsApp",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/set-up-chats/set-up-ada-integration",
+      "text": "Set up Ada",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/oauth-2-0/general-oauth-flow",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/oauth-2-0/set-up-the-oauth-2-0-authorization-instruction",
+      "text": "Manage credentials",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/web-services/getting-started-with-low-code-web-service-integration",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/web-services/set-up-the-soap-web-service-integration",
+      "text": "SOAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/web-services/set-up-the-rest-web-service-integration",
+      "text": "REST",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/web-services/web-service-authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/phone-integration-connectors",
+      "text": "Phone integration connectors",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/set-up-integration-with-webitel",
+      "text": "PreviousWebitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/set-up-integration-with-avaya",
+      "text": "NextAvaya",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/set-up-integration-with-cisco-finesse",
+      "text": "Cisco Finesse",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/set-up-integration-with-tapi",
+      "text": "TAPI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/set-up-integration-with-callway",
+      "text": "CallWay",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/configure-a-wss-phone-service-connection",
+      "text": "Set up WSS telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/creatio-phone-integration-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/phone-integration-connectors/feature-comparison-for-supported-phone-systems copy",
+      "text": "Comparison of phone systems",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/bpm-tools",
+      "text": "BPM tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/business-process-setup",
+      "text": "Business process setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/process-elements-reference",
+      "text": "Process elements reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/process-element-use-cases",
+      "text": "Process element use cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/process-examples",
+      "text": "Process examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/process-administration",
+      "text": "Process administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/category/dynamic-case-setup-dcm",
+      "text": "Dynamic case setup (DCM)",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:01:43.590336"
+}

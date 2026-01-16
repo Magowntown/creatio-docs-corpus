@@ -1,0 +1,1 @@
+BadgeConfig badgeConfig

@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {        /* Bind the ContactName view model attribute to the Name attribute of the ContactDS model.*/        "ContactName": {            "modelConfig": {                "path": "ContactDS.Name"            }        }    }}/**SCHEMA_VIEW_MODEL_CONFIG*/

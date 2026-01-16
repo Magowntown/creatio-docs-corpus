@@ -1,0 +1,1 @@
+SELECT    ISNULL([SysCityLcz].[Name], [City].[Name])[Name]FROM    [dbo].[City] [City] WITH(NOLOCK)    LEFT OUTER JOIN [dbo].[SysCityLcz] [SysCityLcz] WITH(NOLOCK) ON ([SysCityLcz].[RecordId] = [City].[Id]    AND [SysCityLcz].[SysCultureId] = @P1)

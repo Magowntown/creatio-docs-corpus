@@ -1,0 +1,1 @@
+namespace Terrasoft.Configuration {    public class UsrOriginalClass {        /* GetAmount() is a virtual method that has its own implementation. Inheritors can redefine the method. */        public virtual int GetAmount(int originalValue1, int originalValue2) {            return originalValue1 + originalValue2;        }    }}

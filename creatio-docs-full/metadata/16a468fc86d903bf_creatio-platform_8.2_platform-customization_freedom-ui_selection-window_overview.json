@@ -1,0 +1,895 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/selection-window/overview",
+  "title": "Customize selection windows",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization"
+    },
+    {
+      "text": "Selection window",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: intermediate\nCreatio lets you display previously handled data in custom **selection window**. Compared to a full-scale selection window of a \"Dropdown\" type field, custom selection window provides more options for selecting records. For example:\n* Work with a large amount of data from multiple resources.\n* Work with flexible search.\n* Display pre-filtered data.\n* Use groups.\n* Customize the order of displaying columns.\n* Enable or disable the addition of records.\n## 1\\. Create a selection window\u200b\n1. **Create a new Freedom UI app or open an existing app**. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.2&id=2377&anchor=title-2232-6) (user documentation).\n2. **Create a Freedom UI page schema** that implements the selection window. To do this, click **New page** \u2192 **Blank page** \u2192 **Select**.\n3. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n4. **Change the schema properties**. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_edit_button.png) in the properties area and fill out the schema properties.\nProperty| Property value  \n---|---  \nParent object| BaseLookupPageTemplate  \nFill out other properties based on your business goals.\n5. **Save the changes**.\n## 2\\. Set up the selection window UI\u200b\n1. **Open the selection page** in the Freedom UI Designer.\n2. If needed, **add one or more Freedom UI elements** whose data to display in the selection window. Instructions: [Element setup examples](https://academy.creatio.com/docs/8.x/no-code-customization/category/element-setup-examples) (user documentation).\n3. **Set up additional filtering** if needed. Instructions: [Set up List components](https://academy.creatio.com/documents?ver=8.2&id=2457) (user documentation).\n4. **Save the changes**.\n## 3\\. Set up the page UI\u200b\n**Set up the page UI** based on your business goals. Instructions: [Element setup examples](https://academy.creatio.com/docs/8.x/no-code-customization/category/element-setup-examples) (user documentation).\n## 4\\. Set up how to open the selection window\u200b\n1. **Add the dependencies**. To do this, add `@creatio-devkit/common` library as a dependency. The library includes the `HandlerChainService` service that opens pages.\nView an example that adds the `@creatio-devkit/common` library as a dependency to the `SomeApp_FormPage` Freedom UI page schema below.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"SomeApp_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \n...  \n}  \n});  \n2. **Add an attribute**. Instructions: [Set up the field display condition](https://academy.creatio.com/documents?ver=8.2&id=15379&anchor=viewModelConfigDiff) (step 2).\n3. **Bind an attribute to the label**. Instructions: [Set up the field display condition](https://academy.creatio.com/documents?ver=8.2&id=15379&anchor=viewConfigDiff) (similarly to step 3). Instead of the `visible` property, use the `caption` property that handles the text displayed in the element.\n4. **Set up how to handle the selection window** open on button click. Instructions: [Optimize the execution of a custom business logic](https://academy.creatio.com/documents?ver=8.2&id=15095&anchor=action-executed-on-button-click) (step 4).\n5. **Implement the custom request handler**.\n1. Go to the `handlers` schema section.\n2. Add a custom implementation of the custom `usr.SomeCustomRequest` request handler.\n1. Send the `crt.OpenSelectionWindowRequest` system request that opens the selection window.\n2. Implement other business logic based on your business goals.\nView an example of a custom `usr.SomeCustomRequest` request handler that opens the `UsrSomeSelectionWindow` selection window, below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.SomeCustomRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */  \nsdk.HandlerChainService.instance.process({  \ntype: 'crt.OpenSelectionWindowRequest',  \nscopes: [...request.scopes],  \n$context: request.$context,  \n/* Entity schema whose data is displayed in the selection window. Optional. If you omit the\u202f\"entitySchemaName\"\u202fproperty, Creatio uses the value from the attribute specified in the\u202f\"itemsAttributeName\"\u202fproperty.*/  \nentitySchemaName: 'SomeSchema',  \n/* Title of the selection window. */  \ncaption: 'SomeString',  \n/* Schema code of the selection window. Optional. If you omit the\u202f\"schemaName\"\u202fproperty, Creatio uses the\u202f\"BaseLookupPageTemplate\"\u202fschema. */  \nschemaName: 'UsrSomeSelectionWindow',  \n/* Attribute that stores data of the selection window title and the selection result in the window. Generally, it is the attribute associated with the \"Combobox\" control. Optional. If you use some attribute as an \"itemAttributeName\" property value, Creatio sets the result to the attribute value. */  \nitemAttributeName: 'SomeAttribute1',  \n/* Attribute that stores data of the data source. Optional. If you specify the \"itemsAttributeName\" property, Creatio uses the value to get entity. */  \nitemsAttributeName: 'SomeAttribute2',  \n/* Callback function that handles the records selected in the selection window. */  \nafterClosed: async (result) => {  \nconst canceled = result.canceled;  \nif (canceled) {  \n/* If the selection window does not include any record selected and a user closes the selection window, execute the following business logic. */  \n...;  \n}  \nif (!result.canceled) {  \n/* If the selection window includes selected records, execute the following business logic. */  \nconst lookupValues = await result.getLookupValues();  \nconst value = lookupValues[0];  \nif (value) {  \n/* If the selection window includes selected records, execute the following business logic. */  \n...;  \n}  \n}  \n},  \n/* Filter data. Optional. If you specify the \"filtersConfig\" property, Creatio filters data. */  \nfiltersConfig: {  \nfilterAttributes: [  \n{  \nname: 'SomeFilter',  \nloadOnChange: false  \n}  \n],  \nattributesConfig: {  \nSomeFilter: {  \nvalue: {  \n/* Implement the business logic that filters data to display in the selection window. */  \n...,  \n}  \n}  \n}  \n}  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nThe implementation of a custom request handler has the following **special features** :\n* If you omit the `entitySchemaName` property, Creatio uses the value from the attribute specified in the `itemsAttributeName` property to get entity.\n* If you omit the `schemaName` property, Creatio uses the `BaseLookupPageTemplate` schema.\n* If you omit the `caption` property, Creatio uses the value from the attribute specified in the `itemAttributeName` property. If you also omit the `itemAttributeName` property, Creatio uses the value specified in the `entitySchemaName` property.\n* If you use some attribute as an `itemAttributeName` property value, Creatio sets the result to the attribute value.\n* If you specify the `filtersConfig` property, Creatio filters data.\n6. **Set up additional functionality** of the selection window if needed.\nAdd **New** button (Freedom UI only)\nTo **use the selection window in Classic UI** , exclude the button that opens new record, i. e., whose **Action** property is \"Open new record,\" from the window. Otherwise, Creatio will close the selection window, create a new record, but not populate the created record with the values selected in the selection window.\nView an example that adds **New** button below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.SomeCustomRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */  \nsdk.HandlerChainService.instance.process({  \n...,  \n/* Set up additional functionality. */  \n\"features\": {  \n/* Add \"New\" button. */  \n\"create\": {  \n\"enabled\": true;  \n}  \n},  \n...,  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nEnable multiple selection\nView an example that enables multiple selection below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.SomeCustomRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */  \nsdk.HandlerChainService.instance.process({  \n...,  \n/* Set up additional functionality. */  \n\"features\": {  \n\"select\": {  \n/* Enable multiple selection. */  \n\"multiple\": true  \n}  \n},  \n/* Callback function that handles the records selected in the selection window. */  \nafterClosed: async (result) => {  \nconst lookupValues = await result.getLookupValues();  \n/* If the selection window includes multiple selected records, execute the following business logic. */  \n...;  \nconst canceled = result.canceled;  \nif (canceled) {  \n/* If the selection window does not include any record selected and a user closes the selection window, execute the following business logic. */  \n...;  \n}  \n},  \n...,  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nAdd **Select all** checkbox\nView an example that adds **Select all** checkbox, below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.SomeCustomRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */  \nsdk.HandlerChainService.instance.process({  \n...,  \n/* Set up additional functionality. */  \n\"features\": {  \n\"select\": {  \n\"multiple\": true,  \n/* Add \"Select all\" checkbox. */  \n\"selectAll\": true  \n}  \n},  \n...,  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nSet up the condition to select lookup values\nView an example that receives 2 lookup values with step 2, below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.SomeCustomRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */  \nsdk.HandlerChainService.instance.process({  \n...,  \n/* Set up additional functionality. */  \n\"features\": {  \n\"select\": {  \n\"multiple\": true  \n}  \n},  \n/* Callback function that handles the records selected in the selection window. */  \nafterClosed: async (result) => {  \nlet rowsOffset = 0;  \nconst rowCount = 2;  \nconst pagingConfig = { rowsOffset, rowCount };  \n/* Set up the condition to select lookup values. */  \nlet lookupValues = await result.getLookupValues({ pagingConfig });  \nwhile (lookupValues.length) {  \n/* Execute the following business logic with received lookup values. */  \n...,  \nrowsOffset += 2;  \nlookupValues = await result.getLookupValues({ pagingConfig: { rowsOffset, rowCount }});  \n}  \nif (!lookupValues.length) {  \n/* Execute the following business logic when all the received lookup values are handled. */  \n...,  \n},  \n/* If the selection window includes multiple selected records, execute the following business logic. */  \n...;  \n},  \n...,  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nSet up a list of pre-selected lookup values\nView an example that sets up a list of pre-selected lookup values, below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.SomeCustomRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */  \nsdk.HandlerChainService.instance.process({  \n...,  \n/* Set up a list of pre-selected lookup values. */  \nselectionState: {  \ntype: 'specific',  \nselected: [  \n/* List of pre-selected lookup values. */  \n'Some-Record1-ID',  \n'Some-Record2-ID',  \n...,  \n],  \n},  \n...,  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nEnable displaying of deactivated object records\nLearn more: [Deactivate object records](https://academy.creatio.com/documents?ver=8.2&id=15107&anchor=title-3025-1).\nView an example that enables displaying of deactivated object records, below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.SomeCustomRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */  \nsdk.HandlerChainService.instance.process({  \n...,  \n/* Set up additional functionality. */  \n\"features\": {  \n/* Enable displaying of deactivated object records. */  \nshowDeactivatedRecords: true,  \n},  \n...,  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \n7. **Save the changes**.\n* * *\n## See also\u200b\n[Manage apps](https://academy.creatio.com/documents?ver=8.2&id=2377) (user documentation)\n[Element setup examples](https://academy.creatio.com/docs/8.x/no-code-customization/category/element-setup-examples) (user documentation)\n[Customize fields (Freedom UI)](https://academy.creatio.com/documents?ver=8.2&id=15379)\n[Optimize the execution of a custom business logic](https://academy.creatio.com/documents?ver=8.2&id=15095)\n[Configuration elements of the Object type](https://academy.creatio.com/documents?ver=8.2&id=15107)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"SomeApp_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        ...    }});",
+      "language": "js",
+      "context": "View an example that adds the@creatio-devkit/commonlibrary as a dependency to theSomeApp_FormPageFreedom UI page schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.SomeCustomRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */            sdk.HandlerChainService.instance.process({                type: 'crt.OpenSelectionWindowRequest',                scopes: [...request.scopes],                $context: request.$context,                /* Entity schema whose data is displayed in the selection window. Optional. If you omit the\u202f\"entitySchemaName\"\u202fproperty, Creatio uses the value from the attribute specified in the\u202f\"itemsAttributeName\"\u202fproperty.*/                entitySchemaName: 'SomeSchema',                /* Title of the selection window. */                caption: 'SomeString',                /* Schema code of the selection window. Optional. If you omit the\u202f\"schemaName\"\u202fproperty, Creatio uses the\u202f\"BaseLookupPageTemplate\"\u202fschema. */                schemaName: 'UsrSomeSelectionWindow',                /* Attribute that stores data of the selection window title and the selection result in the window. Generally, it is the attribute associated with the \"Combobox\" control. Optional. If you use some attribute as an \"itemAttributeName\" property value, Creatio sets the result to the attribute value. */                itemAttributeName: 'SomeAttribute1',                /* Attribute that stores data of the data source. Optional. If you specify the \"itemsAttributeName\" property, Creatio uses the value to get entity. */                itemsAttributeName: 'SomeAttribute2',                /* Callback function that handles the records selected in the selection window. */                afterClosed: async (result) => {                    const canceled = result.canceled;                    if (canceled) {                        /* If the selection window does not include any record selected and a user closes the selection window, execute the following business logic. */                        ...;                    }                    if (!result.canceled) {                        /* If the selection window includes selected records, execute the following business logic. */                        const lookupValues = await result.getLookupValues();                        const value = lookupValues[0];                        if (value) {                            /* If the selection window includes selected records, execute the following business logic. */                            ...;                        }                    }                },                /* Filter data. Optional. If you specify the \"filtersConfig\" property, Creatio filters data. */                filtersConfig: {                    filterAttributes: [                        {                            name: 'SomeFilter',                            loadOnChange: false                        }                    ],                    attributesConfig: {                        SomeFilter: {                            value: {                                /* Implement the business logic that filters data to display in the selection window. */                                ...,                            }                        }                    }                }            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example of a customusr.SomeCustomRequestrequest handler that opens theUsrSomeSelectionWindowselection window, below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.SomeCustomRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */            sdk.HandlerChainService.instance.process({                ...,                /* Set up additional functionality. */                \"features\": {                    /* Add \"New\" button. */                    \"create\": {                        \"enabled\": true;                    }                },                ...,            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example that addsNewbutton below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.SomeCustomRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */            sdk.HandlerChainService.instance.process({                ...,                /* Set up additional functionality. */                \"features\": {                    \"select\": {                        /* Enable multiple selection. */                        \"multiple\": true                    }                },                /* Callback function that handles the records selected in the selection window. */                afterClosed: async (result) => {                    const lookupValues = await result.getLookupValues();                    /* If the selection window includes multiple selected records, execute the following business logic. */                    ...;                    const canceled = result.canceled;                    if (canceled) {                        /* If the selection window does not include any record selected and a user closes the selection window, execute the following business logic. */                        ...;                    }                },                ...,            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example that enables multiple selection below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.SomeCustomRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */            sdk.HandlerChainService.instance.process({                ...,                /* Set up additional functionality. */                \"features\": {                    \"select\": {                        \"multiple\": true,                        /* Add \"Select all\" checkbox. */                        \"selectAll\": true                    }                },                ...,            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example that addsSelect allcheckbox, below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.SomeCustomRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */            sdk.HandlerChainService.instance.process({                ...,                /* Set up additional functionality. */                \"features\": {                    \"select\": {                        \"multiple\": true                    }                },                /* Callback function that handles the records selected in the selection window. */                afterClosed: async (result) => {                    let rowsOffset = 0;                    const rowCount = 2;                    const pagingConfig = { rowsOffset, rowCount };                    /* Set up the condition to select lookup values. */                    let lookupValues = await result.getLookupValues({ pagingConfig });                    while (lookupValues.length) {                        /* Execute the following business logic with received lookup values. */                        ...,                        rowsOffset += 2;                        lookupValues = await result.getLookupValues({ pagingConfig: { rowsOffset, rowCount }});                    }                    if (!lookupValues.length) {                        /* Execute the following business logic when all the received lookup values are handled. */                        ...,                    },                    /* If the selection window includes multiple selected records, execute the following business logic. */                    ...;                },                ...,            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example that receives 2 lookup values with step 2, below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.SomeCustomRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */            sdk.HandlerChainService.instance.process({                ...,                /* Set up a list of pre-selected lookup values. */                selectionState: {                    type: 'specific',                    selected: [                        /* List of pre-selected lookup values. */                        'Some-Record1-ID',                        'Some-Record2-ID',                        ...,                    ],                },                ...,            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example that sets up a list of pre-selected lookup values, below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.SomeCustomRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */            sdk.HandlerChainService.instance.process({                ...,                /* Set up additional functionality. */                \"features\": {                    /* Enable displaying of deactivated object records. */                    showDeactivatedRecords: true,                },                ...,            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example that enables displaying of deactivated object records, below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Parent object",
+          "BaseLookupPageTemplate"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Parent object</p></center></td><td><p>BaseLookupPageTemplate</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "New",
+      "content": "AddNewbutton (Freedom UI only)Touse the selection window in Classic UI, exclude the button that opens new record, i. e., whoseActionproperty is \"Open new record,\" from the window. Otherwise, Creatio will close the selection window, create a new record, but not populate the created record with the values selected in the selection window.View an example that addsNewbutton below.handlers schema sectionhandlers:/**SCHEMA_HANDLERS*/[{request:\"usr.SomeCustomRequest\",/* Implement the custom request handler. */handler:async(request,next)=>{/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */sdk.HandlerChainService.instance.process({...,/* Set up additional functionality. */\"features\":{/* Add \"New\" button. */\"create\":{\"enabled\":true;}},...,});/* Call the next handler if it exists and return its result. */returnnext?.handle(request);}}]/**SCHEMA_HANDLERS*/,",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add <strong>New</strong> button (Freedom UI only)</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 370ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>To <strong>use the selection window in Classic UI</strong>, exclude the button that opens new record, i. e., whose <strong>Action</strong> property is \"Open new record,\" from the window. Otherwise, Creatio will close the selection window, create a new record, but not populate the created record with the values selected in the selection window.</p><p>View an example that adds <strong>New</strong> button below.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">handlers schema section</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">handlers</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">request</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"usr.SomeCustomRequest\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Implement the custom request handler. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">handler</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">request</span><span class=\"token parameter punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token parameter\"> next</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            sdk</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access maybe-class-name\">HandlerChainService</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">instance</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">process</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Set up additional functionality. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"features\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Add \"New\" button. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"create\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"enabled\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Call the next handler if it exists and return its result. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">return</span><span class=\"token plain\"> next</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">?.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">handle</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">request</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Enable multiple selectionView an example that enables multiple selection below.handlers schema sectionhandlers:/**SCHEMA_HANDLERS*/[{request:\"usr.SomeCustomRequest\",/* Implement the custom request handler. */handler:async(request,next)=>{/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */sdk.HandlerChainService.instance.process({...,/* Set up additional functionality. */\"features\":{\"select\":{/* Enable multiple selection. */\"multiple\":true}},/* Callback function that handles the records selected in the selection window. */afterClosed:async(result)=>{constlookupValues=awaitresult.getLookupValues();/* If the selection window includes multiple selected records, execute the following business logic. */...;constcanceled=result.canceled;if(canceled){/* If the selection window does not include any record selected and a user closes the selection window, execute the following business logic. */...;}},...,});/* Call the next handler if it exists and return its result. */returnnext?.handle(request);}}]/**SCHEMA_HANDLERS*/,",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Enable multiple selection</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 352ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>View an example that enables multiple selection below.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">handlers schema section</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">handlers</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">request</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"usr.SomeCustomRequest\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Implement the custom request handler. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">handler</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">request</span><span class=\"token parameter punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token parameter\"> next</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            sdk</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access maybe-class-name\">HandlerChainService</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">instance</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">process</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Set up additional functionality. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"features\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"select\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Enable multiple selection. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"multiple\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Callback function that handles the records selected in the selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">afterClosed</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">result</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">const</span><span class=\"token plain\"> lookupValues </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">await</span><span class=\"token plain\"> result</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">getLookupValues</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* If the selection window includes multiple selected records, execute the following business logic. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">const</span><span class=\"token plain\"> canceled </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> result</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">canceled</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">if</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">canceled</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* If the selection window does not include any record selected and a user closes the selection window, execute the following business logic. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Call the next handler if it exists and return its result. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">return</span><span class=\"token plain\"> next</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">?.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">handle</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">request</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Select all",
+      "content": "AddSelect allcheckboxView an example that addsSelect allcheckbox, below.handlers schema sectionhandlers:/**SCHEMA_HANDLERS*/[{request:\"usr.SomeCustomRequest\",/* Implement the custom request handler. */handler:async(request,next)=>{/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */sdk.HandlerChainService.instance.process({...,/* Set up additional functionality. */\"features\":{\"select\":{\"multiple\":true,/* Add \"Select all\" checkbox. */\"selectAll\":true}},...,});/* Call the next handler if it exists and return its result. */returnnext?.handle(request);}}]/**SCHEMA_HANDLERS*/,",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add <strong>Select all</strong> checkbox</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 352ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>View an example that adds <strong>Select all</strong> checkbox, below.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">handlers schema section</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">handlers</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">request</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"usr.SomeCustomRequest\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Implement the custom request handler. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">handler</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">request</span><span class=\"token parameter punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token parameter\"> next</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            sdk</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access maybe-class-name\">HandlerChainService</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">instance</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">process</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Set up additional functionality. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"features\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"select\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"multiple\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Add \"Select all\" checkbox. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"selectAll\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Call the next handler if it exists and return its result. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">return</span><span class=\"token plain\"> next</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">?.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">handle</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">request</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Set up the condition to select lookup valuesView an example that receives 2 lookup values with step 2, below.handlers schema sectionhandlers:/**SCHEMA_HANDLERS*/[{request:\"usr.SomeCustomRequest\",/* Implement the custom request handler. */handler:async(request,next)=>{/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */sdk.HandlerChainService.instance.process({...,/* Set up additional functionality. */\"features\":{\"select\":{\"multiple\":true}},/* Callback function that handles the records selected in the selection window. */afterClosed:async(result)=>{letrowsOffset=0;constrowCount=2;constpagingConfig={rowsOffset,rowCount};/* Set up the condition to select lookup values. */letlookupValues=awaitresult.getLookupValues({pagingConfig});while(lookupValues.length){/* Execute the following business logic with received lookup values. */...,rowsOffset+=2;lookupValues=awaitresult.getLookupValues({pagingConfig:{rowsOffset,rowCount}});}if(!lookupValues.length){/* Execute the following business logic when all the received lookup values are handled. */...,},/* If the selection window includes multiple selected records, execute the following business logic. */...;},...,});/* Call the next handler if it exists and return its result. */returnnext?.handle(request);}}]/**SCHEMA_HANDLERS*/,",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Set up the condition to select lookup values</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 352ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>View an example that receives 2 lookup values with step 2, below.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">handlers schema section</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">handlers</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">request</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"usr.SomeCustomRequest\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Implement the custom request handler. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">handler</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">request</span><span class=\"token parameter punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token parameter\"> next</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            sdk</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access maybe-class-name\">HandlerChainService</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">instance</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">process</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Set up additional functionality. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"features\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"select\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"multiple\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Callback function that handles the records selected in the selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">afterClosed</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">result</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">let</span><span class=\"token plain\"> rowsOffset </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">0</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">const</span><span class=\"token plain\"> rowCount </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">2</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">const</span><span class=\"token plain\"> pagingConfig </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"> rowsOffset</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> rowCount </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Set up the condition to select lookup values. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">let</span><span class=\"token plain\"> lookupValues </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">await</span><span class=\"token plain\"> result</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">getLookupValues</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"> pagingConfig </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">while</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">lookupValues</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">length</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Execute the following business logic with received lookup values. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        rowsOffset </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">+=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">2</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        lookupValues </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">await</span><span class=\"token plain\"> result</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">getLookupValues</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"> </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">pagingConfig</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"> rowsOffset</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> rowCount </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">if</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">!</span><span class=\"token plain\">lookupValues</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">length</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Execute the following business logic when all the received lookup values are handled. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* If the selection window includes multiple selected records, execute the following business logic. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Call the next handler if it exists and return its result. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">return</span><span class=\"token plain\"> next</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">?.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">handle</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">request</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Set up a list of pre-selected lookup valuesView an example that sets up a list of pre-selected lookup values, below.handlers schema sectionhandlers:/**SCHEMA_HANDLERS*/[{request:\"usr.SomeCustomRequest\",/* Implement the custom request handler. */handler:async(request,next)=>{/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */sdk.HandlerChainService.instance.process({...,/* Set up a list of pre-selected lookup values. */selectionState:{type:'specific',selected:[/* List of pre-selected lookup values. */'Some-Record1-ID','Some-Record2-ID',...,],},...,});/* Call the next handler if it exists and return its result. */returnnext?.handle(request);}}]/**SCHEMA_HANDLERS*/,",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Set up a list of pre-selected lookup values</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 352ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>View an example that sets up a list of pre-selected lookup values, below.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">handlers schema section</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">handlers</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">request</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"usr.SomeCustomRequest\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Implement the custom request handler. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">handler</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">request</span><span class=\"token parameter punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token parameter\"> next</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            sdk</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access maybe-class-name\">HandlerChainService</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">instance</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">process</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Set up a list of pre-selected lookup values. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">selectionState</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">type</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'specific'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">selected</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* List of pre-selected lookup values. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'Some-Record1-ID'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'Some-Record2-ID'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                        </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Call the next handler if it exists and return its result. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">return</span><span class=\"token plain\"> next</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">?.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">handle</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">request</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Enable displaying of deactivated object recordsLearn more:Deactivate object records.View an example that enables displaying of deactivated object records, below.handlers schema sectionhandlers:/**SCHEMA_HANDLERS*/[{request:\"usr.SomeCustomRequest\",/* Implement the custom request handler. */handler:async(request,next)=>{/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */sdk.HandlerChainService.instance.process({...,/* Set up additional functionality. */\"features\":{/* Enable displaying of deactivated object records. */showDeactivatedRecords:true,},...,});/* Call the next handler if it exists and return its result. */returnnext?.handle(request);}}]/**SCHEMA_HANDLERS*/,",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Enable displaying of deactivated object records</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 361ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15107&amp;anchor=title-3025-1\" rel=\"noopener noreferrer\" target=\"_blank\">Deactivate object records</a>.</p><p>View an example that enables displaying of deactivated object records, below.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">handlers schema section</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">handlers</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">request</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"usr.SomeCustomRequest\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Implement the custom request handler. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">handler</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">async</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">request</span><span class=\"token parameter punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token parameter\"> next</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token arrow operator\" style=\"color: rgb(57, 58, 52);\">=&gt;</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Send the system request to open the \"UsrSomeSelectionWindow\" selection window. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            sdk</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access maybe-class-name\">HandlerChainService</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">instance</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">process</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Set up additional functionality. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"features\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Enable displaying of deactivated object records. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">showDeactivatedRecords</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">                </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Call the next handler if it exists and return its result. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">return</span><span class=\"token plain\"> next</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">?.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">handle</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">request</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_HANDLERS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16a468fc86d903bf_creatio-platform_8.2_platform-customization_freedom-ui_selection-window_overview_0022b8eb0588.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_edit_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Change the schema properties. To do this, clickin the properties area and fill out the schema proper",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16a468fc86d903bf_creatio-platform_8.2_platform-customization_freedom-ui_selection-window_overview_f8d78d76427d.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Customize selection windows",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a selection window\u200b",
+      "anchor": "title-15132-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up the selection window UI\u200b",
+      "anchor": "title-15132-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Set up the page UI\u200b",
+      "anchor": "title-15132-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Set up how to open the selection window\u200b",
+      "anchor": "title-15132-4"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "GETLOOKUPVALUES",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "GETLOOKUPVALUES",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "GETLOOKUPVALUES",
+        "path": "("
+      },
+      {
+        "method": "GETLOOKUPVALUES",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/selection-window/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/selection-window/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "PreviousSelection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/lookup-window-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/selection-window/examples/implement-selection-window",
+      "text": "Display the selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/no-code-customization/category/element-setup-examples",
+      "text": "Element setup examples",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:23:11.826737"
+}

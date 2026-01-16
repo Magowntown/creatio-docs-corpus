@@ -1,0 +1,1 @@
+export class DataSchemaAttribute {    public name: string;    public caption: string;    public path: string;    public dataValueType: DataValueType;    public validators: DataSchemaValidatorConfig;    public defaultValue: JsonData;    public isValueCloneable: boolean;    public attributeType: DataSchemaAttributeType;    public referenceSchemaName?: string;}

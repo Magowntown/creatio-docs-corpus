@@ -1,0 +1,1 @@
+{    "operation": "insert",    "name": "Button",    "values": {        "type": "crt.Button",        "clicked": {            "request": "SOME_HANDLER_NAME",            "params": {                ...            }        },    },},

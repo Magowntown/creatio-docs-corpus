@@ -1,0 +1,662 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-linux/deploy-the-creatio-net6-application-on-linux",
+  "title": "Deploy the Creatio .NET 6 application server on Linux",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/8.1/category/on-site-deployment"
+    },
+    {
+      "text": "Application server on Linux",
+      "href": "/docs/8.x/setup-and-administration/8.1/category/application-server-on-linux"
+    }
+  ],
+  "content_markdown": "Version: 8.1All Creatio products\nOn this page\nBefore you deploy the server, take the following steps:\n* Prepare the Creatio setup files. [Read more >>>](https://academy.creatio.com/documents?id=2120)\n* Deploy the database server. [Read more >>>](https://academy.creatio.com/documents?id=2121)\n* Deploy the Creatio caching server (Redis). [Read more >>>](https://academy.creatio.com/documents?id=2108)\n* Modify the ConnectionStrings.config file. [Read more >>>](https://academy.creatio.com/documents?id=2122)\nnote\nLearn more about running a PostgreSQL server in Docker in the [Docker documentation](https://hub.docker.com/r/library/postgres/).\n## Method 1. Deploy Creatio .NET 6 on Linux directly\u200b\nTo deploy the Creatio application server:\n* Install .NET 6, a GDI+ compatible API for non-Windows operating systems, and development libraries and header files for GNU C. [Read more >>>](https://academy.creatio.com/documents?id=2124)\n* Run the Creatio application server. [Read more >>>](https://academy.creatio.com/documents?id=2125)\n### Install .NET 6 and other Creaito dependencies\u200b\n1. Download the packages-microsoft-prod package:\nwget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb  \n2. Log in as root:\nsudo su  \n3. Install the downloaded package:\ndpkg -i packages-microsoft-prod.deb  \n4. Update the package lists:\napt-get update  \n5. Install the APT transport for downloading via the HTTP Secure protocol:\napt-get install apt-transport-https  \n6. Update the package lists:\napt-get update  \n7. Install .NET 6:\napt-get install dotnet-sdk-6.0  \n8. Install a GDI+ compatible API for non-Windows operating systems:\napt-get install -y libgdiplus  \n9. Install development libraries and header files for GNU C:\napt-get install -y libc6-dev  \n10. Log out from your root session:\nexit  \n### Run the Creatio application server\u200b\nnote\nIf you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run Creatio. Set the \"add key\" parameter to the following: `<add key=\"CookiesSameSiteMode\" value=\"Lax\" />`\nThis ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.\nTo run Creatio:\n1. Open the directory that contains Creatio setup files:\ncd /path/to/application/directory/  \n2. Run the .NET 6 server:\nCOMPlus_ThreadPool_ForceMinWorkerThreads=100 dotnet Terrasoft.WebHost.dll  \nCreatio HTTP version will be available on port 5000.\nCreatio HTTPS version will be available on port 5002.\nnote\nTo log in to newly deployed Creatio, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.\n## Method 2. Deploy Creatio .NET 6 on Linux using Docker\u200b\nUse this deployment method to run a compartmentalized Creatio application. We assume that you have installed the Redis sever, deployed the Creatio database, and set up the ConnectionStrings.config file using the instructions in the previous steps.\nTo deploy Creatio application server using Docker:\n* Make Redis accessible from the Docker container. [Read more >>>](https://academy.creatio.com/documents?id=2126)\n* Install Docker. [Read more >>>](https://academy.creatio.com/documents?id=2127)\n* Create a Dockerfile. [Read more >>>](https://academy.creatio.com/documents?id=2128)\n* Build and run a Docker image. [Read more >>>](https://academy.creatio.com/documents?id=2129)\nImportant\nWe recommend deploying Creatio using Docker for development and testing environments only. Avoid using Docker for the production environment.\n### Configure the Creatio caching server (Redis)\u200b\n1. Open **redis.conf** in a text editor as root. For example, use the Nano text editor:\nsudo nano /etc/redis/redis.conf  \n2. Locate the \"**bind 127.0.0.1 ::1** \" entry. Replace the entry with \"**bind 0.0.0.0** \" to listen to all available IPV4 interfaces.\n3. Save changes and exit the editor.\n4. Restart the Redis server:\nsudo systemctl restart redis-server  \n### Install Docker\u200b\nTo install Docker, run:\nsudo apt-get install docker  \n#### Create a Dockerfile\u200b\n1. Open the Creatio directory:\ncd /path/to/application/directory/  \n**/path/to/application/directory/** is the directory that contains unpacked Creatio installation files.\n2. Create a Dockerfile using a text editor. For example, use the Nano text editor:\nnano Dockerfile  \n3. Insert the following code:\nFROM mcr.microsoft.com/dotnet/sdk:6.0 AS base  \nEXPOSE 5000 5002  \nRUN apt-get update && \\  \napt-get -y --no-install-recommends install \\  \nlibgdiplus \\  \nlibc6-dev && \\  \napt-get clean all && \\  \nrm -rf /var/lib/apt/lists/* /var/cache/apt/*  \nWORKDIR /app  \nCOPY . ./  \nFROM base AS final  \nWORKDIR /app  \nENV ASPNETCORE_ENVIRONMENT Development  \nENV TZ US/Eastern  \nENV COMPlus_ThreadPool_ForceMinWorkerThreads 100  \nENTRYPOINT [\"dotnet\", \"Terrasoft.WebHost.dll\"]  \n4. Press Ctrl+O to save the changes.\n5. Press Ctrl+X to exit the editor.\n#### Build and run a Docker image\u200b\nnote\nIf you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run the Docker image. Set the \"add key\" parameter to the following: `<add key=\"CookiesSameSiteMode\" value=\"Lax\" />`.\nThis ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.\nBuild a Docker image:\ndocker build -f Dockerfile -t creatioimg .  \nRun the docker image:\ndocker run -p http_port_number:5000 -p https_port_number:5002 -d --dns=DNS_server_ip --dns-search=DNS_address_suffix -v /logspath/mycreatio:/app/Logs --name Creatio creatioimg  \n**http_port_number** is a port number. Docker will serve the HTTP version on this port\n**https_port_number** is a port number. Docker will serve the HTTPS version on this port\n**DNS_server_ip** is the IP address of a DNS server that enables the container to resolve Internet domains. You can use multiple **\\--dns** flags for multiple DNS servers.\n**DNS_address_suffix** is a DNS search domain that enables the container to search for non-fully-qualified hostnames. You can use multiple **\\--dns-search** flags for multiple DNS search domains.\nnote\nAdd the --restart=always flag to the command make a persistent Docker container.\nCreatio HTTP version will be available on port **http_port_number**.\nCreatio HTTPS version will be available on port **https_port_number**.\nnote\nTo log in to a newly deployed application, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.\n## Configure Creatio .NET 6 for HTTPS\u200b\nBefore you start working in Creatio via HTTPS, take the following steps:\n1. Obtain a *.pfx digital certificate from the certification center.\nnote\nIf you use a self-signed certificate, Creatio mobile application cannot connect to the Creatio website due to security policies of mobile applications.\n2. Go to Creatio root directory and open appsettings.json.\n3. Specify your website address, path to the certificate, and certificate password in the \"Https\" block.\nExample of the \n\"Https\": {  \n\"Url\": \"https://::5002\",  \n\"Certificate\": {  \n\"Path\": \"C:\\Projects\\site\\20210215_103239\\localhost.pfx\",  \n\"Password\": \"Password\"  \n}  \n}  \nnote\nYou can specify both relative and absolute path to the certificate. The absolute path must be JSON compatible.\n* * *\n## See also\u200b\n[Enable required Windows components](https://academy.creatio.com/documents?id=2081)\n[Requirements calculator](https://academy.creatio.com/docs/requirements/calculator)",
+  "code_examples": [
+    {
+      "code": "wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb",
+      "language": "cli",
+      "context": "Download the packages-microsoft-prod package:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "dpkg -i packages-microsoft-prod.deb",
+      "language": "cli",
+      "context": "Install the downloaded package:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get update",
+      "language": "cli",
+      "context": "Update the package lists:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get install apt-transport-https",
+      "language": "cli",
+      "context": "Install the APT transport for downloading via the HTTP Secure protocol:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get install dotnet-sdk-6.0",
+      "language": "cli",
+      "context": "Install .NET 6:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get install -y libgdiplus",
+      "language": "cli",
+      "context": "Install a GDI+ compatible API for non-Windows operating systems:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get install -y libc6-dev",
+      "language": "cli",
+      "context": "Install development libraries and header files for GNU C:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "cd /path/to/application/directory/",
+      "language": "cli",
+      "context": "Open the directory that contains Creatio setup files:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "COMPlus_ThreadPool_ForceMinWorkerThreads=100 dotnet Terrasoft.WebHost.dll",
+      "language": "cli",
+      "context": "Run the .NET 6 server:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "sudo nano /etc/redis/redis.conf",
+      "language": "cli",
+      "context": "Openredis.confin a text editor as root. For example, use the Nano text editor:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "sudo systemctl restart redis-server",
+      "language": "cli",
+      "context": "Restart the Redis server:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "sudo apt-get install docker",
+      "language": "cli",
+      "context": "To install Docker, run:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "nano Dockerfile",
+      "language": "cli",
+      "context": "Create a Dockerfile using a text editor. For example, use the Nano text editor:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "FROM mcr.microsoft.com/dotnet/sdk:6.0 AS baseEXPOSE 5000 5002RUN apt-get update && \\apt-get -y --no-install-recommends install \\libgdiplus \\libc6-dev && \\apt-get clean all && \\rm -rf /var/lib/apt/lists/* /var/cache/apt/*WORKDIR /appCOPY . ./FROM base AS finalWORKDIR /appENV ASPNETCORE_ENVIRONMENT DevelopmentENV TZ US/EasternENV COMPlus_ThreadPool_ForceMinWorkerThreads 100ENTRYPOINT [\"dotnet\", \"Terrasoft.WebHost.dll\"]",
+      "language": "cli",
+      "context": "Insert the following code:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker build -f Dockerfile -t creatioimg .",
+      "language": "cli",
+      "context": "Build a Docker image:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker run -p http_port_number:5000 -p https_port_number:5002 -d --dns=DNS_server_ip --dns-search=DNS_address_suffix -v /logspath/mycreatio:/app/Logs --name Creatio creatioimg",
+      "language": "cli",
+      "context": "Run the docker image:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"Https\": {    \"Url\": \"https://::5002\",    \"Certificate\": {        \"Path\": \"C:\\Projects\\site\\20210215_103239\\localhost.pfx\",        \"Password\": \"Password\"    }}",
+      "language": "json",
+      "context": "Specify your website address, path to the certificate, and certificate password in the \"Https\" block.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteLearn more about running a PostgreSQL server in Docker in theDocker documentation.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Learn more about running a PostgreSQL server in Docker in the <a href=\"https://hub.docker.com/r/library/postgres/\" rel=\"noopener noreferrer\" target=\"_blank\">Docker documentation</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Learn more about running a PostgreSQL server in Docker in theDocker documentation.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Learn more about running a PostgreSQL server in Docker in the <a href=\"https://hub.docker.com/r/library/postgres/\" rel=\"noopener noreferrer\" target=\"_blank\">Docker documentation</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run Creatio. Set the \"add key\" parameter to the following:<add key=\"CookiesSameSiteMode\" value=\"Lax\" />This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run Creatio. Set the \"add key\" parameter to the following: <code>&lt;add key=\"CookiesSameSiteMode\" value=\"Lax\" /&gt;</code></p><p>This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run Creatio. Set the \"add key\" parameter to the following:<add key=\"CookiesSameSiteMode\" value=\"Lax\" />This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run Creatio. Set the \"add key\" parameter to the following: <code>&lt;add key=\"CookiesSameSiteMode\" value=\"Lax\" /&gt;</code></p><p>This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteTo log in to newly deployed Creatio, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>To log in to newly deployed Creatio, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To log in to newly deployed Creatio, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To log in to newly deployed Creatio, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWe recommend deploying Creatio using Docker for development and testing environments only. Avoid using Docker for the production environment.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We recommend deploying Creatio using Docker for development and testing environments only. Avoid using Docker for the production environment.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We recommend deploying Creatio using Docker for development and testing environments only. Avoid using Docker for the production environment.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We recommend deploying Creatio using Docker for development and testing environments only. Avoid using Docker for the production environment.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run the Docker image. Set the \"add key\" parameter to the following:<add key=\"CookiesSameSiteMode\" value=\"Lax\" />.This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run the Docker image. Set the \"add key\" parameter to the following: <code>&lt;add key=\"CookiesSameSiteMode\" value=\"Lax\" /&gt;</code>.</p><p>This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run the Docker image. Set the \"add key\" parameter to the following:<add key=\"CookiesSameSiteMode\" value=\"Lax\" />.This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you are deploying the .NET 6 development environment with access via HTTP, modify the Terrasoft.WebHost.dll.config file in the Creatio root directory before you run the Docker image. Set the \"add key\" parameter to the following: <code>&lt;add key=\"CookiesSameSiteMode\" value=\"Lax\" /&gt;</code>.</p><p>This ensures correct operation both via HTTP and HTTPS. However, the mobile app will not be operational if you use this setting.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteAdd the --restart=always flag to the command make a persistent Docker container.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Add the --restart=always flag to the command make a persistent Docker container.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add the --restart=always flag to the command make a persistent Docker container.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add the --restart=always flag to the command make a persistent Docker container.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteTo log in to a newly deployed application, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>To log in to a newly deployed application, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To log in to a newly deployed application, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To log in to a newly deployed application, use the default Supervisor user account. It is highly recommended to change the Supervisor password immediately. Login: Supervisor; password: Supervisor.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you use a self-signed certificate, Creatio mobile application cannot connect to the Creatio website due to security policies of mobile applications.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you use a self-signed certificate, Creatio mobile application cannot connect to the Creatio website due to security policies of mobile applications.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you use a self-signed certificate, Creatio mobile application cannot connect to the Creatio website due to security policies of mobile applications.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you use a self-signed certificate, Creatio mobile application cannot connect to the Creatio website due to security policies of mobile applications.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteYou can specify both relative and absolute path to the certificate. The absolute path must be JSON compatible.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can specify both relative and absolute path to the certificate. The absolute path must be JSON compatible.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You can specify both relative and absolute path to the certificate. The absolute path must be JSON compatible.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can specify both relative and absolute path to the certificate. The absolute path must be JSON compatible.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Deploy the Creatio .NET 6 application server on Linux",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Method 1. Deploy Creatio .NET 6 on Linux directly\u200b",
+      "anchor": "title-2649-1"
+    },
+    {
+      "level": 3,
+      "text": "Install .NET 6 and other Creaito dependencies\u200b",
+      "anchor": "title-2649-2"
+    },
+    {
+      "level": 3,
+      "text": "Run the Creatio application server\u200b",
+      "anchor": "title-2649-3"
+    },
+    {
+      "level": 2,
+      "text": "Method 2. Deploy Creatio .NET 6 on Linux using Docker\u200b",
+      "anchor": "title-2649-4"
+    },
+    {
+      "level": 3,
+      "text": "Configure the Creatio caching server (Redis)\u200b",
+      "anchor": "title-2649-5"
+    },
+    {
+      "level": 3,
+      "text": "Install Docker\u200b",
+      "anchor": "title-2649-6"
+    },
+    {
+      "level": 4,
+      "text": "Create a Dockerfile\u200b",
+      "anchor": "title-2649-7"
+    },
+    {
+      "level": 4,
+      "text": "Build and run a Docker image\u200b",
+      "anchor": "title-2649-8"
+    },
+    {
+      "level": 2,
+      "text": "Configure Creatio .NET 6 for HTTPS\u200b",
+      "anchor": "title-2497-17"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-linux/deploy-the-creatio-net6-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/user-access-overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-access-overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-oracle-database-for-creatio",
+      "text": "Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-linux/prepare-creatio-net6-setup-files-on-linux",
+      "text": "PreviousPrepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-linux/move-creatio-net-core-3-1-to-net-6",
+      "text": "NextMove Creatio to .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-oracle-database",
+      "text": "ConnectionStrings.config for Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/requirements/calculator",
+      "text": "Requirements calculator",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:47:35.525325"
+}

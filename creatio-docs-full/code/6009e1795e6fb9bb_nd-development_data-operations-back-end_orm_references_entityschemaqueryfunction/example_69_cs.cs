@@ -1,0 +1,1 @@
+EntitySchemaCurrentTimeQueryFunction(EntitySchemaCurrentTimeQueryFunction source) : base(source)

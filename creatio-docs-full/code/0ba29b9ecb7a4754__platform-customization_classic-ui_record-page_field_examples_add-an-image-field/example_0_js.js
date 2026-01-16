@@ -1,0 +1,1 @@
+/* Declare the AMD module. */define("KnowledgeBasePageV2", ["KnowledgeBasePageV2Resources", "ConfigurationConstants"], function(resources, ConfigurationConstants) {    return {        ...    }});

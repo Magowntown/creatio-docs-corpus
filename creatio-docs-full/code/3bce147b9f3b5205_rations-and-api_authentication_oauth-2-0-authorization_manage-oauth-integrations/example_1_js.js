@@ -1,0 +1,1 @@
+{    "addClientRequest": {        "name": "PowerBI",        "applicationUrl": "test.com",        "systemUserId": "7F3B869F-34F3-4F20-AB4D-7480A5FDF648",        "grantType": "client_credentials"    }}

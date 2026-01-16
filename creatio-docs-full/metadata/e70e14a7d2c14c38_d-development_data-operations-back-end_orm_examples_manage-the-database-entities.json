@@ -1,0 +1,761 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/examples/manage-the-database-entities",
+  "title": "Manage the database entities",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    },
+    {
+      "text": "Data operations (back-end)",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end"
+    },
+    {
+      "text": "ORM",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nnote\nExamples 1-5 in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.\n## Example 1\u200b\nExample\nRetrieve the value of the **City** schema column whose name is `Name`.\nGetEntityColumnData() method\npublic string GetEntityColumnData() {  \nvar result = \"\";  \n/* Create a query to the City schema, add the Name column to the query. */  \nvar esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"City\");  \nvar colName = esqResult.AddColumn(\"Name\");  \n/* Run the database query and retrieve the object that has the set identifier. You can retrieve the object UId from the browser navigation bar after opening the section record page. */  \nvar entity = esqResult.GetEntity(UserConnection, new Guid(\"100B6B13-E8BB-DF11-B00F-001D60E938C6\"));  \n/* Retrieve the object column value. */  \nresult += entity.GetColumnValue(colName.Name).ToString();  \nreturn result;  \n}  \n## Example 2\u200b\nExample\nRetrieve the name collection of the **City** schema columns.\nGetEntityColumns() method\npublic IEnumerable <string> GetEntityColumns() {  \n/* Create a data string object of the City schema based on the schema identifier retrieved from the database. */  \nvar entity = new Entity(UserConnection, new Guid(\"5CA90B6A-93E7-4448-BEFE-AB5166EC2CFE\"));  \n/* Retrieve the object that has the set identifier from the database. You can retrieve the object UId from the browser navigation bar after opening the section record page. */  \nentity.FetchFromDB(new Guid(\"100B6B13-E8BB-DF11-B00F-001D60E938C6\"), true);  \n/* Retrieve the name collection of the object columns. */  \nvar result = entity.GetColumnValueNames();  \nreturn result;  \n}  \n## Example 3\u200b\nExample\nDelete the **Order** schema records from the database.\nDeleteEntity() method\npublic bool DeleteEntity() {  \n/* Create a query to the Order schema, add all schema columns to the query. */  \nvar esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"Order\");  \nesqResult.AddAllSchemaColumns();  \n/* Run the database query and retrieve the object that has the set identifier. You can retrieve the object UId from the browser navigation bar after opening the section record page. */  \nvar entity = esqResult.GetEntity(UserConnection, new Guid(\"e3bfa32f-3fe9-4bae-9332-16c162c51e0d\"));  \n/* Delete the object from the database. */  \nentity.Delete();  \n/* Check if the object that has the set identifier exists in the database. */  \nvar result = entity.ExistInDB(new Guid(\"e3bfa32f-3fe9-4bae-9332-16c162c51e0d\"));  \nreturn result;  \n}  \n## Example 4\u200b\nExample\nChange the order status.\nUpdateEntity() method\npublic bool UpdateEntity() {  \n/* Create a query to the Order schema, add all schema columns to the query. */  \nvar esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"Order\");  \nesqResult.AddAllSchemaColumns();  \n/* Run the database query and retrieve the object that has the set identifier. You can retrieve the object UId from the browser navigation bar after opening the section record page. */  \nvar entity = esqResult.GetEntity(UserConnection, new Guid(\"58be5223-715d-4b16-a5c4-e3d4ec0412d9\"));  \n/* Create the data string object of the OrderStatus schema. */  \nvar statusSchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"OrderStatus\");  \nvar newStatus = statusSchema.CreateEntity(UserConnection);  \n/* Retrieve the object that has the set identifier from the database. */  \nnewStatus.FetchFromDB(\"Name\", \"4. Completed\");  \n/* Assign the new value to the StatusId column. */  \nentity.SetColumnValue(\"StatusId\", newStatus.GetTypedColumnValue <Guid> (\"Id\"));  \n/* Save the modified object to the database. */  \nvar result = entity.Save();  \nreturn result;  \n}  \n## Example 5\u200b\nExample\nAdd the city that has the specified name and connect it to the specified country.\nUpdateEntity() method\npublic bool InsertEntity(string city, string country) {  \ncity = city ?? \"unknown city\";  \ncountry = country ?? \"unknown country\";  \nvar citySchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"City\");  \nvar entity = citySchema.CreateEntity(UserConnection);  \nentity.FetchFromDB(\"Name\", city);  \n/* Set the default values for the object columns. */  \nentity.SetDefColumnValues();  \nvar contryEntity = new Entity(UserConnection, new Guid(\"09FCE1F8-515C-4296-95CD-8CD93F79A6CF\"));  \ncontryEntity.FetchFromDB(\"Name\", country);  \n/* Assign the passed city name to the Name column. */  \nentity.SetColumnValue(\"Name\", city);  \n/* Assign the passed country UId to the CountryId column. */  \nentity.SetColumnValue(\"CountryId\", contryEntity.GetTypedColumnValue <Guid> (\"Id\"));  \nvar result = entity.Save();  \nreturn result;  \n}  \n## Example 6\u200b\nExample\nCreate a contact that has the \"User01\" name.\nEntitySchema contactSchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");  \nEntity contactEntity = contactSchema.CreateEntity(UserConnection);  \ncontactEntity.SetDefColumnValues();  \ncontactEntity.SetColumnValue(\"Name\", \"User01\");  \ncontactEntity.Save();  \n## Example 7\u200b\nExample\nChange the contact name to \"User02\".\nEntitySchema entitySchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");  \nEntity entity = entitySchema.CreateEntity(UserConnection);  \nif(!entity.FetchFromDB(some_id)) {  \nreturn false;  \n}  \nentity.SetColumnValue(\"Name\", \"User02\");  \nreturn entity.Save();  \n## Example 8\u200b\nExample\nDelete the contact that has the \"User02\" name.\nEntitySchema entitySchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");  \nEntity entity = entitySchema.CreateEntity(UserConnection);  \nvar fetchConditions = new Dictionary<string, object> {  \n{\"Name\", \"User02\"}  \n};  \nif (entity.FetchFromDB(fetchConditions)) {  \nentity.Delete();  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation (web service)](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWorkWithData_18.11.08_11.29.21.zip)",
+  "code_examples": [
+    {
+      "code": "public string GetEntityColumnData() {    var result = \"\";    /* Create a query to the City schema, add the Name column to the query. */    var esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"City\");    var colName = esqResult.AddColumn(\"Name\");    /* Run the database query and retrieve the object that has the set identifier. You can retrieve the object UId from the browser navigation bar after opening the section record page. */    var entity = esqResult.GetEntity(UserConnection, new Guid(\"100B6B13-E8BB-DF11-B00F-001D60E938C6\"));    /* Retrieve the object column value. */    result += entity.GetColumnValue(colName.Name).ToString();    return result;}",
+      "language": "cs",
+      "context": "Retrieve the value of theCityschema column whose name isName.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public IEnumerable <string> GetEntityColumns() {    /* Create a data string object of the City schema based on the schema identifier retrieved from the database. */    var entity = new Entity(UserConnection, new Guid(\"5CA90B6A-93E7-4448-BEFE-AB5166EC2CFE\"));    /* Retrieve the object that has the set identifier from the database. You can retrieve the object UId from the browser navigation bar after opening the section record page. */    entity.FetchFromDB(new Guid(\"100B6B13-E8BB-DF11-B00F-001D60E938C6\"), true);    /* Retrieve the name collection of the object columns. */    var result = entity.GetColumnValueNames();    return result;}",
+      "language": "cs",
+      "context": "Retrieve the name collection of theCityschema columns.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public bool DeleteEntity() {    /* Create a query to the Order schema, add all schema columns to the query. */    var esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"Order\");    esqResult.AddAllSchemaColumns();    /* Run the database query and retrieve the object that has the set identifier. You can retrieve the object UId from the browser navigation bar after opening the section record page. */    var entity = esqResult.GetEntity(UserConnection, new Guid(\"e3bfa32f-3fe9-4bae-9332-16c162c51e0d\"));    /* Delete the object from the database. */    entity.Delete();    /* Check if the object that has the set identifier exists in the database. */    var result = entity.ExistInDB(new Guid(\"e3bfa32f-3fe9-4bae-9332-16c162c51e0d\"));    return result;}",
+      "language": "cs",
+      "context": "Delete theOrderschema records from the database.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public bool UpdateEntity() {    /* Create a query to the Order schema, add all schema columns to the query. */    var esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"Order\");    esqResult.AddAllSchemaColumns();    /* Run the database query and retrieve the object that has the set identifier. You can retrieve the object UId from the browser navigation bar after opening the section record page. */    var entity = esqResult.GetEntity(UserConnection, new Guid(\"58be5223-715d-4b16-a5c4-e3d4ec0412d9\"));    /* Create the data string object of the OrderStatus schema. */    var statusSchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"OrderStatus\");    var newStatus = statusSchema.CreateEntity(UserConnection);    /* Retrieve the object that has the set identifier from the database. */    newStatus.FetchFromDB(\"Name\", \"4. Completed\");    /* Assign the new value to the StatusId column. */    entity.SetColumnValue(\"StatusId\", newStatus.GetTypedColumnValue <Guid> (\"Id\"));    /* Save the modified object to the database. */    var result = entity.Save();    return result;}",
+      "language": "cs",
+      "context": "Change the order status.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public bool InsertEntity(string city, string country) {    city = city ?? \"unknown city\";    country = country ?? \"unknown country\";    var citySchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"City\");    var entity = citySchema.CreateEntity(UserConnection);    entity.FetchFromDB(\"Name\", city);    /* Set the default values for the object columns. */    entity.SetDefColumnValues();    var contryEntity = new Entity(UserConnection, new Guid(\"09FCE1F8-515C-4296-95CD-8CD93F79A6CF\"));    contryEntity.FetchFromDB(\"Name\", country);    /* Assign the passed city name to the Name column. */    entity.SetColumnValue(\"Name\", city);    /* Assign the passed country UId to the CountryId column. */    entity.SetColumnValue(\"CountryId\", contryEntity.GetTypedColumnValue <Guid> (\"Id\"));    var result = entity.Save();    return result;}",
+      "language": "cs",
+      "context": "Add the city that has the specified name and connect it to the specified country.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "EntitySchema contactSchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");Entity contactEntity = contactSchema.CreateEntity(UserConnection);contactEntity.SetDefColumnValues();contactEntity.SetColumnValue(\"Name\", \"User01\");contactEntity.Save();",
+      "language": "cs",
+      "context": "Create a contact that has the \"User01\" name.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "EntitySchema entitySchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");Entity entity = entitySchema.CreateEntity(UserConnection);if(!entity.FetchFromDB(some_id)) {    return false;}entity.SetColumnValue(\"Name\", \"User02\");return entity.Save();",
+      "language": "cs",
+      "context": "Change the contact name to \"User02\".",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "EntitySchema entitySchema = UserConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");Entity entity = entitySchema.CreateEntity(UserConnection);var fetchConditions = new Dictionary<string, object> {    {\"Name\", \"User02\"}};if (entity.FetchFromDB(fetchConditions)) {    entity.Delete();}",
+      "language": "cs",
+      "context": "Delete the contact that has the \"User02\" name.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteExamples 1-5 in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Examples 1-5 in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Examples 1-5 in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Examples 1-5 in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "City",
+      "content": "ExampleRetrieve the value of theCityschema column whose name isName.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Retrieve the value of the <strong>City</strong> schema column whose name is <code>Name</code>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "City",
+      "content": "Retrieve the value of theCityschema column whose name isName.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Retrieve the value of the <strong>City</strong> schema column whose name is <code>Name</code>.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "City",
+      "content": "ExampleRetrieve the name collection of theCityschema columns.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Retrieve the name collection of the <strong>City</strong> schema columns.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "City",
+      "content": "Retrieve the name collection of theCityschema columns.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Retrieve the name collection of the <strong>City</strong> schema columns.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Order",
+      "content": "ExampleDelete theOrderschema records from the database.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Delete the <strong>Order</strong> schema records from the database.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Order",
+      "content": "Delete theOrderschema records from the database.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Delete the <strong>Order</strong> schema records from the database.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleChange the order status.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Change the order status.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Change the order status.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Change the order status.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd the city that has the specified name and connect it to the specified country.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add the city that has the specified name and connect it to the specified country.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add the city that has the specified name and connect it to the specified country.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add the city that has the specified name and connect it to the specified country.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleCreate a contact that has the \"User01\" name.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create a contact that has the \"User01\" name.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Create a contact that has the \"User01\" name.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create a contact that has the \"User01\" name.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleChange the contact name to \"User02\".",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Change the contact name to \"User02\".</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Change the contact name to \"User02\".",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Change the contact name to \"User02\".</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleDelete the contact that has the \"User02\" name.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Delete the contact that has the \"User02\" name.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Delete the contact that has the \"User02\" name.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Delete the contact that has the \"User02\" name.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWorkWithData_18.11.08_11.29.21.zip",
+      "text": "Package with example implementation (web service)",
+      "filename": "sdkWorkWithData_18.11.08_11.29.21.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/e70e14a7d2c14c38_d-development_data-operations-back-end_orm_examples_manage-the-database-entities_sdkWorkWithData_18.11.08_11.29.21.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Manage the database entities",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Example 1\u200b",
+      "anchor": "title-1244-1"
+    },
+    {
+      "level": 2,
+      "text": "Example 2\u200b",
+      "anchor": "title-1244-2"
+    },
+    {
+      "level": 2,
+      "text": "Example 3\u200b",
+      "anchor": "title-1244-3"
+    },
+    {
+      "level": 2,
+      "text": "Example 4\u200b",
+      "anchor": "title-1244-4"
+    },
+    {
+      "level": 2,
+      "text": "Example 5\u200b",
+      "anchor": "title-1244-5"
+    },
+    {
+      "level": 2,
+      "text": "Example 6\u200b",
+      "anchor": "title-2149-6"
+    },
+    {
+      "level": 2,
+      "text": "Example 7\u200b",
+      "anchor": "title-1244-7"
+    },
+    {
+      "level": 2,
+      "text": "Example 8\u200b",
+      "anchor": "title-1244-8"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/examples/manage-the-database-entities",
+      "text": "Manage the database entities",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/orm/examples/manage-the-database-entities",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/orm/examples/manage-the-database-entities",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/orm/examples/manage-the-database-entities",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/execute-operations-in-the-background/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/background-operations-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/examples/retrieve-the-data-based-on-the-users-permissions",
+      "text": "PreviousRetrieve the data based on the user's permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entityschemaquery",
+      "text": "EntitySchemaQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entity",
+      "text": "Entity",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entitymapper",
+      "text": "EntityMapper",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entityschemaqueryfunction",
+      "text": "EntitySchemaQueryFunction",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entityschemaqueryoptions",
+      "text": "EntitySchemaQueryOptions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:29:05.648385"
+}

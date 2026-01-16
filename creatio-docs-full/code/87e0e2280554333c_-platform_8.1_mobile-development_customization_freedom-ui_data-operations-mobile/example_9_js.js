@@ -1,0 +1,1 @@
+"viewModelConfig": {    "attributes": {        "Items": {            "modelConfig": {                "path": "PDS",                "sortingConfig": {                    "default": [                        {"columnName": "CreatedOn", "direction": "asc"}                    ]                }            }        }    },    ...}

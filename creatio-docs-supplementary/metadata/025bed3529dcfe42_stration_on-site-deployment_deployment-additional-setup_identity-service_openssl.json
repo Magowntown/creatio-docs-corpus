@@ -1,0 +1,541 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/identity-service/openssl",
+  "title": "Generate PFX certificate using OpenSSL",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment"
+    },
+    {
+      "text": "Additional setup",
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup"
+    },
+    {
+      "text": "Identity Service",
+      "href": "/docs/8.x/setup-and-administration/category/identity-service"
+    }
+  ],
+  "content_markdown": "Version: 8.3On-site\nOn this page\nOpenSSL is an open-source toolkit that is widely used for implementing the SSL/TLS protocols, which are the standards for secure communication over computer networks. A **PFX certificate** is a digital document that verifies the identity of a website or server. Creatio uses it to sign access tokens that are issued by Identity Service, ensuring that your data is secure.\nEach Identity Service instance should utilize a unique PFX certificate. The use of identical certificates across multiple environments constitutes a significant security vulnerability.\nYou can use a certificate that was issued by the certificate authority or a manually generated certificate. To generate a certificate manually, use the instructions below. The script that generates the PFX certificate is located in the archive with the Identity Service installation files.\nImportant\nOAuth and OpenID authorization functionality support certificates encrypted with RSA, or ECDSA using the following combinations: P-256 with SHA-256, P-384 with SHA-384, or P-521 with SHA-512. When using certificates from a certificate authority, ensure they are signed with a supported encryption type to guarantee compatibility.\n## General procedure\u200b\n### Generate PFX certificate for Windows\u200b\n#### 1\\. Install OpenSSL\u200b\nInstall OpenSSL if needed. [Download the install file](https://wiki.openssl.org/index.php/Binaries).\nThe installation instructions are provided by the installer.\n#### 2\\. Set permissions to run PowerShell scripts\u200b\n1. **Open PowerShell terminal as administrator**. To do this, right-click on the PowerShell icon and select \"Run as administrator.\"\n2. **Allow script execution**.\n1. Run the following command at the PowerShell terminal: `Set-ExecutionPolicy RemoteSigned`.\n2. Press Enter.\n3. **Confirm the change** when prompted.\n#### 3\\. Generate the certificate\u200b\n1. **Open PowerShell terminal**.\n2. **Go to the script directory**. To do this, run the following command at the PowerShell terminal:\ncd <rootIdentityServiceDirectory>\\pfx\\win  \nwhere `<rootIdentityServiceDirectory>` is the path to the root directory of the Identity Service.\n3. **Execute the *.ps1 script** using the following parameters:\n.\\generate_pfx.ps1 -pemPassword \"YourSecurePassword\" -outputPath \"certificateDirectory\" -validDays 365  \nwhere:\n* `YourSecurePassword` is the secure password for the PEM file. Make sure the password follows the recommendations.\nPassword recommendations for PEM file\n* Use a strong password that has at least 12 characters.\n* Include a mix of uppercase and lowercase Latin letters, numbers, and special characters.\n* Avoid using common words or easily guessable patterns.\n* Store the password securely (e. g., in a password manager).\n* `certificateDirectory` is the desired output directory where you store the certificate. The default location for the certificate is the root directory of the Identity Service. If you want to keep certificate in the default location, set the parameter value to `\"../../\"`.\n* `365` is the desired validity period in days.\n**As a result** , the script will generate an openssl.pfx certificate and save it to the specified output directory.\n### Generate PFX certificate for Linux\u200b\n#### 1\\. Install OpenSSL\u200b\n1. **Open the terminal**.\n2. **Install OpenSSL** using package manager:\n* For Debian/Ubuntu: `sudo apt update && sudo apt install openssl -y`\n* For RHEL/CentOS: `sudo yum install openssl -y`\n* For Fedora: `sudo dnf install openssl -y`\n#### 2\\. Setup the bash script\u200b\nTo do this, run the following command:\nchmod +x generate_pfx.sh  \n#### 3\\. Generate the certificate\u200b\n1. **Open the terminal**.\n2. **Go to the script directory**. To do this, run the following command:\n<rootIdentityServiceDirectory\\pfx\\linux\\>  \nwhere `<rootIdentityServiceDirectory>` is the path to the root directory of the Identity Service.\n3. **Execute the *.ps1 script** with the following parameters:\n./generate_pfx.sh \"YourSecurePassword\" \"certificateDirectory\" 365  \nwhere:\n* `YourSecurePassword` is the secure password for the PEM file. Make sure the password follows the recommendations.\nPassword recommendations for PEM file\n* Use a strong password that has at least 12 characters.\n* Include a mix of uppercase and lowercase Latin letters, numbers, and special characters.\n* Avoid using common words or easily guessable patterns.\n* Store the password securely (e. g., in a password manager).\n* `certificateDirectory` is the desired output directory where you store the certificate. The default location for the certificate is the root directory of the Identity Service. If you want to keep certificate in the default location, set the parameter value to `\"../../\"`.\n* `365` is the desired validity period in days.\n**As a result** , the script will generate an openssl.pfx certificate and save it to the specified output directory.\n## Change PFX certificate in the existing Identity Service\u200b\nImportant\nTo prevent disruption and temporary service interruptions, we recommend changing PFX certificate in the existing Identity Service during non-business hours.\nGeneral recommendations:\n* **Back up the existing openssl.pfx certificate**. Before replacing the existing certificate, create a backup to restore the previous version if necessary.\n* **Test certificate replacement procedure on pre-production environment**. Thoroughly test the new certificate in a pre-production environment that is identical to the production environment. This lets you identify and resolve any potential issues before deploying to production.\n* **Verify functionality**. After restarting the Identity Service and Creatio, carefully verify the proper functioning of OAuth 2.0 authorization in all integrations that utilize this method.\nTo change PFX certificate in the existing Identity Service:\n1. **Add the openssl.pfx certificate into the existing Identity Service**.\n1. Generate a new openssl.pfx certificate or copy an existing openssl.pfx certificate to your desired directory.\n2. If needed, specify the full path to openssl.pfx certificate in the `X509CertificatePath` parameter of appsettings.json file in the root Identity Service directory.\n2. **Restart Identity Service and Creatio** in one of the following ways:\n* using IIS\n1. Restart Identity Service.\n1. Open IIS Manager.\n2. Open the **Application Pools** section in the **Connections** area of the IIS.\n3. Go to the Identity Service application pool.\n4. Recycle the application pool. To do this, right-click on the Identity Service application pool \u2192 **Recycle**.\n2. Restart Creatio.\n1. Open IIS Manager.\n2. Open the **Application Pools** section in the **Connections** area of the IIS.\n3. Go to the Creatio application pool.\n4. Recycle the application pool. To do this, right-click on the Creatio application pool \u2192 **Recycle**.\n* using Docker\n1. Rebuild and restart the Identity Service container.\n2. Restart the Creatio app.\n**As a result** , the PFX certificate in the existing Identity Service will be changed.\n* * *\n## See also\u200b\n[Connect the Identity Service to Creatio](https://academy.creatio.com/documents?id=2467)\n[Set up client credentials grant](https://academy.creatio.com/documents?id=2508)\n[Set up authorization code grant](https://academy.creatio.com/documents?id=2576)\n[OAuth health monitoring](https://academy.creatio.com/documents?id=2513)\n[Authorize external requests using client credentials grant (developer documentation)](https://academy.creatio.com/documents?id=15058)\n[Authorize external requests using authorization code grant (developer documentation)](https://academy.creatio.com/documents?id=15188)\n[NLog (developer documentation)](https://academy.creatio.com/documents?id=15182)\n* * *\n## E-learning courses\u200b\n[Tech Hour - Integrate like a boss with Creatio, part 2 (Odata)](https://www.youtube.com/watch?v=ehjfcBxpLsQ)",
+  "code_examples": [
+    {
+      "code": "cd <rootIdentityServiceDirectory>\\pfx\\win",
+      "language": "cli",
+      "context": "Go to the script directory. To do this, run the following command at the PowerShell terminal:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": ".\\generate_pfx.ps1 -pemPassword \"YourSecurePassword\" -outputPath \"certificateDirectory\" -validDays 365",
+      "language": "cli",
+      "context": "Execute the *.ps1 scriptusing the following parameters:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "chmod +x generate_pfx.sh",
+      "language": "cli",
+      "context": "To do this, run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<rootIdentityServiceDirectory\\pfx\\linux\\>",
+      "language": "cli",
+      "context": "Go to the script directory. To do this, run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "./generate_pfx.sh \"YourSecurePassword\" \"certificateDirectory\" 365",
+      "language": "cli",
+      "context": "Execute the *.ps1 scriptwith the following parameters:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantOAuth and OpenID authorization functionality support certificates encrypted with RSA, or ECDSA using the following combinations: P-256 with SHA-256, P-384 with SHA-384, or P-521 with SHA-512. When using certificates from a certificate authority, ensure they are signed with a supported encryption type to guarantee compatibility.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>OAuth and OpenID authorization functionality support certificates encrypted with RSA, or ECDSA using the following combinations: P-256 with SHA-256, P-384 with SHA-384, or P-521 with SHA-512. When using certificates from a certificate authority, ensure they are signed with a supported encryption type to guarantee compatibility.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "OAuth and OpenID authorization functionality support certificates encrypted with RSA, or ECDSA using the following combinations: P-256 with SHA-256, P-384 with SHA-384, or P-521 with SHA-512. When using certificates from a certificate authority, ensure they are signed with a supported encryption type to guarantee compatibility.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>OAuth and OpenID authorization functionality support certificates encrypted with RSA, or ECDSA using the following combinations: P-256 with SHA-256, P-384 with SHA-384, or P-521 with SHA-512. When using certificates from a certificate authority, ensure they are signed with a supported encryption type to guarantee compatibility.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTo prevent disruption and temporary service interruptions, we recommend changing PFX certificate in the existing Identity Service during non-business hours.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>To prevent disruption and temporary service interruptions, we recommend changing PFX certificate in the existing Identity Service during non-business hours.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To prevent disruption and temporary service interruptions, we recommend changing PFX certificate in the existing Identity Service during non-business hours.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To prevent disruption and temporary service interruptions, we recommend changing PFX certificate in the existing Identity Service during non-business hours.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Password recommendations for PEM fileUse a strong password that has at least 12\u00a0characters.Include a mix of uppercase and lowercase Latin letters, numbers, and special characters.Avoid using common words or easily guessable patterns.Store the password securely (e.\u00a0g., in a password manager).",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Password recommendations for PEM file</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 257ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ul>\n<li>Use a strong password that has at least 12\u00a0characters.</li>\n<li>Include a mix of uppercase and lowercase Latin letters, numbers, and special characters.</li>\n<li>Avoid using common words or easily guessable patterns.</li>\n<li>Store the password securely (e.\u00a0g., in a password manager).</li>\n</ul></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Password recommendations for PEM fileUse a strong password that has at least 12\u00a0characters.Include a mix of uppercase and lowercase Latin letters, numbers, and special characters.Avoid using common words or easily guessable patterns.Store the password securely (e.\u00a0g., in a password manager).",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Password recommendations for PEM file</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 257ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ul>\n<li>Use a strong password that has at least 12\u00a0characters.</li>\n<li>Include a mix of uppercase and lowercase Latin letters, numbers, and special characters.</li>\n<li>Avoid using common words or easily guessable patterns.</li>\n<li>Store the password securely (e.\u00a0g., in a password manager).</li>\n</ul></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Application Pools",
+      "content": "using IISRestart Identity Service.Open IIS Manager.Open theApplication Poolssection in theConnectionsarea of the IIS.Go to the Identity Service application pool.Recycle the application pool. To do this, right-click on the Identity Service application pool \u2192Recycle.Restart Creatio.Open IIS Manager.Open theApplication Poolssection in theConnectionsarea of the IIS.Go to the Creatio application pool.Recycle the application pool. To do this, right-click on the Creatio application pool \u2192Recycle.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>using IIS</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 331ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>\n<p>Restart Identity Service.</p>\n<ol>\n<li>Open IIS Manager.</li>\n<li>Open the <strong>Application Pools</strong> section in the <strong>Connections</strong> area of the IIS.</li>\n<li>Go to the Identity Service application pool.</li>\n<li>Recycle the application pool. To do this, right-click on the Identity Service application pool \u2192 <strong>Recycle</strong>.</li>\n</ol>\n</li>\n<li>\n<p>Restart Creatio.</p>\n<ol>\n<li>Open IIS Manager.</li>\n<li>Open the <strong>Application Pools</strong> section in the <strong>Connections</strong> area of the IIS.</li>\n<li>Go to the Creatio application pool.</li>\n<li>Recycle the application pool. To do this, right-click on the Creatio application pool \u2192 <strong>Recycle</strong>.</li>\n</ol>\n</li>\n</ol></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "using DockerRebuild and restart the Identity Service container.Restart the Creatio app.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>using Docker</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 222ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Rebuild and restart the Identity Service container.</li>\n<li>Restart the Creatio app.</li>\n</ol></div></div></div></details>"
+    }
+  ],
+  "images": [],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=ehjfcBxpLsQ",
+      "text": "Tech Hour - Integrate like a boss with Creatio, part 2 (Odata)"
+    }
+  ],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Generate PFX certificate using OpenSSL",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "General procedure\u200b",
+      "anchor": "title-2565-1"
+    },
+    {
+      "level": 3,
+      "text": "Generate PFX certificate for Windows\u200b",
+      "anchor": "title-2565-1"
+    },
+    {
+      "level": 4,
+      "text": "1. Install OpenSSL\u200b",
+      "anchor": "title-2565-2"
+    },
+    {
+      "level": 4,
+      "text": "2. Set permissions to run PowerShell scripts\u200b",
+      "anchor": "title-2565-3"
+    },
+    {
+      "level": 4,
+      "text": "3. Generate the certificate\u200b",
+      "anchor": "title-2565-4"
+    },
+    {
+      "level": 3,
+      "text": "Generate PFX certificate for Linux\u200b",
+      "anchor": "title-2565-6"
+    },
+    {
+      "level": 4,
+      "text": "1. Install OpenSSL\u200b",
+      "anchor": "title-2565-7"
+    },
+    {
+      "level": 4,
+      "text": "2. Setup the bash script\u200b",
+      "anchor": "title-2565-8"
+    },
+    {
+      "level": 4,
+      "text": "3. Generate the certificate\u200b",
+      "anchor": "title-2565-9"
+    },
+    {
+      "level": 2,
+      "text": "Change PFX certificate in the existing Identity Service\u200b",
+      "anchor": "title-2565-11"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "E-learning courses\u200b",
+      "anchor": "e-learning-courses"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/identity-service/openssl",
+      "text": "PFX certificate",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/identity-service/openssl",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-access-overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/creatio-ai-on-site",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/file-storage/use-external-file-storages",
+      "text": "External file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/file-storage/set-up-s3-file-storage-integration",
+      "text": "AWS S3 file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/file-storage/set-up-azure-blob-file-storage-integration",
+      "text": "Azure Blob file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/file-storage/file-migration",
+      "text": "File migration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/identity-service/set-up-the-identity-service-instruction",
+      "text": "Deploy the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/identity-service/connect-the-identity-service",
+      "text": "Connect the Identity Service to Creatio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/identity-service/oauth-health-monitoring",
+      "text": "OAuth health monitoring",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/identity-service/update-the-identity-service-using-iis-instruction",
+      "text": "PreviousUpdate the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "Next\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:51:35.068552"
+}

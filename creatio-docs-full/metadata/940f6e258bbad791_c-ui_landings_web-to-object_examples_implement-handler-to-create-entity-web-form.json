@@ -1,0 +1,855 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/landings/web-to-object/examples/implement-handler-to-create-entity-web-form",
+  "title": "Create an entity using a web form",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Landings",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings"
+    },
+    {
+      "text": "Web-To-Object",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/web-to-object-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nThe `Contact` entity contains the `CustomRequiredTextColumn` required text column. When an event participant (`EventTarget`) is created via a web form, Creatio searches for the corresponding contact. By default, if Creatio cannot find the contact, a new contact is created. Saving the contact leads to an error since the `CustomRequiredTextColumn` required field is not populated. To ensure the contact is **saved successfully** , implement a custom handler and call it before an event participant is created.\nExample\nImplement a custom handler that runs before an event participant is created.\nBefore you implement the example, set up a web form that creates a custom object. Add a `CustomRequiredTextColumn` required custom field to the web form. To do this, follow the instructions in a separate article: [Set up web form for a custom object](https://academy.creatio.com/documents?ver=8.0&id=15744).\n## 1\\. Implement a custom handler\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema\\(7.17\\)/scr_add_schema.png)\n3. Go to the Schema Designer and fill out the schema properties:\n* Set **Code** to \"UsrCustomWebFormEventTargetPreProcessHandler\".\n* Set **Title** to \"CustomWebFormEventTargetPreProcessHandler\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CustomHandler/7.18/scr_UsrCustomWebFormEventTargetPreProcessHandler_Settings.png)\nClick **Apply** to apply the properties.\n4. Implement a **custom handler that runs before an event participant is created**.\n1. Add a `Terrasoft.Configuration` namespace in the Schema Designer.\n2. Add namespaces whose data types to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (the **Code** property).\n4. Specify the `WebFormEventTargetPreProcessHandler` class as a parent class.\nView the source code of the `UsrCustomWebFormEventTargetPreProcessHandler` schema of the **Source code** type below.\nUsrCustomWebFormEventTargetPreProcessHandler\nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing System.Linq;  \nusing Core.Entities;  \nusing Core;  \nusing GeneratedWebFormService;  \n#region Class: UsrCustomWebFormEventTargetPreProcessHandler  \n/// <summary>  \n/// Call the custom handler before the event participant is saved.  \n/// </summary>  \n/// <seealso cref=\"Terrasoft.Configuration.IGeneratedWebFormPreProcessHandler\" />  \npublic class CustomWebFormEventTargetPreProcessHandler: WebFormEventTargetPreProcessHandler, IGeneratedWebFormPreProcessHandler  \n{  \n#region Properties: Private  \nprivate UserConnection _userConnection { get; set; }  \nprivate FormData _formData { get; set; }  \n#endregion  \n#region Methods: Private  \nprivate string GetCustomRequiredColumnValue(string customColumnName) {  \nvar customFormField = this._formData.formFieldsData  \n.FirstOrDefault(x => x.name == customColumnName);  \nif (customFormField == null) {   \nthrow new Exception($\"There is no required form field {customColumnName}\");  \n}  \nif (string.IsNullOrEmpty(customFormField?.value)) {  \nthrow new Exception($\"Required value is empty for field {customColumnName}\");  \n}  \nreturn customFormField.value;  \n}  \n#endregion  \n#region Methods: Protected  \n/// <summary>  \n/// Create a contact entity whose custom required text column is populated with the form value.  \n/// </summary>  \n/// <param name=\"contactId\">The unique contact ID.</param>  \n/// <param name=\"contactNameField\">The required contact name field of the form.</param>  \nprotected override void CreateContactEntity(Guid contactId, FormFieldsData contactNameField) {  \nEntitySchema contactSchema = _userConnection.EntitySchemaManager.GetInstanceByName(nameof(Contact));  \nEntity contact = contactSchema.CreateEntity(_userConnection);  \ncontact.SetDefColumnValues();  \ncontact.SetColumnValue(\"Id\", contactId);  \ncontact.SetColumnValue(\"Name\", contactNameField.value);  \n// Set the value of the custom required column.  \nvar customRequiredColumnName = nameof(Contact.CustomRequiredTextColumn);  \nvar customRequiredColumnValue = GetCustomRequiredColumnValue(customRequiredColumnName);  \ncontact.SetColumnValue(customRequiredColumnName, customRequiredColumnValue);  \ncontact.Save(false);  \n}  \n#endregion  \n#region Methods: Public  \n/// <inheritdoc/>  \n/// Overload the inherited method so that it initiates the <see cref=\"UserConnection\"/> and <see cref=\"FormData\"/> instances.  \npublic new FormData Execute(UserConnection userConnection, FormData formData,  \nIWebFormImportParamsGenerator paramsGenerator) {  \n_userConnection = userConnection;  \n_formData = formData;  \nreturn base.Execute(userConnection, formData, paramsGenerator);  \n}  \n#endregion  \n}  \n#endregion  \n}  \n5. Click **Save** then **Publish** on the Designer's toolbar.\n## 2\\. Register a custom handler in the database\u200b\nTo implement the custom handler, register it in the `[WebFormProcessHandlers]` database table.\nYou can register the custom handler in the database in several **ways** :\n* using a lookup\nTo register the custom handler in the database **using a lookup** :\n1. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/TryIt/scr_system_designer.png) to open the System Designer.\n2. Go to the **System setup** block \u2192 **Lookups**.\n3. Add a new handler record to the **Web form process handlers** entity lookup. By default, this lookup is absent from the index of Creatio lookups. To add the **Web form process handlers** lookup to Creatio, create a lookup and select the **Web form process handlers** object as the lookup object.\n4. Fill out the **lookup fields** :\n* Set **Entity name** to \"EventTarget\".\n* Set **FullClassName** to \"Terrasoft.Configuration.CustomWebFormEventTargetPreProcessHandler, Terrasoft.Configuration\".\n* Select the **Is active** checkbox.\n* using an SQL query\nTo register the custom handler in the database **using an SQL query** , execute the following SQL query.\nSQL query\nINSERT INTO WebFormProcessHandlers (Id, EntityName, FullClassName, IsActive)  \nVALUES (NEWID(), N'EventTarget', 'Terrasoft.Configuration.CustomWebFormEventTargetPreProcessHandler, Terrasoft.Configuration', 1)  \nSince the schema inherits from the out-of-the-box handler and the custom schema calls the base logic, you must disable the out-of-the-box handler.\nYou can disable the out-of-the-box handler in the following **ways** :\n* using a lookup\nTo disable the out-of-the-box handler **using a lookup** :\n1. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/TryIt/scr_system_designer.png) to open the System Designer.\n2. Go to the **System setup** block \u2192 **Lookups**.\n3. Open the lookup and clear the **Is active** checkbox for the **EventTarget** entity that has the \"Terrasoft.Configuration.CustomWebFormEventTargetPreProcessHandler, Terrasoft.Configuration\" value in the **FullClassName** field.\n* using an SQL query\nTo disable the out-of-the-box handler **using an SQL query** , execute the following SQL query.\nSQL query\nUPDATE WebFormProcessHandlers  \nSET IsActive = 0  \nWHERE FullClassName = 'Terrasoft.Configuration.WebFormEventTargetPreProcessHandler, Terrasoft.Configuration'  \n## Outcome of the example\u200b\nTo **view the outcome of the example** , restart the application pool.\nAs a result, Creatio will add a new contact when a form is submitted with required fields populated, including the `CustomRequiredTextColumn` field.",
+  "code_examples": [
+    {
+      "code": "namespace Terrasoft.Configuration{    using System;    using System.Linq;    using Core.Entities;    using Core;    using GeneratedWebFormService;    #region Class: UsrCustomWebFormEventTargetPreProcessHandler    /// <summary>    /// Call the custom handler before the event participant is saved.    /// </summary>    /// <seealso cref=\"Terrasoft.Configuration.IGeneratedWebFormPreProcessHandler\" />    public class CustomWebFormEventTargetPreProcessHandler: WebFormEventTargetPreProcessHandler, IGeneratedWebFormPreProcessHandler    {        #region Properties: Private        private UserConnection _userConnection { get; set; }        private FormData _formData { get; set; }        #endregion        #region Methods: Private        private string GetCustomRequiredColumnValue(string customColumnName) {            var customFormField = this._formData.formFieldsData                .FirstOrDefault(x => x.name == customColumnName);            if (customFormField == null) {                 throw new Exception($\"There is no required form field {customColumnName}\");            }            if (string.IsNullOrEmpty(customFormField?.value)) {                throw new Exception($\"Required value is empty for field {customColumnName}\");            }            return customFormField.value;        }        #endregion                #region Methods: Protected        /// <summary>        /// Create a contact entity whose custom required text column is populated with the form value.        /// </summary>        /// <param name=\"contactId\">The unique contact ID.</param>        /// <param name=\"contactNameField\">The required contact name field of the form.</param>        protected override void CreateContactEntity(Guid contactId, FormFieldsData contactNameField) {            EntitySchema contactSchema = _userConnection.EntitySchemaManager.GetInstanceByName(nameof(Contact));            Entity contact = contactSchema.CreateEntity(_userConnection);            contact.SetDefColumnValues();            contact.SetColumnValue(\"Id\", contactId);            contact.SetColumnValue(\"Name\", contactNameField.value);            // Set the value of the custom required column.            var customRequiredColumnName = nameof(Contact.CustomRequiredTextColumn);            var customRequiredColumnValue = GetCustomRequiredColumnValue(customRequiredColumnName);            contact.SetColumnValue(customRequiredColumnName, customRequiredColumnValue);            contact.Save(false);        }        #endregion        #region Methods: Public        /// <inheritdoc/>        /// Overload the inherited method so that it initiates the <see cref=\"UserConnection\"/> and <see cref=\"FormData\"/> instances.        public new FormData Execute(UserConnection userConnection, FormData formData,                IWebFormImportParamsGenerator paramsGenerator) {            _userConnection = userConnection;            _formData = formData;            return base.Execute(userConnection, formData, paramsGenerator);        }        #endregion    }    #endregion}",
+      "language": "js",
+      "context": "View the source code of theUsrCustomWebFormEventTargetPreProcessHandlerschema of theSource codetype below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "INSERT INTO WebFormProcessHandlers (Id, EntityName, FullClassName, IsActive)    VALUES (NEWID(), N'EventTarget', 'Terrasoft.Configuration.CustomWebFormEventTargetPreProcessHandler, Terrasoft.Configuration', 1)",
+      "language": "sql",
+      "context": "To register the custom handler in the databaseusing an SQL query, execute the following SQL query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "UPDATE WebFormProcessHandlersSET IsActive = 0WHERE FullClassName = 'Terrasoft.Configuration.WebFormEventTargetPreProcessHandler, Terrasoft.Configuration'",
+      "language": "sql",
+      "context": "To disable the out-of-the-box handlerusing an SQL query, execute the following SQL query.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleImplement a custom handler that runs before an event participant is created.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Implement a custom handler that runs before an event participant is created.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Implement a custom handler that runs before an event participant is created.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Implement a custom handler that runs before an event participant is created.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema(7.17)/scr_add_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Source codeon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/940f6e258bbad791_c-ui_landings_web-to-object_examples_implement-handler-to-create-entity-web-form_4b5a781f7680.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CustomHandler/7.18/scr_UsrCustomWebFormEventTargetPreProcessHandler_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the Schema Designer and fill out the schema properties:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/940f6e258bbad791_c-ui_landings_web-to-object_examples_implement-handler-to-create-entity-web-form_5c13e2f3f7e9.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/TryIt/scr_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickto open the System Designer.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/940f6e258bbad791_c-ui_landings_web-to-object_examples_implement-handler-to-create-entity-web-form_f22473057c86.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/TryIt/scr_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/940f6e258bbad791_c-ui_landings_web-to-object_examples_implement-handler-to-create-entity-web-form_f22473057c86.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Create an entity using a web form",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement a custom handler\u200b",
+      "anchor": "title-3721-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Register a custom handler in the database\u200b",
+      "anchor": "title-3721-2"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-3721-3"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "FIRSTORDEFAULT",
+        "path": "("
+      },
+      {
+        "method": "ISNULLOREMPTY",
+        "path": "("
+      },
+      {
+        "method": "GETINSTANCEBYNAME",
+        "path": "("
+      },
+      {
+        "method": "CREATEENTITY",
+        "path": "("
+      },
+      {
+        "method": "SETDEFCOLUMNVALUES",
+        "path": "("
+      },
+      {
+        "method": "SETCOLUMNVALUE",
+        "path": "("
+      },
+      {
+        "method": "SETCOLUMNVALUE",
+        "path": "("
+      },
+      {
+        "method": "SETCOLUMNVALUE",
+        "path": "("
+      },
+      {
+        "method": "SAVE",
+        "path": "("
+      },
+      {
+        "method": "EXECUTE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/landings/web-to-object/examples/implement-handler-to-create-entity-web-form",
+      "text": "Create an entity (web form)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/landings/web-to-object/examples/implement-handler-to-create-entity-web-form",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/landings/web-to-object/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/web-to-object-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/landings/web-to-object/examples/set-up-web-form",
+      "text": "PreviousSet up web form",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "NextWeb-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/landings/web-to-case/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/web-to-case-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:08:29.626460"
+}

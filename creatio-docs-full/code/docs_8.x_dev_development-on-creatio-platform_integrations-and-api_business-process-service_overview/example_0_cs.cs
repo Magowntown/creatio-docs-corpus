@@ -1,0 +1,1 @@
+UserConnection userConnection = Get<UserConnection>("UserConnection");IProcessEngine processEngine = userConnection.ProcessEngine;IProcessExecutor processExecutor = processEngine.ProcessExecutor;processExecutor.Execute("UsrProcess2Custom1");return true;

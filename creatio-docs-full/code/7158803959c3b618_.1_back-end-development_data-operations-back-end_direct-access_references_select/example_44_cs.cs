@@ -1,0 +1,1 @@
+Query GroupBy(string sourceColumnAlias)Query GroupBy(string sourceAlias, string sourceColumnAlias)Query GroupBy(QueryColumnExpression columnExpression)

@@ -1,0 +1,1 @@
+new Select(userConnection)    .Cols("L.Id")    .Coalesce("L.CountryId", "C.CountryId", "A.CountryId")        .As("CountryId")    .From("Lead")        .As("L")    .LeftOuterJoin("Contact")        .As("C")        .On("L", "QualifiedContactId").IsEqual("C", "Id")    .LeftOuterJoin("Account")        .As("A")        .On("L", "QualifiedAccountId").IsEqual("A", "Id");

@@ -1,0 +1,1 @@
+http://myserver.com/0/NUI/ViewModule.aspx#UsrExampleStandardModule

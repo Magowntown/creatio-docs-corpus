@@ -1,0 +1,1 @@
+[TEMP]\Creatio\Site_[SiteId][ApplicationName]\Log[DateTime.Today]

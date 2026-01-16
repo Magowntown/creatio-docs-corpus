@@ -1,0 +1,865 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-requirement-condition-of-a-field",
+  "title": "Set up the requirement condition of a page field",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization"
+    },
+    {
+      "text": "Field",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-fields-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\nTo implement the example:\n1. Set up the page UI. Read more >>>\n2. Set up the condition that makes the field required. Read more >>>\nExample\nMake the **Description** field on the custom request page required. The field must be required for new requests, i. e., if the **Status** field is set to \"New.\"\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SetUpTheRequirementConditionOfField/8.1/scr_result.gif)\n## 1\\. Set up the page UI\u200b\n1. **Create an app** based on the **Records & business processes** template. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.3&id=2377&anchor=title-2232-6) (user documentation).\nFor this example, create a **Requests** app.\n2. **Open the form page** in the Freedom UI Designer.\nFor this example, open the **Requests form page**.\n3. **Add a field**.\nFor this example, add the following fields:\n* field that contains the request status\n* field that contains the request description\nTo do this:\n1. Add a field of needed type to the working area of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the field properties.\nElement| Element type| Property| Property value  \n---|---|---|---  \nField contains the request status| Dropdown| Title| Status  \nCode| UsrStatus  \nLookup| Click ![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SetUpTheConditionThatLocksTheField/8.1/scr_Add_button.png) and fill out the lookup properties:\n* Set **Title** to \"Request status.\"\n* Set **Code** to \"UsrRequestStatusLookup.\"  \nField that contains the request description| Text| Title| Description  \nCode| UsrDescription  \n4. **Save the changes**.\n5. **Fill out the lookup**.\nFor this example, fill out the **Request status** lookup.\n1. Open the **Lookups** section. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 **System setup** \u2192 **Lookups**.\n2. Open the **Request status** lookup.\n3. Add the lookup values. Instructions: [Manage lookup values](https://academy.creatio.com/documents?ver=8.3&id=271) (user documentation).\nFor this example, add the following lookup values:\n* New\n* Under evaluation\n* In progress\n* Canceled\n* Completed\n## 2\\. Set up the condition that makes the field required\u200b\nConfigure the business logic in the Client Module Designer. For this example, set up the condition that makes the field required.\n1. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n2. **Bind a validator to the attribute**.\n1. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object \u2192 `UsrDescription` element.\n2. Bind the `crt.Required` type validator that checks the attribute value to the `required` property.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"UsrDescription\": {  \n...,  \n/* The property that contains the list of attribute validators. */  \n\"validators\": {  \n/* Flag the field as required. */  \n\"required\": {  \n\"type\": \"crt.Required\"  \n}  \n}  \n},  \n...,  \n}  \n},  \n...,  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Implement the base request handler**.\n1. Go to the `handlers` schema section.\n2. Add a custom implementation of the `crt.HandleViewModelAttributeChangeRequest` base request handler.\n1. Run the handler when the value of any attribute changes, including changes made after loading the attribute values from the data source.\n2. Find the ID of the \"New\" value in the **Request status** lookup. For this example, the ID is \"3a5d5b3c-2195-4d04-ab2f-4210e61efea1.\"\n3. Save the ID from the previous step to the `newStatusId` constant.\n4. Check the `UsrStatus` attribute value. If the attribute value refers to the \"New\" request status, apply the validator to the `UsrDescription` attribute, otherwise do not apply it.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.HandleViewModelAttributeChangeRequest\",  \n/* The custom implementation of the base request handler. */  \nhandler: async (request, next) => {  \n/* Check the request status. */  \nif (request.attributeName === 'UsrStatus') {  \nconst newStatusId = '3a5d5b3c-2195-4d04-ab2f-4210e61efea1';  \nconst selectedStatus = await request.$context.UsrStatus;  \nconst selectedStatusId = selectedStatus?.value;  \nconst isNewRequest = selectedStatusId === newStatusId;  \n/* Check the request description. */  \nif (isNewRequest) {  \n/* If the request status is \"New,\" apply the validator to the \"UsrDescription\" attribute. */  \nrequest.$context.enableAttributeValidator('UsrDescription', 'required');  \n} else {  \n/* If the request status differs from the \"New,\" do not apply the validator to the \"UsrDescription\" attribute. */  \nrequest.$context.disableAttributeValidator('UsrDescription', 'required');  \n}  \n}  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \n4. **Save the changes**.\n## View the result\u200b\n1. **Open the Requests section**.\n2. **Create a request** that has an arbitrary name. For example, \"Vacation.\"\n3. **Select \"New\"** in the **Status** field.\n**As a result** :\n* Creatio will make the **Description** field required for new requests.\n* Creatio will not make the **Description** field required for other request statuses, e. g., \"Completed.\" [View the result >>>](https://academy.creatio.com/documents?ver=8.3&id=15356&anchor=view-result)\n## Source code\u200b\nUsrRequests_FormPage\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Feed\",  \n\"values\": {  \n\"dataSourceName\": \"PDS\",  \n\"entitySchemaName\": \"UsrRequests\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AttachmentList\",  \n\"values\": {  \n\"columns\": [  \n{  \n\"id\": \"d4881e1f-a463-496a-b3eb-66469cf9c803\",  \n\"code\": \"AttachmentListDS_Name\",  \n\"caption\": \"#ResourceString(AttachmentListDS_Name)#\",  \n\"dataValueType\": 28,  \n\"width\": 200  \n}  \n]  \n}  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrName\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrName\",  \n\"control\": \"$UsrName\",  \n\"labelPosition\": \"auto\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n/* Field that contains the request status. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrStatus\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 2,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.ComboBox\",  \n\"label\": \"$Resources.Strings.UsrStatus\",  \n\"labelPosition\": \"auto\",  \n\"control\": \"$UsrStatus\",  \n\"listActions\": [],  \n\"showValueAsLink\": true,  \n\"controlActions\": []  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"addRecord_zwl1jg8\",  \n\"values\": {  \n\"code\": \"addRecord\",  \n\"type\": \"crt.ComboboxSearchTextAction\",  \n\"icon\": \"combobox-add-new\",  \n\"caption\": \"#ResourceString(addRecord_zwl1jg8_caption)#\",  \n\"clicked\": {  \n\"request\": \"crt.CreateRecordFromLookupRequest\",  \n\"params\": {}  \n}  \n},  \n\"parentName\": \"UsrStatus\",  \n\"propertyName\": \"listActions\",  \n\"index\": 0  \n},  \n/* Field that contains the request description. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrDescription\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 3,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrDescription\",  \n\"labelPosition\": \"auto\",  \n\"control\": \"$UsrDescription\",  \n\"multiline\": false  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 2  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"UsrName\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrName\"  \n}  \n},  \n\"UsrStatus\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrStatus\"  \n}  \n},  \n\"UsrDescription\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrDescription\"  \n},  \n/* The property that contains the list of attribute validators. */  \n\"validators\": {  \n/* Flag the field as required. */  \n\"required\": {  \n\"type\": \"crt.Required\"  \n}  \n}  \n}  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n\"Id\",  \n\"modelConfig\"  \n],  \n\"values\": {  \n\"path\": \"PDS.Id\"  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [],  \n\"values\": {  \n\"primaryDataSourceName\": \"PDS\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"PDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"UsrRequests\"  \n},  \n\"scope\": \"page\"  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.HandleViewModelAttributeChangeRequest\",  \n/* The custom implementation of the base request handler. */  \nhandler: async (request, next) => {  \n/* Check the request status. */  \nif (request.attributeName === 'UsrStatus') {  \nconst newStatusId = '3a5d5b3c-2195-4d04-ab2f-4210e61efea1';  \nconst selectedStatus = await request.$context.UsrStatus;  \nconst selectedStatusId = selectedStatus?.value;  \nconst isNewRequest = selectedStatusId === newStatusId;  \n/* Check the request description. */  \nif (isNewRequest) {  \n/* If the request status is \"New,\" apply the validator to the \"UsrDescription\" attribute. */  \nrequest.$context.enableAttributeValidator('UsrDescription', 'required');  \n} else {  \n/* If the request status differs from the \"New,\" do not apply the validator to the \"UsrDescription\" attribute. */  \nrequest.$context.disableAttributeValidator('UsrDescription', 'required');  \n}  \n}  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/docs/sites/academy_en/files/packages/SetUpTheRequirementConditionOfField/8.1/UsrRequests_2024-05-16_10.30.16.zip)",
+  "code_examples": [
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"UsrDescription\": {                ...,                /* The property that contains the list of attribute validators. */                \"validators\": {                    /* Flag the field as required. */                    \"required\": {                        \"type\": \"crt.Required\"                    }                }            },            ...,        }    },    ...,]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Bind a validator to the attribute.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"crt.HandleViewModelAttributeChangeRequest\",        /* The custom implementation of the base request handler. */        handler: async (request, next) => {            /* Check the request status. */            if (request.attributeName === 'UsrStatus') {                const newStatusId = '3a5d5b3c-2195-4d04-ab2f-4210e61efea1';                const selectedStatus = await request.$context.UsrStatus;                const selectedStatusId = selectedStatus?.value;                const isNewRequest = selectedStatusId === newStatusId;                /* Check the request description. */                if (isNewRequest) {                    /* If the request status is \"New,\" apply the validator to the \"UsrDescription\" attribute. */                    request.$context.enableAttributeValidator('UsrDescription', 'required');                } else {                    /* If the request status differs from the \"New,\" do not apply the validator to the \"UsrDescription\" attribute. */                    request.$context.disableAttributeValidator('UsrDescription', 'required');                }            }            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "Add a custom implementation of thecrt.HandleViewModelAttributeChangeRequestbase request handler.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"name\": \"Feed\",                \"values\": {                    \"dataSourceName\": \"PDS\",                    \"entitySchemaName\": \"UsrRequests\"                }            },            {                \"operation\": \"merge\",                \"name\": \"AttachmentList\",                \"values\": {                    \"columns\": [                        {                            \"id\": \"d4881e1f-a463-496a-b3eb-66469cf9c803\",                            \"code\": \"AttachmentListDS_Name\",                            \"caption\": \"#ResourceString(AttachmentListDS_Name)#\",                            \"dataValueType\": 28,                            \"width\": 200                        }                    ]                }            },            {                \"operation\": \"insert\",                \"name\": \"UsrName\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrName\",                    \"control\": \"$UsrName\",                    \"labelPosition\": \"auto\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 0            },            /* Field that contains the request status. */            {                \"operation\": \"insert\",                \"name\": \"UsrStatus\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 2,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.ComboBox\",                    \"label\": \"$Resources.Strings.UsrStatus\",                    \"labelPosition\": \"auto\",                    \"control\": \"$UsrStatus\",                    \"listActions\": [],                    \"showValueAsLink\": true,                    \"controlActions\": []                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 1            },            {                \"operation\": \"insert\",                \"name\": \"addRecord_zwl1jg8\",                \"values\": {                    \"code\": \"addRecord\",                    \"type\": \"crt.ComboboxSearchTextAction\",                    \"icon\": \"combobox-add-new\",                    \"caption\": \"#ResourceString(addRecord_zwl1jg8_caption)#\",                    \"clicked\": {                        \"request\": \"crt.CreateRecordFromLookupRequest\",                        \"params\": {}                    }                },                \"parentName\": \"UsrStatus\",                \"propertyName\": \"listActions\",                \"index\": 0            },            /* Field that contains the request description. */            {                \"operation\": \"insert\",                \"name\": \"UsrDescription\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 3,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrDescription\",                    \"labelPosition\": \"auto\",                    \"control\": \"$UsrDescription\",                    \"multiline\": false                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 2            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"UsrName\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrName\"                        }                    },                    \"UsrStatus\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrStatus\"                        }                    },                    \"UsrDescription\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrDescription\"                        },                        /* The property that contains the list of attribute validators. */                        \"validators\": {                            /* Flag the field as required. */                            \"required\": {                                \"type\": \"crt.Required\"                            }                        }                    }                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\",                    \"Id\",                    \"modelConfig\"                ],                \"values\": {                    \"path\": \"PDS.Id\"                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [],                \"values\": {                    \"primaryDataSourceName\": \"PDS\"                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"dataSources\"                ],                \"values\": {                    \"PDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"UsrRequests\"                        },                        \"scope\": \"page\"                    }                }            }        ]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[            {                request: \"crt.HandleViewModelAttributeChangeRequest\",                /* The custom implementation of the base request handler. */                handler: async (request, next) => {                    /* Check the request status. */                    if (request.attributeName === 'UsrStatus') {                        const newStatusId = '3a5d5b3c-2195-4d04-ab2f-4210e61efea1';                        const selectedStatus = await request.$context.UsrStatus;                        const selectedStatusId = selectedStatus?.value;                        const isNewRequest = selectedStatusId === newStatusId;                        /* Check the request description. */                        if (isNewRequest) {                            /* If the request status is \"New,\" apply the validator to the \"UsrDescription\" attribute. */                            request.$context.enableAttributeValidator('UsrDescription', 'required');                        } else {                            /* If the request status differs from the \"New,\" do not apply the validator to the \"UsrDescription\" attribute. */                            request.$context.disableAttributeValidator('UsrDescription', 'required');                        }                    }                    /* Call the next handler if it exists and return its result. */                    return next?.handle(request);                }            }        ]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Element type",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Field contains the request status",
+          "Dropdown",
+          "Title",
+          "Status"
+        ],
+        [
+          "Code",
+          "UsrStatus"
+        ],
+        [
+          "Lookup",
+          "Clickand fill out the lookup properties:SetTitleto \"Request status.\"SetCodeto \"UsrRequestStatusLookup.\""
+        ],
+        [
+          "Field that contains the request description",
+          "Text",
+          "Title",
+          "Description"
+        ],
+        [
+          "Code",
+          "UsrDescription"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Element type</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"3\"><p>Field contains the request status</p></td><td rowspan=\"3\"><center><p>Dropdown</p></center></td><td><center><p>Title</p></center></td><td><center><p>Status</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrStatus</p></center></td></tr><tr><td><center><p>Lookup</p></center></td><td><p>Click <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SetUpTheConditionThatLocksTheField/8.1/scr_Add_button.png\"/> and fill out the lookup properties:</p><ul>\n<li>Set <strong>Title</strong> to \"Request status.\"</li>\n<li>Set <strong>Code</strong> to \"UsrRequestStatusLookup.\"</li>\n</ul></td></tr><tr><td rowspan=\"3\"><p>Field that contains the request description</p></td><td rowspan=\"3\"><center><p>Text</p></center></td><td><center><p>Title</p></center></td><td><center><p>Description</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrDescription</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Description",
+      "content": "ExampleMake theDescriptionfield on the custom request page required. The field must be required for new requests, i.\u00a0e., if theStatusfield is set to \"New.\"",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Make the <strong>Description</strong> field on the custom request page required. The field must be required for new requests, i.\u00a0e., if the <strong>Status</strong> field is set to \"New.\"</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SetUpTheRequirementConditionOfField/8.1/scr_result.gif\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Description",
+      "content": "Make theDescriptionfield on the custom request page required. The field must be required for new requests, i.\u00a0e., if theStatusfield is set to \"New.\"",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Make the <strong>Description</strong> field on the custom request page required. The field must be required for new requests, i.\u00a0e., if the <strong>Status</strong> field is set to \"New.\"</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SetUpTheRequirementConditionOfField/8.1/scr_result.gif\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SetUpTheRequirementConditionOfField/8.1/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Make theDescriptionfield on the custom request page required. The field must be required for new req",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/c5d2d973d58ab78f_om-ui_customize-page-fields_examples_set-up-the-requirement-condition-of-a-field_770c79c3c237.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the field properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/c5d2d973d58ab78f_om-ui_customize-page-fields_examples_set-up-the-requirement-condition-of-a-field_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SetUpTheConditionThatLocksTheField/8.1/scr_Add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the lookup properties:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/c5d2d973d58ab78f_om-ui_customize-page-fields_examples_set-up-the-requirement-condition-of-a-field_31cf164010e7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open theLookupssection. To do this, clickin the top right \u2192System setup\u2192Lookups.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/c5d2d973d58ab78f_om-ui_customize-page-fields_examples_set-up-the-requirement-condition-of-a-field_822ea55f9414.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/c5d2d973d58ab78f_om-ui_customize-page-fields_examples_set-up-the-requirement-condition-of-a-field_0022b8eb0588.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/docs/sites/academy_en/files/packages/SetUpTheRequirementConditionOfField/8.1/UsrRequests_2024-05-16_10.30.16.zip",
+      "text": "Package with example implementation",
+      "filename": "UsrRequests_2024-05-16_10.30.16.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/c5d2d973d58ab78f_om-ui_customize-page-fields_examples_set-up-the-requirement-condition-of-a-field_UsrRequests_2024-05-16_10.30.16.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up the requirement condition of a page field",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Set up the page UI\u200b",
+      "anchor": "title-3821-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up the condition that makes the field required\u200b",
+      "anchor": "title-3821-2"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-3821-3"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-3821-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "ENABLEATTRIBUTEVALIDATOR",
+        "path": "("
+      },
+      {
+        "method": "DISABLEATTRIBUTEVALIDATOR",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "ENABLEATTRIBUTEVALIDATOR",
+        "path": "("
+      },
+      {
+        "method": "DISABLEATTRIBUTEVALIDATOR",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-requirement-condition-of-a-field",
+      "text": "Set up the requirement condition of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-requirement-condition-of-a-field",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-requirement-condition-of-a-field",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-requirement-condition-of-a-field",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-display-condition-of-a-field",
+      "text": "Set up the display condition of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-condition-that-locks-the-field",
+      "text": "Set up the condition that locks the field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-condition-that-populates-a-field",
+      "text": "PreviousSet up the condition that populates a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/implement-the-field-value-validation",
+      "text": "NextImplement the field value validation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/implement-the-field-value-conversion",
+      "text": "Implement the field value conversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/opening-the-page",
+      "text": "Opening the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/anonymous-access",
+      "text": "Retrieve allowed features before login",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/sites/academy_en/files/packages/SetUpTheRequirementConditionOfField/8.1/UsrRequests_2024-05-16_10.30.16.zip",
+      "text": "Package with example implementation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:47:17.912831"
+}

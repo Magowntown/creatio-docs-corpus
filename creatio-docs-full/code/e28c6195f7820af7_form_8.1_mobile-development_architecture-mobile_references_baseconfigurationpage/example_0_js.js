@@ -1,0 +1,1 @@
+initializeView(view)

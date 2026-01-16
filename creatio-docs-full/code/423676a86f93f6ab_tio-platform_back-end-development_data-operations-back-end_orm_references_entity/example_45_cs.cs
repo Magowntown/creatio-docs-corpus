@@ -1,0 +1,1 @@
+virtual bool Delete()virtual bool Delete(object keyValue)

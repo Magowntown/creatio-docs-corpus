@@ -1,0 +1,1 @@
+QueryCondition And()QueryCondition And(string sourceColumnAlias)QueryCondition And(string sourceAlias, string sourceColumnAlias)QueryCondition And(Select subSelect)QueryCondition And(Query subSelectQuery)QueryCondition And(QueryParameter parameter)QueryCondition And(QueryColumnExpression columnExpression)Query And(QueryCondition condition)

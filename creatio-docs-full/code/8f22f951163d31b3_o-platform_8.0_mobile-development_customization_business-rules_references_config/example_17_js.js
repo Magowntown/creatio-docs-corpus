@@ -1,0 +1,1 @@
+changeProperty(columnName, propertyConfig)

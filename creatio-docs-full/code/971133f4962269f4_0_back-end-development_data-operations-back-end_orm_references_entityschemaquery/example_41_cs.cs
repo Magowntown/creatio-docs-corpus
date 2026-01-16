@@ -1,0 +1,1 @@
+Enumerable CreateSchemaColumnExpressions(params string[] columnPaths)IEnumerable CreateSchemaColumnExpressions(IEnumerable columnPaths, bool useCoalesceFunctionForMultiLookup)

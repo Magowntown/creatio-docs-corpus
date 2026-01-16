@@ -1,0 +1,1 @@
+Update Set(string sourceColumnAlias, Select subSelect)Update Set(string sourceColumnAlias, Query subSelectQuery)Update Set(string sourceColumnAlias, QueryColumnExpression columnExpression)Update Set(string sourceColumnAlias, QueryParameter parameter)

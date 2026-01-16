@@ -1,0 +1,1 @@
+EntitySchemaQueryColumnCollection GetSummaryColumns()EntitySchemaQueryColumnCollection GetSummaryColumns(IEnumerable<string> columnNames)

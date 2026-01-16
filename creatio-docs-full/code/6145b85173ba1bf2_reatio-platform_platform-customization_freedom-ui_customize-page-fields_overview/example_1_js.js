@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    {        ...,        "values": {            ...,            /* The property that flags the field as visible. Bound to the "SomeAttribute" attribute. */            "visible": "$SomeAttribute"        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,

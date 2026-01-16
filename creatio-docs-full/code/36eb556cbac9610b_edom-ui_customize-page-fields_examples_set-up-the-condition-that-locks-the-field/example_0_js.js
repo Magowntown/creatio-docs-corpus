@@ -1,0 +1,1 @@
+viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "attributes"        ],        "values": {            ...,            /* The attribute that stores the contact permission to edit the "Applicant" field. */            "IsApplicantReadonly": {}        }    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,

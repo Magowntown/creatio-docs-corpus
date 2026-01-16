@@ -1,0 +1,1 @@
+public UpdateSelect From(string schemaName, string alias)

@@ -1,0 +1,1 @@
+this.sandbox.loadModule("CardModuleV2", {     renderTo: "centerPanel",     keepAlive: true,     id: moduleId });

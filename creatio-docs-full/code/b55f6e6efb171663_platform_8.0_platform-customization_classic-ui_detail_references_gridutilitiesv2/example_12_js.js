@@ -1,0 +1,1 @@
+checkCanDelete(items, callback, scope)

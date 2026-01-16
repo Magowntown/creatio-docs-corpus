@@ -1,0 +1,1 @@
+EntityFileMetadata(EntityFileLocator fileLocator)

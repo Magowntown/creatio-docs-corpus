@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {        "StringAttribute_jghoo32": {            "modelConfig": {                "path": "ContactDS.Name"            }        }    }}/**SCHEMA_VIEW_MODEL_CONFIG*/,

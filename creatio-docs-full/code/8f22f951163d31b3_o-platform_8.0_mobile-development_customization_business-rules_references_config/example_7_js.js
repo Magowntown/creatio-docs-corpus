@@ -1,0 +1,1 @@
+Terrasoft.sdk.Model.addBusinessRule("ActivitySKU", {    ruleType: Terrasoft.RuleTypes.Activation,    events: [Terrasoft.BusinessRuleEvents.Load, Terrasoft.BusinessRuleEvents.ValueChanged],    triggeredByColumns: ["IsPresence"],    conditionalColumns: [        {name: "IsPresence", value: true}    ],    dependentColumnNames: ["Stock"]});

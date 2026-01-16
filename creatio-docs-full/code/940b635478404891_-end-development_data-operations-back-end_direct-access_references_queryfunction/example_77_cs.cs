@@ -1,0 +1,1 @@
+LengthQueryFunction(LengthQueryFunction source)

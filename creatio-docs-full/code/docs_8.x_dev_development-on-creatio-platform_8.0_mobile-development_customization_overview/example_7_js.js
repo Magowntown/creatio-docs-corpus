@@ -1,0 +1,1 @@
+{    "operation": "insert",    "name": "CaseModelConfItemColumn",    "values": {"expression": {"columnPath": "ConfItem", "expressionType": 0}},    "parentName": "CaseModel",    "propertyName": "columns",    "index": 3},

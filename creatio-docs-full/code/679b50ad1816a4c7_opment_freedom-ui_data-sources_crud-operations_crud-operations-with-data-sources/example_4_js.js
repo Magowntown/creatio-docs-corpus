@@ -1,0 +1,1 @@
+{    "operation": "insert",    "name": "Button",    "values": {        "type": "crt.Button",        "clicked": {            "request": "crt.CopyDataRequest",            "params": {                "dataSourceName": "ContactDS",                "recordId": "SOME_CONSTANT"            },        },    },},

@@ -1,0 +1,1 @@
+private _value: string;@Input('value')public set value(value: string) {   this._value = value;}

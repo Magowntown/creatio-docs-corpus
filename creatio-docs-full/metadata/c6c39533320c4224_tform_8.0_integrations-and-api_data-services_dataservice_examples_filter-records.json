@@ -1,0 +1,515 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/filter-records",
+  "title": "Filter records in the section using DataService",
+  "breadcrumbs": [
+    {
+      "text": "Integrations tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools"
+    },
+    {
+      "text": "Data services",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services"
+    },
+    {
+      "text": "DataService",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dataservice"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nExample\nCreate a console application that will read the following data from the **Contacts** section using the DataService service:\n* `Id`;\n* `Full name`;\n* `Number of activities` is an aggregating column that shows the number of activities of this contact.\nIt is necessary to filter the data so that only those contacts whose number of activities is in the range of 1 to 3, and the **Full name** column value starting with \"H\" are read.\n## Example implementation algorithm\u200b\n### 1\\. Create and configure a C# console application project that reads records\u200b\nTo perform this step, you must perform the [example of reading records in a third-party application](https://academy.creatio.com/documents?ver=8.0&id=15413).\nThe result of the query class implementation instance to read the records with the columns in an abbreviated form:\nSelectQuery()\n// Query class instance.  \nvar selectQuery = new SelectQuery ()  \n{  \n// Root schema name.  \nRootSchemaName = \"Contact\",  \n// Adding columns to query.  \nColumns = new SelectQueryColumns ()  \n{  \n// Column collection.  \nItems = new Dictionary <string, SelectQueryColumn> ()  \n{  \n// Column [Full name].  \n{  \n// Key.  \n\"Name\",  \n// Value.  \nnew SelectQueryColumn ()  \n{  \n// An expression that specifies the column type.  \nExpression = new ColumnExpression ()  \n{  \n// Expression type - schema column.  \nExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,  \n// Path to the column.  \nColumnPath = \"Name\"  \n}  \n}  \n},  \n// Column [Number of activities].  \n{  \n\"ActivitiesCount\",  \nnew SelectQueryColumn ()  \n{  \nExpression = new ColumnExpression ()  \n{  \n// Expression - subquery.  \nExpressionType = EntitySchemaQueryExpressionType.SubQuery,  \n// Path to the column relative to the root schema.  \nColumnPath = \"[Activity: Contact] .Id\",  \n// Function type - aggregating.  \nFunctionType = FunctionType.Aggregation,  \n// Aggregation type - number.  \nAggregationType = AggregationType.Count  \n}  \n}  \n}  \n}  \n}  \n};  \n### 2\\. Add filter implementation\u200b\nIn order to filter data, you must create an instance of the `Filters` collection class instance, fill in the necessary properties, and then pass the link to this instance to the `Filters` property of the query class instance that you created in the previous step.\nFilter collection class implementation example\n// Query filters.  \nvar selectFilters = new Filters ()  \n{  \n// Filter Type - group.  \nFilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.FilterGroup,  \n// Filter collection.  \nItems = new Dictionary <string, Filter>  \n{  \n// Filter Implementation.  \n}  \n};  \n// Adding filter to query.  \nselectQuery.Filters = selectFilters;  \n// Query class instance serialization to read data from the JSON string.  \nvar json = new JavaScriptSerializer () Serialize (selectQuery).;  \nThe `Items` property must contain the key-value type collection. The key is a string containing the filter name, and the value is an instance of the `Filter` class that contains a direct implementation of the filter.\nTo implement a filter that selects only those contacts that have a number of activities within a range of 1 to 3, you must add the following instance to the collection of filters:\nExample of the instance to the collection of filters\n// Filtration by activity.  \n{  \n// Key.  \n\"FilterActivities\",  \n// Value.  \nnew Filter  \n{  \n// Filter type - range filter.  \nFilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.Between,  \n// Comparison type - range.  \nComparisonType = FilterComparisonType.Between,  \n// An expression to be tested.  \nLeftExpression = new BaseExpression ()  \n{  \n// Expression type - subquery.  \nExpressionType = EntitySchemaQueryExpressionType.SubQuery,  \n// Path to the column relative to the root schema.  \nColumnPath = \"[Activity: Contact] .Id\",  \n// Function type - aggregating.  \nFunctionType = FunctionType.Aggregation,  \n// Aggregation type - number.  \nAggregationType = AggregationType.Count  \n}  \n// Filter range final expression.  \nRightGreaterExpression = new BaseExpression ()  \n{  \n// Expression type - parameter.  \nExpressionType = EntitySchemaQueryExpressionType.Parameter,  \n// Expression parameter.  \nParameter = new Parameter ()  \n{  \n// Parameter data type - integer.  \nDataValueType = DataValueType.Integer,  \n// Parameter value.  \nValue = 3  \n}  \n}  \n// Filter range initial expression.  \nRightLessExpression = new BaseExpression ()  \n{  \nExpressionType = EntitySchemaQueryExpressionType.Parameter,  \nParameter = new Parameter ()  \n{  \nDataValueType = DataValueType.Integer,  \nValue = 1  \n}  \n}  \n}  \n}  \nAdd the following instance to the filter collection to filter contact records where the **Full name** column value begins with \"H\":\nExample of the instance to the filter collection\n// Filtering by name.  \n{  \n// Key.  \n\"FilterName\",  \n// Value.  \nnew Filter  \n{  \n// Filter type - comparison filter.  \nFilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.CompareFilter,  \n// Comparison type - starts with an expression.  \nComparisonType = FilterComparisonType.StartWith,  \n// Expression to be tested.  \nLeftExpression = new BaseExpression ()  \n{  \n// Expression type - schema column.  \nExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,  \n// Path to the column.  \nColumnPath = \"Name\"  \n}  \n// Filtration expression.  \nRightExpression = new BaseExpression ()  \n{  \n// Expression type - parameter.  \nExpressionType = EntitySchemaQueryExpressionType.Parameter,  \n// Expression parameter.  \nParameter = new Parameter ()  \n{  \n// Parameter data type - text.  \nDataValueType = DataValueType.Text,  \n// Parameter value.  \nValue = \"CH\"  \n}  \n}  \n}  \n}  \n* * *\n## Resources\u200b\n[GitHub (example implementation)](https://github.com/bpmonline-academy/sdkDataServiceExamples)",
+  "code_examples": [
+    {
+      "code": "// Query class instance.var selectQuery = new SelectQuery (){    // Root schema name.    RootSchemaName = \"Contact\",    // Adding columns to query.    Columns = new SelectQueryColumns ()    {        // Column collection.        Items = new Dictionary <string, SelectQueryColumn> ()        {            // Column [Full name].            {                // Key.                \"Name\",                // Value.                new SelectQueryColumn ()                {                    // An expression that specifies the column type.                    Expression = new ColumnExpression ()                    {                        // Expression type - schema column.                        ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,                        // Path to the column.                        ColumnPath = \"Name\"                    }                }            },            // Column [Number of activities].            {                \"ActivitiesCount\",                new SelectQueryColumn ()                {                    Expression = new ColumnExpression ()                    {                        // Expression - subquery.                        ExpressionType = EntitySchemaQueryExpressionType.SubQuery,                        // Path to the column relative to the root schema.                        ColumnPath = \"[Activity: Contact] .Id\",                        // Function type - aggregating.                        FunctionType = FunctionType.Aggregation,                        // Aggregation type - number.                        AggregationType = AggregationType.Count                    }                }            }        }    }};",
+      "language": "js",
+      "context": "The result of the query class implementation instance to read the records with the columns in an abbreviated form:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Query filters.var selectFilters = new Filters (){    // Filter Type - group.    FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.FilterGroup,    // Filter collection.    Items = new Dictionary <string, Filter>    {// Filter Implementation.    }};// Adding filter to query.selectQuery.Filters = selectFilters;// Query class instance serialization to read data from the JSON string.var json = new JavaScriptSerializer () Serialize (selectQuery).;",
+      "language": "js",
+      "context": "In order to filter data, you must create an instance of theFilterscollection class instance, fill in the necessary properties, and then pass the link to this instance to theFiltersproperty of the quer",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Filtration by activity.{    // Key.    \"FilterActivities\",    // Value.    new Filter    {        // Filter type - range filter.        FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.Between,        // Comparison type - range.        ComparisonType = FilterComparisonType.Between,        // An expression to be tested.        LeftExpression = new BaseExpression ()        {            // Expression type - subquery.            ExpressionType = EntitySchemaQueryExpressionType.SubQuery,            // Path to the column relative to the root schema.            ColumnPath = \"[Activity: Contact] .Id\",            // Function type - aggregating.            FunctionType = FunctionType.Aggregation,            // Aggregation type - number.            AggregationType = AggregationType.Count        }        // Filter range final expression.        RightGreaterExpression = new BaseExpression ()        {            // Expression type - parameter.            ExpressionType = EntitySchemaQueryExpressionType.Parameter,            // Expression parameter.            Parameter = new Parameter ()            {                // Parameter data type - integer.                DataValueType = DataValueType.Integer,                // Parameter value.                Value = 3            }        }        // Filter range initial expression.        RightLessExpression = new BaseExpression ()        {            ExpressionType = EntitySchemaQueryExpressionType.Parameter,            Parameter = new Parameter ()            {                DataValueType = DataValueType.Integer,                Value = 1            }        }    }}",
+      "language": "js",
+      "context": "To implement a filter that selects only those contacts that have a number of activities within a range of 1 to 3, you must add the following instance to the collection of filters:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Filtering by name.{    // Key.    \"FilterName\",    // Value.    new Filter    {        // Filter type - comparison filter.        FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType.CompareFilter,        // Comparison type - starts with an expression.        ComparisonType = FilterComparisonType.StartWith,        // Expression to be tested.        LeftExpression = new BaseExpression ()        {            // Expression type - schema column.            ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,            // Path to the column.            ColumnPath = \"Name\"        }        // Filtration expression.        RightExpression = new BaseExpression ()        {            // Expression type - parameter.            ExpressionType = EntitySchemaQueryExpressionType.Parameter,             // Expression parameter.            Parameter = new Parameter ()            {                // Parameter data type - text.                DataValueType = DataValueType.Text,                // Parameter value.                Value = \"CH\"            }        }    }}",
+      "language": "js",
+      "context": "Add the following instance to the filter collection to filter contact records where theFull namecolumn value begins with \"H\":",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Contacts",
+      "content": "ExampleCreate a console application that will read the following data from theContactssection using the DataService service:Id;Full name;Number of activitiesis an aggregating column that shows the number of activities of this contact.It is necessary to filter the data so that only those contacts whose number of activities is in the range of 1 to 3, and theFull namecolumn value starting with \"H\" are read.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create a console application that will read the following data from the <strong>Contacts</strong> section using the DataService service:</p><ul>\n<li><code>Id</code>;</li>\n<li><code>Full name</code>;</li>\n<li><code>Number of activities</code> is an aggregating column that shows the number of activities of this contact.</li>\n</ul><p>It is necessary to filter the data so that only those contacts whose number of activities is in the range of 1 to 3, and the <strong>Full name</strong> column value starting with \"H\" are read.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Contacts",
+      "content": "Create a console application that will read the following data from theContactssection using the DataService service:Id;Full name;Number of activitiesis an aggregating column that shows the number of activities of this contact.It is necessary to filter the data so that only those contacts whose number of activities is in the range of 1 to 3, and theFull namecolumn value starting with \"H\" are read.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create a console application that will read the following data from the <strong>Contacts</strong> section using the DataService service:</p><ul>\n<li><code>Id</code>;</li>\n<li><code>Full name</code>;</li>\n<li><code>Number of activities</code> is an aggregating column that shows the number of activities of this contact.</li>\n</ul><p>It is necessary to filter the data so that only those contacts whose number of activities is in the range of 1 to 3, and the <strong>Full name</strong> column value starting with \"H\" are read.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Filter records in the section using DataService",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Example implementation algorithm\u200b",
+      "anchor": "title-1401-2"
+    },
+    {
+      "level": 3,
+      "text": "1. Create and configure a C# console application project that reads records\u200b",
+      "anchor": "title-1401-3"
+    },
+    {
+      "level": 3,
+      "text": "2. Add filter implementation\u200b",
+      "anchor": "title-1401-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/filter-records",
+      "text": "Filter records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/data-services/dataservice/examples/filter-records",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/data-services/dataservice/examples/filter-records",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/data-services/dataservice/examples/filter-records",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication-basics",
+      "text": "Authentication basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dataservice",
+      "text": "DataService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/create-a-record",
+      "text": "Create a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/read-records",
+      "text": "PreviousRead records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/filter-records-macro",
+      "text": "NextFilter records using a macro",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/update-a-record",
+      "text": "Update a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/delete-a-record",
+      "text": "Delete a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/examples/add-and-update-a-record",
+      "text": "Add and update a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dataservice-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/insertquery",
+      "text": "InsertQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/selectquery",
+      "text": "SelectQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/filters",
+      "text": "Filters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/entityschemaquerymacrostype",
+      "text": "EntitySchemaQueryMacrosType",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/updatequery",
+      "text": "UpdateQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/deletequery",
+      "text": "DeleteQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/dataservice/references/batchquery",
+      "text": "BatchQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/odata",
+      "text": "OData",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/data-services/odata/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/odata-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/odata-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/business-process-service/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/process-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/process-service-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/working-with-requests",
+      "text": "Requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/using-postman/working-with-request-collections",
+      "text": "Request collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T03:09:38.980382"
+}

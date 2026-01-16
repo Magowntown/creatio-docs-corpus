@@ -1,0 +1,1 @@
+POST /0/rest/AnalyticsService/GetDashboardItemData{    "dashboardId": "a71d5c04-dff7-4892-90e5-9e7cc2246915",    "itemName": "Chart4",    "timeZoneOffset": 120}

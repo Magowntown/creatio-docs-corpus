@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentHourQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression expression, int offset = 0) : this(parentQuery, offset)

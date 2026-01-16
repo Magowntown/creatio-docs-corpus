@@ -1,0 +1,1 @@
+openCard(operation, typeColumnValue, recordId)

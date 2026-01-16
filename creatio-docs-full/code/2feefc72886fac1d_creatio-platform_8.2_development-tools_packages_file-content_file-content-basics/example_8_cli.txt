@@ -1,0 +1,1 @@
+Terrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -destinationPath="C:\WebApplication\Creatio\Terrasoft.WebApp" -force=true -logPath=C:\wc\log

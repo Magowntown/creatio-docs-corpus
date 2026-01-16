@@ -1,0 +1,1 @@
+[#Read lead data.First element of the resulting collection.Contact#]!= Guid.Empty

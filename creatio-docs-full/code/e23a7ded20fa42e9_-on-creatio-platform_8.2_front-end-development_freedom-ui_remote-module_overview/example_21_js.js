@@ -1,0 +1,1 @@
+"values": {    "type": "usr.viewElement",    "imageUrl": "data:image/png;base64,..."}

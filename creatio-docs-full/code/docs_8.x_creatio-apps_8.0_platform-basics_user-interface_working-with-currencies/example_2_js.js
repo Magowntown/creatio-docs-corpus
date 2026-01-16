@@ -1,0 +1,1 @@
+Amount in conversion currency = Rate * Amount in base currency / Ratio

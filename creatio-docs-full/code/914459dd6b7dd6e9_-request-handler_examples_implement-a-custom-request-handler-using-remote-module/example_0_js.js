@@ -1,0 +1,1 @@
+/* Import the required functionality from the libraries. */import {     BaseRequest,    CrtRequest} from "@creatio/mobile-common";/* Add the "CrtRequest" decorator to the "ChangeContactTypeToSupplierRequest" class. */@CrtRequest({    type: 'usr.ChangeContactTypeToSupplierRequest'})export class ChangeContactTypeToSupplierRequest extends BaseRequest {}

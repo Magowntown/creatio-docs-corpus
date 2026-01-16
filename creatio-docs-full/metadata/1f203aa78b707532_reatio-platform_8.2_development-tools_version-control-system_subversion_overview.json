@@ -1,0 +1,633 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/overview",
+  "title": "Version control using Subversion",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools"
+    },
+    {
+      "text": "Version control tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools"
+    },
+    {
+      "text": "Subversion",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/subversion"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: beginner\nCreatio lets you use different version control systems. This article covers the use of the most popular of them, Subversion (SVN).\n**Subversion (SVN)** is a free and open-source version control system.\nThe **SVN base** is a repository that stores data as a hierarchy of files and directories, i. e., a file tree.\nYou can perform the following **actions** with the SVN repository:\n* **Read data** of other Creatio users to which they granted access:\n* Read files of other Creatio users and the directory tree.\n* Read the directory tree.\n* Review previous versions of files and the directory tree.\n* **Modify data** :\n* Create new directories and files.\n* Rename directories and files.\n* Change file contents.\n* Delete directories and files.\n* **Record data** to grant access to other Creatio users.\nWe **recommend using** the SVN version control system in the following cases:\n* Creatio **.NET Framework**.\n* Apps where development is done mostly using no-code tools.\n* Creatio in the cloud.\nWe recommend using Git for Creatio on-site. Learn more: [Version control using Git](https://academy.creatio.com/documents?ver=8.2&id=15149).\nImportant\nUse the SVN version control system to transfer changes only between [development environments](https://academy.creatio.com/documents?ver=8.2&id=15201&anchor=title-2124-1). Do not use SVN on a [pre-production](https://academy.creatio.com/documents?ver=8.2&id=15201&anchor=title-2124-2) or [production](https://academy.creatio.com/documents?ver=8.2&id=15201&anchor=title-2124-3) environment. This can render Creatio inoperable or decrease its performance.\nWhen using SVN on a pre-production or production environment, Creatio can be rendered inoperable by errors that occur when transferring changes or saving configuration elements. For example, if the package set as current is a package bound to SVN. You can restore the Creatio operability from a database backup. However, you might lose the changes made in Creatio since the last backup.\nAlso, if you use SVN on a pre-production or production environment, changes might be delivered without previous testing on the development environment, which is strictly forbidden.\nLearn more about setting up and working with SVN: [official vendor documentation](http://https://svnbook.red-bean.com/index.en.html) (SVN).\n## Key concepts\u200b\n**Repository** is a central database usually located on a file server. Stores versioned files. Can be accessed over various network protocols or from a local drive.\n**Working copy** is a directory on the local machine. The working copy contains a copy of the files as they were in the repository before a user modified them. That way, you can view the exact changes.\nImportant\nChanges are only documented for text files. For binary files, SVN documents only the fact of change.\n**Revision** is the state of the file system tree. A revision saves the entire set of changes to files and directories as a single change.\n**Change commitment** to the file system tree is an atomic operation that lets you commit the revision.\nRevisions in the repository can be represented as a **series of file system trees** , i. e., an array of revision numbers that start from 0 and increase from left to right (see the image below). Each number contains a file system tree as a snapshot of the repository state after a commit.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WorkingSVNFileSystem/7.17/revisions.png)\nnote\nUnlike other version control systems, revision numbers in SVN refer to entire trees, not individual files.\nThe general **procedure** work with files in the working copy is as follows:\n1. Retrieve the latest file versions from the repository.\n2. Work with files on a local machine.\n3. Commit files to the repository.\n## Versioning models\u200b\nDifferent developers might use SVN to develop the same functionality in the same file. If the first developer saves changes first and the second developer saves changes a few seconds later, the changes of the second developer overwrite those of the first developer. While these changes will be present in the repository, they will be absent from the latest file revision. To prevent that, use the following **versioning models**.\n* the \"Lock-Modify-Unlock\" model\n* the \"Copy-Modify-Merge\" model\n### \"Lock-Modify-Unlock\" model\u200b\nThe repository enables only one user at a time to modify a file. The first user must lock the file before they can modify it. The second user cannot commit the changes until the first user commits the changes to the repository and unlocks the file.\nThe model has the following **special features** :\n* **Locking can cause administration issues**.\nIf the first developer forgets to unlock the file, the second developer loses time.\n* **Locking can add redundant steps**.\nIf developers work with non-overlapping parts of the file, a more efficient alternative is working simultaneously and merging the changes.\n* **Locking can create a false sense of security**.\nDevelopers might simultaneously work with different files that contain dependent functionality. In this case, each developer locks their file and thinks they begin a safely isolated task. As a result, the developers do not discuss changes in advance. Some of the changes made might be incompatible, which renders the developed solution inoperable.\nUse this model if you work with files that cannot be merged. For example, if the repository contains images and users change them simultaneously, these changes cannot be merged.\n### \"Copy-Modify-Merge\" model\u200b\nThe client of each user downloads the project from the repository and creates a personal **working copy** , i. e., a local copy of the files and directories. After that, users modify their personal copies simultaneously. As a result, personal copies are merged into a new, final version. Generally, SVN merges the changes automatically, but the merge needs to be approved.\nOverlapping changes made by two users cause a **conflict**.\nTo **resolve the conflict** , the user who committed the files later must take the following steps:\n1. Discuss the changes that caused the conflict with the user who committed the files earlier.\n2. Manually select the changes from the set of conflicting changes to commit.\n3. Commit the merged file to the repository.\nThe key factor in using this model is the interaction among users.\n## Manage files in SVN\u200b\nSVN writes properties of every file to the `.svn` service directory of the working copy.\nThe file **properties** are as follows:\n* Working file revision. The revision number on which the working copy file is based.\n* Date and time of the last update of the local file copy from the repository.\nThe **purpose of properties** is to determine the status of the working copy file.\nThe **statuses** of the working copy file are as follows:\n* **Not modified and not outdated**.\nFile changes have not been committed to the repository since the working revision. When you try to update or commit a file, SVN takes no action.\n* **Modified locally and not outdated**.\nFile changes have not been committed to the repository since the base file revision. SVN does not update the file. The file is committed to the repository successfully.\n* **Not modified and outdated**.\nThe file in the working copy is unchanged, but it has been changed in the repository. Update the file so that it matches the current public revision. SVN does not commit the file. The file is updated successfully.\n* **Modified locally and outdated**.\nThe file has been changed both in the working copy and the repository. The commit fails. First, update the file by trying to merge the changes published by another developer with local changes. If SVN cannot merge the changes automatically, you must resolve the conflict manually.\n## Working copy used in Creatio\u200b\nSVN mode is enabled in Creatio by default. When the [file system development](https://academy.creatio.com/documents?ver=8.2&id=15111) mode is disabled, Creatio uses its own working copies of user-made packages that have versioning enabled. These working copies are placed in the directory specified in the `defPackagesWorkingCopyPath` element of the `ConnectionStrings.config` configuration file.\nIf the file system development mode is enabled, you can create a working copy manually in the `[Path to Creatio]\\Terrasoft.WebApp\\Terrasoft.Configuration\\Pkg\\PackageName` directory.\nTo configure SVN operation, change the `sourceControlAuthPath` setting of the `ConnectionStrings.config` configuration file. The setting contains the path to the local directory that stores the user authentication data (login and encrypted password) to connect to the SVN repository. The out-of-the-box Creatio SVN client saves the authentication data. We recommend specifying the path to a permanent directory in the `sourceControlAuthPath` setting. The operating system can clear the temporary directory specified by default.\n## SVN client\u200b\nWe recommend using the [TortoiseSVN](https://tortoisesvn.net) client version 1.9 and later to work with SVN in the file system. This client is a Windows shell extension built into the context menu of Windows Explorer. Learn more about using TortoiseSVN: [official vendor documentation](https://tortoisesvn.net/docs/release/TortoiseSVN_en/index.html) (TortoiseSVN).\n* * *\n## See also\u200b\n[Version control in Creatio IDE](https://academy.creatio.com/documents?ver=8.2&id=15152)\n[Environment overview](https://academy.creatio.com/documents?ver=8.2&id=15201)\n[Delivery in Creatio IDE](https://academy.creatio.com/documents?ver=8.2&id=15203)\n* * *\n## Resources\u200b\n[Official Subversion (SVN) documentation](https://svnbook.red-bean.com/index.en.html)\n[TortoiseSVN official website](https://tortoisesvn.net/)\n[Official TortoiseSVN documentation](https://tortoisesvn.net/docs/release/TortoiseSVN_en/index.html)",
+  "code_examples": [],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantUse the SVN version control system to transfer changes only betweendevelopment environments. Do not use SVN on apre-productionorproductionenvironment. This can render Creatio inoperable or decrease its performance.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Use the SVN version control system to transfer changes only between <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15201&amp;anchor=title-2124-1\" rel=\"noopener noreferrer\" target=\"_blank\">development environments</a>. Do not use SVN on a <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15201&amp;anchor=title-2124-2\" rel=\"noopener noreferrer\" target=\"_blank\">pre-production</a> or <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15201&amp;anchor=title-2124-3\" rel=\"noopener noreferrer\" target=\"_blank\">production</a> environment. This can render Creatio inoperable or decrease its performance.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Use the SVN version control system to transfer changes only betweendevelopment environments. Do not use SVN on apre-productionorproductionenvironment. This can render Creatio inoperable or decrease its performance.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Use the SVN version control system to transfer changes only between <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15201&amp;anchor=title-2124-1\" rel=\"noopener noreferrer\" target=\"_blank\">development environments</a>. Do not use SVN on a <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15201&amp;anchor=title-2124-2\" rel=\"noopener noreferrer\" target=\"_blank\">pre-production</a> or <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15201&amp;anchor=title-2124-3\" rel=\"noopener noreferrer\" target=\"_blank\">production</a> environment. This can render Creatio inoperable or decrease its performance.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantChanges are only documented for text files. For binary files, SVN documents only the fact of change.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Changes are only documented for text files. For binary files, SVN documents only the fact of change.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Changes are only documented for text files. For binary files, SVN documents only the fact of change.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Changes are only documented for text files. For binary files, SVN documents only the fact of change.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteUnlike other version control systems, revision numbers in SVN refer to entire trees, not individual files.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Unlike other version control systems, revision numbers in SVN refer to entire trees, not individual files.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Unlike other version control systems, revision numbers in SVN refer to entire trees, not individual files.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Unlike other version control systems, revision numbers in SVN refer to entire trees, not individual files.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WorkingSVNFileSystem/7.17/revisions.png",
+      "alt": "",
+      "title": "",
+      "context": "Revisions in the repository can be represented as aseries of file system trees, i. e., an array of r",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1f203aa78b707532_reatio-platform_8.2_development-tools_version-control-system_subversion_overview_257fd6a26a99.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Version control using Subversion",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Key concepts\u200b",
+      "anchor": "title-2115-1"
+    },
+    {
+      "level": 2,
+      "text": "Versioning models\u200b",
+      "anchor": "title-2115-2"
+    },
+    {
+      "level": 3,
+      "text": "\"Lock-Modify-Unlock\" model\u200b",
+      "anchor": "title-2115-4"
+    },
+    {
+      "level": 3,
+      "text": "\"Copy-Modify-Merge\" model\u200b",
+      "anchor": "title-2115-5"
+    },
+    {
+      "level": 2,
+      "text": "Manage files in SVN\u200b",
+      "anchor": "title-2115-6"
+    },
+    {
+      "level": 2,
+      "text": "Working copy used in Creatio\u200b",
+      "anchor": "title-2115-7"
+    },
+    {
+      "level": 2,
+      "text": "SVN client\u200b",
+      "anchor": "title-2115-8"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/version-control-system/subversion/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/version-control-system/subversion/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/subversion/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/package-conversion",
+      "text": "Conversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/subversion",
+      "text": "PreviousSubversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/subversion-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/examples/create-a-package-in-the-file-system-development-mode",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/examples/install-an-svn-package-in-the-file-system-development-mode",
+      "text": "Install an SVN package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/examples/bind-an-existing-package-to-svn",
+      "text": "Bind an existing package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/examples/bind-an-existing-package-to-svn-using-a-database-query",
+      "text": "Bind an existing package (database query)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/examples/update-and-commit-the-package-to-the-svn-in-file-system-development-mode",
+      "text": "Update and commit the package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/subversion/examples/create-the-package-and-switch-to-the-file-system-development-mode",
+      "text": "Create a package (switching to file system)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/hotfix-mode",
+      "text": "Hotfix mode",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://tortoisesvn.net/docs/release/TortoiseSVN_en/index.html",
+      "text": "Official TortoiseSVN documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:48:23.118256"
+}

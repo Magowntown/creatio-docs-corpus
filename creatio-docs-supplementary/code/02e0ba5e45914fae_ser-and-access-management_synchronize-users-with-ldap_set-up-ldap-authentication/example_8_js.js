@@ -1,0 +1,1 @@
+auth providerNames="InternalUserPassword,SSPLdapProvider,Ldap"autoLoginProviderNames="NtlmUser,SSPNtlmUser"

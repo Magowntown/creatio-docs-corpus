@@ -1,0 +1,619 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+  "title": "Automatic data binding",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nUse the **automatic data binding** mechanism on the data of objects with a complex object model. Automatic data binding is available for [product catalog](https://academy.creatio.com/docs/8.x/creatio-apps/8.0/category/product-catalog) in Financial Services Creatio product lineup.\n## Structure of automatic data binding\u200b\nView the **components** of automatic data binding in the table below.\nComponents of automatic data binding\nName| Purpose| Classes and interfaces  \n---|---|---  \nService| Generates data bindings based on the set structure Creatio generates data bindings [in the background](https://academy.creatio.com/documents?ver=8.0&id=15231).| `Service`. The interface that calls automatic data binding from the front-end.  \nController| Accesses the `Obtainer` (obtains the structure of bound records) and `Manufacturer` (generates the data bindings) classes.| `Controller`. The class that manages the creation of data bindings.  \nBinding generator| Wraps the `PackageElementUtilities` core class. Provides a convenient interface to execute CRUD operations on data bindings. Learn more about data operations in separate articles: [Data access through ORM](https://academy.creatio.com/documents?ver=8.0&id=15246), [Access data directly](https://academy.creatio.com/documents?ver=8.0&id=15233).| `Manufacturer`. A proxy class that interacts with the controller, `PackageElementUtilities` class, and `PackageValidator` class.  \nStructure obtainer| Returns the structure of the main entity\u2019s bound records to the controller.| `Obtainer`. Provides flexible modification of the structure of the main entity\u2019s bound objects when creating data bindings. Uses the `Strategy` template to define the required implementation.  \nCreatio implements the **base structure** , within which only the current entity and its columns (except for system columns) are returned. View the properties of the base structure in the table below.\nProperties of the base structure of bound entities\nProperty| Description  \n---|---  \n`EntitySchemaName`| The name of the entity.  \n`FilterColumnPathes`| The array of paths to the main entity\u2019s primary column. If you use filters, join them using the `OR` operator.  \n`IsBundle`| The way to save the records. The **ways** to save the records are as follows: * Save the records to a single binding. * Create a binding per each record bound to the main entity record via the filter.  \n`Columns`| The list of columns to bind.  \n`InnerStructures`| The list of nested objects\u2019 structures. For example, details connected to the main entity.  \n`DependsStructures`| The list of structures on which the current structure depends. For example, lookups to which the record in the current structure links via lookup fields.  \n## Operating procedure of automatic data binding\u200b\nView the **operating procedure** of automatic data binding in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutoBind/7.18/src_AutoBind_diagram_en.png)\nCreatio starts processing the structure from the main entity. The structure is processed for each instance of the `SchemaDataBindingStructure` structure class.\nThe **structure processing procedure** is as follows:\n1. Creatio recursively processes each structure from the list of structures contained in the `DependsStructures` property. This is done to bind the objects to which the current object links before binding the main entity.\n2. Creatio adds the binding to the main entity record by the filter in the `FilterColumnPathes` property.\n3. Creatio recursively processes each structure from the list of structures contained in the `InnerStructures` property. Since the structures reference the main entity, bind them after binding the main entity.\nThe following **naming patterns** are available:\n* `agb_EntitySchemaName` if the `IsBundle` property is `true`. `EntitySchemaName` is the name of the current binding\u2019s entity.\n* `agb_EntitySchemaName_PrimaryEntityId` if the `IsBundle` property is `false`. `PrimaryEntityId` is the ID of the main entity record to which the records in the current binding are bound.\nImportant\nWe recommend against renaming automatically created bindings. Automatic updates are available only for the bindings whose names match the specified template.\n## Add a custom structure for the object binding\u200b\n1. Create a **Source code** schema. Learn more about creating schemas in a separate article: [Source code (C#)](https://academy.creatio.com/documents?ver=8.0&id=15108&anchor=title-2123-8).\n2. Create a service class.\n1. Add the `Terrasoft.Configuration` namespace in the Schema Designer.\n2. Create a class. Name the class according to the following template: `[EntityName]SchemaDataBindingStructureObtainer`. For example, `ProductSchemaDataBindingStructureObtainer`. Creatio will search for classes based on the template when defining the relevant obtainer implementation (the `Obtainer` component).\n3. Specify the `BaseSchemaDataBindingStructureObtainer` class as a parent class.\n4. Add a custom implementation of the `ObtainStructure()` interface method. Create and return the needed entity structure in this method.\nObtainStructure() method\npublic override SchemaDataBindingStructure ObtainStructure(UserConnection userConnection)  \nImportant\nIf you need to modify a structure implementation from a non-editable package, create a class in a user-made package and use the `[Override]` attribute. Learn more about the attribute in a separate article: [`[Override]` attribute](https://academy.creatio.com/documents?ver=8.0&id=15221&anchor=title-1238-6).\n3. Publish the source code schema.\n## Call automatic data binding\u200b\nYou can call automatic data binding from the front-end and back-end.\n### Call automatic data binding from the front-end\u200b\n1. Call the service that generates bindings.\n2. Specify the binding generation settings.\nYou can specify binding generation settings in the following **ways** :\n* Pass the parameters.\n* package for which to generate the binding\n* name of the entity\n* list of IDs to bind\n* Pass the filter.\nView the example that calls automatic data binding from the front-end using the parameters below.\nExample that calls automatic data binding from the front-end using parameters\nServiceHelper.callService(\"SchemaDataBindingService\",  \n\"GenerateBindings\",  \ncallback, {  \n\"schemaName\": this.entitySchemaName,  \n\"sysPackageUId\": sysPackageUId  \n\"recordIds\": [\"...\", \"...\"]  \n},  \nthis  \n);  \nView the example that calls automatic data binding from the front-end using a filter below.\nExample that calls automatic data binding from the front-end using a filter\nServiceHelper.callService(\"SchemaDataBindingService\",  \n\"GenerateBindingsByFilter\",  \ncallback, {  \n\"schemaName\": this.entitySchemaName,  \n\"sysPackageUId\": sysPackageUId  \n\"filterConfig\": ...  \n},  \nthis  \n);  \nImportant\nCreatio runs automatic data binding called from the front-end in the background. Once the binding is complete, Creatio will display a notification message in the communication panel. The message will contain the number of successfully and unsuccessfully bound product records.\n### Call automatic data binding from the back-end\u200b\n1. Create an instance of the `SchemaDataBindingController` class.\n2. Call the `GenerateBindings` method. Pass the following to the method:\n* package ID\n* entity name\n* list of IDs to bind\nView the example that calls automatic data binding from the back-end below.\nExample that calls automatic data binding from the back-end\nvar dataBindingController = ClassFactory.Get<IDataBindingController>(new ConstructorArgument(\"userConnection\", UserConnection));  \nvar result = dataBindingController.GenerateBindings(schemaName, recordIds, sysPackageUId);  \n* * *\n## See also\u200b\n[Data access through ORM](https://academy.creatio.com/documents?ver=8.0&id=15246)\n[Access data directly](https://academy.creatio.com/documents?ver=8.0&id=15233)\n[Configuration elements](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements)\n[Replacing class factory](https://academy.creatio.com/documents?ver=8.0&id=15221)\n[Execute operations in the background](https://academy.creatio.com/documents?ver=8.0&id=15231)\n* * *\n## Resources\u200b\n[Description of the product catalog in Financial Services Creatio product lineup](https://academy.creatio.com/docs/8.x/creatio-apps/8.0/category/product-catalog)",
+  "code_examples": [
+    {
+      "code": "public override SchemaDataBindingStructure ObtainStructure(UserConnection userConnection)",
+      "language": "cs",
+      "context": "Add a custom implementation of theObtainStructure()interface method. Create and return the needed entity structure in this method.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ServiceHelper.callService(\"SchemaDataBindingService\",    \"GenerateBindings\",    callback, {        \"schemaName\": this.entitySchemaName,        \"sysPackageUId\": sysPackageUId        \"recordIds\": [\"...\", \"...\"]    },    this);",
+      "language": "cs",
+      "context": "View the example that calls automatic data binding from the front-end using the parameters below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ServiceHelper.callService(\"SchemaDataBindingService\",    \"GenerateBindingsByFilter\",    callback, {        \"schemaName\": this.entitySchemaName,        \"sysPackageUId\": sysPackageUId        \"filterConfig\": ...    },    this);",
+      "language": "cs",
+      "context": "View the example that calls automatic data binding from the front-end using a filter below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var dataBindingController = ClassFactory.Get<IDataBindingController>(new ConstructorArgument(\"userConnection\", UserConnection));var result = dataBindingController.GenerateBindings(schemaName, recordIds, sysPackageUId);",
+      "language": "cs",
+      "context": "View the example that calls automatic data binding from the back-end below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Purpose",
+          "Classes and interfaces"
+        ],
+        [
+          "Service",
+          "Generates data bindings based on the set structure Creatio generates data bindingsin the background.",
+          "Service. The interface that calls automatic data binding from the front-end."
+        ],
+        [
+          "Controller",
+          "Accesses theObtainer(obtains the structure of bound records) andManufacturer(generates the data bindings) classes.",
+          "Controller. The class that manages the creation of data bindings."
+        ],
+        [
+          "Binding generator",
+          "Wraps thePackageElementUtilitiescore class. Provides a convenient interface to execute CRUD operations on data bindings. Learn more about data operations in separate articles:Data access through ORM,Access data directly.",
+          "Manufacturer. A proxy class that interacts with the controller,PackageElementUtilitiesclass, andPackageValidatorclass."
+        ],
+        [
+          "Structure obtainer",
+          "Returns the structure of the main entity\u2019s bound records to the controller.",
+          "Obtainer. Provides flexible modification of the structure of the main entity\u2019s bound objects when creating data bindings. Uses theStrategytemplate to define the required implementation."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Purpose</p></th><th><p>Classes and interfaces</p></th></tr><tr><th><p>Service</p></th><td><p>Generates data bindings based on the set structure Creatio generates data bindings <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15231\" rel=\"noopener noreferrer\" target=\"_blank\">in the background</a>.</p></td><td><p><code>Service</code>. The interface that calls automatic data binding from the front-end.</p></td></tr><tr><th><p>Controller</p></th><td><p>Accesses the <code>Obtainer</code> (obtains the structure of bound records) and <code>Manufacturer</code> (generates the data bindings) classes.</p></td><td><p><code>Controller</code>. The class that manages the creation of data bindings.</p></td></tr><tr><th><p>Binding generator</p></th><td><p>Wraps the <code>PackageElementUtilities</code> core class. Provides a convenient interface to execute CRUD operations on data bindings. Learn more about data operations in separate articles: <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15246\" rel=\"noopener noreferrer\" target=\"_blank\">Data access through ORM</a>, <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15233\" rel=\"noopener noreferrer\" target=\"_blank\">Access data directly</a>.</p></td><td><p><code>Manufacturer</code>. A proxy class that interacts with the controller, <code>PackageElementUtilities</code> class, and <code>PackageValidator</code> class.</p></td></tr><tr><th><p>Structure obtainer</p></th><td><p>Returns the structure of the main entity\u2019s bound records to the controller.</p></td><td><p><code>Obtainer</code>. Provides flexible modification of the structure of the main entity\u2019s bound objects when creating data bindings. Uses the <code>Strategy</code> template to define the required implementation.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Description"
+        ],
+        [
+          "EntitySchemaName",
+          "The name of the entity."
+        ],
+        [
+          "FilterColumnPathes",
+          "The array of paths to the main entity\u2019s primary column. If you use filters, join them using theORoperator."
+        ],
+        [
+          "IsBundle",
+          "The way to save the records. Thewaysto save the records are as follows: * Save the records to a single binding. * Create a binding per each record bound to the main entity record via the filter."
+        ],
+        [
+          "Columns",
+          "The list of columns to bind."
+        ],
+        [
+          "InnerStructures",
+          "The list of nested objects\u2019 structures. For example, details connected to the main entity."
+        ],
+        [
+          "DependsStructures",
+          "The list of structures on which the current structure depends. For example, lookups to which the record in the current structure links via lookup fields."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Description</p></th></tr><tr><td><p><code>EntitySchemaName</code></p></td><td><p>The name of the entity.</p></td></tr><tr><td><p><code>FilterColumnPathes</code></p></td><td><p>The array of paths to the main entity\u2019s primary column. If you use filters, join them using the <code>OR</code> operator.</p></td></tr><tr><td><p><code>IsBundle</code></p></td><td><p>The way to save the records. The <strong>ways</strong> to save the records are as follows: * Save the records to a single binding. * Create a binding per each record bound to the main entity record via the filter.</p></td></tr><tr><td><p><code>Columns</code></p></td><td><p>The list of columns to bind.</p></td></tr><tr><td><p><code>InnerStructures</code></p></td><td><p>The list of nested objects\u2019 structures. For example, details connected to the main entity.</p></td></tr><tr><td><p><code>DependsStructures</code></p></td><td><p>The list of structures on which the current structure depends. For example, lookups to which the record in the current structure links via lookup fields.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWe recommend against renaming automatically created bindings. Automatic updates are available only for the bindings whose names match the specified template.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We recommend against renaming automatically created bindings. Automatic updates are available only for the bindings whose names match the specified template.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We recommend against renaming automatically created bindings. Automatic updates are available only for the bindings whose names match the specified template.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We recommend against renaming automatically created bindings. Automatic updates are available only for the bindings whose names match the specified template.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf you need to modify a structure implementation from a non-editable package, create a class in a user-made package and use the[Override]attribute. Learn more about the attribute in a separate article:[Override]attribute.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you need to modify a structure implementation from a non-editable package, create a class in a user-made package and use the <code>[Override]</code> attribute. Learn more about the attribute in a separate article: <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15221&amp;anchor=title-1238-6\" rel=\"noopener noreferrer\" target=\"_blank\"><code>[Override]</code> attribute</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you need to modify a structure implementation from a non-editable package, create a class in a user-made package and use the[Override]attribute. Learn more about the attribute in a separate article:[Override]attribute.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you need to modify a structure implementation from a non-editable package, create a class in a user-made package and use the <code>[Override]</code> attribute. Learn more about the attribute in a separate article: <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15221&amp;anchor=title-1238-6\" rel=\"noopener noreferrer\" target=\"_blank\"><code>[Override]</code> attribute</a>.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantCreatio runs automatic data binding called from the front-end in the background. Once the binding is complete, Creatio will display a notification message in the communication panel. The message will contain the number of successfully and unsuccessfully bound product records.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Creatio runs automatic data binding called from the front-end in the background. Once the binding is complete, Creatio will display a notification message in the communication panel. The message will contain the number of successfully and unsuccessfully bound product records.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio runs automatic data binding called from the front-end in the background. Once the binding is complete, Creatio will display a notification message in the communication panel. The message will contain the number of successfully and unsuccessfully bound product records.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio runs automatic data binding called from the front-end in the background. Once the binding is complete, Creatio will display a notification message in the communication panel. The message will contain the number of successfully and unsuccessfully bound product records.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AutoBind/7.18/src_AutoBind_diagram_en.png",
+      "alt": "",
+      "title": "",
+      "context": "View theoperating procedureof automatic data binding in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_back-end-development_automatic-data-binding_adcf45c1e769.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Automatic data binding",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Structure of automatic data binding\u200b",
+      "anchor": "title-2188-1"
+    },
+    {
+      "level": 2,
+      "text": "Operating procedure of automatic data binding\u200b",
+      "anchor": "title-2962-2"
+    },
+    {
+      "level": 2,
+      "text": "Add a custom structure for the object binding\u200b",
+      "anchor": "title-2962-3"
+    },
+    {
+      "level": 2,
+      "text": "Call automatic data binding\u200b",
+      "anchor": "title-2962-6"
+    },
+    {
+      "level": 3,
+      "text": "Call automatic data binding from the front-end\u200b",
+      "anchor": "title-2962-7"
+    },
+    {
+      "level": 3,
+      "text": "Call automatic data binding from the back-end\u200b",
+      "anchor": "title-2962-8"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IDataBindingController"
+      },
+      {
+        "method": "IDATABINDINGCONTROLLER",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [
+      {
+        "name": "Generates data bindings based on the set structure Creatio generates data bindingsin the background.",
+        "type": "Service. The interface that calls automatic data binding from the front-end.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Accesses theObtainer(obtains the structure of bound records) andManufacturer(generates the data bindings) classes.",
+        "type": "Controller. The class that manages the creation of data bindings.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Wraps thePackageElementUtilitiescore class. Provides a convenient interface to execute CRUD operations on data bindings. Learn more about data operations in separate articles:Data access through ORM,Access data directly.",
+        "type": "Manufacturer. A proxy class that interacts with the controller,PackageElementUtilitiesclass, andPackageValidatorclass.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Returns the structure of the main entity\u2019s bound records to the controller.",
+        "type": "Obtainer. Provides flexible modification of the structure of the main entity\u2019s bound objects when creating data bindings. Uses theStrategytemplate to define the required implementation.",
+        "description": "",
+        "required": true
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "NextFile management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/creatio-apps/8.0/category/product-catalog",
+      "text": "Description of the product catalog in Financial Services Creatio product lineup",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/operations-with-localizable-resources/references/localizablevaluet",
+      "text": "PreviousLocalizableValue<T>",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:25:27.966741"
+}

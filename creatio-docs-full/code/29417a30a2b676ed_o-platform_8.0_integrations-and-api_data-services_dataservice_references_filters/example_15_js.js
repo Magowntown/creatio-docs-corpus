@@ -1,0 +1,1 @@
+TrimDateTime ParameterToDate bool

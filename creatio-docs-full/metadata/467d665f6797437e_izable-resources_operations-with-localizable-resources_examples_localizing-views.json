@@ -1,0 +1,826 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/operations-with-localizable-resources/examples/localizing-views",
+  "title": "Localize the view in the database",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    },
+    {
+      "text": "Localizable resources",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources"
+    },
+    {
+      "text": "Operations",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/operations-with-loc-resources-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nTo implement the example:\n1. Implement an object schema. Read more >>>\n2. Create a view in the database. Read more >>>\n3. Implement a custom web service. Read more >>>\n4. Change UI language. Read more >>>\nExample\nCreate a view that includes contact address types and values. Implement the `UsrViewLocalizationService` custom web service that uses cookie-based authentication, receives data from created view and, based on the Spanish language chosen in the user profile, returns the following data:\n* Non-localizable values of contact address types in the primary language.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result.png)\n* Localizable values of contact address types in an additional language (English).\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result_1.png)\nCreatio includes the `ContactAddress` object whose column links to the `AddressType` lookup object that contains the `Name` localizable column. View the structure and relationships of database tables in the figure below.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_diagram_database_tables.png)\nDatabase table| Description  \n---|---  \nContactAddress| The index of contact address values. Linked to the `AddressType` database table via the `AddressTypeId` column.  \nAddressType| The index of contact address types. The `Name` column contains the index of address type values in the primary language.  \nSysAddressTypeLcz| The index of contact address types in additional languages. Generated automatically. Linked to the `AddressType` database table via the `RecordId` column and to the `SysCulture` database table via the `SysCultureId` column. The `Name` column contains the index of localizable values of contact address types for the language culture that is specified in the `SysCultureId` column of the current table.  \nSysCulture| The index of language cultures.  \n## 1\\. Implement an object schema\u200b\n1. **Open the Customer 360 app** in the No-Code Designer.\n2. **Open the Advanced settings tab** in the No-Code Designer. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 \"Application management\" \u2192 \"Application Hub\" \u2192 **Customer 360** app \u2192 \"Advanced settings.\"\n3. **Create a user-made package** to add the schema. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png) \u2192 **Create new package** \u2192 fill out the package properties \u2192 **Save**.\nFor this example, create the `sdkLocalizeTheView` user-made package.\n4. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.0&id=15072&anchor=change-the-current-package).\nFor this example, change the current package to `sdkLocalizeTheView` user-made package.\n5. **Create the object schema**. To do this, click **Add** \u2192 **Object**.\n6. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nGeneral property block  \nCode| UsrContactAddressVw  \nTitle| ContactAddressVw  \nInheritance property block  \nParent object| BaseEntity  \nBehavior property block  \nRepresent Structure of Database View| Select the checkbox  \n7. **Add columns**.\nFor this example, add the following columns:\n* column that contains the index of contact address types\n* column that contains the index of contact address values\nTo do this:\n1. Go to the **Columns** node\u2019s context menu.\n2. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/scr_add_button_in_schema.png) \u2192 **Text** \u2192 **Text (50 characters)** \u2192 fill out the column properties.\nColumn| Column type| Property| Property value  \n---|---|---|---  \nColumn that contains the index of contact address types| Text (50 characters)| Code| UsrContactAddressType  \nTitle| ContactAddressType  \nLocalizable text| Select the checkbox  \nColumn that contains the index of contact address values| Text (50 characters)| Code| UsrContactAddressValue  \nTitle| ContactAddressValue  \n8. **Publish the changes**.\n## 2\\. Create a view in the database\u200b\n1. For Creatio 8.0.3 and later, **ensure that Id column values of the view are unique**. Otherwise, it can lead to errors in the business logic that displays data, especially in Freedom UI lists and expanded lists.\n2. **Execute SQL queries**.\nFor this example, execute the following SQL queries:\n* SQL query that creates a `UsrContactAddressVw` view\nSQL query\n-- The view name must match the name of database table.  \nCREATE VIEW dbo.UsrContactAddressVw  \nAS  \nSELECT  \nContactAddress.Id,  \n-- View columns must match names of the object schema columns.  \nContactAddress.Address AS UsrContactAddressValue,  \nAddressType.Name AS UsrContactAddressType  \nFROM ContactAddress  \nINNER JOIN AddressType ON ContactAddress.AddressTypeId = AddressType.Id;  \n* SQL query that creates a `SysUsrContactAddressVwLcz` localizable view\nSQL query\n-- The view name must match the name of localizable database table.  \nCREATE VIEW dbo.SysUsrContactAddressVwLcz  \nAS  \nSELECT  \nSysAddressTypeLcz.Id,  \nContactAddress.id AS RecordId,  \nSysAddressTypeLcz.SysCultureId,  \n-- View columns must match names of the object schema columns.  \nSysAddressTypeLcz.Name AS UsrContactAddressType  \nFROM ContactAddress  \nINNER JOIN AddressType ON ContactAddress.AddressTypeId = AddressType.Id  \nINNER JOIN SysAddressTypeLcz ON AddressType.Id = SysAddressTypeLcz.RecordId;  \n**As a result** , when Creatio retrieves data from the `UsrContactAddressType` column of the `UsrContactAddressVw` view using `EntitySchemaQuery`, the localizable values will be displayed.\n## 3\\. Implement a custom web service\u200b\n1. **Open the Customer 360 app** in the No-Code Designer.\n2. **Open the Advanced settings tab** in the No-Code Designer. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 \"Application management\" \u2192 \"Application Hub\" \u2192 **Customer 360** app \u2192 \"Advanced settings.\"\n3. **Select a user-made package** to add the schema.\nFor this example, select the `sdkLocalizeTheView` user-made package.\n4. **Add the package properties**.\n1. Open the package properties. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png) \u2192 **Properties**. This opens the **Dependencies** tab on the **Package properties** page.\n2. Click **Add** in the **Depends on Packages** block. This opens the **Select package** window.\n3. Select the checkbox for the `CrtCoreBase` package. The `CrtCoreBase` package includes the `SysCulture` object that stores the index of language cultures.\n4. Click **Select**.\n5. Apply the changes.\n5. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n6. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrViewLocalizationService  \nTitle| ViewLocalizationService  \n7. **Apply the changes**.\n8. **Create a service class**.\n1. Add the `Terrasoft.Configuration` namespace in the Schema Designer.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (the **Code** property).\n4. Specify the `System.Web.SessionState.IReadOnlySessionState` class as a parent class.\n5. Add the `[ServiceContract]` and `[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]` attributes to the class.\n9. **Implement class methods**.\nFor this example, add the following methods:\n* Add the `public string GetNonLocalizableView()` method that implements the endpoint of the custom web service. The method executes database queries using `EntitySchemaQuery`. The response body will return the index of contact address types and values from the `UsrContactAddressVw` view in the primary language.\n* Add the `public string GetLocalizableView()` method that implements the endpoint of the custom web service. The method executes database queries using `EntitySchemaQuery`. The response body will return the index of contact address types and values from the `UsrContactAddressVw` view in an additional language.\nUsrViewLocalizationService\nnamespace Terrasoft.Configuration {  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Web;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Entities;  \nusing System;  \nusing System.Collections.Generic;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrViewLocalizationService: System.Web.SessionState.IReadOnlySessionState {  \n/* The method that returns the index of contact address types and values from the \"UsrContactAddressVw\" view in the primary language. */  \n[OperationContract]  \n[WebInvoke(Method = \"GET\", UriTemplate = \"GetNonLocalizableView\")]  \npublic string GetNonLocalizableView() {  \nvar userConnection = (UserConnection) HttpContext.Current.Session[\"UserConnection\"];  \n/* The EntitySchemaQuery instance that accesses the \"UsrContactAddressVw\" database table. */  \nvar esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"UsrContactAddressVw\");  \n/* Add columns to the query. */  \nesqResult.AddColumn(\"UsrContactAddressType\");  \nesqResult.AddColumn(\"UsrContactAddressValue\");  \n/* Retrieve the query results. */  \nvar entities = esqResult.GetEntityCollection(userConnection);  \nvar s = \"\";  \nforeach(var item in entities) {  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressType\") + \": \";  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressValue\") + \"; \";  \n}  \nreturn s;  \n}  \n/* The method that returns the index of contact address types and values from the \"UsrContactAddressVw\" view in an additional language. */  \n[OperationContract]  \n[WebInvoke(Method = \"GET\", UriTemplate = \"GetLocalizableView\")]  \npublic string GetLocalizableView() {  \nvar userConnection = (UserConnection) HttpContext.Current.Session[\"UserConnection\"];  \n/* Retrieve the ID of the primary language. */  \nvar sysCulture = new SysCulture(userConnection);  \n/* Return an error message if the primary language is not found. */  \nif (!sysCulture.FetchPrimaryInfoFromDB(\"Name\", \"en-us\")) {  \nreturn \"No culture found\";  \n}  \nGuid CultureId = sysCulture.Id;  \n/* The EntitySchemaQuery instance that accesses the \"UsrContactAddressVw\" database table. */  \nvar esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"UsrContactAddressVw\");  \n/* Add columns to the query. */  \nesqResult.AddColumn(\"UsrContactAddressType\");  \nesqResult.AddColumn(\"UsrContactAddressValue\");  \nesqResult.SetLocalizationCultureId(CultureId);  \n/* Retrieve the query results. */  \nvar entities = esqResult.GetEntityCollection(userConnection);  \nvar s = \"\";  \nforeach(var item in entities) {  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressType\") + \": \";  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressValue\") + \"; \";  \n}  \nreturn s;  \n}  \n}  \n}  \n10. **Publish the schema**.\n**As a result** , Creatio will add the custom `UsrViewLocalizationService` REST web service that has the `GetNonLocalizableView` and `GetLocalizableView` endpoints.\n## 4\\. Change UI language\u200b\n1. **Enable UI language**.\nFor this example, enable Spanish language. To do this:\n1. Open the **Languages** section. To do this, click ![](https://academy.creatio.com/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 **System setup** \u2192 **Languages**.\n2. Open the **Spanish (Spain)** language.\n3. Select the **Active** checkbox.\n4. Save the changes.\n2. **Change UI language for the current user**.\n1. Open the user profile. To do this, click the profile picture in the top right \u2192 **Your profile**.\n2. Go to the **Basic settings** tab \u2192 **Language** \u2192 **Spanish (Spain)** \u2192 **Save**.\n**As a result** , UI language for the current user will be changed to Spanish.\n## View the result\u200b\nTo view the outcome of the example **in the primary language** , access the `GetNonLocalizableView` endpoint of the `UsrViewLocalizationService` web service from the browser address bar.\nRequest string\nCreatioURL/0/rest/UsrViewLocalizationService/GetNonLocalizableView  \n**As a result** , the Creatio instance will return non-localizable values of contact address types in the primary language. [View the result >>>](https://academy.creatio.com/documents?ver=8.0&id=15275&anchor=view-result)\nTo view the outcome of the example **in an additional language** , access the `GetLocalizableView` endpoint of the `UsrViewLocalizationService` web service from the browser address bar.\nRequest string\nCreatioURL/0/rest/UsrViewLocalizationService/GetLocalizableView  \n**As a result** , the Creatio instance will return localizable values of contact address types in an additional language. [View the result >>>](https://academy.creatio.com/documents?ver=8.0&id=15275&anchor=view-result-1)\n## Source code\u200b\nUsrViewLocalizationService\nnamespace Terrasoft.Configuration {  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Web;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Entities;  \nusing System;  \nusing System.Collections.Generic;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrViewLocalizationService: System.Web.SessionState.IReadOnlySessionState {  \n/* The method that returns the index of contact address types and values from the \"UsrContactAddressVw\" view in the primary language. */  \n[OperationContract]  \n[WebInvoke(Method = \"GET\", UriTemplate = \"GetNonLocalizableView\")]  \npublic string GetNonLocalizableView() {  \nvar userConnection = (UserConnection) HttpContext.Current.Session[\"UserConnection\"];  \n/* The EntitySchemaQuery instance that accesses the \"UsrContactAddressVw\" database table. */  \nvar esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"UsrContactAddressVw\");  \n/* Add columns to the query. */  \nesqResult.AddColumn(\"UsrContactAddressType\");  \nesqResult.AddColumn(\"UsrContactAddressValue\");  \n/* Retrieve the query results. */  \nvar entities = esqResult.GetEntityCollection(userConnection);  \nvar s = \"\";  \nforeach(var item in entities) {  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressType\") + \": \";  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressValue\") + \"; \";  \n}  \nreturn s;  \n}  \n/* The method that returns the index of contact address types and values from the \"UsrContactAddressVw\" view in an additional language. */  \n[OperationContract]  \n[WebInvoke(Method = \"GET\", UriTemplate = \"GetLocalizableView\")]  \npublic string GetLocalizableView() {  \nvar userConnection = (UserConnection) HttpContext.Current.Session[\"UserConnection\"];  \n/* Retrieve the ID of the primary language. */  \nvar sysCulture = new SysCulture(userConnection);  \n/* Return an error message if the primary language is not found. */  \nif (!sysCulture.FetchPrimaryInfoFromDB(\"Name\", \"en-us\")) {  \nreturn \"No culture found\";  \n}  \nGuid CultureId = sysCulture.Id;  \n/* The EntitySchemaQuery instance that accesses the \"UsrContactAddressVw\" database table. */  \nvar esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"UsrContactAddressVw\");  \n/* Add columns to the query. */  \nesqResult.AddColumn(\"UsrContactAddressType\");  \nesqResult.AddColumn(\"UsrContactAddressValue\");  \nesqResult.SetLocalizationCultureId(CultureId);  \n/* Retrieve the query results. */  \nvar entities = esqResult.GetEntityCollection(userConnection);  \nvar s = \"\";  \nforeach(var item in entities) {  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressType\") + \": \";  \ns += item.GetTypedColumnValue<string>(\"UsrContactAddressValue\") + \"; \";  \n}  \nreturn s;  \n}  \n}  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ViewLocalization/8.2/sdkLocalizeTheView_2024-12-06_15.48.01.zip)",
+  "code_examples": [
+    {
+      "code": "-- The view name must match the name of database table.CREATE VIEW dbo.UsrContactAddressVwASSELECT    ContactAddress.Id,    -- View columns must match names of the object schema columns.    ContactAddress.Address AS UsrContactAddressValue,    AddressType.Name AS UsrContactAddressTypeFROM ContactAddressINNER JOIN AddressType ON ContactAddress.AddressTypeId = AddressType.Id;",
+      "language": "sql",
+      "context": "SQL query that creates aUsrContactAddressVwview",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "-- The view name must match the name of localizable database table.CREATE VIEW dbo.SysUsrContactAddressVwLczASSELECT    SysAddressTypeLcz.Id,    ContactAddress.id AS RecordId,    SysAddressTypeLcz.SysCultureId,    -- View columns must match names of the object schema columns.    SysAddressTypeLcz.Name AS UsrContactAddressTypeFROM ContactAddressINNER JOIN AddressType ON ContactAddress.AddressTypeId = AddressType.IdINNER JOIN SysAddressTypeLcz ON AddressType.Id = SysAddressTypeLcz.RecordId;",
+      "language": "sql",
+      "context": "SQL query that creates aSysUsrContactAddressVwLczlocalizable view",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration {    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using System.Web;    using Terrasoft.Core;    using Terrasoft.Core.Entities;    using System;    using System.Collections.Generic;    [ServiceContract]    [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    public class UsrViewLocalizationService: System.Web.SessionState.IReadOnlySessionState {        /* The method that returns the index of contact address types and values from the \"UsrContactAddressVw\" view in the primary language. */        [OperationContract]        [WebInvoke(Method = \"GET\", UriTemplate = \"GetNonLocalizableView\")]        public string GetNonLocalizableView() {            var userConnection = (UserConnection) HttpContext.Current.Session[\"UserConnection\"];                        /* The EntitySchemaQuery instance that accesses the \"UsrContactAddressVw\" database table. */            var esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"UsrContactAddressVw\");                        /* Add columns to the query. */            esqResult.AddColumn(\"UsrContactAddressType\");            esqResult.AddColumn(\"UsrContactAddressValue\");            /* Retrieve the query results. */            var entities = esqResult.GetEntityCollection(userConnection);            var s = \"\";            foreach(var item in entities) {                s += item.GetTypedColumnValue<string>(\"UsrContactAddressType\") + \": \";                s += item.GetTypedColumnValue<string>(\"UsrContactAddressValue\") + \"; \";            }            return s;        }        /* The method that returns the index of contact address types and values from the \"UsrContactAddressVw\" view in an additional language. */        [OperationContract]        [WebInvoke(Method = \"GET\", UriTemplate = \"GetLocalizableView\")]        public string GetLocalizableView() {            var userConnection = (UserConnection) HttpContext.Current.Session[\"UserConnection\"];                        /* Retrieve the ID of the primary language. */            var sysCulture = new SysCulture(userConnection);                        /* Return an error message if the primary language is not found. */            if (!sysCulture.FetchPrimaryInfoFromDB(\"Name\", \"en-us\")) {                return \"No culture found\";            }            Guid CultureId = sysCulture.Id;            /* The EntitySchemaQuery instance that accesses the \"UsrContactAddressVw\" database table. */            var esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"UsrContactAddressVw\");                        /* Add columns to the query. */            esqResult.AddColumn(\"UsrContactAddressType\");            esqResult.AddColumn(\"UsrContactAddressValue\");            esqResult.SetLocalizationCultureId(CultureId);            /* Retrieve the query results. */            var entities = esqResult.GetEntityCollection(userConnection);            var s = \"\";            foreach(var item in entities) {                s += item.GetTypedColumnValue<string>(\"UsrContactAddressType\") + \": \";                s += item.GetTypedColumnValue<string>(\"UsrContactAddressValue\") + \"; \";            }            return s;        }    }}",
+      "language": "cs",
+      "context": "For this example, add the following methods:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "CreatioURL/0/rest/UsrViewLocalizationService/GetNonLocalizableView",
+      "language": "cli",
+      "context": "To view the outcome of the examplein the primary language, access theGetNonLocalizableViewendpoint of theUsrViewLocalizationServiceweb service from the browser address bar.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "CreatioURL/0/rest/UsrViewLocalizationService/GetLocalizableView",
+      "language": "cli",
+      "context": "To view the outcome of the examplein an additional language, access theGetLocalizableViewendpoint of theUsrViewLocalizationServiceweb service from the browser address bar.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Database table",
+          "Description"
+        ],
+        [
+          "ContactAddress",
+          "The index of contact address values. Linked to theAddressTypedatabase table via theAddressTypeIdcolumn."
+        ],
+        [
+          "AddressType",
+          "The index of contact address types. TheNamecolumn contains the index of address type values in the primary language."
+        ],
+        [
+          "SysAddressTypeLcz",
+          "The index of contact address types in additional languages. Generated automatically. Linked to theAddressTypedatabase table via theRecordIdcolumn and to theSysCulturedatabase table via theSysCultureIdcolumn. TheNamecolumn contains the index of localizable values of contact address types for the language culture that is specified in theSysCultureIdcolumn of the current table."
+        ],
+        [
+          "SysCulture",
+          "The index of language cultures."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Database table</p></th><th><p>Description</p></th></tr><tr><td><p>ContactAddress</p></td><td><p>The index of contact address values. Linked to the <code>AddressType</code> database table via the <code>AddressTypeId</code> column.</p></td></tr><tr><td><p>AddressType</p></td><td><p>The index of contact address types. The <code>Name</code> column contains the index of address type values in the primary language.</p></td></tr><tr><td><p>SysAddressTypeLcz</p></td><td><p>The index of contact address types in additional languages. Generated automatically. Linked to the <code>AddressType</code> database table via the <code>RecordId</code> column and to the <code>SysCulture</code> database table via the <code>SysCultureId</code> column. The <code>Name</code> column contains the index of localizable values of contact address types for the language culture that is specified in the <code>SysCultureId</code> column of the current table.</p></td></tr><tr><td><p>SysCulture</p></td><td><p>The index of language cultures.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "General property block"
+        ],
+        [
+          "Code",
+          "UsrContactAddressVw"
+        ],
+        [
+          "Title",
+          "ContactAddressVw"
+        ],
+        [
+          "Inheritance property block"
+        ],
+        [
+          "Parent object",
+          "BaseEntity"
+        ],
+        [
+          "Behavior property block"
+        ],
+        [
+          "Represent Structure of Database View",
+          "Select the checkbox"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><th colspan=\"2\"><p>General property block</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrContactAddressVw</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>ContactAddressVw</p></center></td></tr><tr><th colspan=\"2\"><p>Inheritance property block</p></th></tr><tr><td><center><p>Parent object</p></center></td><td><center><p>BaseEntity</p></center></td></tr><tr><th colspan=\"2\"><p>Behavior property block</p></th></tr><tr><td><center><p>Represent Structure of Database View</p></center></td><td><center><p>Select the checkbox</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Column",
+          "Column type",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Column that contains the index of contact address types",
+          "Text (50 characters)",
+          "Code",
+          "UsrContactAddressType"
+        ],
+        [
+          "Title",
+          "ContactAddressType"
+        ],
+        [
+          "Localizable text",
+          "Select the checkbox"
+        ],
+        [
+          "Column that contains the index of contact address values",
+          "Text (50 characters)",
+          "Code",
+          "UsrContactAddressValue"
+        ],
+        [
+          "Title",
+          "ContactAddressValue"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Column</p></th><th><p>Column type</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"3\"><p>Column that contains the index of contact address types</p></td><td rowspan=\"3\"><center><p>Text (50 characters)</p></center></td><td><center><p>Code</p></center></td><td><center><p>UsrContactAddressType</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>ContactAddressType</p></center></td></tr><tr><td><center><p>Localizable text</p></center></td><td><center><p>Select the checkbox</p></center></td></tr><tr><td rowspan=\"2\"><p>Column that contains the index of contact address values</p></td><td rowspan=\"2\"><center><p>Text (50 characters)</p></center></td><td><center><p>Code</p></center></td><td><center><p>UsrContactAddressValue</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>ContactAddressValue</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrViewLocalizationService"
+        ],
+        [
+          "Title",
+          "ViewLocalizationService"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrViewLocalizationService</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>ViewLocalizationService</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleCreate a view that includes contact address types and values. Implement theUsrViewLocalizationServicecustom web service that uses cookie-based authentication, receives data from created view and, based on the Spanish language chosen in the user profile, returns the following data:Non-localizable values of contact address types in the primary language.Localizable values of contact address types in an additional language (English).",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create a view that includes contact address types and values. Implement the <code>UsrViewLocalizationService</code> custom web service that uses cookie-based authentication, receives data from created view and, based on the Spanish language chosen in the user profile, returns the following data:</p><ul>\n<li>\n<p>Non-localizable values of contact address types in the primary language.</p>\n<figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result.png\"/></div></figure>\n</li>\n<li>\n<p>Localizable values of contact address types in an additional language (English).</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result_1.png\"/></div></figure>\n</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Create a view that includes contact address types and values. Implement theUsrViewLocalizationServicecustom web service that uses cookie-based authentication, receives data from created view and, based on the Spanish language chosen in the user profile, returns the following data:Non-localizable values of contact address types in the primary language.Localizable values of contact address types in an additional language (English).",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create a view that includes contact address types and values. Implement the <code>UsrViewLocalizationService</code> custom web service that uses cookie-based authentication, receives data from created view and, based on the Spanish language chosen in the user profile, returns the following data:</p><ul>\n<li>\n<p>Non-localizable values of contact address types in the primary language.</p>\n<figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result.png\"/></div></figure>\n</li>\n<li>\n<p>Localizable values of contact address types in an additional language (English).</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result_1.png\"/></div></figure>\n</li>\n</ul></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "Non-localizable values of contact address types in the primary language.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_ce9cb42ac70b.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_result_1.png",
+      "alt": "",
+      "title": "",
+      "context": "Localizable values of contact address types in an additional language (English).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_c5a5358fb97f.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ViewLocalization/8.2/scr_diagram_database_tables.png",
+      "alt": "",
+      "title": "",
+      "context": "Creatio includes theContactAddressobject whose column links to theAddressTypelookup object that cont",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_b2a578608cd7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Advanced settings tabin the No-Code Designer. To do this, clickin the top right \u2192 \"Applicat",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_822ea55f9414.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a user-made packageto add the schema. To do this, click\u2192Create new package\u2192 fill out the pack",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_520896d23b28.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/scr_add_button_in_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "Click\u2192Text\u2192Text (50 characters)\u2192 fill out the column properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_86c6f434c560.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Advanced settings tabin the No-Code Designer. To do this, clickin the top right \u2192 \"Applicat",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_822ea55f9414.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_ed23817c05b1.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_cee82ad814f6.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ViewLocalization/8.2/sdkLocalizeTheView_2024-12-06_15.48.01.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkLocalizeTheView_2024-12-06_15.48.01.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/467d665f6797437e_izable-resources_operations-with-localizable-resources_examples_localizing-views_sdkLocalizeTheView_2024-12-06_15.48.01.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Localize the view in the database",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement an object schema\u200b",
+      "anchor": "title-2177-5"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a view in the database\u200b",
+      "anchor": "title-2177-6"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement a custom web service\u200b",
+      "anchor": "title-2177-7"
+    },
+    {
+      "level": 2,
+      "text": "4. Change UI language\u200b",
+      "anchor": "title-2144-1"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-2144-3"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-2144-2"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/operations-with-localizable-resources/examples/localizing-views",
+      "text": "Localize the view in the database",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/localizable-resources/operations-with-localizable-resources/examples/localizing-views",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/localizable-resources/operations-with-localizable-resources/examples/localizing-views",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/localizable-resources/operations-with-localizable-resources/examples/localizing-views",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/operations-with-localizable-resources/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/operations-with-loc-resources-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/operations-with-loc-resources-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/operations-with-localizable-resources/references/localizablevaluet",
+      "text": "LocalizableValue<T>",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:36:23.082243"
+}

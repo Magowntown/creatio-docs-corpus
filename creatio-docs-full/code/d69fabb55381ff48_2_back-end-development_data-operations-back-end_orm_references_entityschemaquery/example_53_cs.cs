@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction CreateHourFunction(string columnPath)

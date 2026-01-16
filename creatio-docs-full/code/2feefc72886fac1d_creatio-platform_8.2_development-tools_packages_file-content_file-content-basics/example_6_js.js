@@ -1,0 +1,1 @@
+var Terrasoft = Terrasoft || {};Terrasoft.configuration = Terrasoft.configuration || {};Terrasoft.configuration.FileContentDescriptors = {    "MyPackage1/descriptor.json": {        Hash: "5d4e779e7ff24396a132a0e39cca25cc",    },    "MyPackage1/Files/src/js/Utilities.js": {        Hash: "6d5e776e7ff24596a135a0e39cc525gc",    },};

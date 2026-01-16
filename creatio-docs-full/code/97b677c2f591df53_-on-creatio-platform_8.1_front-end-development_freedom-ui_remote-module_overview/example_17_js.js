@@ -1,0 +1,1 @@
+export class ImageComponent {    public imageUrl = 'data:image/png;base64,...'}

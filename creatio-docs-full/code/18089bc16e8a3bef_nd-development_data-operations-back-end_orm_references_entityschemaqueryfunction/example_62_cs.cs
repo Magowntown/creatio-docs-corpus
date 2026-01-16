@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentHalfYearQueryFunction(EntitySchemaStartOfCurrentHalfYearQueryFunction source) : base(source)

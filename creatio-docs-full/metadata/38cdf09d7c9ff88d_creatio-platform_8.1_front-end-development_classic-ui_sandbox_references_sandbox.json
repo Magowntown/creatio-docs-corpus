@@ -1,0 +1,971 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/references/sandbox",
+  "title": "sandbox object",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui"
+    },
+    {
+      "text": "Sandbox",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sandbox"
+    },
+    {
+      "text": "References",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sandbox-references"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nA `sandbox` object is a core component required to organize the module interaction.\nThe `sandbox` object lets you execute the following **actions** :\n* Organize the message exchange among the modules.\n* Load and unload modules on request.\n## Methods\u200b\nregisterMessages(messageConfig)  \nRegisters module messages.\nParameters\n{Object} messageConfig  \nConfiguration object of module messages. Configuration object is a key-value collection where every item is as follows.\nItem of configuration object\n/* Key of the collection item. The key is the message name. */  \n\"MessageName\": {  \n/* Value of the collection item. */  \nmode: [Message mode],  \ndirection: [Message direction]  \n}  \nProperties of the collection item values\n{Terrasoft.MessageMode} mode| Message operation mode. Contains the value of the `Terrasoft.MessageMode (Terrasoft.core.enums.MessageMode)` enumeration.Available values (Terrasoft.MessageMode)| BROADCAST| Broadcast message mode where the number of message subscribers is unknown in advance.  \n---|---  \nPTP| Address message mode where only one subscriber can handle a message.  \n{Terrasoft.MessageDirectionType} direction| Message direction. Contains the value of the `Terrasoft.MessageDirectionType (Terrasoft.core.enums.MessageDirectionType)` enumeration.Available values (Terrasoft.MessageDirectionType)| PUBLISH| The message direction is publishing. The module only publishes the message to `sandbox`.  \n---|---  \nSUBSCRIBE| The message direction is subscription. The module only subscribes to a message that is published by another module.  \nBIDIRECTIONAL| The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.  \nunRegisterMessages(messages)  \nCancels message registration.\nParameters\n{String|Array} messages| Name or array of message names.  \n---|---  \npublish(messageName, messageArgs, tags)  \nPublishes a message to `sandbox`.\nParameters\n{String} messageName| A string that contains the message name. For example, `\"MessageToSubscribe.\"`  \n---|---  \nmessageArgs| An object passed as a parameter to the message handler method in the subscriber module. If incoming parameters are omitted from the handler method, set the `messageArgs` parameter to `null`.  \ntags| A tag array that lets you uniquely identify the module that sends the message. Usually, the `[this.sandbox.id]` value is used. `sandbox` identifies subscribers and publishers of a message based on the array of tags.  \nUse examples\nExamples that use the publish() method\n/* Publish the message without parameters and tags. */  \nthis.sandbox.publish(\"MessageWithoutArgsAndTags\");  \n/* Publish the message without using parameters for the handler method. */  \nthis.sandbox.publish(\"MessageWithoutArgs\", null, [this.sandbox.id]);  \n/* Publish the message using the parameter for the handler method. */  \nthis.sandbox.publish(\"MessageWithArgs\", {arg1: 5, arg2: \"arg2\"}, [\"moduleName\"]);  \n/* Publish the message using an arbitrary array of tags. */  \nthis.sandbox.publish(\"MessageWithCustomIds\", null, [\"moduleName\",\"otherTag\"]);  \nsubscribe(messageName, messageHandler, scope, tags)  \nSubscribes to a message.\nParameters\n{String} messageName| A string that contains the message name. For example, `\"MessageToSubscribe.\"`  \n---|---  \nmessageHandler| A method handler is called when module receives a message. It can be either an anonymous function or module method. You can specify a parameter in the method definition. Pass the parameter value when publishing a message using the `sandbox.publish()` method.  \nscope| The execution scope of the `messageHandler` handler method.  \ntags| An array of tags that lets you uniquely identify the module that sends the message. `sandbox` identifies subscribers and publishers of a message based on the array of tags.  \nUse examples\nExample that uses the subscribe() method\n/* Subscribe to a message without parameters for the handler method.  \nMethod handler is an anonymous function. Execution scope is the current module.  \nThe getSandboxId() method returns a tag that matches the tag of the published message. */  \nthis.sandbox.subscribe(\"MessageWithoutArgs\", function(){console.log(\"Message without arguments\")}, this, [this.getSandBoxId()]);  \n/* Subscribe to a message using the parameter for the handler method. */  \nthis.sandbox.subscribe(\"MessageWithArgs\", function(args){console.log(args)}, this, [\"moduleName\"]);  \n/* Subscribe to a message using an arbitrary tag.  \nUse a tag from the array of tags of the published message.  \nImplement the myMsgHandler() handler method separately. */  \nthis.sandbox.subscribe(\"MessageWithCustomIds\", this.myMsgHandler, this, [\"otherTag\"]);  \nloadModule(moduleName, config)  \nLoads the module.\nParameters\n{String} moduleName| Module name.  \n---|---  \n{Object} config| Configuration object that contains the module parameters. Required for visual modules.Properties of the configuration object| {String} id| Module ID. If the ID is missing, the module generates it automatically.  \n---|---  \n{String} renderTo| The name of the container that displays the view of the visual module. Passed as the `render()` method parameter of the loaded module. Required for visual modules.  \n{Boolean} keepAlive| The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.  \n{Boolean} isAsync| The flag that indicates whether to initialize the module asynchronously.  \n{Object} instanceConfig| Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of the `instanceConfig` property. An **instantiated module** is a module that returns a constructor function.  \nYou can pass the following **property types** to a module instance:\n* `string`\n* `boolean`\n* `number`\n* `date` (the value will be copied)\n* `object` (literal objects only)\nDo not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of the `BaseObject` descendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.  \n{Object} parameters| Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. The `parameters` property is implemented in the `BaseModule` base class. When a module instance is created, the `parameters` property of the module is initialized using the values passed in the `parameters` property of the configuration object.  \nUse examples\nExample that uses the loadModule() method\n/* Load the module without using additional parameters. */  \nthis.sandbox.loadModule(\"ProcessListenerV2\");  \n/* Load the module using additional parameters. */  \nthis.sandbox.loadModule(\"CardModuleV2\", {  \nrenderTo: \"centerPanel\",  \nkeepAlive: true,  \nid: moduleId  \n});  \nunloadModule(id, renderTo, keepAlive)  \nUnloads the module.\nParameters\n{String} id| Module identifier.  \n---|---  \n{String} renderTo| The name of the container to remove the view of the visual module. Required for visual modules.  \nkeepAlive| The flag that indicates whether to save the module model. The core can save a module model when unloading the module to use the properties, methods, and messages of the model.  \nUse examples\nExample that uses the unloadModule() method\n/* Retrieve the ID of an unloaded module. */  \ngetModuleId: function() {  \nreturn this.sandbox.id + \"_ModuleName\";  \n},  \n...  \n/* Unload a non-visual module. */  \nthis.sandbox.unloadModule(this.getModuleId());  \n...  \n/* Unload a visual module previously loaded into the \"ModuleContainer\" container. */  \nthis.sandbox.unloadModule(this.getModuleId(), \"ModuleContainer\");",
+  "code_examples": [
+    {
+      "code": "registerMessages(messageConfig)",
+      "language": "js",
+      "context": "Methods\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{Object} messageConfig",
+      "language": "js",
+      "context": "Registers module messages.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Key of the collection item. The key is the message name. */\"MessageName\": {    /* Value of the collection item. */    mode: [Message mode],    direction: [Message direction]}",
+      "language": "js",
+      "context": "Configuration object of module messages. Configuration object is a key-value collection where every item is as follows.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "unRegisterMessages(messages)",
+      "language": "js",
+      "context": "The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "publish(messageName, messageArgs, tags)",
+      "language": "js",
+      "context": "Name or array of message names.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Publish the message without parameters and tags. */this.sandbox.publish(\"MessageWithoutArgsAndTags\");/* Publish the message without using parameters for the handler method. */this.sandbox.publish(\"MessageWithoutArgs\", null, [this.sandbox.id]);/* Publish the message using the parameter for the handler method. */this.sandbox.publish(\"MessageWithArgs\", {arg1: 5, arg2: \"arg2\"}, [\"moduleName\"]);/* Publish the message using an arbitrary array of tags. */this.sandbox.publish(\"MessageWithCustomIds\", null, [\"moduleName\",\"otherTag\"]);",
+      "language": "js",
+      "context": "A tag array that lets you uniquely identify the module that sends the message. Usually, the[this.sandbox.id]value is used.sandboxidentifies subscribers and publishers of a message based on the array o",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "subscribe(messageName, messageHandler, scope, tags)",
+      "language": "js",
+      "context": "A tag array that lets you uniquely identify the module that sends the message. Usually, the[this.sandbox.id]value is used.sandboxidentifies subscribers and publishers of a message based on the array o",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Subscribe to a message without parameters for the handler method.Method handler is an anonymous function. Execution scope is the current module.The getSandboxId() method returns a tag that matches the tag of the published message. */this.sandbox.subscribe(\"MessageWithoutArgs\", function(){console.log(\"Message without arguments\")}, this, [this.getSandBoxId()]);/* Subscribe to a message using the parameter for the handler method. */this.sandbox.subscribe(\"MessageWithArgs\", function(args){console.log(args)}, this, [\"moduleName\"]);/* Subscribe to a message using an arbitrary tag.Use a tag from the array of tags of the published message.Implement the myMsgHandler() handler method separately. */this.sandbox.subscribe(\"MessageWithCustomIds\", this.myMsgHandler, this, [\"otherTag\"]);",
+      "language": "js",
+      "context": "An array of tags that lets you uniquely identify the module that sends the message.sandboxidentifies subscribers and publishers of a message based on the array of tags.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "loadModule(moduleName, config)",
+      "language": "js",
+      "context": "An array of tags that lets you uniquely identify the module that sends the message.sandboxidentifies subscribers and publishers of a message based on the array of tags.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Load the module without using additional parameters. */this.sandbox.loadModule(\"ProcessListenerV2\");/* Load the module using additional parameters. */this.sandbox.loadModule(\"CardModuleV2\", {    renderTo: \"centerPanel\",    keepAlive: true,    id: moduleId});",
+      "language": "js",
+      "context": "Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModuleb",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "unloadModule(id, renderTo, keepAlive)",
+      "language": "js",
+      "context": "Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModuleb",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Retrieve the ID of an unloaded module. */getModuleId: function() {    return this.sandbox.id + \"_ModuleName\";},.../* Unload a non-visual module. */this.sandbox.unloadModule(this.getModuleId());.../* Unload a visual module previously loaded into the \"ModuleContainer\" container. */this.sandbox.unloadModule(this.getModuleId(), \"ModuleContainer\");",
+      "language": "js",
+      "context": "The flag that indicates whether to save the module model. The core can save a module model when unloading the module to use the properties, methods, and messages of the model.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "{Terrasoft.MessageMode} mode",
+          "Message operation mode. Contains the value of theTerrasoft.MessageMode (Terrasoft.core.enums.MessageMode)enumeration.Available values (Terrasoft.MessageMode)BROADCASTBroadcast message mode where the number of message subscribers is unknown in advance.PTPAddress message mode where only one subscriber can handle a message.",
+          "BROADCAST",
+          "Broadcast message mode where the number of message subscribers is unknown in advance.",
+          "PTP",
+          "Address message mode where only one subscriber can handle a message."
+        ],
+        [
+          "BROADCAST",
+          "Broadcast message mode where the number of message subscribers is unknown in advance."
+        ],
+        [
+          "PTP",
+          "Address message mode where only one subscriber can handle a message."
+        ],
+        [
+          "{Terrasoft.MessageDirectionType} direction",
+          "Message direction. Contains the value of theTerrasoft.MessageDirectionType (Terrasoft.core.enums.MessageDirectionType)enumeration.Available values (Terrasoft.MessageDirectionType)PUBLISHThe message direction is publishing. The module only publishes the message tosandbox.SUBSCRIBEThe message direction is subscription. The module only subscribes to a message that is published by another module.BIDIRECTIONALThe message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.",
+          "PUBLISH",
+          "The message direction is publishing. The module only publishes the message tosandbox.",
+          "SUBSCRIBE",
+          "The message direction is subscription. The module only subscribes to a message that is published by another module.",
+          "BIDIRECTIONAL",
+          "The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy."
+        ],
+        [
+          "PUBLISH",
+          "The message direction is publishing. The module only publishes the message tosandbox."
+        ],
+        [
+          "SUBSCRIBE",
+          "The message direction is subscription. The module only subscribes to a message that is published by another module."
+        ],
+        [
+          "BIDIRECTIONAL",
+          "The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>{Terrasoft.MessageMode} mode</p></td><td><p>Message operation mode. Contains the value of the <code>Terrasoft.MessageMode (Terrasoft.core.enums.MessageMode)</code> enumeration.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageMode)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 274ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>BROADCAST</p></td><td><p>Broadcast message mode where the number of message subscribers is unknown in advance.</p></td></tr><tr><td><p>PTP</p></td><td><p>Address message mode where only one subscriber can handle a message.</p></td></tr></tbody></table></div></div></div></details></td></tr><tr><td><p>{Terrasoft.MessageDirectionType} direction</p></td><td><p>Message direction. Contains the value of the <code>Terrasoft.MessageDirectionType (Terrasoft.core.enums.MessageDirectionType)</code> enumeration.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageDirectionType)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 318ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>PUBLISH</p></td><td><p>The message direction is publishing. The module only publishes the message to <code>sandbox</code>.</p></td></tr><tr><td><p>SUBSCRIBE</p></td><td><p>The message direction is subscription. The module only subscribes to a message that is published by another module.</p></td></tr><tr><td><p>BIDIRECTIONAL</p></td><td><p>The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.</p></td></tr></tbody></table></div></div></div></details></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "BROADCAST",
+          "Broadcast message mode where the number of message subscribers is unknown in advance."
+        ],
+        [
+          "PTP",
+          "Address message mode where only one subscriber can handle a message."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>BROADCAST</p></td><td><p>Broadcast message mode where the number of message subscribers is unknown in advance.</p></td></tr><tr><td><p>PTP</p></td><td><p>Address message mode where only one subscriber can handle a message.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "PUBLISH",
+          "The message direction is publishing. The module only publishes the message tosandbox."
+        ],
+        [
+          "SUBSCRIBE",
+          "The message direction is subscription. The module only subscribes to a message that is published by another module."
+        ],
+        [
+          "BIDIRECTIONAL",
+          "The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>PUBLISH</p></td><td><p>The message direction is publishing. The module only publishes the message to <code>sandbox</code>.</p></td></tr><tr><td><p>SUBSCRIBE</p></td><td><p>The message direction is subscription. The module only subscribes to a message that is published by another module.</p></td></tr><tr><td><p>BIDIRECTIONAL</p></td><td><p>The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "{String|Array} messages",
+          "Name or array of message names."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>{String|Array} messages</p></td><td><p>Name or array of message names.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "{String} messageName",
+          "A string that contains the message name. For example,\"MessageToSubscribe.\""
+        ],
+        [
+          "messageArgs",
+          "An object passed as a parameter to the message handler method in the subscriber module. If incoming parameters are omitted from the handler method, set themessageArgsparameter tonull."
+        ],
+        [
+          "tags",
+          "A tag array that lets you uniquely identify the module that sends the message. Usually, the[this.sandbox.id]value is used.sandboxidentifies subscribers and publishers of a message based on the array of tags."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>{String} messageName</p></td><td><p>A string that contains the message name. For example, <code>\"MessageToSubscribe.\"</code></p></td></tr><tr><td><p> messageArgs</p></td><td><p>An object passed as a parameter to the message handler method in the subscriber module. If incoming parameters are omitted from the handler method, set the <code>messageArgs</code> parameter to <code>null</code>.</p></td></tr><tr><td><p> tags</p></td><td><p>A tag array that lets you uniquely identify the module that sends the message. Usually, the <code>[this.sandbox.id]</code> value is used. <code>sandbox</code> identifies subscribers and publishers of a message based on the array of tags.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "{String} messageName",
+          "A string that contains the message name. For example,\"MessageToSubscribe.\""
+        ],
+        [
+          "messageHandler",
+          "A method handler is called when module receives a message. It can be either an anonymous function or module method. You can specify a parameter in the method definition. Pass the parameter value when publishing a message using thesandbox.publish()method."
+        ],
+        [
+          "scope",
+          "The execution scope of themessageHandlerhandler method."
+        ],
+        [
+          "tags",
+          "An array of tags that lets you uniquely identify the module that sends the message.sandboxidentifies subscribers and publishers of a message based on the array of tags."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>{String} messageName</p></td><td><p>A string that contains the message name. For example, <code>\"MessageToSubscribe.\"</code></p></td></tr><tr><td><p> messageHandler</p></td><td><p>A method handler is called when module receives a message. It can be either an anonymous function or module method. You can specify a parameter in the method definition. Pass the parameter value when publishing a message using the <code>sandbox.publish()</code> method.</p></td></tr><tr><td><p> scope</p></td><td><p>The execution scope of the <code>messageHandler</code> handler method.</p></td></tr><tr><td><p> tags</p></td><td><p>An array of tags that lets you uniquely identify the module that sends the message. <code>sandbox</code> identifies subscribers and publishers of a message based on the array of tags.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "{String} moduleName",
+          "Module name."
+        ],
+        [
+          "{Object} config",
+          "Configuration object that contains the module parameters. Required for visual modules.Properties of the configuration object{String} idModule ID. If the ID is missing, the module generates it automatically.{String} renderToThe name of the container that displays the view of the visual module. Passed as therender()method parameter of the loaded module. Required for visual modules.{Boolean} keepAliveThe flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.{Boolean} isAsyncThe flag that indicates whether to initialize the module asynchronously.{Object} instanceConfigLets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of theinstanceConfigproperty. Aninstantiated moduleis a module that returns a constructor function.You can pass the followingproperty typesto a module instance:stringbooleannumberdate(the value will be copied)object(literal objects only)Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of theBaseObjectdescendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.{Object} parametersPasses additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModulebase class. When a module instance is created, theparametersproperty of the module is initialized using the values passed in theparametersproperty of the configuration object.",
+          "{String} id",
+          "Module ID. If the ID is missing, the module generates it automatically.",
+          "{String} renderTo",
+          "The name of the container that displays the view of the visual module. Passed as therender()method parameter of the loaded module. Required for visual modules.",
+          "{Boolean} keepAlive",
+          "The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.",
+          "{Boolean} isAsync",
+          "The flag that indicates whether to initialize the module asynchronously.",
+          "{Object} instanceConfig",
+          "Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of theinstanceConfigproperty. Aninstantiated moduleis a module that returns a constructor function.You can pass the followingproperty typesto a module instance:stringbooleannumberdate(the value will be copied)object(literal objects only)Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of theBaseObjectdescendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.",
+          "{Object} parameters",
+          "Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModulebase class. When a module instance is created, theparametersproperty of the module is initialized using the values passed in theparametersproperty of the configuration object."
+        ],
+        [
+          "{String} id",
+          "Module ID. If the ID is missing, the module generates it automatically."
+        ],
+        [
+          "{String} renderTo",
+          "The name of the container that displays the view of the visual module. Passed as therender()method parameter of the loaded module. Required for visual modules."
+        ],
+        [
+          "{Boolean} keepAlive",
+          "The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser."
+        ],
+        [
+          "{Boolean} isAsync",
+          "The flag that indicates whether to initialize the module asynchronously."
+        ],
+        [
+          "{Object} instanceConfig",
+          "Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of theinstanceConfigproperty. Aninstantiated moduleis a module that returns a constructor function.You can pass the followingproperty typesto a module instance:stringbooleannumberdate(the value will be copied)object(literal objects only)Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of theBaseObjectdescendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes."
+        ],
+        [
+          "{Object} parameters",
+          "Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModulebase class. When a module instance is created, theparametersproperty of the module is initialized using the values passed in theparametersproperty of the configuration object."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>{String} moduleName</p></td><td><p>Module name.</p></td></tr><tr><td><p>{Object} config</p></td><td><p>Configuration object that contains the module parameters. Required for visual modules.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Properties of the configuration object</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 434ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String} id</p></td><td><p>Module ID. If the ID is missing, the module generates it automatically.</p></td></tr><tr><td><p>{String} renderTo</p></td><td><p>The name of the container that displays the view of the visual module. Passed as the <code>render()</code> method parameter of the loaded module. Required for visual modules.</p></td></tr><tr><td><p>{Boolean} keepAlive</p></td><td><p>The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.</p></td></tr><tr><td><p>{Boolean} isAsync</p></td><td><p>The flag that indicates whether to initialize the module asynchronously.</p></td></tr><tr><td><p>{Object} instanceConfig</p></td><td><p>Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of the <code>instanceConfig</code> property. An <strong>instantiated module</strong> is a module that returns a constructor function.<br/>\n<!-- -->You can pass the following <strong>property types</strong> to a module instance:</p><ul>\n<li><code>string</code></li>\n<li><code>boolean</code></li>\n<li><code>number</code></li>\n<li><code>date</code> (the value will be copied)</li>\n<li><code>object</code> (literal objects only)</li>\n</ul><p>Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of the <code>BaseObject</code> descendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.</p></td></tr><tr><td><p>{Object} parameters</p></td><td><p>Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. The <code>parameters</code> property is implemented in the <code>BaseModule</code> base class. When a module instance is created, the <code>parameters</code> property of the module is initialized using the values passed in the <code>parameters</code> property of the configuration object.</p></td></tr></tbody></table></div></div></div></details></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "{String} id",
+          "Module ID. If the ID is missing, the module generates it automatically."
+        ],
+        [
+          "{String} renderTo",
+          "The name of the container that displays the view of the visual module. Passed as therender()method parameter of the loaded module. Required for visual modules."
+        ],
+        [
+          "{Boolean} keepAlive",
+          "The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser."
+        ],
+        [
+          "{Boolean} isAsync",
+          "The flag that indicates whether to initialize the module asynchronously."
+        ],
+        [
+          "{Object} instanceConfig",
+          "Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of theinstanceConfigproperty. Aninstantiated moduleis a module that returns a constructor function.You can pass the followingproperty typesto a module instance:stringbooleannumberdate(the value will be copied)object(literal objects only)Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of theBaseObjectdescendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes."
+        ],
+        [
+          "{Object} parameters",
+          "Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModulebase class. When a module instance is created, theparametersproperty of the module is initialized using the values passed in theparametersproperty of the configuration object."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>{String} id</p></td><td><p>Module ID. If the ID is missing, the module generates it automatically.</p></td></tr><tr><td><p>{String} renderTo</p></td><td><p>The name of the container that displays the view of the visual module. Passed as the <code>render()</code> method parameter of the loaded module. Required for visual modules.</p></td></tr><tr><td><p>{Boolean} keepAlive</p></td><td><p>The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.</p></td></tr><tr><td><p>{Boolean} isAsync</p></td><td><p>The flag that indicates whether to initialize the module asynchronously.</p></td></tr><tr><td><p>{Object} instanceConfig</p></td><td><p>Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of the <code>instanceConfig</code> property. An <strong>instantiated module</strong> is a module that returns a constructor function.<br/>\n<!-- -->You can pass the following <strong>property types</strong> to a module instance:</p><ul>\n<li><code>string</code></li>\n<li><code>boolean</code></li>\n<li><code>number</code></li>\n<li><code>date</code> (the value will be copied)</li>\n<li><code>object</code> (literal objects only)</li>\n</ul><p>Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of the <code>BaseObject</code> descendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.</p></td></tr><tr><td><p>{Object} parameters</p></td><td><p>Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. The <code>parameters</code> property is implemented in the <code>BaseModule</code> base class. When a module instance is created, the <code>parameters</code> property of the module is initialized using the values passed in the <code>parameters</code> property of the configuration object.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "{String} id",
+          "Module identifier."
+        ],
+        [
+          "{String} renderTo",
+          "The name of the container to remove the view of the visual module. Required for visual modules."
+        ],
+        [
+          "keepAlive",
+          "The flag that indicates whether to save the module model. The core can save a module model when unloading the module to use the properties, methods, and messages of the model."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>{String} id</p></td><td><p>Module identifier.</p></td></tr><tr><td><p>{String} renderTo</p></td><td><p>The name of the container to remove the view of the visual module. Required for visual modules.</p></td></tr><tr><td><p> keepAlive</p></td><td><p>The flag that indicates whether to save the module model. The core can save a module model when unloading the module to use the properties, methods, and messages of the model.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Parameters{Object}messageConfigConfiguration object of module messages. Configuration object is a key-value collection where every item is as follows.Item of configuration object/* Key of the collection item. The key is the message name. */\"MessageName\":{/* Value of the collection item. */mode:[Messagemode],direction:[Messagedirection]}Properties of the collection item values{Terrasoft.MessageMode} modeMessage operation mode. Contains the value of theTerrasoft.MessageMode (Terrasoft.core.enums.MessageMode)enumeration.Available values (Terrasoft.MessageMode)BROADCASTBroadcast message mode where the number of message subscribers is unknown in advance.PTPAddress message mode where only one subscriber can handle a message.{Terrasoft.MessageDirectionType} directionMessage direction. Contains the value of theTerrasoft.MessageDirectionType (Terrasoft.core.enums.MessageDirectionType)enumeration.Available values (Terrasoft.MessageDirectionType)PUBLISHThe message direction is publishing. The module only publishes the message tosandbox.SUBSCRIBEThe message direction is subscription. The module only subscribes to a message that is published by another module.BIDIRECTIONALThe message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 332ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token known-class-name class-name\">Object</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"> messageConfig</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div><p>Configuration object of module messages. Configuration object is a key-value collection where every item is as follows.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">Item of configuration object</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Key of the collection item. The key is the message name. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"MessageName\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Value of the collection item. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">mode</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">Message</span><span class=\"token plain\"> mode</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">direction</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token maybe-class-name\">Message</span><span class=\"token plain\"> direction</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Properties of the collection item values</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 308ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{Terrasoft.MessageMode} mode</p></td><td><p>Message operation mode. Contains the value of the <code>Terrasoft.MessageMode (Terrasoft.core.enums.MessageMode)</code> enumeration.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageMode)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 274ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>BROADCAST</p></td><td><p>Broadcast message mode where the number of message subscribers is unknown in advance.</p></td></tr><tr><td><p>PTP</p></td><td><p>Address message mode where only one subscriber can handle a message.</p></td></tr></tbody></table></div></div></div></details></td></tr><tr><td><p>{Terrasoft.MessageDirectionType} direction</p></td><td><p>Message direction. Contains the value of the <code>Terrasoft.MessageDirectionType (Terrasoft.core.enums.MessageDirectionType)</code> enumeration.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageDirectionType)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 318ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>PUBLISH</p></td><td><p>The message direction is publishing. The module only publishes the message to <code>sandbox</code>.</p></td></tr><tr><td><p>SUBSCRIBE</p></td><td><p>The message direction is subscription. The module only subscribes to a message that is published by another module.</p></td></tr><tr><td><p>BIDIRECTIONAL</p></td><td><p>The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.</p></td></tr></tbody></table></div></div></div></details></td></tr></tbody></table></div></div></div></details></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Properties of the collection item values{Terrasoft.MessageMode} modeMessage operation mode. Contains the value of theTerrasoft.MessageMode (Terrasoft.core.enums.MessageMode)enumeration.Available values (Terrasoft.MessageMode)BROADCASTBroadcast message mode where the number of message subscribers is unknown in advance.PTPAddress message mode where only one subscriber can handle a message.{Terrasoft.MessageDirectionType} directionMessage direction. Contains the value of theTerrasoft.MessageDirectionType (Terrasoft.core.enums.MessageDirectionType)enumeration.Available values (Terrasoft.MessageDirectionType)PUBLISHThe message direction is publishing. The module only publishes the message tosandbox.SUBSCRIBEThe message direction is subscription. The module only subscribes to a message that is published by another module.BIDIRECTIONALThe message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Properties of the collection item values</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 308ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{Terrasoft.MessageMode} mode</p></td><td><p>Message operation mode. Contains the value of the <code>Terrasoft.MessageMode (Terrasoft.core.enums.MessageMode)</code> enumeration.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageMode)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 274ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>BROADCAST</p></td><td><p>Broadcast message mode where the number of message subscribers is unknown in advance.</p></td></tr><tr><td><p>PTP</p></td><td><p>Address message mode where only one subscriber can handle a message.</p></td></tr></tbody></table></div></div></div></details></td></tr><tr><td><p>{Terrasoft.MessageDirectionType} direction</p></td><td><p>Message direction. Contains the value of the <code>Terrasoft.MessageDirectionType (Terrasoft.core.enums.MessageDirectionType)</code> enumeration.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageDirectionType)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 318ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>PUBLISH</p></td><td><p>The message direction is publishing. The module only publishes the message to <code>sandbox</code>.</p></td></tr><tr><td><p>SUBSCRIBE</p></td><td><p>The message direction is subscription. The module only subscribes to a message that is published by another module.</p></td></tr><tr><td><p>BIDIRECTIONAL</p></td><td><p>The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.</p></td></tr></tbody></table></div></div></div></details></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Available values (Terrasoft.MessageMode)BROADCASTBroadcast message mode where the number of message subscribers is unknown in advance.PTPAddress message mode where only one subscriber can handle a message.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageMode)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 274ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>BROADCAST</p></td><td><p>Broadcast message mode where the number of message subscribers is unknown in advance.</p></td></tr><tr><td><p>PTP</p></td><td><p>Address message mode where only one subscriber can handle a message.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Available values (Terrasoft.MessageDirectionType)PUBLISHThe message direction is publishing. The module only publishes the message tosandbox.SUBSCRIBEThe message direction is subscription. The module only subscribes to a message that is published by another module.BIDIRECTIONALThe message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.MessageDirectionType)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 318ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>PUBLISH</p></td><td><p>The message direction is publishing. The module only publishes the message to <code>sandbox</code>.</p></td></tr><tr><td><p>SUBSCRIBE</p></td><td><p>The message direction is subscription. The module only subscribes to a message that is published by another module.</p></td></tr><tr><td><p>BIDIRECTIONAL</p></td><td><p>The message is bidirectional. The module publishes and subscribes to the same message in different instances of the same class or the same schema inheritance hierarchy.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Parameters{String|Array} messagesName or array of message names.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 229ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String|Array} messages</p></td><td><p>Name or array of message names.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Parameters{String} messageNameA string that contains the message name. For example,\"MessageToSubscribe.\"messageArgsAn object passed as a parameter to the message handler method in the subscriber module. If incoming parameters are omitted from the handler method, set themessageArgsparameter tonull.tagsA tag array that lets you uniquely identify the module that sends the message. Usually, the[this.sandbox.id]value is used.sandboxidentifies subscribers and publishers of a message based on the array of tags.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 312ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String} messageName</p></td><td><p>A string that contains the message name. For example, <code>\"MessageToSubscribe.\"</code></p></td></tr><tr><td><p> messageArgs</p></td><td><p>An object passed as a parameter to the message handler method in the subscriber module. If incoming parameters are omitted from the handler method, set the <code>messageArgs</code> parameter to <code>null</code>.</p></td></tr><tr><td><p> tags</p></td><td><p>A tag array that lets you uniquely identify the module that sends the message. Usually, the <code>[this.sandbox.id]</code> value is used. <code>sandbox</code> identifies subscribers and publishers of a message based on the array of tags.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Use examplesExamples that use the publish() method/* Publish the message without parameters and tags. */this.sandbox.publish(\"MessageWithoutArgsAndTags\");/* Publish the message without using parameters for the handler method. */this.sandbox.publish(\"MessageWithoutArgs\",null,[this.sandbox.id]);/* Publish the message using the parameter for the handler method. */this.sandbox.publish(\"MessageWithArgs\",{arg1:5,arg2:\"arg2\"},[\"moduleName\"]);/* Publish the message using an arbitrary array of tags. */this.sandbox.publish(\"MessageWithCustomIds\",null,[\"moduleName\",\"otherTag\"]);",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Use examples</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 326ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">Examples that use the publish() method</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Publish the message without parameters and tags. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">publish</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"MessageWithoutArgsAndTags\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Publish the message without using parameters for the handler method. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">publish</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"MessageWithoutArgs\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword null nil\" style=\"color: rgb(0, 0, 159);\">null</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">id</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Publish the message using the parameter for the handler method. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">publish</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"MessageWithArgs\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">arg1</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">5</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">arg2</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"arg2\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"moduleName\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Publish the message using an arbitrary array of tags. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">publish</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"MessageWithCustomIds\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword null nil\" style=\"color: rgb(0, 0, 159);\">null</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"moduleName\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"otherTag\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Parameters{String} messageNameA string that contains the message name. For example,\"MessageToSubscribe.\"messageHandlerA method handler is called when module receives a message. It can be either an anonymous function or module method. You can specify a parameter in the method definition. Pass the parameter value when publishing a message using thesandbox.publish()method.scopeThe execution scope of themessageHandlerhandler method.tagsAn array of tags that lets you uniquely identify the module that sends the message.sandboxidentifies subscribers and publishers of a message based on the array of tags.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 319ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String} messageName</p></td><td><p>A string that contains the message name. For example, <code>\"MessageToSubscribe.\"</code></p></td></tr><tr><td><p> messageHandler</p></td><td><p>A method handler is called when module receives a message. It can be either an anonymous function or module method. You can specify a parameter in the method definition. Pass the parameter value when publishing a message using the <code>sandbox.publish()</code> method.</p></td></tr><tr><td><p> scope</p></td><td><p>The execution scope of the <code>messageHandler</code> handler method.</p></td></tr><tr><td><p> tags</p></td><td><p>An array of tags that lets you uniquely identify the module that sends the message. <code>sandbox</code> identifies subscribers and publishers of a message based on the array of tags.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Use examplesExample that uses the subscribe() method/* Subscribe to a message without parameters for the handler method.Method handler is an anonymous function. Execution scope is the current module.The getSandboxId() method returns a tag that matches the tag of the published message. */this.sandbox.subscribe(\"MessageWithoutArgs\",function(){console.log(\"Message without arguments\")},this,[this.getSandBoxId()]);/* Subscribe to a message using the parameter for the handler method. */this.sandbox.subscribe(\"MessageWithArgs\",function(args){console.log(args)},this,[\"moduleName\"]);/* Subscribe to a message using an arbitrary tag.Use a tag from the array of tags of the published message.Implement the myMsgHandler() handler method separately. */this.sandbox.subscribe(\"MessageWithCustomIds\",this.myMsgHandler,this,[\"otherTag\"]);",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Use examples</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 331ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">Example that uses the subscribe() method</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Subscribe to a message without parameters for the handler method.</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">Method handler is an anonymous function. Execution scope is the current module.</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">The getSandboxId() method returns a tag that matches the tag of the published message. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">subscribe</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"MessageWithoutArgs\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">function</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token console class-name\">console</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">log</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Message without arguments\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">getSandBoxId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Subscribe to a message using the parameter for the handler method. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">subscribe</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"MessageWithArgs\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">function</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token parameter\">args</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token console class-name\">console</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">log</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">args</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"moduleName\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Subscribe to a message using an arbitrary tag.</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">Use a tag from the array of tags of the published message.</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">Implement the myMsgHandler() handler method separately. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">subscribe</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"MessageWithCustomIds\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">myMsgHandler</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"otherTag\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "instantiated module",
+      "content": "Parameters{String} moduleNameModule name.{Object} configConfiguration object that contains the module parameters. Required for visual modules.Properties of the configuration object{String} idModule ID. If the ID is missing, the module generates it automatically.{String} renderToThe name of the container that displays the view of the visual module. Passed as therender()method parameter of the loaded module. Required for visual modules.{Boolean} keepAliveThe flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.{Boolean} isAsyncThe flag that indicates whether to initialize the module asynchronously.{Object} instanceConfigLets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of theinstanceConfigproperty. Aninstantiated moduleis a module that returns a constructor function.You can pass the followingproperty typesto a module instance:stringbooleannumberdate(the value will be copied)object(literal objects only)Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of theBaseObjectdescendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.{Object} parametersPasses additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModulebase class. When a module instance is created, theparametersproperty of the module is initialized using the values passed in theparametersproperty of the configuration object.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 280ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String} moduleName</p></td><td><p>Module name.</p></td></tr><tr><td><p>{Object} config</p></td><td><p>Configuration object that contains the module parameters. Required for visual modules.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Properties of the configuration object</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 434ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String} id</p></td><td><p>Module ID. If the ID is missing, the module generates it automatically.</p></td></tr><tr><td><p>{String} renderTo</p></td><td><p>The name of the container that displays the view of the visual module. Passed as the <code>render()</code> method parameter of the loaded module. Required for visual modules.</p></td></tr><tr><td><p>{Boolean} keepAlive</p></td><td><p>The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.</p></td></tr><tr><td><p>{Boolean} isAsync</p></td><td><p>The flag that indicates whether to initialize the module asynchronously.</p></td></tr><tr><td><p>{Object} instanceConfig</p></td><td><p>Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of the <code>instanceConfig</code> property. An <strong>instantiated module</strong> is a module that returns a constructor function.<br/>\n<!-- -->You can pass the following <strong>property types</strong> to a module instance:</p><ul>\n<li><code>string</code></li>\n<li><code>boolean</code></li>\n<li><code>number</code></li>\n<li><code>date</code> (the value will be copied)</li>\n<li><code>object</code> (literal objects only)</li>\n</ul><p>Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of the <code>BaseObject</code> descendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.</p></td></tr><tr><td><p>{Object} parameters</p></td><td><p>Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. The <code>parameters</code> property is implemented in the <code>BaseModule</code> base class. When a module instance is created, the <code>parameters</code> property of the module is initialized using the values passed in the <code>parameters</code> property of the configuration object.</p></td></tr></tbody></table></div></div></div></details></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "instantiated module",
+      "content": "Properties of the configuration object{String} idModule ID. If the ID is missing, the module generates it automatically.{String} renderToThe name of the container that displays the view of the visual module. Passed as therender()method parameter of the loaded module. Required for visual modules.{Boolean} keepAliveThe flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.{Boolean} isAsyncThe flag that indicates whether to initialize the module asynchronously.{Object} instanceConfigLets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of theinstanceConfigproperty. Aninstantiated moduleis a module that returns a constructor function.You can pass the followingproperty typesto a module instance:stringbooleannumberdate(the value will be copied)object(literal objects only)Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of theBaseObjectdescendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.{Object} parametersPasses additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. Theparametersproperty is implemented in theBaseModulebase class. When a module instance is created, theparametersproperty of the module is initialized using the values passed in theparametersproperty of the configuration object.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Properties of the configuration object</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 434ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String} id</p></td><td><p>Module ID. If the ID is missing, the module generates it automatically.</p></td></tr><tr><td><p>{String} renderTo</p></td><td><p>The name of the container that displays the view of the visual module. Passed as the <code>render()</code> method parameter of the loaded module. Required for visual modules.</p></td></tr><tr><td><p>{Boolean} keepAlive</p></td><td><p>The flag that indicates whether to add the module to the module chain. Required for navigation between the module views in the browser.</p></td></tr><tr><td><p>{Boolean} isAsync</p></td><td><p>The flag that indicates whether to initialize the module asynchronously.</p></td></tr><tr><td><p>{Object} instanceConfig</p></td><td><p>Lets you pass parameters to the class constructor of an instantiated module when the module is loaded. To do this, specify a configuration object as the value of the <code>instanceConfig</code> property. An <strong>instantiated module</strong> is a module that returns a constructor function.<br/>\n<!-- -->You can pass the following <strong>property types</strong> to a module instance:</p><ul>\n<li><code>string</code></li>\n<li><code>boolean</code></li>\n<li><code>number</code></li>\n<li><code>date</code> (the value will be copied)</li>\n<li><code>object</code> (literal objects only)</li>\n</ul><p>Do not pass class instances, HTMLElement descendants, etc., as property values. When passing parameters to the constructor of the <code>BaseObject</code> descendant module, consider the following restriction: Creatio cannot pass a parameter that is not described in a module class or one of the parent classes.</p></td></tr><tr><td><p>{Object} parameters</p></td><td><p>Passes additional parameters to the module when loading a module. Pre-implement the same property in a module class or one of the parent classes. The <code>parameters</code> property is implemented in the <code>BaseModule</code> base class. When a module instance is created, the <code>parameters</code> property of the module is initialized using the values passed in the <code>parameters</code> property of the configuration object.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Use examplesExample that uses the loadModule() method/* Load the module without using additional parameters. */this.sandbox.loadModule(\"ProcessListenerV2\");/* Load the module using additional parameters. */this.sandbox.loadModule(\"CardModuleV2\",{renderTo:\"centerPanel\",keepAlive:true,id:moduleId});",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Use examples</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 314ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">Example that uses the loadModule() method</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Load the module without using additional parameters. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">loadModule</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ProcessListenerV2\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Load the module using additional parameters. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">loadModule</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"CardModuleV2\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">renderTo</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"centerPanel\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">keepAlive</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> moduleId</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Parameters{String} idModule identifier.{String} renderToThe name of the container to remove the view of the visual module. Required for visual modules.keepAliveThe flag that indicates whether to save the module model. The core can save a module model when unloading the module to use the properties, methods, and messages of the model.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 291ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>{String} id</p></td><td><p>Module identifier.</p></td></tr><tr><td><p>{String} renderTo</p></td><td><p>The name of the container to remove the view of the visual module. Required for visual modules.</p></td></tr><tr><td><p> keepAlive</p></td><td><p>The flag that indicates whether to save the module model. The core can save a module model when unloading the module to use the properties, methods, and messages of the model.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Use examplesExample that uses the unloadModule() method/* Retrieve the ID of an unloaded module. */getModuleId:function(){returnthis.sandbox.id+\"_ModuleName\";},.../* Unload a non-visual module. */this.sandbox.unloadModule(this.getModuleId());.../* Unload a visual module previously loaded into the \"ModuleContainer\" container. */this.sandbox.unloadModule(this.getModuleId(),\"ModuleContainer\");",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Use examples</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 331ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">Example that uses the unloadModule() method</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Retrieve the ID of an unloaded module. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token function-variable function\" style=\"color: rgb(215, 58, 73);\">getModuleId</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">function</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">return</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">id</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">+</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"_ModuleName\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Unload a non-visual module. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">unloadModule</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">getModuleId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Unload a visual module previously loaded into the \"ModuleContainer\" container. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token property-access\">sandbox</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">unloadModule</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">this</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token method function property-access\" style=\"color: rgb(215, 58, 73);\">getModuleId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ModuleContainer\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "sandbox object",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Methods\u200b",
+      "anchor": "title-3046-1"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "LOG",
+        "path": "("
+      },
+      {
+        "method": "GETSANDBOXID",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "LOG",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "LOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "LOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "UNLOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "GETMODULEID",
+        "path": "("
+      },
+      {
+        "method": "UNLOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "GETMODULEID",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/references/sandbox",
+      "text": "sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/references/sandbox",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/creatio-devkit-common",
+      "text": "@creatio-devkit/common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/module-basics",
+      "text": "Module basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/types",
+      "text": "Types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/modules/overview",
+      "text": "Class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/controls/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/controls-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sandbox-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/implement-message-exchange",
+      "text": "Implement message exchange",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/accept-the-result-from-a-subscriber-module-address-message",
+      "text": "Accept the result from a subscriber module (address message)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/accept-the-result-from-a-subscriber-module-broadcast-message",
+      "text": "Accept the result from a subscriber module (broadcast message)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/implement-asynchronous-message-exchange",
+      "text": "Implement asynchronous message exchange",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/example-that-uses-bidirectional-messages",
+      "text": "Example that uses bidirectional messages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/set-up-module-loading",
+      "text": "Set up module loading",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sandbox-references",
+      "text": "PreviousReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/websocket",
+      "text": "NextWebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/websocket-messages/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/websocket-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/websocket-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/data-operations-front-end/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:53:34.392722"
+}

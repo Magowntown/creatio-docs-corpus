@@ -1,0 +1,1 @@
+/* Export a constant that includes the value of the custom sidebar code. */export const SOME_SIDEBAR_CODE = 'UsrSomeCustomSidebar';

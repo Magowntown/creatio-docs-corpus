@@ -1,0 +1,1 @@
+Terrasoft.sdk.Model.addBusinessRule("InvoiceProduct", {    ruleType: Terrasoft.RuleTypes.Filtration,    events: [Terrasoft.BusinessRuleEvents.Load],    triggeredByColumns: ["Product"],    filters: Ext.create("Terrasoft.Filter", {        modelName: "Product",        property: "Active",        value: true    })});

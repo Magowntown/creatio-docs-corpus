@@ -1,0 +1,1 @@
+[    {        "operation": "merge",        "name": "settings",        "values": {"diffV2":"[{\"operation\":\"insert\",\"name\":\"Case_Controller_SearchExpression_Subject\",\"parentName\":\"Case_Controller\",\"propertyName\":\"searchExpressions\",\"values\":{\"leftCondition\":\"Subject\"}}]"        }    }    ...]

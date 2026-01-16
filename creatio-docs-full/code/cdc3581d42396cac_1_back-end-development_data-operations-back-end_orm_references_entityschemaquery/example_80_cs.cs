@@ -1,0 +1,1 @@
+Select GetSelectQuery(UserConnection userConnection)Select GetSelectQuery(UserConnection userConnection, EntitySchemaQueryOptions options)

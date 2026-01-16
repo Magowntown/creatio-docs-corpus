@@ -1,0 +1,378 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/administration/security-settings/recommended-information-security-settings",
+  "title": "Recommended information security settings",
+  "breadcrumbs": [
+    {
+      "text": "Administration",
+      "href": "/docs/8.x/setup-and-administration/category/administration"
+    },
+    {
+      "text": "Security settings",
+      "href": "/docs/8.x/setup-and-administration/category/security-settings"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nThis article covers best practices for Creatio settings related to information security.\n## Unified organization password policy\u200b\nMake sure the password and login settings comply with your company's security policy. You can use the recommended values if the policy does not specify the exact requirements.\n**Password length**. We recommend using passwords that are at least 9 characters long. Set up the desired password complexity in the following [system settings](https://academy.creatio.com/documents?id=1259#title-1880-11):\n* \"Password complexity: Minimum length\" (\"MinPasswordLength\" code)\n* \"Password complexity: Minimum quantity of lower case characters\" (\"MinPasswordLowercaseCharCount\" code)\n* \"Password complexity: Minimum quantity of upper case characters\" (\"MinPasswordUppercaseCharCount\" code)\n* \"Password complexity: Minimum quantity of digits\" (\"MinPasswordNumericCharCount\" code)\n* \"Password complexity: Minimum quantity of special characters\" (\"MinPasswordSpecialCharCount\" code)\n**Password history**. Creatio compares previous user passwords to the new password to ensure they do not match. Specify how many previous passwords to compare in the \"Quantity of analyzed passwords\" (\"PasswordHistoryRecordCount\" code) system setting.\nThe number of **permitted login attempts** and **user lockout time**. We recommend permitting 5 login attempts and setting the lockout time to 15 minutes. Configure the lockout behavior in the following system settings:\n* \"Number of logon attempts\" (\"LoginAttemptCount\" code). Sets the number of permitted login attempts.\n* \"Quantity of login attempts for warning message\" (\"LoginAttemptBeforeWarningCount\" code). Sets the number of failed login attempts after which Creatio displays the warning message that contains the number of login attempts remaining before lockout.\n* \"User locking time\" (\"UserLockoutDuration\" code). Sets the period in minutes during which the user cannot log in to Creatio if they run out of specified login attempts.\nLearn more in a separate article: [Unblock a user](https://academy.creatio.com/documents?id=2385).\n**Login failure** and **possible user lockout** messages. We recommend displaying a unified message that does not specify the exact issue. To do this, make sure the values of the following system settings are \"false:\"\n* \"Show message about locking account during logging in\" (the \"DisplayAccountLockoutMessageAtLogin\" code)\n* \"Show message about incorrect password during logging in\" (the \"DisplayIncorrectPasswordMessageAtLogin\" code)\n## Session expiration time\u200b\nSet up the user inactivity period in minutes after which to close the session in the \"User session timeout\" (\"UserSessionTimeout\" code) system setting. By default, \"60.\"\n## TLS protocol recommendations for Creatio websites and integrations\u200b\nCreatio supports TLS 1.2 protocol out-of-the-box. We recommend using the following secure TLS cipher suites:\n* TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384\n* TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256\n* TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256\n* TLS_DHE_RSA_WITH_AES_256_GCM_SHA384\n* TLS_DHE_RSA_WITH_AES_128_GCM_SHA256\n* TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256\n* TLS_DHE_RSA_WITH_AES_256_CCM\n* TLS_DHE_RSA_WITH_AES_128_CCM\nThe following functionality is obsolete, considered a security risk, and is not recommended for use:\n* TLS 1.0/1.1 protocols\n* DES, 3DES/TDEA, RC2, RC4 ciphers\n* CBC encryption mode\n* MD5 hashing algorithm\n* DH (TLS_DH_*) key exchange\nLearn more: [NSA Releases Guidance on Eliminating Obsolete TLS Protocol Configurations](https://www.cisa.gov/news-events/alerts/2021/01/05/nsa-releases-guidance-eliminating-obsolete-tls-protocol), [Decision to Revise NIST SP 800-38A, Recommendation for Block Cipher Modes of Operation: Methods and Techniques](https://csrc.nist.gov/News/2023/decision-to-revise-nist-sp-800-38a), [Deprecating Obsolete Key Exchange Methods in TLS 1.2](https://www.ietf.org/id/draft-ietf-tls-deprecate-obsolete-kex-02.html).\n## Secure HTML header configurations for Creatio on-site\u200b\nEnsure browsers are not susceptible to preventable vulnerabilities. To do this, enable the following headers that comply with OWASP (Open Web Applications Security Project) [Secure Headers Project](https://owasp.org/www-project-secure-headers/):\n**HTTP Strict Transport Security (HSTS)**. Enable the Strict-Transport-Security header and set the time to store the parameter in browser memory to 1 year:\nStrict-Transport-Security: max-age=3153600  \n**Clickjacking protection**. Enable the X-Frame-Options header and set it to allow pages to be embedded only on addresses that have the same location as your Creatio application:\nX-Frame-Options: sameorigin  \n**Cross-site scripting attack (XSS) protection**. Disable the X-XSS-Protection header. The X-XSS-Protection header has been deprecated by modern browsers and its use can introduce additional security issues on the client side. As such, OWASP recommends to set the header as X-XSS-Protection: 0 in order to disable the XSS Auditor, and not allow it to take the default behavior of the browser handling the response.\nX-XSS-Protection: 0  \n**MIME-sniffing protection**. Enable the X-Content-Type-Options header and set its mode to \"nosniff.\" The mode prevents the browser from trying to determine the content type of a resource different from the declared content type:\nX-Content-Type-Options: nosniff  \n**Referrer Policy**. Enable the Referrer-Policy header and set it to \"origin-when-cross-origin.\" The header specifies how much referrer information (sent with the Referrer header) to include in requests:\nReferrer-Policy: origin-when-cross-origin  \n## Request responses for Creatio on-site\u200b\nLimit the amount and type of information available in responses. To do this, modify the Web.config file in Creatio root directory as follows:\n1. Disable X-Powered-By.\n<system.webServer>  \n<httpProtocol>  \n<customHeaders>  \n<remove name=\"X-Powered-By\" />  \n</customHeaders>  \n</httpProtocol>  \n</system.webServer>  \n2. Disable X-AspNet-Version. To do this, make changes to every httpRuntime section of the Web.config files in the Creatio root directory and Terrasoft.WebApp directory.\n<httpRuntime enableVersionHeader=\"false\" />  \n3. Disable Server Header (available for IIS version 10 and later).\n<system.webServer>  \n<security>  \n<requestFiltering removeServerHeader =\"true\" />  \n</security>  \n</system.webServer>  \n## Redis setup for Creatio on-site\u200b\nWe recommend using a combination of stable Debian and up-to-date Redis versions.\nWe also recommend **setting up authentication on the Redis server**.\n* Use the password authentication on the Redis server for version 8.0.1 and earlier.\n* Use any authentication option on the Redis server for version 8.0.2 and later.\nLearn more in a separate article: [Set up secure connection to Redis](https://academy.creatio.com/documents?id=2403).\n## Restrict access to metadata service for Creatio on-site\u200b\nIf you deploy Creatio by yourself using a cloud service, for example, Azure, AWS, GCP, we recommend restricting access to the 169.254.169.254 IP address of the metadata service using Windows firewall or Linux iptables. This eliminates a potential SSRF attack vector.\n## Configure secure cookies for an HTTPS instance\u200b\nIf your Creatio instance is served over HTTPS, configure secure cookies in the Web.config file both in the root Creatio directory and Terrasoft.WebApp directory. To do this, add the following string to the file:\n<httpCookies httpOnlyCookies=\"true\" requireSSL=\"true\" /> <forms requireSSL=\"true\" />  \n* * *\n## See also\u200b\n[Manage system settings](https://academy.creatio.com/documents?id=269)\n[Modify Web.config](https://academy.creatio.com/documents?id=2141)\n[Set up secure connection to Redis](https://academy.creatio.com/documents?id=2403)",
+  "code_examples": [
+    {
+      "code": "Strict-Transport-Security: max-age=3153600",
+      "language": "cli",
+      "context": "HTTP Strict Transport Security (HSTS). Enable the Strict-Transport-Security header and set the time to store the parameter in browser memory to 1 year:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "X-Frame-Options: sameorigin",
+      "language": "cli",
+      "context": "Clickjacking protection. Enable the X-Frame-Options header and set it to allow pages to be embedded only on addresses that have the same location as your Creatio application:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "X-XSS-Protection: 0",
+      "language": "cli",
+      "context": "Cross-site scripting attack (XSS) protection. Disable the X-XSS-Protection header. The X-XSS-Protection header has been deprecated by modern browsers and its use can introduce additional security issu",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "X-Content-Type-Options: nosniff",
+      "language": "cli",
+      "context": "MIME-sniffing protection. Enable the X-Content-Type-Options header and set its mode to \"nosniff.\" The mode prevents the browser from trying to determine the content type of a resource different from t",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Referrer-Policy: origin-when-cross-origin",
+      "language": "cli",
+      "context": "Referrer Policy. Enable the Referrer-Policy header and set it to \"origin-when-cross-origin.\" The header specifies how much referrer information (sent with the Referrer header) to include in requests:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<system.webServer>    <httpProtocol>        <customHeaders>            <remove name=\"X-Powered-By\" />        </customHeaders>    </httpProtocol></system.webServer>",
+      "language": "xml",
+      "context": "Disable X-Powered-By.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<httpRuntime enableVersionHeader=\"false\" />",
+      "language": "xml",
+      "context": "Disable X-AspNet-Version. To do this, make changes to every httpRuntime section of the Web.config files in the Creatio root directory and Terrasoft.WebApp directory.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<system.webServer>    <security>        <requestFiltering removeServerHeader =\"true\" />    </security></system.webServer>",
+      "language": "xml",
+      "context": "Disable Server Header (available for IIS version 10 and later).",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<httpCookies httpOnlyCookies=\"true\" requireSSL=\"true\" /> <forms requireSSL=\"true\" />",
+      "language": "xml",
+      "context": "If your Creatio instance is served over HTTPS, configure secure cookies in the Web.config file both in the root Creatio directory and Terrasoft.WebApp directory. To do this, add the following string t",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Recommended information security settings",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Unified organization password policy\u200b",
+      "anchor": "title-2395-1"
+    },
+    {
+      "level": 2,
+      "text": "Session expiration time\u200b",
+      "anchor": "title-2395-6"
+    },
+    {
+      "level": 2,
+      "text": "TLS protocol recommendations for Creatio websites and integrations\u200b",
+      "anchor": "title-2395-2"
+    },
+    {
+      "level": 2,
+      "text": "Secure HTML header configurations for Creatio on-site\u200b",
+      "anchor": "title-2395-3"
+    },
+    {
+      "level": 2,
+      "text": "Request responses for Creatio on-site\u200b",
+      "anchor": "title-2395-4"
+    },
+    {
+      "level": 2,
+      "text": "Redis setup for Creatio on-site\u200b",
+      "anchor": "title-2395-5"
+    },
+    {
+      "level": 2,
+      "text": "Restrict access to metadata service for Creatio on-site\u200b",
+      "anchor": "title-2395-16"
+    },
+    {
+      "level": 2,
+      "text": "Configure secure cookies for an HTTPS instance\u200b",
+      "anchor": "title-2395-17"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/recommended-information-security-settings",
+      "text": "Information security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/recommended-information-security-settings",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/recommended-information-security-settings",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/security-settings/recommended-information-security-settings",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/user-access-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/synchronize-users-with-ldap",
+      "text": "Synchronize users with LDAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-management",
+      "text": "User management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/access-management",
+      "text": "Access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/creatio-licensing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/manage-user-licenses",
+      "text": "Manage licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/creatio-licensing-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/change-log",
+      "text": "Change log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/audit-log",
+      "text": "Audit log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/secure-file-upload",
+      "text": "PreviousSecure file upload",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/content-security-policy",
+      "text": "NextContent security policy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/store-secrets-in-vault",
+      "text": "Sensitive data security",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/host-header-protection",
+      "text": "Host header protection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/limit-ip-for-login",
+      "text": "IP restrictions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/platform-cookies",
+      "text": "Platform cookies",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/remote-access-for-creatio-support",
+      "text": "Remote access for Creatio support",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/creatio-cloud-ips",
+      "text": "Creatio cloud IP addresses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/clean-up-the-drive-space",
+      "text": "Clean up the drive space",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/process-complex-database-queries-faster",
+      "text": "Improve page loading time",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/limit-DB-thread-count",
+      "text": "Limit thread count for DB queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/manage-resource-intensive-queries",
+      "text": "Query management rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/backup-datadase",
+      "text": "Back up database",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/manage-site",
+      "text": "Maintain Creatio website",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/compile-app-on-web-farm",
+      "text": "Compile an app on a web farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:24:09.635610"
+}

@@ -1,0 +1,1 @@
+dotnet Terrasoft.WebHost.dll configureWebFarmMode

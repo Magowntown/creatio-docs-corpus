@@ -1,0 +1,1 @@
+replace(replace(replace(replace(body('Get_response_details')?['re0ff0fa4569848d8a8f8d92b35dd48eb'], 'Industry event', '6132dc0a-c00c-47dc-a3e3-7e801afd6596'), 'Referral', '150dfd80-b889-4843-b7f9-d8a50d9d0268'), 'Social media', '3b938856-94cd-4146-9c12-42ae52205fb9'), 'Other', 'f9b5333d-473d-461d-9701-72881596c5d7')

@@ -1,0 +1,1 @@
+var activitiesCount = new Select(userConnection)    /* Specify the column name if needed. */    .Count("*")    .From("Activity")

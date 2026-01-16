@@ -1,0 +1,1 @@
+abstract QueryColumnExpression CreateQueryColumnExpression(DBSecurityEngine dbSecurityEngine)

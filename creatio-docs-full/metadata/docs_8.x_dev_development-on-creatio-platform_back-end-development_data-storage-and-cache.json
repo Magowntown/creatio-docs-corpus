@@ -1,0 +1,639 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+  "title": "Data storage and cache",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\nThe **purpose** of storages is to partition stored data logically and simplify its further use in source code.\nCreatio storages let you execute the following **actions** :\n* access data to read or write it via a key\n* delete data from storage via a key\n## Storage types\u200b\nCreatio supports the following storage **types** :\n* data storage\n* cache\nStorage partitioning lets you manage the following **actions** :\n* isolate data to specific workspaces and user sessions\n* classify data arbitrarily\n* manage data life cycle\nData storage and cache can be located physically on an arbitrary data storage server. The exception is the `Request` level data stored in memory.\nRedis is a data storage server. Any storage accessed via unified interfaces can be used as a storage server. Keep in mind that storage access operations are resource-intensive since they involve data serialization/deserialization and network communication.\n### Data storage\u200b\nThe **purpose** of data storage is intermediate storage of rarely changed (i. e., long-term) data. View the data storage levels in the table below. The `Terrasoft.Core.Store.DataLevel` enumeration contains data storage levels. Learn more about the `DataLevel` enumeration: [.NET classes reference](https://academy.creatio.com/api/netcoreapi/8.0.0/api/index.html).\nLevel| Description| Limits to the object life cycle  \n---|---|---  \nRequest| Request level. Data is available while the current query is being handled.| Objects are stored while the query is being executed.  \nSession| Session level. Data is available in the current user session.| Objects are stored while the session exists.  \nApplication| Application level. Data is available for the entire Creatio application.| Objects are stored while the Creatio instance exists. To delete objects from the storage, clear the external storage.  \nThe storage retains data until data is deleted explicitly.\n### Cache\u200b\nThe **purpose** of cache is to store operational information. Cache storage comprises multiple levels. View the levels in the table below. The `Terrasoft.Core.Store.CacheLevel` enumeration contains storage levels. Learn more about the `CacheLevel` enumeration: [.NET classes reference](https://academy.creatio.com/api/netcoreapi/8.0.0/api/index.html).\nLevel| Description| Limits to the object life cycle  \n---|---|---  \nSession| Session level. Data is available in the current user session.| Objects are deleted when the session expires.  \nWorkspace| Workspace level. Data is available to all workspace users.| Objects are deleted when you delete a workspace.  \nApplication| Application level. Data is available to all Creatio users regardless of their workspace.| Objects are stored while the Creatio instance exists. To delete objects from the storage, clear the external storage.  \nData stored in the cache has obsolescence time. The **obsolescence time** is the time limit of the cache item relevancy. Regardless of the obsolescence time, Creatio deletes all items from the cache when their life cycle expires.\nYou can also delete data from the cache at any time. Therefore, in some situations, the source code might attempt to retrieve cached data that has already been deleted. In this case, retrieve data from the permanent storage and put it in the cache.\nThe `Terrasoft.Core.Entities.EntitySchemaQuery` class implements a mechanism that works with the storage (Creatio cache or an arbitrary user-defined storage). The use of cache optimizes the efficiency of operations by accessing cached query results without an additional database query. When executing the `EntitySchemaQuery` request, Creatio adds the key (`CacheItemName` property value)and data retrieved from the database to the cache (`Cache` property value). By default, Creatio caches `EntitySchemaQuery` queries in the session level cache that stores data locally. You can also cache queries in an arbitrary storage that has the `ICacheStore` interface implemented.\nView the example that works with Creatio cache when executing an `EntitySchemaQuery` query below.\nExample that works with Creatio cache when executing an EntitySchemaQuery query\n/* Create an EntitySchemaQuery instance that has the [City] root schema. */  \nvar esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"City\");  \n/* Add a column that contains the city name to the query. */  \nesqResult.AddColumn(\"Name\");  \n/* Specify the key to access the query result cache.  \nData is located in the session level cache that stores data locally because the Cache object property is not overloaded. */  \nesqResult.CacheItemName = \"EsqResultItem\";  \n/* Execute a database query to retrieve the resulting object collection.  \nThe query results are cached after the operation is executed. When esqResult is accessed later to retrieve the request object collection, the code retrieves objects from the session level cache as long as the query is not modified. */  \nesqResult.GetEntityCollection(UserConnection);  \n## Storage object model\u200b\nThe classes and interfaces of the `Terrasoft.Core.Store` namespace implement the mechanism that works with the data storage and cache. Learn more about the namespace: [.NET classes reference](https://academy.creatio.com/api/netcoreapi/8.0.0/api/index.html).\n### IBaseStore interface\u200b\nThe `Terrasoft.Core.Store.IBaseStore` interface defines the base features of the storage types.\nThe `IBaseStore` interface lets you implement the following **actions** :\n* access data to read or write via a key (the `this[string key]` indexer)\n* delete data from storage via a specified key (the `Remove(string key)` method)\n* initialize the storage via a specified parameter list (the `Initialize(IDictionary parameters)` method) Creatio reads parameters to initialize storages from the configuration file. Set the parameter list in the `storeDataAdapter` (for data storage) and `storeCacheAdapter` (for cache) sections. You can set the parameters arbitrarily.\n### IDataStore interface\u200b\nThe `Terrasoft.Core.Store.IDataStore` interface defines the specifics of working with data storages. It inherits from the `IBaseStore` base storage interface. The interface lets you retrieve a list of all storage keys (the `Keys` property).\nImportant\nWe recommend using the `Keys` property when working with data storages if it is the only way to solve the problem.\n### ICacheStore interface\u200b\nThe `Terrasoft.Core.Store.ICacheStore` interface defines the specifics of working with cache. It inherits from the `IBaseStore` base storage interface. The interface lets you optimize the storage workflow when retrieving a data set simultaneously. Also, it implements the `GetValues(IEnumerable keys)` method. The method returns a cache object dictionary that contains the specified keys.\n### Store class\u200b\nThe `Terrasoft.Core.Store.Store` static class accesses cache and data storages of various levels.\nThe `Store` class includes the following static **properties** :\n* `Data`. Returns an instance of the data storage provider.\n* `Cache`. Returns an instance of the cache provider.\nImportant\nTo ensure the storages operate as intended in Creatio .NET, replace static properties with a connection via `UserConnection`.\n## Access the data storage and cache\u200b\nYou can access the data storage and cache in the following **ways** :\n* via `UserConnection`\n* via proxy classes\n### Access the data storage and cache via UserConnection\u200b\nYou can use the static properties of the `Store` class to access Creatio data storages and cache from the source code. Alternatively, you can access the data storage and cache via the `UserConnection` instance. This method lets you avoids using long property names and connecting additional assemblies. Replace static properties with a connection via `UserConnection` to migrate from .NET Framework to .NET.\nThe additional `UserConnection` class **properties** that let you access the data storage and cache on various levels quickly are as follows:\n* `ApplicationCache`. Returns a link to the `Application` level cache.\n* `WorkspaceCache`. Returns a link to the `Workspace` level cache.\n* `SessionCache`. Returns a link to the `Session` level cache.\n* `RequestData`. Returns a link to the `Request` level data storage.\n* `SessionData`. Returns a link to the `Session` level data storage.\n* `ApplicationData`. Returns a link to the `Application` level data storage.\nView the example that works with cache via the `UserConnection` class below.\nExample that works with cache via the UserConnection class\n/* The key with which the value is added to the cache. */  \nstring cacheKey = \"SomeKey\";  \n/* Add a value to the session level cache via the UserConnection property. */  \nUserConnection.SessionCache[cacheKey] = \"SomeValue\";  \n/* Retrieve a value from the cache via the Store class property. As a result, the valueFromCache variable will contain the SomeValue value. */  \nstring valueFromCache = UserConnection.SessionCache[cacheKey] as String;  \n### Access data storages and cache via proxy classes\u200b\nThe **proxy classes** are an intermediate element between storages and code that accesses the storages. The **purpose** of proxy classes is to execute intermediate actions with data before it is read from storage or written to storage. Each proxy class is a storage.\nUse proxy classes to implement the following **actions** :\n* perform the initial Creatio setup and configuration\n* isolate data of the Creatio users\n* execute other intermediate actions with data before adding it to the storage\nTo **configure the use of proxy classes for data storage and cache** :\n1. Add a `proxies` section to the `storeDataAdapters` and `storeCacheAdapters` sections of the `Web.config` configuration file in the Creatio root directory.\n2. List the storage proxy classes in the `proxies` section.\nCreatio retrieves the settings from the configuration file and applies them to the storage type when Creatio is loaded. As such, you can create **chains of proxy classes** called consecutively. The call order of proxy classes corresponds to their order in the configuration file. The proxy class listed last in the `proxies` section is called first in the chain.\nThe setup of proxy class chains has the following **special features** :\n* The endpoint of a proxy class chain is the cache or data storage for which the chain is defined.\n* Each proxy class works with either data storage or cache. Define the storage type in either the `ICacheStoreProxy.CacheStore` or `IDataStoreProxy.DataStore` property. The property can link to another proxy class, a storage, or cache, but this is unknown to the proxy class. A proxy class can be a storage with which other proxy classes work.\nView the example that configures proxy classes below.\nExample that configures proxy classes\n<storeDataAdapters>  \n<storeAdapter levelName=\"Request\" type=\"RequestDataAdapterClassName\">  \n<proxies>  \n<proxy name=\"RequestDataProxyName1\" type=\"RequestDataProxyClassName1\" />  \n<proxy name=\"RequestDataProxyName2\" type=\"RequestDataProxyClassName2\" />  \n<proxy name=\"RequestDataProxyName3\" type=\"RequestDataProxyClassName3\" />  \n</proxies>  \n</storeAdapter>  \n</storeDataAdapters>  \n<storeCacheAdapters>  \n<storeAdapter levelName=\"Session\" type=\"SessionCacheAdapterClassName\">  \n<proxies>  \n<proxy name=\"SessionCacheProxyName1\" type=\"SessionCacheProxyClassName1\" />  \n<proxy name=\"SessionCacheProxyName2\" type=\"SessionCacheProxyClassName2\" />  \n</proxies>  \n</storeAdapter>  \n</storeCacheAdapters>  \nThe call chain of data storage proxy classes is as follows: `RequestDataProxyName3` \u2192 `RequestDataProxyName2` \u2192 `RequestDataProxyName1` \u2192 `RequestDataAdapterClassName` (the final data storage on the `Request` level).\nProxy classes let you isolate data to specific users. The easiest way to do this is to transform value keys before adding them to the repository, for example, by adding a user prefix to the key. Such proxy classes ensure the storage keys are unique. This avoids data loss and corruption when different users write values using the same key simultaneously.\nProxy classes let you implement the mechanism that executes arbitrary actions with data before data is added to or retrieved from the storage. Since the proxy class implements data handling logic, you do not need to duplicate code, which makes the code easier to modify and maintain.\n##### Base proxy class interfaces\u200b\n* `Terrasoft.Core.Store.IDataStoreProxy`. Interface for proxy classes of the data storage.\n* `Terrasoft.Core.Store.ICacheStoreProxy`. interface for proxy classes of the cache.\nImplement one or both interfaces to use a class as a proxy class for working with storage.\nEach interface has one property that contains a link to the storage or cache with which the current proxy class works. It is the `DataStore` property for the `IDataStoreProxy` interface and `CacheStore` property for the `ICacheStoreProxy` interface.\n##### Proxy classes that transform keys\u200b\nThe mechanism that transforms storage value keys is implemented in the following **proxy classes** :\n* `Terrasoft.Core.Store.KeyTransformerProxy`. Abstract base class of all proxy classes that transform cache keys. Implements methods and properties of the `ICacheStoreProxy` interface. Inherit from the `KeyTransformerProxy` class when you create custom proxy classes to avoid duplicate logic.\n* `Terrasoft.Core.Store.PrefixKeyTransformerProxy`. Proxy class that transforms cache keys by adding a specified prefix.\nView the example that works with the session level cache via the `PrefixKeyTransformerProxy` proxy class below.\nExample that works with the session level cache via the PrefixKeyTransformerProxy proxy class\n/* The key with which to add the value to the cache via the proxy class. */  \nstring key = \"SomeKey\";  \n/* The prefix to add to the key value using the proxy class. */  \nstring prefix = \"customPrefix\";  \n/* Create a proxy class that writes values to the session level cache. */  \nICacheStore proxyCache = new PrefixKeyTransformerProxy(prefix, Store.Cache[CacheLevel.Session]);  \n/* Write values that have the \"SomeKey\" key to the cache via the proxy class. Essentially, write the value that has the \"prefix + key\" key to the global session level cache. */  \nproxyCache[key] = \"CachedValue\";  \n/* Retrieve values that have the \"key\" key via the proxy class. */  \nvar valueFromProxyCache = (string)proxyCache[SomeKey];  \n/* Retrieve values that have the \"prefix + key\" key directly from session level cache. */  \nvar valueFromGlobalCache = (string)UserConnection.SessionCache[prefix + key];  \nAs a result, the `valueFromProxyCache` and `valueFromGlobalCache` variables will contain the same `CachedValue` value.\n* `Terrasoft.Core.Store.DataStoreKeyTransformerProxy`. Proxy class that transforms data storage keys by adding a specified prefix.\nView the example that works with the data storage via the `DataStoreKeyTransformerProxy` proxy class below.\nExample that works with the data storage via the DataStoreKeyTransformerProxy proxy class\n/* The key with which to add the value to the storage via the proxy class. */  \nstring key = \"SomeKey\";  \n/* The prefix to add to the key value using the proxy class. */  \nstring prefix = \"customPrefix\";  \n/* Create a proxy class that writes values to the session level data storage. */  \nIDataStore proxyStorage = new DataStoreKeyTransformerProxy(prefix) { DataStore = Store.Data[DataLevel.Session] };  \n/* Write values that have the \"SomeKey\" key to the storage via the proxy class. Essentially, write the value that has the \"prefix + key\" key to the global session level data storage. */  \nproxyStorage[key] = \"StoredValue\";  \n/* Retrieve values that have the \"SomeKey\" key via the proxy class. */  \nvar valueFromProxyStorage = (string)proxyStorage[key];  \n/* Retrieve values that have the \"prefix + key\" key directly from session level storage. */  \nvar valueFromGlobalStorage = (string)UserConnection.SessionData[prefix + key];  \nAs a result, the `valueFromProxyStorage` and `valueFromGlobalStorage` variables will contain the same `StoredValue` value.\n##### Local data caching\u200b\nThe **local data caching** mechanism is based on proxy classes. The **purpose** of data caching is to reduce the load on the data storage server and execution time of requests when working with rarely changed data.\nThe `LocalCachingProxy` internal proxy class implements the local caching mechanism. The class caches data on the current node of the web farm. Learn more in [Server farm](https://en.wikipedia.org/wiki/Server_farm) (Wikipedia).\nThe class inspects the lifetime of cached objects and retrieves data from the global cache if the cached data is obsolete.\nTo cache data locally, use the following **extended methods** of the `ICacheStore` interface in the `CacheStoreUtilities` static class:\n* `WithLocalCaching()`. Overloaded method that returns the `LocalCachingProxy` class instance.\n* `WithLocalCachingOnly(string)`. Caches data of the specified element group locally and monitors data relevance.\n* `ExpireGroup(string)`. Sets the obsolescence flag for a specified element group. When you call this method, all elements of the specified group become irrelevant and are not returned upon data query.\nView the example that works with the workspace cache via local caching below.\nExample that works with the workspace cache via local caching\n/* Create a proxy class that caches data locally. The elements that are written to the cache via the current proxy class belong to the Group1 relevance control group. */  \nICacheStore cacheStore1 = Store.Cache[CacheLevel.Workspace].WithLocalCaching(\"Group1\");  \n/* Add an element to cache via the proxy class. */  \ncacheStore1[\"SomeKey1\"] = \"Value1\";  \n/* Create a proxy class that caches data locally. The elements that are written to the cache via the current proxy class belong to the Group1 relevance control group. */  \nICacheStore cacheStore2 = Store.Cache[CacheLevel.Workspace].WithLocalCaching(\"Group1\");  \ncacheStore2[\"SomeKey2\"] = \"Value2\";  \n/* Set the obsolescence flag for the elements in the Group1 group. Items that have SomeKey1 and SomeKey2 keys are obsolete because they belong to the same Group1 relevance control group, even though they were cached via different proxy classes. */  \ncacheStore2.ExpireGroup(\"Group1\");  \n/* Attempt to retrieve values that have SomeKey1 and SomeKey2 keys from the cache after the elements are marked as obsolete. As a result, the cachedValue1 and cachedValue2 variables will contain null. */  \nvar cachedValue1 = cacheStore1[\"SomeKey1\"];  \nvar cachedValue2 = cacheStore1[\"SomeKey2\"];  \n## Special features of using data storage and cache\u200b\nTo increase the efficiency of working with data storage and cache, keep in mind the following **special features** :\n* Only serializable objects can be added to storage. This is due to the specifics of working with the Creatio core storage. The object is pre-serialized when data is saved to storage, and deserialized when it is retrieved. The exception is the `Request` level data storage.\n* Avoid redundant queries to the repository in the source code because storage access operations are resource intensive.\nView the examples that work with storages below.\n* Optimal code (option 1)\n* Optimal code (option 2)\n* Non-optimal code\n/* Write an object from the storage to an intermediate variable. */  \nobject value = UserConnection.SessionData[\"SomeKey\"];  \n/* Check the value of the intermediate variable. */  \nif (value != null) {  \n/* Return the value. */  \nreturn (string)value;  \n}  \n/* Use the GetValue() extended method. */  \nreturn UserConnection.SessionData.GetValue<string>(\"SomeKey\");  \n/* Address network and deserialize data. */  \nif (UserConnection.SessionData[\"SomeKey\"] != null) {  \n/* Address network and deserialize data once again. */  \nreturn (string)UserConnection.SessionData[\"SomeKey\"];  \n}  \n* Optimal code\n* Non-optimal code\n/* Delete data from the session level storage without previous verification. */;  \nUserConnection.SessionData.Remove(\"SomeKey\");  \n/* Address network and deserialize data. */;  \nif (UserConnection.SessionData[\"SomeKey\"] != null) {  \n/* Address network and deserialize data once again. */;  \nUserConnection.SessionData.Remove(\"SomeKey\");  \n}  \n* Creatio executes any status changes of the object retrieved from the data storage or cache in memory locally and does not commit them to the storage automatically. To ensure the changes appear in the repository, write the changed object to the repository explicitly.\nView the example that adds data to the storage below.\nExample that adds data to the storage\n/* Retrieve the value dictionary from the session data storage via the \"SomeDictionary\" key. */  \nDictionary<string, string> dic = (Dictionary<string, string>)UserConnection.SessionData[\"SomeDictionary\"];  \n/* Change the values of a dictionary item. Changes are not committed to the storage. */  \ndic[\"Key\"] = \"ChangedValue\";  \n/* Add an item to the dictionary. Changes are not committed to the storage. */  \ndic.Add(\"NewKey\", \"NewValue\");  \n/* Commit a dictionary to the data storage via the \"SomeDictionary\" key. The changes are committed to the storage. */  \nUserConnection.SessionData[\"SomeDictionary\"] = dic;  \n* * *\n## Resources\u200b\n[Terrasoft.Core.Store.DataLevel enumeration](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Store.DataLevel.html) (.NET classes reference)\n[Terrasoft.Core.Store.CacheLevel enumeration](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Store.CacheLevel.html) (.NET classes reference)\n[Terrasoft.Core.Store namespace](https://academy.creatio.com/api/netcoreapi/8.0.0/api/Terrasoft.Core.Store.html) (.NET classes reference)",
+  "code_examples": [
+    {
+      "code": "/* Create an EntitySchemaQuery instance that has the [City] root schema. */var esqResult = new EntitySchemaQuery(UserConnection.EntitySchemaManager, \"City\");/* Add a column that contains the city name to the query. */esqResult.AddColumn(\"Name\");/* Specify the key to access the query result cache.Data is located in the session level cache that stores data locally because the Cache object property is not overloaded. */esqResult.CacheItemName = \"EsqResultItem\";/* Execute a database query to retrieve the resulting object collection.The query results are cached after the operation is executed. When esqResult is accessed later to retrieve the request object collection, the code retrieves objects from the session level cache as long as the query is not modified. */esqResult.GetEntityCollection(UserConnection);",
+      "language": "cs",
+      "context": "View the example that works with Creatio cache when executing anEntitySchemaQueryquery below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* The key with which the value is added to the cache. */string cacheKey = \"SomeKey\";/* Add a value to the session level cache via the UserConnection property. */UserConnection.SessionCache[cacheKey] = \"SomeValue\";/* Retrieve a value from the cache via the Store class property. As a result, the valueFromCache variable will contain the SomeValue value. */string valueFromCache = UserConnection.SessionCache[cacheKey] as String;",
+      "language": "cs",
+      "context": "View the example that works with cache via theUserConnectionclass below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<storeDataAdapters>    <storeAdapter levelName=\"Request\" type=\"RequestDataAdapterClassName\">        <proxies>            <proxy name=\"RequestDataProxyName1\" type=\"RequestDataProxyClassName1\" />            <proxy name=\"RequestDataProxyName2\" type=\"RequestDataProxyClassName2\" />            <proxy name=\"RequestDataProxyName3\" type=\"RequestDataProxyClassName3\" />        </proxies>    </storeAdapter></storeDataAdapters><storeCacheAdapters>    <storeAdapter levelName=\"Session\" type=\"SessionCacheAdapterClassName\">        <proxies>            <proxy name=\"SessionCacheProxyName1\" type=\"SessionCacheProxyClassName1\" />            <proxy name=\"SessionCacheProxyName2\" type=\"SessionCacheProxyClassName2\" />        </proxies>    </storeAdapter></storeCacheAdapters>",
+      "language": "xml",
+      "context": "View the example that configures proxy classes below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* The key with which to add the value to the cache via the proxy class. */string key = \"SomeKey\";/* The prefix to add to the key value using the proxy class. */string prefix = \"customPrefix\";/* Create a proxy class that writes values to the session level cache. */ICacheStore proxyCache = new PrefixKeyTransformerProxy(prefix, Store.Cache[CacheLevel.Session]);/* Write values that have the \"SomeKey\" key to the cache via the proxy class. Essentially, write the value that has the \"prefix + key\" key to the global session level cache. */proxyCache[key] = \"CachedValue\";/* Retrieve values that have the \"key\" key via the proxy class. */var valueFromProxyCache = (string)proxyCache[SomeKey];/* Retrieve values that have the \"prefix + key\" key directly from session level cache. */var valueFromGlobalCache = (string)UserConnection.SessionCache[prefix + key];",
+      "language": "cs",
+      "context": "View the example that works with the session level cache via thePrefixKeyTransformerProxyproxy class below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* The key with which to add the value to the storage via the proxy class. */string key = \"SomeKey\";/* The prefix to add to the key value using the proxy class. */string prefix = \"customPrefix\";/* Create a proxy class that writes values to the session level data storage. */IDataStore proxyStorage = new DataStoreKeyTransformerProxy(prefix) { DataStore = Store.Data[DataLevel.Session] };/* Write values that have the \"SomeKey\" key to the storage via the proxy class. Essentially, write the value that has the \"prefix + key\" key to the global session level data storage. */proxyStorage[key] = \"StoredValue\";/* Retrieve values that have the \"SomeKey\" key via the proxy class. */var valueFromProxyStorage = (string)proxyStorage[key];/* Retrieve values that have the \"prefix + key\" key directly from session level storage. */var valueFromGlobalStorage = (string)UserConnection.SessionData[prefix + key];",
+      "language": "cs",
+      "context": "View the example that works with the data storage via theDataStoreKeyTransformerProxyproxy class below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a proxy class that caches data locally. The elements that are written to the cache via the current proxy class belong to the Group1 relevance control group. */ICacheStore cacheStore1 = Store.Cache[CacheLevel.Workspace].WithLocalCaching(\"Group1\");/* Add an element to cache via the proxy class. */cacheStore1[\"SomeKey1\"] = \"Value1\";/* Create a proxy class that caches data locally. The elements that are written to the cache via the current proxy class belong to the Group1 relevance control group. */ICacheStore cacheStore2 = Store.Cache[CacheLevel.Workspace].WithLocalCaching(\"Group1\");cacheStore2[\"SomeKey2\"] = \"Value2\";/* Set the obsolescence flag for the elements in the Group1 group. Items that have SomeKey1 and SomeKey2 keys are obsolete because they belong to the same Group1 relevance control group, even though they were cached via different proxy classes. */cacheStore2.ExpireGroup(\"Group1\");/* Attempt to retrieve values that have SomeKey1 and SomeKey2 keys from the cache after the elements are marked as obsolete. As a result, the cachedValue1 and cachedValue2 variables will contain null. */var cachedValue1 = cacheStore1[\"SomeKey1\"];var cachedValue2 = cacheStore1[\"SomeKey2\"];",
+      "language": "cs",
+      "context": "View the example that works with the workspace cache via local caching below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Write an object from the storage to an intermediate variable. */object value = UserConnection.SessionData[\"SomeKey\"];/* Check the value of the intermediate variable. */if (value != null) {    /* Return the value. */    return (string)value;}",
+      "language": "cs",
+      "context": "View the examples that work with storages below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Use the GetValue() extended method. */return UserConnection.SessionData.GetValue<string>(\"SomeKey\");",
+      "language": "cs",
+      "context": "View the examples that work with storages below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Address network and deserialize data. */if (UserConnection.SessionData[\"SomeKey\"] != null) {    /* Address network and deserialize data once again. */    return (string)UserConnection.SessionData[\"SomeKey\"];}",
+      "language": "cs",
+      "context": "View the examples that work with storages below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Delete data from the session level storage without previous verification. */;UserConnection.SessionData.Remove(\"SomeKey\");",
+      "language": "cs",
+      "context": "View the examples that work with storages below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Address network and deserialize data. */;if (UserConnection.SessionData[\"SomeKey\"] != null) {  /* Address network and deserialize data once again. */;  UserConnection.SessionData.Remove(\"SomeKey\");}",
+      "language": "cs",
+      "context": "View the examples that work with storages below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Retrieve the value dictionary from the session data storage via the \"SomeDictionary\" key. */Dictionary<string, string> dic = (Dictionary<string, string>)UserConnection.SessionData[\"SomeDictionary\"];/* Change the values of a dictionary item. Changes are not committed to the storage. */dic[\"Key\"] = \"ChangedValue\";/* Add an item to the dictionary. Changes are not committed to the storage. */dic.Add(\"NewKey\", \"NewValue\");/* Commit a dictionary to the data storage via the \"SomeDictionary\" key. The changes are committed to the storage. */UserConnection.SessionData[\"SomeDictionary\"] = dic;",
+      "language": "cs",
+      "context": "View the example that adds data to the storage below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Level",
+          "Description",
+          "Limits to the object life cycle"
+        ],
+        [
+          "Request",
+          "Request level. Data is available while the current query is being handled.",
+          "Objects are stored while the query is being executed."
+        ],
+        [
+          "Session",
+          "Session level. Data is available in the current user session.",
+          "Objects are stored while the session exists."
+        ],
+        [
+          "Application",
+          "Application level. Data is available for the entire Creatio application.",
+          "Objects are stored while the Creatio instance exists. To delete objects from the storage, clear the external storage."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Level</p></th><th><p>Description</p></th><th><p>Limits to the object life cycle</p></th></tr><tr><td><p>Request</p></td><td><p>Request level. Data is available while the current query is being handled.</p></td><td><p>Objects are stored while the query is being executed.</p></td></tr><tr><td><p>Session</p></td><td><p>Session level. Data is available in the current user session.</p></td><td><p>Objects are stored while the session exists.</p></td></tr><tr><td><p>Application</p></td><td><p>Application level. Data is available for the entire Creatio application.</p></td><td><p>Objects are stored while the Creatio instance exists. To delete objects from the storage, clear the external storage.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Level",
+          "Description",
+          "Limits to the object life cycle"
+        ],
+        [
+          "Session",
+          "Session level. Data is available in the current user session.",
+          "Objects are deleted when the session expires."
+        ],
+        [
+          "Workspace",
+          "Workspace level. Data is available to all workspace users.",
+          "Objects are deleted when you delete a workspace."
+        ],
+        [
+          "Application",
+          "Application level. Data is available to all Creatio users regardless of their workspace.",
+          "Objects are stored while the Creatio instance exists. To delete objects from the storage, clear the external storage."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Level</p></th><th><p>Description</p></th><th><p>Limits to the object life cycle</p></th></tr><tr><td><p>Session</p></td><td><p>Session level. Data is available in the current user session.</p></td><td><p>Objects are deleted when the session expires.</p></td></tr><tr><td><p>Workspace</p></td><td><p>Workspace level. Data is available to all workspace users.</p></td><td><p>Objects are deleted when you delete a workspace.</p></td></tr><tr><td><p>Application</p></td><td><p>Application level. Data is available to all Creatio users regardless of their workspace.</p></td><td><p>Objects are stored while the Creatio instance exists. To delete objects from the storage, clear the external storage.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWe recommend using theKeysproperty when working with data storages if it is the only way to solve the problem.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We recommend using the <code>Keys</code> property when working with data storages if it is the only way to solve the problem.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We recommend using theKeysproperty when working with data storages if it is the only way to solve the problem.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We recommend using the <code>Keys</code> property when working with data storages if it is the only way to solve the problem.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTo ensure the storages operate as intended in Creatio .NET, replace static properties with a connection viaUserConnection.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>To ensure the storages operate as intended in Creatio .NET, replace static properties with a connection via <code>UserConnection</code>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To ensure the storages operate as intended in Creatio .NET, replace static properties with a connection viaUserConnection.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To ensure the storages operate as intended in Creatio .NET, replace static properties with a connection via <code>UserConnection</code>.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Data storage and cache",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Storage types\u200b",
+      "anchor": "title-3577-1"
+    },
+    {
+      "level": 3,
+      "text": "Data storage\u200b",
+      "anchor": "title-3577-2"
+    },
+    {
+      "level": 3,
+      "text": "Cache\u200b",
+      "anchor": "title-3577-3"
+    },
+    {
+      "level": 2,
+      "text": "Storage object model\u200b",
+      "anchor": "title-3577-4"
+    },
+    {
+      "level": 3,
+      "text": "IBaseStore interface\u200b",
+      "anchor": "title-3577-5"
+    },
+    {
+      "level": 3,
+      "text": "IDataStore interface\u200b",
+      "anchor": "title-3577-6"
+    },
+    {
+      "level": 3,
+      "text": "ICacheStore interface\u200b",
+      "anchor": "title-3577-7"
+    },
+    {
+      "level": 3,
+      "text": "Store class\u200b",
+      "anchor": "title-3577-8"
+    },
+    {
+      "level": 2,
+      "text": "Access the data storage and cache\u200b",
+      "anchor": "title-3577-9"
+    },
+    {
+      "level": 3,
+      "text": "Access the data storage and cache via UserConnection\u200b",
+      "anchor": "title-3577-10"
+    },
+    {
+      "level": 3,
+      "text": "Access data storages and cache via proxy classes\u200b",
+      "anchor": "title-3577-11"
+    },
+    {
+      "level": 5,
+      "text": "Base proxy class interfaces\u200b",
+      "anchor": "title-3577-12"
+    },
+    {
+      "level": 5,
+      "text": "Proxy classes that transform keys\u200b",
+      "anchor": "title-3577-13"
+    },
+    {
+      "level": 5,
+      "text": "Local data caching\u200b",
+      "anchor": "title-3577-14"
+    },
+    {
+      "level": 2,
+      "text": "Special features of using data storage and cache\u200b",
+      "anchor": "title-3577-15"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "NextLocalizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/file-api",
+      "text": "File API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/api-for-file-management/entity-file-api",
+      "text": "Manage files using Entity class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/redistribute-licenses/automate-license-redistribution/references/licenseredistributionservice",
+      "text": "PreviousLicenseRedistributionService",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:08:47.589246"
+}

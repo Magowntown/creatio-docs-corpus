@@ -1,0 +1,1 @@
+exec sp_executesql N'SELECT    [AccountType].[Name] [Name],    [AccountType].[Description] [Description]FROM    [dbo].[AccountType] [AccountType] WITH(NOLOCK)WHERE    [AccountType].[Name] = @P1',N'@P1 nvarchar(6)',@P1=N'Customer'

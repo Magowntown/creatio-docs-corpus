@@ -1,0 +1,857 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+  "title": "Enrich contact data from emails",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1"
+    },
+    {
+      "text": "Emails",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nCreatio helps to maintain the completeness and relevance of the customer base using the data enrichment feature. Data enrichment from emails is available in Creatio since version 7.10.0. The system scans emails and identifies information that can be used to enrich contact data.\nAdd the information of an account to Creatio from open sources in a few clicks, and enrich the account data using their social profiles.\nImportant\nThe data enrichment is disabled by default. To enable data enrichment from correspondence and open sources, specify a cloud service key in the **Enable enrichment of contacts from the incoming emails** system setting (`EnableEmailMining` code).\n## The enrichment process\u200b\nReceiving contact/account data from an email:\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/receive_info_schema.png)\nThe main data enrichment stages:\n1. The existing Sync Engine synchronization method connects to the mail server. The mail server sends new emails to the Sync Engine.\n2. Sync Engine saves the received emails in the database as activities with the `Email` type.\n3. The Creatio planner periodically performs a task that starts the `Email Mining Job` process. This process selects some of the last (by creation date) activities with the `Email` type that were not previously processed by it. From each activity record, the body of the email and its format (plain\u2013text or html) are selected.\n4. The `Email Mining Job` process for each selected email sends an http request to the `Enrichment Service` cloud service.\n5. `Enrichment Service` performs the following actions:\n* selects a chain of individual emails (replies) from the email;\n* selects a signature for each email (`signature`);\n* separates the entity (`entity extraction`) from the signature \u2013 contact (name, position), telephones, emails and web addresses, social networks, other means of communication, addresses, organization names.  \n`Enrichment Service` returns the gathered in the http\u2013response as a specific structure in the JSON format.\n6. The `Email Mining Job` process parses the structure received from the service and stores it in Creatio tables .\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/data_structure_schema.png)\nThe main purpose of the tables :\n* `EnrchTextEntity` \u2013 stores information about one entity selected from an email. The `Type` field defines the type of this entity (contact, communication, address, organization, etc.). The data itself is stored in the JSON format in the `JsonData` field.\n* `EnrchEmailData` \u2013 defines a set of information for enrichment selected from a single email.\n* `EnrchFoundContact` \u2013 a contact in Creatio, identified by the data selected from the email. Stores a link to the Creatio contact and `EnrchTextEntity` of the `Contact` type.\n* `EnrchFoundAccount` \u2013 stores information about the identified Creatio account (similar to the `EnrchFoundContact` table).\n* `Activity` \u2013 the fields added to the existing activity table show the connection between the `Email` activity and the `EnrchEmailData` objects with the current status of the information extraction process.\n* `EnrchProcessedData` \u2013 contains information about processed data, either accepted or rejected by the user in the enrichment process.\n7. The `Email Mining Job` process notifies the user about the extraction process being finished. Messages are sent via the websocket channels to users who see the messages being processed in the communication panel. If the email contains information that may be used to enrich an associated contact, (or used to create a new contact altogether), the corresponding icon is displayed in the application interface in the upper right corner of the email .\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/enrich_info_flag.png)\nAn email like that will enable the user enrich or create a new contact of the system.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/enrich_info_action.png)\n## System settings\u200b\nEnrichment system settings:\n* `TextParsingService`* \u2013 the address of the `Enrichment Service` cloud\u2013service for data enrichment. Filled automatically for on\u2013demand users.\n* `CloudServicesAPIKey`* \u2013 the key for accessing the cloud service API. Filled automatically for on\u2013demand users.\n* `EmailMiningPackageSize` \u2013 the number of emails processed at once. The `Email Mining Job` process will process as many emails each time as it is specified in this system setting. Default value \u2013 10.\n* `EmailMiningPeriodMin` \u2013 the frequency (in minutes) of running the `Email Mining Job` process.\nImportant\nIf the value of `EmailMiningPeriodMin` is less than or equal to zero, then the process will not be scheduled and the functionality will be disabled. To re\u2013enable the process, set the value of the setting >=1, restart the application pool of the application, go to the login page and enter the application.\n* `EmailMiningIdentificationActualPeriod` \u2013 the period of relevance (in days) of contacts / accounts identification. If the specified period has expired and a new email is processed for the previously identified contact, the identification will be made again.\n## Identification sequence\u200b\n### Identifying contacts\u200b\n1. Search by full name.\n2. Search by name and last name.\n3. Search by email addresses. Only those email addresses that do not belong to free or temporary email services are taken into account.\n4. Search by phone. The search takes place only for the last digits of the contact's phone numbers.\nIf at any of the identification stages a data duplicate is detected, the identification process will be stopped.\n### Identifying accounts\u200b\n1. Search by the **Name** or **Alternative name** columns (case\u2013 insensitive).\n2. Search by web address.\n3. Search by email addresses. Only those email addresses that do not belong to free or temporary email services are taken into account. From the email address, the domain is allocated and the search for the communication facilities of the account for the filter starts with one of the following domain variants: `http://domain`, `https://domain`, `http://www.Domain`, `https://www.domain`, `www.domain`, `domain`.\nIf at any of the identification stages a data duplicate is detected, the identification process will be stopped.\n## Hashing information\u200b\nThe information extracted from the email is [hashed](https://en.wikipedia.org/wiki/Hash_function). As a result, in the `EnrchTextEntity` and `EnrchEmailData` tables, a hash value is written in the `Hash` field that uniquely identifies the given unit or set of extracted data in the system. This allows for two important improvements: resource savings when re\u2013identifying contacts / accounts from a set of extracted information and grouping the information received for a contact.\n### Re\u2013identification of contacts/accounts\u200b\nFor example, the system received an email with the signature of \"John Smith Jr.\", the telephone number \"123\u201345\u201367\" and the address \"71 Pilgrim Avenue Chevy Chase, MD 20815.\" For the current data set, the system computed a hash of \"Hash1\" and recorded it in the `Hash` field of the `EnrchEmailData` table based on its contents. The identification of the contact revealed the contact \"John Smith\" in the system and recorded the result in the `EnrchFoundContact` table.\nAfter a while the system received another email with a signature, which mentions the \"John Smith Jr.\" contact with the same phone and address. The system calculated the same hash for the current data set \u2013 \"Hash1\", because the incoming hash data has not changed. Instead of creating new records in the `EnrchEmailData` and `EnrchTextEntity` tables and re\u2013identifying this contact, the system found the previously created record in the Hash field of the `EnrchEmailData` table and wrote a reference to this record in the `Activity` table.\nThis process saves the amount of data stored and does not produce resource\u2013intensive contact identification requests.\n### Grouping the highlighted information for a contact\u200b\nSince each unit of the allocated information in `EnrchTextEntity` has a hash code based on its contents, when enriching the data of an existing contact, it becomes possible to use the information found in all the email in which it participated. When you select the data for enrichment, it is grouped by the `Hash` field and will not be duplicated.",
+  "code_examples": [],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Enable enrichment of contacts from the incoming emails",
+      "content": "ImportantThe data enrichment is disabled by default. To enable data enrichment from correspondence and open sources, specify a cloud service key in theEnable enrichment of contacts from the incoming emailssystem setting (EnableEmailMiningcode).",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The data enrichment is disabled by default. To enable data enrichment from correspondence and open sources, specify a cloud service key in the <strong>Enable enrichment of contacts from the incoming emails</strong> system setting (<code>EnableEmailMining</code> code).</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Enable enrichment of contacts from the incoming emails",
+      "content": "The data enrichment is disabled by default. To enable data enrichment from correspondence and open sources, specify a cloud service key in theEnable enrichment of contacts from the incoming emailssystem setting (EnableEmailMiningcode).",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The data enrichment is disabled by default. To enable data enrichment from correspondence and open sources, specify a cloud service key in the <strong>Enable enrichment of contacts from the incoming emails</strong> system setting (<code>EnableEmailMining</code> code).</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf the value ofEmailMiningPeriodMinis less than or equal to zero, then the process will not be scheduled and the functionality will be disabled. To re\u2013enable the process, set the value of the setting >=1, restart the application pool of the application, go to the login page and enter the application.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If the value of <code>EmailMiningPeriodMin</code> is less than or equal to zero, then the process will not be scheduled and the functionality will be disabled. To re\u2013enable the process, set the value of the setting &gt;=1, restart the application pool of the application, go to the login page and enter the application.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If the value ofEmailMiningPeriodMinis less than or equal to zero, then the process will not be scheduled and the functionality will be disabled. To re\u2013enable the process, set the value of the setting >=1, restart the application pool of the application, go to the login page and enter the application.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If the value of <code>EmailMiningPeriodMin</code> is less than or equal to zero, then the process will not be scheduled and the functionality will be disabled. To re\u2013enable the process, set the value of the setting &gt;=1, restart the application pool of the application, go to the login page and enter the application.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/receive_info_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "Receiving contact/account data from an email:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.1_platform-customization_classic-ui_emails_overview_e899baa94d2d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/data_structure_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "TheEmail Mining Jobprocess parses the structure received from the service and stores it in Creatio t",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.1_platform-customization_classic-ui_emails_overview_3ef56d87e106.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/enrich_info_flag.png",
+      "alt": "",
+      "title": "",
+      "context": "TheEmail Mining Jobprocess notifies the user about the extraction process being finished. Messages a",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.1_platform-customization_classic-ui_emails_overview_96023c7a204b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ContactEnrichmentFromEmail/enrich_info_action.png",
+      "alt": "",
+      "title": "",
+      "context": "An email like that will enable the user enrich or create a new contact of the system.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.1_platform-customization_classic-ui_emails_overview_f5dda59845ce.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Enrich contact data from emails",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "The enrichment process\u200b",
+      "anchor": "title-1475-1"
+    },
+    {
+      "level": 2,
+      "text": "System settings\u200b",
+      "anchor": "title-1475-2"
+    },
+    {
+      "level": 2,
+      "text": "Identification sequence\u200b",
+      "anchor": "title-1475-3"
+    },
+    {
+      "level": 3,
+      "text": "Identifying contacts\u200b",
+      "anchor": "title-1475-4"
+    },
+    {
+      "level": 3,
+      "text": "Identifying accounts\u200b",
+      "anchor": "title-1475-5"
+    },
+    {
+      "level": 2,
+      "text": "Hashing information\u200b",
+      "anchor": "title-1475-6"
+    },
+    {
+      "level": 3,
+      "text": "Re\u2013identification of contacts/accounts\u200b",
+      "anchor": "title-1475-7"
+    },
+    {
+      "level": 3,
+      "text": "Grouping the highlighted information for a contact\u200b",
+      "anchor": "title-1475-8"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/emails/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/emails/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/work-with-emails-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/emails-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "NextTask scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/sending-emails/examples/send-email-the-account-credentials",
+      "text": "PreviousSend email (the account credentials)",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T02:34:18.829953"
+}

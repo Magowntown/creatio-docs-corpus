@@ -1,0 +1,710 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/authentication/cell-connection-provider-2fa",
+  "title": "Integrate the cell connection provider with Creatio for two-factor authentication via SMS",
+  "breadcrumbs": [
+    {
+      "text": "Integrations tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools"
+    },
+    {
+      "text": "Authentication",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nnote\nThis functionality is available for Creatio 8.1.5 and later.\n**Two-factor authentication (2FA)** functionality lets you secure your identity by adding a verification code sent via email/SMS or generated in an authenticator app during various actions in Creatio, most importantly when you log in or change your password. 2FA also lets you recover your password on your own. Learn more: [Set up two-factor authentication](https://academy.creatio.com/documents?ver=8.1&id=2538), [Use two-factor authentication](https://academy.creatio.com/documents?ver=8.1&id=2539) (user documentation).\n2FA via SMS sends the verification code to the phone specified in the **Phone** field of the system user via SMS. The method requires an additional integration with the cell connection provider. Before you set up 2FA via SMS, integrate the cell connection provider with Creatio.\n## Set up a cell connection provider\u200b\n### 1\\. Add a cell connection provider to Creatio\u200b\n1. **Open the Configuration section**. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2).\n2. **Create a user-made package**. Instructions: [Create a user-made package using Configuration section](https://academy.creatio.com/documents?ver=8.1&id=15122).\n3. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.1&id=15072&anchor=change-the-current-package).\n4. **Open the Lookups section**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) in the top right \u2192 **System setup** \u2192 **Lookups**.\n5. **Open the SMS providers lookup**.\n6. **Add the lookup value**. To do this, click **New**.\n7. **Fill out the properties** of the lookup value.\nView the example that adds the \"Some SMS provider\" cell connection provider below.\nProperty| Property value  \n---|---  \nName| Some SMS provider  \nCode| UsrSomeSmsProvider  \n8. **Save the changes**.\n**As a result** , the cell connection provider will be added to Creatio.\n### 2\\. Implement the business logic that executes 2FA via SMS using the cell connection provider\u200b\n1. **Create the source code schema** in a user-made package. To do this, click **Add** \u2192 **Source code**.\n2. **Fill out the schema properties**. Specify the schema name (the **Code** property) based on the following template: `[DeveloperPrefix][NameOfSomeCellConnectionProvider]SmsSender`. For example, `UsrCellcomSmsSender`.\n3. **Apply the changes**.\n4. **Create a service class**.\n1. Add the `Terrasoft.Configuration` namespace.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (**the Code property**).\n4. Specify that the class implements the `ISmsSender` interface.\n5. Add the `[DefaultBinding(typeof(ISmsSender), Name = nameof(UsrSomeSmsProvider))]` attribute to the class, where `UsrSomeSmsProvider` is the schema name (the **Code** property).\n6. Add the `public string Code => nameof(UsrSomeProviderSmsSender);` property, where `UsrSomeProviderSmsSender` is the value of **Code** property specified in the **SMS providers** lookup.\nUsrSomeProviderSmsSender\nnamespace Terrasoft.Configuration  \n{  \nusing Common.Logging;  \nusing Terrasoft.Common;  \nusing Terrasoft.Common.Threading;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Factories;  \nusing Terrasoft.SmsIntegration;  \n#region Class: UsrSomeProviderSmsSender  \n[DefaultBinding(typeof(ISmsSender), Name = nameof(UsrSomeProviderSmsSender))]  \npublic class UsrSomeProviderSmsSender : ISmsSender  \n{  \n...;  \n#region Properties: Public  \npublic string Code => \"UsrSomeSmsProvider\";  \n#endregion  \n...  \n}  \n#endregion  \n}  \n5. **Implement a class method**.\n1. Add the `public void Send(string phoneNumber, string message);` method that executes 2FA via SMS receives the following input parameters.\nParameter| Parameter description  \n---|---  \nphoneNumber| User phone number specified in the ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) \u2192 **Users and administration** \u2192 **Users** section \u2192 **Business phone** column.  \nmessage| One-time 6-digit verification code generated by a user phone.  \nIf you **use the API provided by the cell connection provider** to send SMS:\n1. Store the API configuration settings in the app system settings. For example, service URL, sender name, sender phone number.\n2. Use the system setting values that store the API configuration settings in the class that implements the `ISmsSender` interface.\n3. Send a request to the service URL provided by the cell connection provider using the `IHttpRequestClient` interface.\n4. Implement handling, logging, and discarding exceptions that occur while sending the SMS (including failed delivery attempts) in subsequent message sends.\n2. Add a localizable string that stores the error message if error occurs during the execution of 2FA via SMS. Instructions: [Add a localizable string](https://academy.creatio.com/documents?ver=8.1&id=15272&anchor=title-2174-3).\n3. Implement asynchronous execution of the `Send()` method, if needed. To do this, use the `AsyncPump()` method.\nUsrSomeProviderSmsSender\nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing global::Common.Logging;  \nusing Terrasoft.Common;  \nusing Terrasoft.Common.Threading;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Factories;  \nusing Terrasoft.Core.Requests;  \nusing Terrasoft.SmsIntegration;  \n#region Class: UsrSomeProviderSmsSender  \n[DefaultBinding(typeof(ISmsSender), Name = nameof(UsrSomeProviderSmsSender))]  \npublic class UsrSomeProviderSmsSender : ISmsSender  \n{  \n#region Fields: Private  \nprivate readonly ILog _logger = LogManager.GetLogger(\"UsrSomeProviderSms\");  \nprivate readonly IHttpRequestClient _httpRequestClient;  \nprivate readonly UserConnection _userConnection;  \n#endregion  \n#region Constructors: Public   \npublic UsrSomeProviderSmsSender(AppConnection appConnection, IHttpRequestClient httpRequestClient) {  \nappConnection.CheckArgumentNull(nameof(appConnection));  \nhttpRequestClient.CheckArgumentNull(nameof(httpRequestClient));  \n_userConnection = appConnection?.SystemUserConnection;  \n_httpRequestClient = httpRequestClient;  \n}  \n#endregion  \n#region Properties: Public  \npublic string Code => \"UsrSomeSmsProvider\";  \n#endregion  \n#region Methods: Public  \n/* Execute 2FA via SMS using user phone number and verification code. */  \npublic void Send(string phoneNumber, string message) {  \n/* Receive some options for SMS sending from the system settings. */  \nvar serviceUrl = Terrasoft.Core.Configuration.SysSettings.GetValue<string>(_userConnection, \"SomeSystemSettingCode\", string.Empty);  \ntry {  \n/* Send the SMS to the phone number. */  \nIHttpResponse response = _httpRequestClient.SendWithJsonBody(new HttpRequestConfig() {  \n/* Implement the business logic. */  \n});  \nif (response.IsSuccessStatusCode) {  \n_logger.Info($\"2FA via SMS log. Sends the following message: {message} to the recipient {phoneNumber}.\");  \nreturn;  \n}  \nthrow new Exception($\"2FA via SMS log. SMS was not sent to the recipient {phoneNumber} due to the error:\"  \n+ $\"{response.ReasonPhrase}\", response.Exception);  \n/* Send SMS asynchronously if needed. */  \nAsyncPump.Run(() => {  \n_logger.Info($\"2FA via SMS log. Sends the following message: {message} to the recipient {phoneNumber}.\");  \n});  \n} catch {  \nstring codeOfLocalizableString = \"CodeOfSomeLocalizableString\";  \n/* Display the error message if error occurs during the execution of 2FA via SMS. */  \nstring errorMessage = new LocalizableString(_userConnection.Workspace.ResourceStorage,  \n\"UsrSomeProviderSmsSender\", $\"LocalizableStrings.{codeOfLocalizableString}.Value\");  \nthrow new InvalidOperationException(errorMessage, null);  \n}  \n}  \n#endregion  \n}  \n#endregion  \n}  \n6. **Publish the schema**.\n**As a result** , Creatio will be able to execute 2FA via SMS using the cell connection provider.\n### 3\\. Select primary cell connection provider\u200b\n1. **Open the System settings section**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) \u2192 **System setup** \u2192 **System settings**.\n2. **Open the SMS provider** (`SmsProvider` code) **system setting**.\n3. **Fill out the system setting properties**.\nProperty| Property value  \n---|---  \nDefault value| Select a cell connection provider. For this example, \"Some SMS provider.\"  \n4. **Save the changes**.\n5. **Open the SMS sender name** (`SmsSenderName` code) **system setting**.\n6. **Fill out the system setting properties**.\nProperty| Property value  \n---|---  \nDefault value| An arbitrary name of the SMS sender.  \n7. **Save the changes**.\n**As a result** , the cell connection provider will be configured.\nTo **use 2FA via SMS as the main 2FA method** , follow the instructions: [Set up 2FA via SMS](https://academy.creatio.com/documents?ver=8.1&id=2538&anchor=title-2538-3) (user documentation).\n## Bind data of a cell connection provider to a package\u200b\nBind data of a cell connection provider to a package if you need to transfer the configured cell connection provider between Creatio instances.\n### 1\\. Bind SMS providers lookup content\u200b\n1. **Create a Data schema type** in a user-made package. To do this, click **Add** \u2192 **Data**.\n2. **Fill out the schema properties**.\nFor this example, use the schema properties as follows.\nProperty| Property value  \n---|---  \nObject| SysSmsProvider  \n3. **Select data to bind**.\n1. Open the **Columns setting** tab.\n2. Select the **Caption** checkbox.\n3. Open the **Bound data** tab.\n4. Click **Add**. This opens the **Select: SMS providers** window.\n5. Select the required checkbox. For example, **Some SMS provider**.\n6. Click **Select**.\n4. **Save the changes**.\n**As a result** , the needed record of the **SMS providers** lookup will be bound to the package.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_lookup_content.png)\n### 2\\. Bind SMS provider system setting\u200b\n1. **Bind code of the system setting**.\n1. Create a **Data** schema type in a user-made package. To do this, click **Add** \u2192 **Data**.\n2. Fill out the schema properties.\nProperty| Property value  \n---|---  \nObject| SysSettings  \n3. Select data to bind.\n1. Open the **Columns setting** tab.\n2. Select the **Caption** checkbox.\n3. Open the **Bound data** tab.\n4. Click **Add**. This opens the **Select: System setting** window.\n5. Select the **SMS provider** checkbox.\n6. Click **Select**.\n4. Save the changes.\nAs a result, a code of the **SMS provider** system setting will be bound to the package.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_code.png)\n2. **Bind value of the system setting**.\n1. Create a **Data** schema type in a user-made package. To do this, click **Add** \u2192 **Data**.\n2. Fill out the schema properties.\nProperty| Property value  \n---|---  \nObject| SysSettingsValue  \n3. Select data to bind.\n1. Open the **Columns setting** tab.\n2. Select the **Caption** checkbox.\n3. Open the **Bound data** tab.\n4. Click **Add**. This opens the **Select: System setting value** window.\n5. Select the **SMS provider** checkbox.\n6. Click **Select**.\n4. Save the changes.\nAs a result, a value of the **SMS provider** (`SmsProvider` code) system setting will be bound to the package.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_value.png)\n### 3\\. Bind SMS sender name system setting\u200b\n1. **Bind code of the system setting**.\n1. Create a **Data** schema type in a user-made package. To do this, click **Add** \u2192 **Data**.\n2. Fill out the schema properties.\nProperty| Property value  \n---|---  \nObject| SysSettings  \n3. Select data to bind.\n1. Open the **Columns setting** tab.\n2. Select the **Caption** checkbox.\n3. Open the **Bound data** tab.\n4. Click **Add**. This opens the **Select: System setting** window.\n5. Select the **SMS sender name** checkbox.\n6. Click **Select**.\n4. Save the changes.\nAs a result, a code of the **SMS sender name** system setting will be bound to the package.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_code_sms_sender.png)\n2. **Bind value of the system setting**.\n1. Create a **Data** schema type in a user-made package. To do this, click **Add** \u2192 **Data**.\n2. Fill out the schema properties.\nProperty| Property value  \n---|---  \nObject| SysSettingsValue  \n3. Select data to bind.\n1. Open the **Columns setting** tab.\n2. Select the **Caption** checkbox.\n3. Open the **Bound data** tab.\n4. Click **Add**. This opens the **Select: System setting value** window.\n5. Select the **SMS sender name** checkbox.\n6. Click **Select**.\n4. Save the changes.\nAs a result, a value of the **SMS sender name** (`SmsSenderName` code) system setting will be bound to the package.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_value_sms_sender.png)\n3. **Bind system settings and system setting values that store the API configuration settings** if needed.\n* * *\n## See also\u200b\n[Set up two-factor authentication](https://academy.creatio.com/documents?ver=8.1&id=2538) (user documentation)\n[Use two-factor authentication](https://academy.creatio.com/documents?ver=8.1&id=2539) (user documentation)",
+  "code_examples": [
+    {
+      "code": "namespace Terrasoft.Configuration{    using Common.Logging;    using Terrasoft.Common;    using Terrasoft.Common.Threading;    using Terrasoft.Core;    using Terrasoft.Core.Factories;    using Terrasoft.SmsIntegration;    #region Class: UsrSomeProviderSmsSender    [DefaultBinding(typeof(ISmsSender), Name = nameof(UsrSomeProviderSmsSender))]    public class UsrSomeProviderSmsSender : ISmsSender    {        ...;        #region Properties: Public        public string Code => \"UsrSomeSmsProvider\";        #endregion        ...    }    #endregion}",
+      "language": "cs",
+      "context": "Create a service class.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration{    using System;    using global::Common.Logging;    using Terrasoft.Common;    using Terrasoft.Common.Threading;    using Terrasoft.Core;    using Terrasoft.Core.Factories;    using Terrasoft.Core.Requests;    using Terrasoft.SmsIntegration;    #region Class: UsrSomeProviderSmsSender    [DefaultBinding(typeof(ISmsSender), Name = nameof(UsrSomeProviderSmsSender))]    public class UsrSomeProviderSmsSender : ISmsSender    {        #region Fields: Private        private readonly ILog _logger = LogManager.GetLogger(\"UsrSomeProviderSms\");        private readonly IHttpRequestClient _httpRequestClient;        private readonly UserConnection _userConnection;        #endregion        #region Constructors: Public         public UsrSomeProviderSmsSender(AppConnection appConnection, IHttpRequestClient httpRequestClient) {            appConnection.CheckArgumentNull(nameof(appConnection));            httpRequestClient.CheckArgumentNull(nameof(httpRequestClient));            _userConnection = appConnection?.SystemUserConnection;            _httpRequestClient = httpRequestClient;        }        #endregion        #region Properties: Public        public string Code => \"UsrSomeSmsProvider\";        #endregion        #region Methods: Public        /* Execute 2FA via SMS using user phone number and verification code. */        public void Send(string phoneNumber, string message) {            /* Receive some options for SMS sending from the system settings. */            var serviceUrl = Terrasoft.Core.Configuration.SysSettings.GetValue<string>(_userConnection, \"SomeSystemSettingCode\", string.Empty);            try {                /* Send the SMS to the phone number. */                IHttpResponse response = _httpRequestClient.SendWithJsonBody(new HttpRequestConfig() {                                        /* Implement the business logic. */                });                if (response.IsSuccessStatusCode) {                    _logger.Info($\"2FA via SMS log. Sends the following message: {message} to the recipient {phoneNumber}.\");                    return;                }                throw new Exception($\"2FA via SMS log. SMS was not sent to the recipient {phoneNumber} due to the error:\"                    + $\"{response.ReasonPhrase}\", response.Exception);                /* Send SMS asynchronously if needed. */                AsyncPump.Run(() => {                    _logger.Info($\"2FA via SMS log. Sends the following message: {message} to the recipient {phoneNumber}.\");                });            } catch {                string codeOfLocalizableString = \"CodeOfSomeLocalizableString\";                /* Display the error message if error occurs during the execution of 2FA via SMS. */                string errorMessage = new LocalizableString(_userConnection.Workspace.ResourceStorage,                    \"UsrSomeProviderSmsSender\", $\"LocalizableStrings.{codeOfLocalizableString}.Value\");                throw new InvalidOperationException(errorMessage, null);            }        }        #endregion    }    #endregion}",
+      "language": "cs",
+      "context": "Implement asynchronous execution of theSend()method, if needed. To do this, use theAsyncPump()method.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Name",
+          "Some SMS provider"
+        ],
+        [
+          "Code",
+          "UsrSomeSmsProvider"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Name</p></center></td><td><center><p>Some SMS provider</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrSomeSmsProvider</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description"
+        ],
+        [
+          "phoneNumber",
+          "User phone number specified in the\u2192Users and administration\u2192Userssection \u2192Business phonecolumn."
+        ],
+        [
+          "message",
+          "One-time 6-digit verification code generated by a user phone."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Parameter description</p></th></tr><tr><td><p>phoneNumber</p></td><td><p>User phone number specified in the <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png\"/> \u2192 <strong>Users and administration</strong> \u2192 <strong>Users</strong> section \u2192 <strong>Business phone</strong> column.</p></td></tr><tr><td><p>message</p></td><td><p>One-time 6-digit verification code generated by a user phone.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Default value",
+          "Select a cell connection provider. For this example, \"Some SMS provider.\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Default value</p></center></td><td><center><p>Select a cell connection provider. For this example, \"Some SMS provider.\"</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Default value",
+          "An arbitrary name of the SMS sender."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Default value</p></center></td><td><center><p>An arbitrary name of the SMS sender.</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Object",
+          "SysSmsProvider"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Object</p></center></td><td><center><p>SysSmsProvider</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Object",
+          "SysSettings"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Object</p></center></td><td><center><p>SysSettings</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Object",
+          "SysSettingsValue"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Object</p></center></td><td><center><p>SysSettingsValue</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Object",
+          "SysSettings"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Object</p></center></td><td><center><p>SysSettings</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Object",
+          "SysSettingsValue"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Object</p></center></td><td><center><p>SysSettingsValue</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThis functionality is available for Creatio 8.1.5 and later.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>This functionality is available for Creatio 8.1.5 and later.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This functionality is available for Creatio 8.1.5 and later.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This functionality is available for Creatio 8.1.5 and later.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Lookups section. To do this, clickin the top right \u2192System setup\u2192Lookups.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "User phone number specified in the\u2192Users and administration\u2192Userssection \u2192Business phonecolumn.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the System settings section. To do this, click\u2192System setup\u2192System settings.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_lookup_content.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the needed record of theSMS providerslookup will be bound to the package.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_e09e6ac758ca.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_code.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, a code of theSMS providersystem setting will be bound to the package.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_bbc96a43c094.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_value.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, a value of theSMS provider(SmsProvidercode) system setting will be bound to the package",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_a5bccb68af2b.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_code_sms_sender.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, a code of theSMS sender namesystem setting will be bound to the package.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_3a002c68fc5d.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/IntegrateTheCellConnectionProvider/8.1/scr_bound_system_setting_value_sms_sender.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, a value of theSMS sender name(SmsSenderNamecode) system setting will be bound to the pa",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/049c1fd2ea2f94fa_io-platform_8.1_integrations-and-api_authentication_cell-connection-provider-2fa_0d5d70de164d.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Integrate the cell connection provider with Creatio for two-factor authentication via SMS",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up a cell connection provider\u200b",
+      "anchor": "title-15164-1"
+    },
+    {
+      "level": 3,
+      "text": "1. Add a cell connection provider to Creatio\u200b",
+      "anchor": "title-15164-2"
+    },
+    {
+      "level": 3,
+      "text": "2. Implement the business logic that executes 2FA via SMS using the cell connection provider\u200b",
+      "anchor": "title-15164-3"
+    },
+    {
+      "level": 3,
+      "text": "3. Select primary cell connection provider\u200b",
+      "anchor": "title-15164-4"
+    },
+    {
+      "level": 2,
+      "text": "Bind data of a cell connection provider to a package\u200b",
+      "anchor": "title-15164-5"
+    },
+    {
+      "level": 3,
+      "text": "1. Bind SMS providers lookup content\u200b",
+      "anchor": "title-15164-6"
+    },
+    {
+      "level": 3,
+      "text": "2. Bind SMS provider system setting\u200b",
+      "anchor": "title-15164-7"
+    },
+    {
+      "level": 3,
+      "text": "3. Bind SMS sender name system setting\u200b",
+      "anchor": "title-15164-8"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [
+      {
+        "name": "phoneNumber",
+        "type": "User phone number specified in the\u2192Users and administration\u2192Userssection \u2192Business phonecolumn.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "message",
+        "type": "One-time 6-digit verification code generated by a user phone.",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/authentication/cell-connection-provider-2fa",
+      "text": "Integrate the cell connection provider (2FA via SMS)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/cell-connection-provider-2fa",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/authentication/cell-connection-provider-2fa",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication-basics",
+      "text": "Authentication basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/authentication/authentication-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/authentication-basics-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/authentication-basics-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/authentication/oauth-2-0-authorization/identity-service-overview",
+      "text": "Authorize external requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/authentication/oauth-2-0-authorization/oauth-token-lifetime",
+      "text": "PreviousOAuth token lifetime",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "NextData services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dataservice",
+      "text": "DataService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/odata",
+      "text": "OData",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/working-with-requests",
+      "text": "Requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/working-with-request-collections",
+      "text": "Request collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:40:49.126955"
+}

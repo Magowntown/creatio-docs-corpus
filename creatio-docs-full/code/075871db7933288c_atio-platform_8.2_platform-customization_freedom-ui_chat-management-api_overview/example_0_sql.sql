@@ -1,0 +1,1 @@
+IF OBJECT_ID('SomeProviderMsgSettings') IS NULL     BEGIN    CREATE TABLE SomeProviderMsgSettings(        Id uniqueidentifier NOT NULL DEFAULT (newid()),        Token nvarchar(250) NOT NULL DEFAULT (''),        UserName nvarchar(250) NOT NULL DEFAULT (''),        CONSTRAINT PK_SomeProviderMsgSettings_Id PRIMARY KEY CLUSTERED (Id)    )END

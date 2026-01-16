@@ -1,0 +1,1 @@
+define("BaseEntityPage", [...], function(...) {    return {        messages: {            ...            "CardModuleResponse": {                "mode": this.Terrasoft.MessageMode.PTP,                "direction": this.Terrasoft.MessageDirectionType.BIDIRECTIONAL            },            ...        },        ...    };});

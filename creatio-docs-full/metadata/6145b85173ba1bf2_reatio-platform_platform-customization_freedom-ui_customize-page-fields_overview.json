@@ -1,0 +1,1201 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/overview#title-15379-4",
+  "title": "Customize fields (Freedom UI)",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization"
+    },
+    {
+      "text": "Field",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: beginner\n## Set up the field display condition\u200b\n**Detailed example** : [Set up the display condition of a page field](https://academy.creatio.com/documents?ver=8.3&id=15359).\nTo set up the field display condition:\n1. **Add a field** to set the display condition if needed. Instructions: [Fields and inputs](https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs) (user documentation).\n2. **Add an attribute**.\n1. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object.\n2. Add an attribute that stores data.\nView an example that adds the `SomeAttribute` attribute to the Freedom UI page schema below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n/* An attribute that stores data. */  \n\"SomeAttribute\": {}  \n}  \n},  \n...  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Bind an attribute to the field**.\n1. Go to the `viewConfigDiff` schema section \u2192 corresponding page element.\n2. Bind the model attribute to the `visible` property. The value of this attribute controls whether the page displays or hides the field. Describe the business logic that changes the attribute value in the `handlers` schema section. The `visible` property is responsible for the visibility of the field.\nView an example that binds the `visible` property to the `$SomeAttribute` attribute below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n{  \n...,  \n\"values\": {  \n...,  \n/* The property that flags the field as visible. Bound to the \"SomeAttribute\" attribute. */  \n\"visible\": \"$SomeAttribute\"  \n},  \n...  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n4. **Implement the base request handler**.\n1. Go to the `handlers` schema section.\n2. Add a custom implementation of the `crt.HandleViewModelAttributeChangeRequest` base request handler.\nRun the handler when the value of any attribute changes, including changes made after loading the attribute values from the data source. Depending on the attribute value (`true` or `false`), the handler executes different business logic.\nView an example of a `crt.HandleViewModelAttributeChangeRequest` request handler, whose logic depends on the `SomeAttribute` attribute, below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.HandleViewModelAttributeChangeRequest\",  \n/* Custom implementation of a base request handler. */  \nhandler: async (request, next) => {  \n/* Check the attribute value. */  \nif (request.attributeName === 'SomeAttribute') {  \n/* Implement the business logic. */  \n...,  \n/* If the condition is met, set the \"SomeAttribute\" attribute to \"true.\" */  \nrequest.$context.SomeAttribute = someCondition;  \n}  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \n## Set up a condition that locks the field\u200b\nCreatio lets you set up a condition that locks the field **in the back-end**. Instructions: [Access management](https://academy.creatio.com/docs/8.x/setup-and-administration/category/access-management) (user documentation).\n**Detailed example** : [Set up the condition that locks the field on a page](https://academy.creatio.com/documents?ver=8.3&id=15358).\nTo set up a condition that locks the field **in the front-end** :\n1. **Add a field** to set the display condition if needed. Instructions: [Fields and inputs](https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs) (user documentation).\n2. **Add an attribute**. Instructions: [Set up the field display condition](https://academy.creatio.com/documents?ver=8.3&id=15379&anchor=viewModelConfigDiff) (step 2).\n3. **Bind an attribute to the label**. Instructions: [Set up the field display condition](https://academy.creatio.com/documents?ver=8.3&id=15379&anchor=viewConfigDiff) (similarly to step 3). Instead of the `visible` property, use the `readonly` property that locks the field from editing.\n4. **Implement the base request handler**. Instructions: [Set up the field display condition](https://academy.creatio.com/documents?ver=8.3&id=15379&anchor=handlers) (step 3).\n## Set up a field population condition\u200b\n**Detailed example** : [Set up the condition that populates a page field](https://academy.creatio.com/documents?ver=8.3&id=15357).\nTo set up a field population condition:\n1. **Add a field** to set the population condition if needed. Instructions: [Fields and inputs](https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs) (user documentation).\n2. **Implement the base request handler**. Instructions: [Set up the field display condition](https://academy.creatio.com/documents?ver=8.3&id=15379&anchor=handlers) (step 3).\n## Set up a field requirement condition\u200b\n**Detailed example** : [Set up the requirement condition of a page field](https://academy.creatio.com/documents?ver=8.3&id=15356).\nTo set up the field requirement condition:\n1. **Add a field** to set the requirement condition if needed. Instructions: [Fields and inputs](https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs) (user documentation).\n2. **Bind a validator to the attribute**.\n1. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object \u2192 corresponding page element.\n2. Bind the `crt.Required` type validator that checks the attribute value to the `required` property.\nView an example that binds the `crt.Required` type validator to the `SomeAttribute` attribute below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n...,  \n\"values\": {  \n...,  \n\"SomeAttribute\": {  \n...,  \n/* The property that contains the list of attribute validators. */  \n\"validators\": {  \n/* Flag the field as required. */  \n\"required\": {  \n\"type\": \"crt.Required\"  \n}  \n}  \n},  \n...,  \n}  \n},  \n...,  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Implement the base request handler**. Instructions: [Set up the field display condition](https://academy.creatio.com/documents?ver=8.3&id=15379&anchor=handlers) (step 3).\n## Implement field value validation\u200b\n**Detailed example** : [Implement the validation of a field value on a page](https://academy.creatio.com/documents?ver=8.3&id=15361).\nCreatio applies validators to the attributes rather than visual elements, but validators can get the validity status data by using `CrtControl`. Learn more: [validators schema section](https://academy.creatio.com/documents?ver=8.3&id=15350).\nTo implement field value validation:\n1. **Add a field** whose value to validate if needed. Instructions: [Fields and inputs](https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs) (user documentation).\n2. **Implement a validator type**.\n1. Go to the `validators` schema section.\n2. Implement a custom validator type. It must start with a vendor prefix. Format the validator type in PascalCase.\nThe `validators` schema section lets you implement:\n* validator\n* validator function (`function (config)`)\n* validator parameters (`\"params\"`)\n* whether the validator is asynchronous (`async` flag)\nView an example that implements a custom `usr.SomeValidator` validator type below.\nvalidators schema section\nvalidators: /**SCHEMA_VALIDATORS*/{  \n/* Implement a custom validator type. */  \n\"usr.SomeValidator\": {  \n/* Business logic of the validator. */  \n\"validator\": function (config) {  \nreturn function (control) {  \nreturn control.value !== config.invalidName ? null: {  \n\"usr.SomeValidator\": { message: \"Some message.\" }  \n};  \n};  \n},  \n/* Validator parameters. */  \n\"params\": [  \n{  \n\"name\": \"parameter1\"  \n},  \n{  \n\"name\": \"message\"  \n}  \n],  \n\"async\": false  \n}  \n}/**SCHEMA_VALIDATORS*/  \n3. **Bind a validator to the attribute**. Creatio lets you bind the validator to a dedicated attribute or multiple attributes by setting different parameters for each of the attributes.\n1. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object \u2192 corresponding page element.\n2. Bind the custom validator of the dedicated type.\n3. Set the `parameter1` property to the field value that triggers the custom validator.\n4. Set the `message` property to the tooltip that Creatio displays when field contains the value specified in the `parameter1` property. The priority of the `message` parameter of the attribute configuration object is higher than the priority of the corresponding validator parameter. I. e., for attributes that have a `message` parameter set, Creatio generates the error message from the parameter, not from the validator body.\nView an example that binds the `usr.SomeValidator` validator to the `SomeAttribute1` and `SomeAttribute2` attributes below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"SomeField\": {  \n...,  \n/* The property that contains the list of attribute validators. */  \n\"validators\": {  \n/* Bind a custom validator to an attribute. */  \n\"SomeAttribute1\": {  \n/* Validator type. */  \n\"type\": \"usr.SomeValidator\",  \n\"params\": {  \n/* The field value that triggers the custom validator. */  \n\"parameter1\": \"Some parameter value 1\",  \n/* The tooltip that Creatio displays when the field contains the value specified in the \"parameter1\" property. */  \n\"message\": \"#ResourceString(SomeText)#\"  \n}  \n},  \n/* Bind a custom validator to an attribute. */  \n\"SomeAttribute2\": {  \n\"type\": \"usr.SomeValidator\",  \n\"params\": {  \n\"parameter1\": \"Some error message\"  \n}  \n}  \n}  \n},  \n...,  \n}  \n},  \n...,  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nIf an error occurs, the `SomeText` localized string specified in the `SomeAttribute1` attribute is displayed for the `SomeAttribute1` attribute, and the `Some error message` value specified in the validator body is displayed for the `SomeAttribute2` attribute.\nTo **disable a validator** , set the `disabled` property of the corresponding validator to `true` (`disabled: true`).\n## Implement field value conversion\u200b\n**Detailed example** : [Implement the conversion of a field value on a page](https://academy.creatio.com/documents?ver=8.3&id=15360).\nLearn more: [converters schema section](https://academy.creatio.com/documents?ver=8.3&id=15351).\nConverters have the following **special features** :\n* applicable only in the `RunTime` mode\n* not applicable to constants\n* only work in one direction, cannot be used with `CrtControl`\nTo implement field value conversion:\n1. **Add a field** whose value to convert if needed. Instructions: [Fields and inputs](https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs) (user documentation).\n2. **Implement a converter**.\n1. Go to the `converters` schema section.\n2. Implement a custom converter. It must start with a vendor prefix. Format the converter type in PascalCase.\nView an example that implements a custom `usr.SomeConverter` converter below.\nconverters schema section\nconverters: /**SCHEMA_CONVERTERS*/{  \n/* Implement a custom converter. */  \n\"usr.SomeConverter\": function(value) {  \n...;  \n}  \n}/**SCHEMA_CONVERTERS*/,  \n3. **Bind a converter to the attribute**.\n1. Go to the `viewConfigDiff` schema section \u2192 corresponding page element.\n2. Bind the converter to the attribute. Use the pipe character to set the converter.\nView an example that binds the `usr.SomeConverter` converter to the `$SomeAttribute` attribute below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"values\": {  \n/* Bind the \"usr.SomeConverter\" converter to the \"$SomeAttribute\" attribute. */  \n\"caption\": \"$SomeAttribute | usr.SomeConverter\",  \n}  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nBesides simple converters, Creatio provides chains of converters. A **converter chain** includes multiple converters that are applied to an attribute in a single property.\nView an example that binds a chain of converters (`crt.ToBoolean` and `crt.InvertBooleanValue`) to the `$SomeAttribute` attribute below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n/* Bind the \"crt.ToBoolean\" and \"crt.InvertBooleanValue\" converters to the \"$SomeAttribute\" attribute. */  \n\"visible\": \"$SomeAttribute | crt.ToBoolean | crt.InvertBooleanValue\",  \n},  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nCreatio lets you set converter parameters. You can use the same converter multiple times by setting different parameter values. To **set the converter parameters** , specify the parameter value with the `:` prefix after the converter type. Place the colon character in front of each converter parameter value.\nAvailable **values \u200b\u200bof converter parameters** :\n* String. Enclose a string value in single quotes.\n* Number.\n* `true` or `false`.\n* A binding to another attribute.\nView an example that binds the `exmpl.Concat` converter that has a `SomeParameter` string parameter to the `$SomeAttribute` attribute below. Note that `exmpl.Concat` is an example converter and is not available for solving actual business problems.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n/* Bind the \"exmpl.Concat\" converter with the \"SomeParameter\" parameter to the \"$SomeAttribute\" attribute. */  \n\"visible\": \"$SomeAttribute | exmpl.Concat:' ':$SomeParameter\",  \n},  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nConverters are not available for the following **binding types** :\n* binding to resource attribute\n* function binding\n* binding an event to a model method\n## Change the out-of-the-box sorting of values in a field and column of the \"lookup\" type\u200b\nOut of the box, Creatio sorts values of the \"Dropdown\" type field and `lookup` type column in the **Expanded list** and **List** components in ascending order but you can change out-of-the-box sorting. General procedure to change out-of-the-box sorting of values differs for \"Dropdown\" type field and `lookup` type column in the **Expanded list** and **List** components.\n### Change the sorting of the \"Dropdown\" type field values\u200b\n1. **Add a field of the \"Dropdown\" type** to change the sorting of values if needed. Instructions: [Set up a Dropdown field](https://academy.creatio.com/documents?ver=8.3&id=2424) (user documentation).\nView the example that adds a \"Dropdown\" type field whose `name` property is `ComboBox_6zreoq8` below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* \"Dropdown\" type field. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ComboBox_6zreoq8\",  \n\"values\": {  \n...,  \n\"control\": \"$PDS_UsrColumn1_a66kg7i\",  \n...  \n},  \n...  \n},  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n2. **Add an attribute** that stores list of \"Dropdown\" type field values.\n1. Go to the `viewConfigDiff` schema section \u2192 **Dropdown** page element \u2192 `control` property.\n2. Copy the attribute without the \"$\" character. For example, `PDS_UsrColumn1_a66kg7i`.\n3. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object.\n4. Paste the attribute.\n5. Add the `_List` suffix to the attribute.\nView the example that adds the `PDS_UsrColumn1_a66kg7i_List` attribute to the Freedom UI page schema below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"PDS_UsrColumn1_a66kg7i\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrColumn1\"  \n}  \n},  \n\"PDS_UsrColumn1_a66kg7i_List\": {}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Change the sorting** using the `sortingConfig` nested properties.\nProperty| Property description  \n---|---  \ncolumnName| `lookup` type column whose values to sort in the \"Dropdown\" type field.  \ndirection| Sorting order. Available values: `asc` (ascending), `desc` (descending).  \nView the example that sorts the **Name** column of the `lookup` type in descending order below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"PDS_UsrColumn1_a66kg7i_List\": {  \n\"modelConfig\": {  \n/* Set up collection sorting.*/  \n\"sortingConfig\": {  \n\"default\": [  \n{  \n/* \"Lookup\" type column whose values to sort. */  \n\"columnName\": \"Name\",  \n/* Sorting order. */  \n\"direction\": \"desc\"  \n}  \n]  \n}  \n}  \n}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n### Change the sorting of the values in the \"lookup\" type column added to the \"Expanded list\" or \"List\" component\u200b\n1. **Add an Expanded list or List component that includes the** `lookup` **type column** to change the sorting of values if needed. Instructions: [Set up List components](https://academy.creatio.com/documents?ver=8.3&id=2457) (user documentation).\nView the example that adds an **Expanded list** component that includes the `lookup` type column whose `code` property is `PDS_UsrColumn1` below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* \"Expanded list\" component. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ExpansionPanel_bgfnotq\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GeneralInfoTab\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridContainer_97wx07j\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"ExpansionPanel_bgfnotq\",  \n\"propertyName\": \"tools\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"FlexContainer_sgydh2s\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GridContainer_97wx07j\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailAddBtn_ccm1d3b\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailRefreshBtn_kncmlkw\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailSettingsBtn_uohba8p\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 2  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailExportDataBtn_jrovafm\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GridDetailSettingsBtn_uohba8p\",  \n\"propertyName\": \"menuItems\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailImportDataBtn_q7yyoe6\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GridDetailSettingsBtn_uohba8p\",  \n\"propertyName\": \"menuItems\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailSearchFilter_q1bmh3d\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 3  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridContainer_6gpjgwm\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"ExpansionPanel_bgfnotq\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetail_jic2y17\",  \n\"values\": {  \n\"type\": \"crt.DataGrid\",  \n\"layoutConfig\": {  \n\"colSpan\": 2,  \n\"column\": 1,  \n\"row\": 1,  \n\"rowSpan\": 6  \n},  \n\"features\": {  \n\"rows\": {  \n\"selection\": {  \n\"enable\": true,  \n\"multiple\": true  \n}  \n}  \n},  \n\"items\": \"$GridDetail_jic2y17\",  \n\"visible\": true,  \n\"fitContent\": true,  \n\"primaryColumnName\": \"GridDetail_jic2y17DS_Id\",  \n\"columns\": [  \n{  \n\"id\": \"f252f581-0ccf-44ac-b7c9-c00df2ad9919\",  \n\"code\": \"PDS_UsrName\",  \n\"caption\": \"#ResourceString(PDS_UsrName)#\",  \n\"dataValueType\": 1  \n},  \n{  \n\"id\": \"558f36b0-07c2-c80d-3e3d-4dec75a18752\",  \n\"code\": \"PDS_UsrColumn3\",  \n\"caption\": \"#ResourceString(PDS_UsrColumn3)#\",  \n\"dataValueType\": 10  \n}  \n],  \n\"placeholder\": false  \n},  \n\"parentName\": \"GridContainer_6gpjgwm\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n}  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n2. **Add an attribute** that stores list of lookup values.\n1. Go to the `viewConfigDiff` schema section \u2192 **GridDetail** page element \u2192 `values` configuration object \u2192 `columns` array \u2192 corresponding `lookup` type column \u2192 `code` property.\n2. Copy the attribute. For example, `PDS_UsrColumn1`.\n3. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object \u2192 `GridDetail` configuration object \u2192 `viewModelConfig` configuration object \u2192 `attributes` configuration object.\n4. Paste the attribute.\n5. Add the `_List` suffix to the attribute.\nView the example that adds the `PDS_UsrColumn1_List` attribute to the Freedom UI page schema below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"GridDetail_jic2y17\": {  \n\"viewModelConfig\": {  \n\"attributes\": {  \n...,  \n\"PDS_UsrColumn1_List\": {}  \n}  \n}  \n}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Change the sorting** using the `sortingConfig` nested properties.\nProperty| Property description  \n---|---  \ncolumnName| `lookup` type column whose values to sort in the **Expanded list** or **List** component.  \ndirection| Sorting order. Available values: `asc` (ascending), `desc` (descending).  \nView the example that sorts the **Name** column of the `lookup` type in descending order below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"GridDetail_jic2y17\": {  \n\"viewModelConfigDiff\": {  \n\"attributes\": {  \n...,  \n\"PDS_UsrColumn1_List\": {  \n\"modelConfig\": {  \n/* Set up collection sorting.*/  \n\"sortingConfig\": {  \n\"default\": [  \n{  \n/* \"Lookup\" type column whose values to sort. */  \n\"columnName\": \"Name\",  \n/* Sorting order. */  \n\"direction\": \"desc\"  \n}  \n]  \n}  \n}  \n}  \n}  \n}  \n}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n## Filter of values in a field and column of the \"lookup\" type\u200b\nGeneral procedure to change out-of-the-box sorting of values differs for \"Dropdown\" type field and `lookup` type column in the **Expanded list** and **List** components.\n### Filter of the \"Dropdown\" type field values\u200b\n1. **Add a field of the \"Dropdown\" type** to filter values if needed. Instructions: [Set up a Dropdown field](https://academy.creatio.com/documents?ver=8.3&id=2424) (user documentation).\nView the example that adds a \"Dropdown\" type field whose `name` property is `ComboBox_x7x538u` below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* \"Dropdown\" type field. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ComboBox_x7x538u\",  \n\"values\": {  \n...,  \n\"control\": \"$PDS_UsrColumn1_b7xlx2a\",  \n...  \n},  \n...  \n},  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n2. **Add an attribute** that stores list of \"Dropdown\" type field values.\n1. Go to the `viewConfigDiff` schema section \u2192 **Dropdown** page element \u2192 `control` property.\n2. Copy the attribute without the \"$\" character. For example, `PDS_UsrColumn1_b7xlx2a`.\n3. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object.\n4. Paste the attribute.\n5. Add the `_List` suffix to the attribute.\nView the example that adds the `PDS_UsrColumn1_b7xlx2a_List` attribute to the Freedom UI page schema below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"PDS_UsrColumn1_b7xlx2a\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrColumn1\"  \n}  \n},  \n\"PDS_UsrColumn1_b7xlx2a_List\": {}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Set up filtering**.\n1. Specify an attribute that configures the filter using the `filterAttributes` nested properties.\nProperty| Property description  \n---|---  \nname| Attribute that configures the filter.  \nloadOnChange| `true`. This enables reloading the collection on filter change.  \n2. Set filter parameters.\nView the example that filters the **City** column values based on the **Country** column value below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"PDS_UsrColumn1_b7xlx2a_List\": {  \n\"modelConfig\": {  \n\"filterAttributes\": [  \n{  \n/* Enable reloading the collection on filter change. */  \n\"loadOnChange\": true,  \n/* An attribute that configures the filter. */  \n\"name\": \"City_PredefinedFilter\"  \n}  \n]  \n}\t  \n},  \n/* Filter parameters. */  \n\"City_PredefinedFilter\": {  \n/* Main container that includes filter parameters. */  \n\"value\": {  \n/* List of filter conditions. */  \n\"items\": {  \n/* Identifier of specific filter condition. */  \n\"0b410605-82dd-4881-a784-6d8164635568\": {  \n/* \"Expression filter\" filter type. */  \n\"filterType\": 4,  \n/* \"Equals\" comparison type. */  \n\"comparisonType\": 3,  \n/* Expression of the left side of the filter condition. */  \n\"leftExpression\": {  \n/* \"Column\" expression type. */  \n\"expressionType\": 0,  \n/* The \"Country\" column to filter. */  \n\"columnPath\": \"Country\"  \n},  \n/* Mark the filter as not aggregative. */  \n\"isAggregative\": false,  \n/* \"Lookup\" type of data to filter. */  \n\"dataValueType\": 10,  \n/* Object schema name that implements column to filter. */  \n\"referenceSchemaName\": \"Country\",  \n/* Expression of the right side of the filter condition. */  \n\"rightExpressions\": [  \n{  \n/* \"Parameter\" expression type. */  \n\"expressionType\": 2,  \n/* Parameter of the right side of the filter. */  \n\"parameter\": {  \n/* \"Lookup\" type of data to filter. */  \n\"dataValueType\": 10,  \n/* \"Country\" column value that filters the \"City\" column values. */  \n\"value\": {  \n/* Lookup value. */  \n\"Name\": \"United States\",  \n/* Identifier of lookup value. */  \n\"Id\": \"e0be1264-f36b-1410-fa98-00155d043204\",  \n/* Identifier of lookup value. */  \n\"value\": \"e0be1264-f36b-1410-fa98-00155d043204\",  \n/* Lookup value to display. */  \n\"displayValue\": \"United States\"  \n}  \n}  \n}  \n]  \n}  \n},  \n/* The logical operation type that combines both the filters. */  \n\"logicalOperation\": 0,  \n/* \"Group filter\" filter type. */  \n\"filterType\": 6  \n}  \n}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n### Filter the values in the \"lookup\" type column added to the \"Expanded list\" or \"List\" component\u200b\n1. **Add an Expanded list or List component that includes the** `lookup` **type column** if needed. Instructions: [Set up List components](https://academy.creatio.com/documents?ver=8.3&id=2457) (user documentation).\nView the example that adds an **Expanded list** component that includes the `lookup` type column whose `name` property is `PDS_UsrColumn1` below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* \"Expanded list\" component. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ExpansionPanel_bgfnotq\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GeneralInfoTab\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridContainer_97wx07j\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"ExpansionPanel_bgfnotq\",  \n\"propertyName\": \"tools\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"FlexContainer_sgydh2s\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GridContainer_97wx07j\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailAddBtn_ccm1d3b\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailRefreshBtn_kncmlkw\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailSettingsBtn_uohba8p\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 2  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailExportDataBtn_jrovafm\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GridDetailSettingsBtn_uohba8p\",  \n\"propertyName\": \"menuItems\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailImportDataBtn_q7yyoe6\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"GridDetailSettingsBtn_uohba8p\",  \n\"propertyName\": \"menuItems\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetailSearchFilter_q1bmh3d\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"FlexContainer_sgydh2s\",  \n\"propertyName\": \"items\",  \n\"index\": 3  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridContainer_6gpjgwm\",  \n\"values\": {  \n...  \n},  \n\"parentName\": \"ExpansionPanel_bgfnotq\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridDetail_jic2y17\",  \n\"values\": {  \n\"type\": \"crt.DataGrid\",  \n\"layoutConfig\": {  \n\"colSpan\": 2,  \n\"column\": 1,  \n\"row\": 1,  \n\"rowSpan\": 6  \n},  \n\"features\": {  \n\"rows\": {  \n\"selection\": {  \n\"enable\": true,  \n\"multiple\": true  \n}  \n}  \n},  \n\"items\": \"$GridDetail_jic2y17\",  \n\"visible\": true,  \n\"fitContent\": true,  \n\"primaryColumnName\": \"GridDetail_jic2y17DS_Id\",  \n\"columns\": [  \n{  \n\"id\": \"f252f581-0ccf-44ac-b7c9-c00df2ad9919\",  \n\"code\": \"PDS_UsrName\",  \n\"caption\": \"#ResourceString(PDS_UsrName)#\",  \n\"dataValueType\": 1  \n},  \n{  \n\"id\": \"558f36b0-07c2-c80d-3e3d-4dec75a18752\",  \n\"code\": \"PDS_UsrColumn3\",  \n\"caption\": \"#ResourceString(PDS_UsrColumn3)#\",  \n\"dataValueType\": 10  \n}  \n],  \n\"placeholder\": false  \n},  \n\"parentName\": \"GridContainer_6gpjgwm\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n}  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n2. **Add an attribute** that stores list of lookup values.\n1. Go to the `viewConfigDiff` schema section \u2192 **GridDetail** page element \u2192 `values` configuration object \u2192 `columns` array \u2192 corresponding `lookup` type column \u2192 `code` property.\n2. Copy the attribute. For example, `PDS_UsrColumn1`.\n3. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object \u2192 `GridDetail` configuration object \u2192 `viewModelConfig` configuration object \u2192 `attributes` configuration object.\n4. Paste the attribute.\n5. Add the `_List` suffix to the attribute.\nView the example that adds the `PDS_UsrColumn1_List` attribute to the Freedom UI page schema below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"GridDetail_jic2y17\": {  \n\"viewModelConfigDiff\": {  \n\"attributes\": {  \n...,  \n\"PDS_UsrColumn1_List\": {}  \n}  \n}  \n}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n3. **Set up filtering**.\n1. Specify an attribute that configures the filter using the `filterAttributes` nested properties.\nProperty| Property description  \n---|---  \nname| Attribute that configures the filter.  \nloadOnChange| `true`. This enables reloading the collection on filter change.  \n2. Set filter parameters.\nView the example that filters the **City** column values based on the **Country** column value below.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n\"GridDetail_jic2y17\": {  \n\"viewModelConfigDiff\": {  \n\"attributes\": {  \n...,  \n\"PDS_UsrColumn1_List\": {  \n\"modelConfig\": {  \n\"filterAttributes\": [  \n{  \n/* Enable reloading the collection on filter change. */  \n\"loadOnChange\": true,  \n/* An attribute that configures the filter. */  \n\"name\": \"City_PredefinedFilter\"  \n}  \n]  \n}  \n},  \n/* Filter parameters. */  \n\"City_PredefinedFilter\": {  \n/* Main container that includes filter parameters. */  \n\"value\": {  \n/* List of filter conditions. */  \n\"items\": {  \n/* Identifier of specific filter condition. */  \n\"5ec9ffbb-5c00-4cc1-abb4-958b16d45448\": {  \n/* \"Expression filter\" filter type. */  \n\"filterType\": 4,  \n/* \"Equals\" comparison type. */  \n\"comparisonType\": 3,  \n/* Expression of the left side of the filter condition. */  \n\"leftExpression\": {  \n/* \"Column\" expression type. */  \n\"expressionType\": 0,  \n/* The \"Country\" column to filter. */  \n\"columnPath\": \"Country\"  \n},  \n/* Mark the filter as not aggregative. */  \n\"isAggregative\": false,  \n/* \"Lookup\" type of data to filter. */  \n\"dataValueType\": 10,  \n/* Object schema name that implements column to filter. */  \n\"referenceSchemaName\": \"Country\",  \n/* Expression of the right side of the filter condition. */  \n\"rightExpressions\": [  \n{  \n/* \"Parameter\" expression type. */  \n\"expressionType\": 2,  \n/* Parameter of the right side of the filter. */  \n\"parameter\": {  \n/* \"Lookup\" type of data to filter. */  \n\"dataValueType\": 10,  \n/* \"Country\" column value that filters the \"City\" column values. */  \n\"value\": {  \n/* Lookup value. */  \n\"Name\": \"United States\",  \n/* Identifier of lookup value. */  \n\"Id\": \"e0be1264-f36b-1410-fa98-00155d043204\",  \n/* Identifier of lookup value. */  \n\"value\": \"e0be1264-f36b-1410-fa98-00155d043204\",  \n/* Lookup value to display. */  \n\"displayValue\": \"United States\"  \n}  \n}  \n}  \n]  \n}  \n},  \n/* The logical operation type that combines both the filters. */  \n\"logicalOperation\": 0,  \n/* \"Group filter\" filter type. */  \n\"filterType\": 6  \n}  \n}  \n}  \n}  \n}  \n}  \n...  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n## Add additional formatting options to the toolbar of the \"Rich text\" type field\u200b\nOut of the box, when you use the \"Rich text\" type field, Creatio displays toolbar that has pre-installed text formatting options. You can extend out-of-the-box toolbar by adding the following formatting options:\n* Table of contents\n* Block quote\n* Code snippet\n* Video\nTo add additional formatting options to the toolbar of the \"Rich text\" type field:\n1. **Add a field of the \"Rich text\" type** whose toolbar to extend if needed. Instructions: [Set up a Rich text field](https://academy.creatio.com/documents?ver=8.3&id=2426) (user documentation).\nView the example that adds a \"Rich text\" type field below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* \"Rich text\" type field. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"RichTextEditor\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 2,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.RichTextEditor\",  \n\"label\": \"$Resources.Strings.PDS_UsrRichText_pl3y87t\",  \n\"labelPosition\": \"auto\",  \n\"control\": \"$PDS_UsrRichText_pl3y87t\",  \n\"filesStorage\": {  \n\"masterRecordColumnValue\": \"$Id\",  \n\"entitySchemaName\": \"SysFile\",  \n\"recordColumnName\": \"RecordId\"  \n}  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n}  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n2. **Add additional formatting options** to the toolbar.\n1. Go to the `viewConfigDiff` schema section \u2192 `RichTextEditor` page element \u2192 `values` property.\n2. Add the `extraPlugins` array.\n3. Add formatting option based on your business goal. Creatio lets you use one or multiple additional formatting options.\nProperty| Additional formatting option| Purpose of additional formatting option  \n---|---|---  \ncrttableofcontents| Table of contents| Navigate long articles effortlessly using an auto-generated outline.  \nblockquote| Block quote| Highlight important references and external sources.  \ncodesnippet| Code snippet| Display code examples using proper formatting for better readability.  \ncreatiovideo| Video| Add videos to and play them directly from the page. Out of the box, enabled for knowledge base articles.  \nView the example that adds additional formatting options to the toolbar of the \"Rich text\" type field below.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* \"Rich text\" type field. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"RichTextEditor\",  \n\"values\": {  \n...,  \n/* Additional formatting options. */  \n\"extraPlugins\": [  \n\"crttableofcontents\",  \n\"blockquote\",  \n\"codesnippet\",  \n\"creatiovideo\"  \n]  \n},  \n...  \n}  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n**As a result** , additional formatting options will be added to the toolbar of the \"Rich text\" type field and you will be able to use additional formatting options.\nAdd table of contents to the \"Rich text\" type field\n1. **Go to the \"Rich text\" type field**.\n2. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_crttableofcontents.png).\n**As a result** , the \"Rich text\" type field will include the table of contents based on the headings on the page. The content is updated when you finish editing the field.\nAdd block quote to the \"Rich text\" type field\n1. **Go to the \"Rich text\" type field**.\n2. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote.png). This enables quotations and changes the icon to ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote_enabled.png).\n**As a result** , the \"Rich text\" type field will include the block quote. All text you add is a part of quote until you disable the formatting option by clicking the ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote_enabled.png) icon.\nAdd code snippet to the \"Rich text\" type field\n1. **Go to the \"Rich text\" type field**.\n2. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_codesnippet.png). This opens the **Code snippet** window.\n3. **Fill out the properties** of the code snippet.\nProperty| Property description  \n---|---  \nLanguage| Select language of the code snippet.Available valuesBash, C++, C#, CSS, HTML, HTTP, Java, JavaScript, JSON, PHP, PostgreSQL, Python, Ruby, SCSS, SQL, TypeScript, XML  \nCode snippet area| Enter the source code.  \n4. **Click OK**.\n**As a result** , the \"Rich text\" type field will include the code snippet.\nAdd video to the \"Rich text\" type field\n1. **Go to the \"Rich text\" type field**.\n2. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_creatiovideo.png). This opens the **Insert video** window.\n3. **Add video** using one of the following ways listed in the table below.\nWay| Description  \n---|---  \nVideo from external source| Use a direct link to the video uploaded to the external source or embed code provided by external source. This way requires external domains to be added as trusted sources in the **Content Security Policy** section. YouTube and Vimeo domains are added out of the box.Add a video from external source using direct link\n1. Open the **Paste URL** tab.\n2. Copy the link to the video from external source.\n3. Paste the link.\nAdd a video from external source using embed code\n1. Open the **Embed code** tab.\n2. Copy embed code provided by external source.\n3. Paste the code.  \nVideo from your device| \n1. Open the **Paste URL** tab.\n2. Drag video file or click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/btn_UploadFileButton.png) to upload the video from your device.  \n4. **Click Insert video**.\n**As a result** , the \"Rich text\" type field will include the video.\n## Update form page fields automatically\u200b\nCreatio updates fields on an open form page automatically without the need to refresh the page.\nView the field types that support the functionality in the table below.\nField type| Setup instructions| Usage example  \n---|---|---  \nFields of directly linked records| The functionality is enabled by default| You open the contact page that has the **Account** and **No. of employees** fields. If you fill out the **Account** field, Creatio populates the **No. of employees** field automatically.  \nRecord fields| [Update record fields automatically](https://academy.creatio.com/documents?ver=8.3&id=15107&anchor=title-2314-1)| You have **Assign to me** button on a request page. The button runs a business process that sets the current user as the request owner. If you click the **Assign to me** button, Creatio populates the **Owner** field on the page using your contact, and the result is visible immediately.  \n* * *\n## See also\u200b\n[Fields and inputs](https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs) (user documentation)\n[Freedom UI page customization basics](https://academy.creatio.com/documents?ver=8.3&id=15370)\n[\"Object\" type schema](https://academy.creatio.com/documents?ver=8.3&id=15107)\n[Best practices for optimizing data fetching in Freedom UI page logic](https://academy.creatio.com/documents?ver=8.3&id=15387)",
+  "code_examples": [
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            /* An attribute that stores data. */            \"SomeAttribute\": {}        }    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that adds theSomeAttributeattribute to the Freedom UI page schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    {        ...,        \"values\": {            ...,            /* The property that flags the field as visible. Bound to the \"SomeAttribute\" attribute. */            \"visible\": \"$SomeAttribute\"        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that binds thevisibleproperty to the$SomeAttributeattribute below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"crt.HandleViewModelAttributeChangeRequest\",        /* Custom implementation of a base request handler. */        handler: async (request, next) => {            /* Check the attribute value. */            if (request.attributeName === 'SomeAttribute') {                /* Implement the business logic. */                ...,                /* If the condition is met, set the \"SomeAttribute\" attribute to \"true.\" */                request.$context.SomeAttribute = someCondition;            }            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "View an example of acrt.HandleViewModelAttributeChangeRequestrequest handler, whose logic depends on theSomeAttributeattribute, below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        ...,        \"values\": {            ...,            \"SomeAttribute\": {                ...,                /* The property that contains the list of attribute validators. */                \"validators\": {                    /* Flag the field as required. */                    \"required\": {                        \"type\": \"crt.Required\"                    }                }            },            ...,        }    },    ...,]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that binds thecrt.Requiredtype validator to theSomeAttributeattribute below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "validators: /**SCHEMA_VALIDATORS*/{    /* Implement a custom validator type. */    \"usr.SomeValidator\": {        /* Business logic of the validator. */        \"validator\": function (config) {            return function (control) {                return control.value !== config.invalidName ? null: {                    \"usr.SomeValidator\": { message: \"Some message.\" }                };            };        },        /* Validator parameters. */        \"params\": [            {                \"name\": \"parameter1\"            },            {                \"name\": \"message\"            }        ],        \"async\": false    }}/**SCHEMA_VALIDATORS*/",
+      "language": "js",
+      "context": "View an example that implements a customusr.SomeValidatorvalidator type below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"SomeField\": {                ...,                /* The property that contains the list of attribute validators. */                \"validators\": {                    /* Bind a custom validator to an attribute. */                    \"SomeAttribute1\": {                        /* Validator type. */                        \"type\": \"usr.SomeValidator\",                        \"params\": {                            /* The field value that triggers the custom validator. */                            \"parameter1\": \"Some parameter value 1\",                            /* The tooltip that Creatio displays when the field contains the value specified in the \"parameter1\" property. */                            \"message\": \"#ResourceString(SomeText)#\"                        }                    },                    /* Bind a custom validator to an attribute. */                    \"SomeAttribute2\": {                        \"type\": \"usr.SomeValidator\",                        \"params\": {                            \"parameter1\": \"Some error message\"                        }                    }                }            },            ...,        }    },    ...,]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that binds theusr.SomeValidatorvalidator to theSomeAttribute1andSomeAttribute2attributes below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "converters: /**SCHEMA_CONVERTERS*/{    /* Implement a custom converter. */    \"usr.SomeConverter\": function(value) {        ...;    }}/**SCHEMA_CONVERTERS*/,",
+      "language": "js",
+      "context": "View an example that implements a customusr.SomeConverterconverter below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    {        \"values\": {            /* Bind the \"usr.SomeConverter\" converter to the \"$SomeAttribute\" attribute. */            \"caption\": \"$SomeAttribute | usr.SomeConverter\",        }    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that binds theusr.SomeConverterconverter to the$SomeAttributeattribute below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    {        /* Bind the \"crt.ToBoolean\" and \"crt.InvertBooleanValue\" converters to the \"$SomeAttribute\" attribute. */        \"visible\": \"$SomeAttribute | crt.ToBoolean | crt.InvertBooleanValue\",    },]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that binds a chain of converters (crt.ToBooleanandcrt.InvertBooleanValue) to the$SomeAttributeattribute below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    {        /* Bind the \"exmpl.Concat\" converter with the \"SomeParameter\" parameter to the \"$SomeAttribute\" attribute. */        \"visible\": \"$SomeAttribute | exmpl.Concat:' ':$SomeParameter\",    },]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that binds theexmpl.Concatconverter that has aSomeParameterstring parameter to the$SomeAttributeattribute below. Note thatexmpl.Concatis an example converter and is not available for s",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* \"Dropdown\" type field. */    {        \"operation\": \"insert\",        \"name\": \"ComboBox_6zreoq8\",        \"values\": {            ...,            \"control\": \"$PDS_UsrColumn1_a66kg7i\",            ...        },        ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds a \"Dropdown\" type field whosenameproperty isComboBox_6zreoq8below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[   {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"PDS_UsrColumn1_a66kg7i\": {                \"modelConfig\": {                    \"path\": \"PDS.UsrColumn1\"                }            },            \"PDS_UsrColumn1_a66kg7i_List\": {}        }        ...   }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds thePDS_UsrColumn1_a66kg7i_Listattribute to the Freedom UI page schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"PDS_UsrColumn1_a66kg7i_List\": {                \"modelConfig\": {                    /* Set up collection sorting.*/                    \"sortingConfig\": {                        \"default\": [                            {                                /* \"Lookup\" type column whose values to sort. */                                \"columnName\": \"Name\",                                /* Sorting order. */                                \"direction\": \"desc\"                            }                        ]                    }                }            }        }        ...    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that sorts theNamecolumn of thelookuptype in descending order below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* \"Expanded list\" component. */    {        \"operation\": \"insert\",        \"name\": \"ExpansionPanel_bgfnotq\",        \"values\": {            ...        },        \"parentName\": \"GeneralInfoTab\",        \"propertyName\": \"items\",        \"index\": 1    },    {        \"operation\": \"insert\",        \"name\": \"GridContainer_97wx07j\",        \"values\": {            ...        },        \"parentName\": \"ExpansionPanel_bgfnotq\",        \"propertyName\": \"tools\",        \"index\": 0    },    {        \"operation\": \"insert\",        \"name\": \"FlexContainer_sgydh2s\",        \"values\": {            ...        },        \"parentName\": \"GridContainer_97wx07j\",        \"propertyName\": \"items\",        \"index\": 0    },    {        \"operation\": \"insert\",        \"name\": \"GridDetailAddBtn_ccm1d3b\",        \"values\": {            ...        },        \"parentName\": \"FlexContainer_sgydh2s\",        \"propertyName\": \"items\",        \"index\": 0    },    {        \"operation\": \"insert\",        \"name\": \"GridDetailRefreshBtn_kncmlkw\",        \"values\": {            ...        },        \"parentName\": \"FlexContainer_sgydh2s\",        \"propertyName\": \"items\",        \"index\": 1    },    {        \"operation\": \"insert\",        \"name\": \"GridDetailSettingsBtn_uohba8p\",        \"values\": {            ...        },        \"parentName\": \"FlexContainer_sgydh2s\",        \"propertyName\": \"items\",        \"index\": 2    },    {        \"operation\": \"insert\",        \"name\": \"GridDetailExportDataBtn_jrovafm\",        \"values\": {            ...        },        \"parentName\": \"GridDetailSettingsBtn_uohba8p\",        \"propertyName\": \"menuItems\",        \"index\": 0    },    {        \"operation\": \"insert\",        \"name\": \"GridDetailImportDataBtn_q7yyoe6\",        \"values\": {            ...        },        \"parentName\": \"GridDetailSettingsBtn_uohba8p\",        \"propertyName\": \"menuItems\",        \"index\": 1    },    {        \"operation\": \"insert\",        \"name\": \"GridDetailSearchFilter_q1bmh3d\",        \"values\": {            ...        },        \"parentName\": \"FlexContainer_sgydh2s\",        \"propertyName\": \"items\",        \"index\": 3    },    {        \"operation\": \"insert\",        \"name\": \"GridContainer_6gpjgwm\",        \"values\": {            ...        },        \"parentName\": \"ExpansionPanel_bgfnotq\",        \"propertyName\": \"items\",        \"index\": 0    },    {        \"operation\": \"insert\",        \"name\": \"GridDetail_jic2y17\",        \"values\": {            \"type\": \"crt.DataGrid\",            \"layoutConfig\": {                \"colSpan\": 2,                \"column\": 1,                \"row\": 1,                \"rowSpan\": 6            },            \"features\": {                \"rows\": {                    \"selection\": {                        \"enable\": true,                        \"multiple\": true                    }                }            },            \"items\": \"$GridDetail_jic2y17\",            \"visible\": true,            \"fitContent\": true,            \"primaryColumnName\": \"GridDetail_jic2y17DS_Id\",            \"columns\": [                {                    \"id\": \"f252f581-0ccf-44ac-b7c9-c00df2ad9919\",                    \"code\": \"PDS_UsrName\",                    \"caption\": \"#ResourceString(PDS_UsrName)#\",                    \"dataValueType\": 1                },                {                    \"id\": \"558f36b0-07c2-c80d-3e3d-4dec75a18752\",                    \"code\": \"PDS_UsrColumn3\",                    \"caption\": \"#ResourceString(PDS_UsrColumn3)#\",                    \"dataValueType\": 10                }            ],            \"placeholder\": false        },        \"parentName\": \"GridContainer_6gpjgwm\",        \"propertyName\": \"items\",        \"index\": 0    }    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds anExpanded listcomponent that includes thelookuptype column whosecodeproperty isPDS_UsrColumn1below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[   {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"GridDetail_jic2y17\": {                \"viewModelConfig\": {                    \"attributes\": {                        ...,                        \"PDS_UsrColumn1_List\": {}                    }                }            }        }        ...   }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds thePDS_UsrColumn1_Listattribute to the Freedom UI page schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"GridDetail_jic2y17\": {                \"viewModelConfigDiff\": {                    \"attributes\": {                        ...,                        \"PDS_UsrColumn1_List\": {                            \"modelConfig\": {                                /* Set up collection sorting.*/                                \"sortingConfig\": {                                    \"default\": [                                        {                                            /* \"Lookup\" type column whose values to sort. */                                            \"columnName\": \"Name\",                                            /* Sorting order. */                                            \"direction\": \"desc\"                                        }                                    ]                                }                            }                        }                    }                }            }        }        ...    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that sorts theNamecolumn of thelookuptype in descending order below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* \"Dropdown\" type field. */    {        \"operation\": \"insert\",        \"name\": \"ComboBox_x7x538u\",        \"values\": {            ...,            \"control\": \"$PDS_UsrColumn1_b7xlx2a\",            ...        },        ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds a \"Dropdown\" type field whosenameproperty isComboBox_x7x538ubelow.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"PDS_UsrColumn1_b7xlx2a\": {                \"modelConfig\": {                    \"path\": \"PDS.UsrColumn1\"                }            },            \"PDS_UsrColumn1_b7xlx2a_List\": {}        }        ...    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds thePDS_UsrColumn1_b7xlx2a_Listattribute to the Freedom UI page schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"PDS_UsrColumn1_b7xlx2a_List\": {                \"modelConfig\": {                    \"filterAttributes\": [                        {                            /* Enable reloading the collection on filter change. */                            \"loadOnChange\": true,                            /* An attribute that configures the filter. */                            \"name\": \"City_PredefinedFilter\"                        }                    ]                }\t            },            /* Filter parameters. */            \"City_PredefinedFilter\": {                /* Main container that includes filter parameters. */                \"value\": {                    /* List of filter conditions. */                    \"items\": {                        /* Identifier of specific filter condition. */                        \"0b410605-82dd-4881-a784-6d8164635568\": {                            /* \"Expression filter\" filter type. */                            \"filterType\": 4,                            /* \"Equals\" comparison type. */                            \"comparisonType\": 3,                            /* Expression of the left side of the filter condition. */                            \"leftExpression\": {                                /* \"Column\" expression type. */                                \"expressionType\": 0,                                /* The \"Country\" column to filter. */                                \"columnPath\": \"Country\"                            },                            /* Mark the filter as not aggregative. */                            \"isAggregative\": false,                            /* \"Lookup\" type of data to filter. */                            \"dataValueType\": 10,                            /* Object schema name that implements column to filter. */                            \"referenceSchemaName\": \"Country\",                            /* Expression of the right side of the filter condition. */                            \"rightExpressions\": [                                {                                    /* \"Parameter\" expression type. */                                    \"expressionType\": 2,                                    /* Parameter of the right side of the filter. */                                    \"parameter\": {                                        /* \"Lookup\" type of data to filter. */                                        \"dataValueType\": 10,                                        /* \"Country\" column value that filters the \"City\" column values. */                                        \"value\": {                                            /* Lookup value. */                                            \"Name\": \"United States\",                                            /* Identifier of lookup value. */                                            \"Id\": \"e0be1264-f36b-1410-fa98-00155d043204\",                                            /* Identifier of lookup value. */                                            \"value\": \"e0be1264-f36b-1410-fa98-00155d043204\",                                            /* Lookup value to display. */                                            \"displayValue\": \"United States\"                                        }                                    }                                }                            ]                        }                    },                    /* The logical operation type that combines both the filters. */                    \"logicalOperation\": 0,                    /* \"Group filter\" filter type. */                    \"filterType\": 6                }            }        }        ...    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that filters theCitycolumn values based on theCountrycolumn value below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"GridDetail_jic2y17\": {                \"viewModelConfigDiff\": {                    \"attributes\": {                        ...,                        \"PDS_UsrColumn1_List\": {}                    }                }            }        }        ...    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds thePDS_UsrColumn1_Listattribute to the Freedom UI page schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            \"GridDetail_jic2y17\": {                \"viewModelConfigDiff\": {                    \"attributes\": {                        ...,                        \"PDS_UsrColumn1_List\": {                            \"modelConfig\": {                                \"filterAttributes\": [                                    {                                        /* Enable reloading the collection on filter change. */                                        \"loadOnChange\": true,                                        /* An attribute that configures the filter. */                                        \"name\": \"City_PredefinedFilter\"                                    }                                ]                            }                        },                        /* Filter parameters. */                        \"City_PredefinedFilter\": {                            /* Main container that includes filter parameters. */                            \"value\": {                                /* List of filter conditions. */                                \"items\": {                                    /* Identifier of specific filter condition. */                                    \"5ec9ffbb-5c00-4cc1-abb4-958b16d45448\": {                                        /* \"Expression filter\" filter type. */                                        \"filterType\": 4,                                        /* \"Equals\" comparison type. */                                        \"comparisonType\": 3,                                        /* Expression of the left side of the filter condition. */                                        \"leftExpression\": {                                            /* \"Column\" expression type. */                                            \"expressionType\": 0,                                            /* The \"Country\" column to filter. */                                            \"columnPath\": \"Country\"                                        },                                        /* Mark the filter as not aggregative. */                                        \"isAggregative\": false,                                        /* \"Lookup\" type of data to filter. */                                        \"dataValueType\": 10,                                        /* Object schema name that implements column to filter. */                                        \"referenceSchemaName\": \"Country\",                                        /* Expression of the right side of the filter condition. */                                        \"rightExpressions\": [                                            {                                                /* \"Parameter\" expression type. */                                                \"expressionType\": 2,                                                /* Parameter of the right side of the filter. */                                                \"parameter\": {                                                    /* \"Lookup\" type of data to filter. */                                                    \"dataValueType\": 10,                                                    /* \"Country\" column value that filters the \"City\" column values. */                                                    \"value\": {                                                        /* Lookup value. */                                                        \"Name\": \"United States\",                                                        /* Identifier of lookup value. */                                                        \"Id\": \"e0be1264-f36b-1410-fa98-00155d043204\",                                                        /* Identifier of lookup value. */                                                        \"value\": \"e0be1264-f36b-1410-fa98-00155d043204\",                                                        /* Lookup value to display. */                                                        \"displayValue\": \"United States\"                                                    }                                                }                                            }                                        ]                                    }                                },                                /* The logical operation type that combines both the filters. */                                \"logicalOperation\": 0,                                /* \"Group filter\" filter type. */                                \"filterType\": 6                            }                        }                    }                }            }        }        ...    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that filters theCitycolumn values based on theCountrycolumn value below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* \"Rich text\" type field. */    {        \"operation\": \"insert\",        \"name\": \"RichTextEditor\",        \"values\": {            \"layoutConfig\": {                \"column\": 1,                \"row\": 2,                \"colSpan\": 1,                \"rowSpan\": 1            },            \"type\": \"crt.RichTextEditor\",            \"label\": \"$Resources.Strings.PDS_UsrRichText_pl3y87t\",            \"labelPosition\": \"auto\",            \"control\": \"$PDS_UsrRichText_pl3y87t\",            \"filesStorage\": {                \"masterRecordColumnValue\": \"$Id\",                \"entitySchemaName\": \"SysFile\",                \"recordColumnName\": \"RecordId\"            }        },        \"parentName\": \"SideAreaProfileContainer\",        \"propertyName\": \"items\",        \"index\": 1    }    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds a \"Rich text\" type field below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* \"Rich text\" type field. */    {        \"operation\": \"insert\",        \"name\": \"RichTextEditor\",        \"values\": {            ...,            /* Additional formatting options. */            \"extraPlugins\": [                \"crttableofcontents\",                \"blockquote\",                \"codesnippet\",                \"creatiovideo\"            ]        },        ...    }    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that adds additional formatting options to the toolbar of the \"Rich text\" type field below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property description"
+        ],
+        [
+          "columnName",
+          "lookuptype column whose values to sort in the \"Dropdown\" type field."
+        ],
+        [
+          "direction",
+          "Sorting order. Available values:asc(ascending),desc(descending)."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property description</p></th></tr><tr><td><p>columnName</p></td><td><p><code>lookup</code> type column whose values to sort in the \"Dropdown\" type field.</p></td></tr><tr><td><p>direction</p></td><td><p>Sorting order. Available values: <code>asc</code> (ascending), <code>desc</code> (descending).</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property description"
+        ],
+        [
+          "columnName",
+          "lookuptype column whose values to sort in theExpanded listorListcomponent."
+        ],
+        [
+          "direction",
+          "Sorting order. Available values:asc(ascending),desc(descending)."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property description</p></th></tr><tr><td><p>columnName</p></td><td><p><code>lookup</code> type column whose values to sort in the <strong>Expanded list</strong> or <strong>List</strong> component.</p></td></tr><tr><td><p>direction</p></td><td><p>Sorting order. Available values: <code>asc</code> (ascending), <code>desc</code> (descending).</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property description"
+        ],
+        [
+          "name",
+          "Attribute that configures the filter."
+        ],
+        [
+          "loadOnChange",
+          "true. This enables reloading the collection on filter change."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property description</p></th></tr><tr><td><p>name</p></td><td><p>Attribute that configures the filter.</p></td></tr><tr><td><p>loadOnChange</p></td><td><p><code>true</code>. This enables reloading the collection on filter change.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property description"
+        ],
+        [
+          "name",
+          "Attribute that configures the filter."
+        ],
+        [
+          "loadOnChange",
+          "true. This enables reloading the collection on filter change."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property description</p></th></tr><tr><td><p>name</p></td><td><p>Attribute that configures the filter.</p></td></tr><tr><td><p>loadOnChange</p></td><td><p><code>true</code>. This enables reloading the collection on filter change.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Additional formatting option",
+          "Purpose of additional formatting option"
+        ],
+        [
+          "crttableofcontents",
+          "Table of contents",
+          "Navigate long articles effortlessly using an auto-generated outline."
+        ],
+        [
+          "blockquote",
+          "Block quote",
+          "Highlight important references and external sources."
+        ],
+        [
+          "codesnippet",
+          "Code snippet",
+          "Display code examples using proper formatting for better readability."
+        ],
+        [
+          "creatiovideo",
+          "Video",
+          "Add videos to and play them directly from the page. Out of the box, enabled for knowledge base articles."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Additional formatting option</p></th><th><p>Purpose of additional formatting option</p></th></tr><tr><td><p>crttableofcontents</p></td><td><center><p>Table of contents</p></center></td><td><p>Navigate long articles effortlessly using an auto-generated outline.</p></td></tr><tr><td><p>blockquote</p></td><td><center><p>Block quote</p></center></td><td><p>Highlight important references and external sources.</p></td></tr><tr><td><p>codesnippet</p></td><td><center><p>Code snippet</p></center></td><td><p>Display code examples using proper formatting for better readability.</p></td></tr><tr><td><p>creatiovideo</p></td><td><center><p>Video</p></center></td><td><p>Add videos to and play them directly from the page. Out of the box, enabled for knowledge base articles.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property description"
+        ],
+        [
+          "Language",
+          "Select language of the code snippet.Available valuesBash, C++, C#, CSS, HTML, HTTP, Java, JavaScript, JSON, PHP, PostgreSQL, Python, Ruby, SCSS, SQL, TypeScript, XML"
+        ],
+        [
+          "Code snippet area",
+          "Enter the source code."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property description</p></th></tr><tr><td><p>Language</p></td><td><p>Select language of the code snippet.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 217ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>Bash, C++, C#, CSS, HTML, HTTP, Java, JavaScript, JSON, PHP, PostgreSQL, Python, Ruby, SCSS, SQL, TypeScript, XML</p></div></div></div></details></td></tr><tr><td><p>Code snippet area</p></td><td><p>Enter the source code.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Way",
+          "Description"
+        ],
+        [
+          "Video from external source",
+          "Use a direct link to the video uploaded to the external source or embed code provided by external source. This way requires external domains to be added as trusted sources in theContent Security Policysection. YouTube and Vimeo domains are added out of the box.Add a video from external source using direct linkOpen thePaste URLtab.Copy the link to the video from external source.Paste the link.Add a video from external source using embed codeOpen theEmbed codetab.Copy embed code provided by external source.Paste the code."
+        ],
+        [
+          "Video from your device",
+          "Open thePaste URLtab.Drag video file or clickto upload the video from your device."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Way</p></th><th><p>Description</p></th></tr><tr><td><p>Video from external source</p></td><td><p>Use a direct link to the video uploaded to the external source or embed code provided by external source. This way requires external domains to be added as trusted sources in the <strong>Content Security Policy</strong> section. YouTube and Vimeo domains are added out of the box.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add a video from external source using direct link</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 241ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Open the <strong>Paste URL</strong> tab.</li>\n<li>Copy the link to the video from external source.</li>\n<li>Paste the link.</li>\n</ol></div></div></div></details><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add a video from external source using embed code</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 241ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Open the <strong>Embed code</strong> tab.</li>\n<li>Copy embed code provided by external source.</li>\n<li>Paste the code.</li>\n</ol></div></div></div></details></td></tr><tr><td><p>Video from your device</p></td><td><ol>\n<li>Open the <strong>Paste URL</strong> tab.</li>\n<li>Drag video file or click <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/btn_UploadFileButton.png\"/> to upload the video from your device.</li>\n</ol></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field type",
+          "Setup instructions",
+          "Usage example"
+        ],
+        [
+          "Fields of directly linked records",
+          "The functionality is enabled by default",
+          "You open the contact page that has theAccountandNo. of employeesfields. If you fill out theAccountfield, Creatio populates theNo. of employeesfield automatically."
+        ],
+        [
+          "Record fields",
+          "Update record fields automatically",
+          "You haveAssign to mebutton on a request page. The button runs a business process that sets the current user as the request owner. If you click theAssign to mebutton, Creatio populates theOwnerfield on the page using your contact, and the result is visible immediately."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field type</p></th><th><p>Setup instructions</p></th><th><p>Usage example</p></th></tr><tr><td><p>Fields of directly linked records</p></td><td><p>The functionality is enabled by default</p></td><td><p>You open the contact page that has the <strong>Account</strong> and <strong>No. of employees</strong> fields. If you fill out the <strong>Account</strong> field, Creatio populates the <strong>No. of employees</strong> field automatically.</p></td></tr><tr><td><p>Record fields</p></td><td><p><a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=15107&amp;anchor=title-2314-1\" rel=\"noopener noreferrer\" target=\"_blank\">Update record fields automatically</a></p></td><td><p>You have <strong>Assign to me</strong> button on a request page. The button runs a business process that sets the current user as the request owner. If you click the <strong>Assign to me</strong> button, Creatio populates the <strong>Owner</strong> field on the page using your contact, and the result is visible immediately.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Go to the \"Rich text\" type field",
+      "content": "Add table of contents to the \"Rich text\" type fieldGo to the \"Rich text\" type field.Click.As a result, the \"Rich text\" type field will include the table of contents based on the headings on the page. The content is updated when you finish editing the field.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add table of contents to the \"Rich text\" type field</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 257ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li><strong>Go to the \"Rich text\" type field</strong>.</li>\n<li><strong>Click</strong> <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_crttableofcontents.png\"/>.</li>\n</ol><p><strong>As a result</strong>, the \"Rich text\" type field will include the table of contents based on the headings on the page. The content is updated when you finish editing the field.</p></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Go to the \"Rich text\" type field",
+      "content": "Add block quote to the \"Rich text\" type fieldGo to the \"Rich text\" type field.Click. This enables quotations and changes the icon to.As a result, the \"Rich text\" type field will include the block quote. All text you add is a part of quote until you disable the formatting option by clicking theicon.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add block quote to the \"Rich text\" type field</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 257ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li><strong>Go to the \"Rich text\" type field</strong>.</li>\n<li><strong>Click</strong> <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote.png\"/>. This enables quotations and changes the icon to <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote_enabled.png\"/>.</li>\n</ol><p><strong>As a result</strong>, the \"Rich text\" type field will include the block quote. All text you add is a part of quote until you disable the formatting option by clicking the <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote_enabled.png\"/> icon.</p></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Go to the \"Rich text\" type field",
+      "content": "Add code snippet to the \"Rich text\" type fieldGo to the \"Rich text\" type field.Click. This opens theCode snippetwindow.Fill out the propertiesof the code snippet.PropertyProperty descriptionLanguageSelect language of the code snippet.Available valuesBash, C++, C#, CSS, HTML, HTTP, Java, JavaScript, JSON, PHP, PostgreSQL, Python, Ruby, SCSS, SQL, TypeScript, XMLCode snippet areaEnter the source code.Click OK.As a result, the \"Rich text\" type field will include the code snippet.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add code snippet to the \"Rich text\" type field</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 347ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>\n<p><strong>Go to the \"Rich text\" type field</strong>.</p>\n</li>\n<li>\n<p><strong>Click</strong> <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_codesnippet.png\"/>. This opens the <strong>Code snippet</strong> window.</p>\n</li>\n<li>\n<p><strong>Fill out the properties</strong> of the code snippet.</p>\n<table><tbody><tr><th><p>Property</p></th><th><p>Property description</p></th></tr><tr><td><p>Language</p></td><td><p>Select language of the code snippet.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 217ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>Bash, C++, C#, CSS, HTML, HTTP, Java, JavaScript, JSON, PHP, PostgreSQL, Python, Ruby, SCSS, SQL, TypeScript, XML</p></div></div></div></details></td></tr><tr><td><p>Code snippet area</p></td><td><p>Enter the source code.</p></td></tr></tbody></table>\n</li>\n<li>\n<p><strong>Click OK</strong>.</p>\n</li>\n</ol><p><strong>As a result</strong>, the \"Rich text\" type field will include the code snippet.</p></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Available valuesBash, C++, C#, CSS, HTML, HTTP, Java, JavaScript, JSON, PHP, PostgreSQL, Python, Ruby, SCSS, SQL, TypeScript, XML",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 217ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><p>Bash, C++, C#, CSS, HTML, HTTP, Java, JavaScript, JSON, PHP, PostgreSQL, Python, Ruby, SCSS, SQL, TypeScript, XML</p></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Go to the \"Rich text\" type field",
+      "content": "Add video to the \"Rich text\" type fieldGo to the \"Rich text\" type field.Click. This opens theInsert videowindow.Add videousing one of the following ways listed in the table below.WayDescriptionVideo from external sourceUse a direct link to the video uploaded to the external source or embed code provided by external source. This way requires external domains to be added as trusted sources in theContent Security Policysection. YouTube and Vimeo domains are added out of the box.Add a video from external source using direct linkOpen thePaste URLtab.Copy the link to the video from external source.Paste the link.Add a video from external source using embed codeOpen theEmbed codetab.Copy embed code provided by external source.Paste the code.Video from your deviceOpen thePaste URLtab.Drag video file or clickto upload the video from your device.Click Insert video.As a result, the \"Rich text\" type field will include the video.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add video to the \"Rich text\" type field</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 365ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>\n<p><strong>Go to the \"Rich text\" type field</strong>.</p>\n</li>\n<li>\n<p><strong>Click</strong> <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_creatiovideo.png\"/>. This opens the <strong>Insert video</strong> window.</p>\n</li>\n<li>\n<p><strong>Add video</strong> using one of the following ways listed in the table below.</p>\n<table><tbody><tr><th><p>Way</p></th><th><p>Description</p></th></tr><tr><td><p>Video from external source</p></td><td><p>Use a direct link to the video uploaded to the external source or embed code provided by external source. This way requires external domains to be added as trusted sources in the <strong>Content Security Policy</strong> section. YouTube and Vimeo domains are added out of the box.</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add a video from external source using direct link</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 241ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Open the <strong>Paste URL</strong> tab.</li>\n<li>Copy the link to the video from external source.</li>\n<li>Paste the link.</li>\n</ol></div></div></div></details><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add a video from external source using embed code</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 241ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Open the <strong>Embed code</strong> tab.</li>\n<li>Copy embed code provided by external source.</li>\n<li>Paste the code.</li>\n</ol></div></div></div></details></td></tr><tr><td><p>Video from your device</p></td><td><ol>\n<li>Open the <strong>Paste URL</strong> tab.</li>\n<li>Drag video file or click <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/btn_UploadFileButton.png\"/> to upload the video from your device.</li>\n</ol></td></tr></tbody></table>\n</li>\n<li>\n<p><strong>Click Insert video</strong>.</p>\n</li>\n</ol><p><strong>As a result</strong>, the \"Rich text\" type field will include the video.</p></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Paste URL",
+      "content": "Add a video from external source using direct linkOpen thePaste URLtab.Copy the link to the video from external source.Paste the link.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add a video from external source using direct link</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 241ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Open the <strong>Paste URL</strong> tab.</li>\n<li>Copy the link to the video from external source.</li>\n<li>Paste the link.</li>\n</ol></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Embed code",
+      "content": "Add a video from external source using embed codeOpen theEmbed codetab.Copy embed code provided by external source.Paste the code.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary><p>Add a video from external source using embed code</p></summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 241ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Open the <strong>Embed code</strong> tab.</li>\n<li>Copy embed code provided by external source.</li>\n<li>Paste the code.</li>\n</ol></div></div></div></details>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_crttableofcontents.png",
+      "alt": "",
+      "title": "",
+      "context": "Add table of contents to the \"Rich text\" type field",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6145b85173ba1bf2_reatio-platform_platform-customization_freedom-ui_customize-page-fields_overview_c58098d08f8e.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote.png",
+      "alt": "",
+      "title": "",
+      "context": "Add block quote to the \"Rich text\" type field",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6145b85173ba1bf2_reatio-platform_platform-customization_freedom-ui_customize-page-fields_overview_6c42504aeddd.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote_enabled.png",
+      "alt": "",
+      "title": "",
+      "context": "Add block quote to the \"Rich text\" type field",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6145b85173ba1bf2_reatio-platform_platform-customization_freedom-ui_customize-page-fields_overview_6caff8d0ae8a.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_blockquote_enabled.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the \"Rich text\" type field will include the block quote. All text you add is a part of ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6145b85173ba1bf2_reatio-platform_platform-customization_freedom-ui_customize-page-fields_overview_6caff8d0ae8a.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_codesnippet.png",
+      "alt": "",
+      "title": "",
+      "context": "Click. This opens theCode snippetwindow.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6145b85173ba1bf2_reatio-platform_platform-customization_freedom-ui_customize-page-fields_overview_9834415ef024.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/src_extraPlugins_creatiovideo.png",
+      "alt": "",
+      "title": "",
+      "context": "Click. This opens theInsert videowindow.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6145b85173ba1bf2_reatio-platform_platform-customization_freedom-ui_customize-page-fields_overview_e963a30f84ed.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomizeFieldsFreedomUi/8.2/btn_UploadFileButton.png",
+      "alt": "",
+      "title": "",
+      "context": "Video from your device",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6145b85173ba1bf2_reatio-platform_platform-customization_freedom-ui_customize-page-fields_overview_3e8f61300de4.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Customize fields (Freedom UI)",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up the field display condition\u200b",
+      "anchor": "title-3836-3"
+    },
+    {
+      "level": 2,
+      "text": "Set up a condition that locks the field\u200b",
+      "anchor": "title-3836-4"
+    },
+    {
+      "level": 2,
+      "text": "Set up a field population condition\u200b",
+      "anchor": "title-3836-5"
+    },
+    {
+      "level": 2,
+      "text": "Set up a field requirement condition\u200b",
+      "anchor": "title-3836-6"
+    },
+    {
+      "level": 2,
+      "text": "Implement field value validation\u200b",
+      "anchor": "title-3836-7"
+    },
+    {
+      "level": 2,
+      "text": "Implement field value conversion\u200b",
+      "anchor": "title-3836-8"
+    },
+    {
+      "level": 2,
+      "text": "Change the out-of-the-box sorting of values in a field and column of the \"lookup\" type\u200b",
+      "anchor": "title-15379-5"
+    },
+    {
+      "level": 3,
+      "text": "Change the sorting of the \"Dropdown\" type field values\u200b",
+      "anchor": "title-15379-1"
+    },
+    {
+      "level": 3,
+      "text": "Change the sorting of the values in the \"lookup\" type column added to the \"Expanded list\" or \"List\" component\u200b",
+      "anchor": "title-15379-3"
+    },
+    {
+      "level": 2,
+      "text": "Filter of values in a field and column of the \"lookup\" type\u200b",
+      "anchor": "title-15379-6"
+    },
+    {
+      "level": 3,
+      "text": "Filter of the \"Dropdown\" type field values\u200b",
+      "anchor": "title-15379-2"
+    },
+    {
+      "level": 3,
+      "text": "Filter the values in the \"lookup\" type column added to the \"Expanded list\" or \"List\" component\u200b",
+      "anchor": "title-15379-4"
+    },
+    {
+      "level": 2,
+      "text": "Add additional formatting options to the toolbar of the \"Rich text\" type field\u200b",
+      "anchor": "title-15379-7"
+    },
+    {
+      "level": 2,
+      "text": "Update form page fields automatically\u200b",
+      "anchor": "title-2397-1"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field",
+      "text": "PreviousField",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-fields-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-display-condition-of-a-field",
+      "text": "Set up the display condition of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-condition-that-locks-the-field",
+      "text": "Set up the condition that locks the field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-condition-that-populates-a-field",
+      "text": "Set up the condition that populates a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/set-up-the-requirement-condition-of-a-field",
+      "text": "Set up the requirement condition of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/implement-the-field-value-validation",
+      "text": "Implement the field value validation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/examples/implement-the-field-value-conversion",
+      "text": "Implement the field value conversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/opening-the-page",
+      "text": "Opening the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/anonymous-access",
+      "text": "Retrieve allowed features before login",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/no-code-customization/category/fields-and-inputs",
+      "text": "Fields and inputs",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/setup-and-administration/category/access-management",
+      "text": "Access management",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:18:23.032978"
+}

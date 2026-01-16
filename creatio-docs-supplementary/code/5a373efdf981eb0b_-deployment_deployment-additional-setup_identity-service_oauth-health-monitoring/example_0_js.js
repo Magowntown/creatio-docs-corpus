@@ -1,0 +1,1 @@
+Status: 200 OK{    "HasProblem": false,    "IsSystemSettingsFilledIn": true,    "IsIdentityServiceAvailable": true,    "IsAccessTokenRetrievableForSystemActions": true}

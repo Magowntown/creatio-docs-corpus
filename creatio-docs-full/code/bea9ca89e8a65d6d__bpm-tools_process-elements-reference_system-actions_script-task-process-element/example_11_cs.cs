@@ -1,0 +1,1 @@
+var list = Get<ICompositeObjectList<ICompositeObject>>("ReadDataUserTask1.ResultCompositeObjectList");var sb = new StringBuilder();foreach (ICompositeObject item in list) {    if (item.TryGetValue<string>("Name", out string value)) {        sb.Append(value).Append(" | ");    }}Set<string>("FieldsOfCompositeObjectListParameter", sb.ToString());

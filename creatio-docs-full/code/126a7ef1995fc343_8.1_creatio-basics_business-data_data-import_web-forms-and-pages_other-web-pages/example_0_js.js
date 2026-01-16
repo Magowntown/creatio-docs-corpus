@@ -1,0 +1,1 @@
+replace(body('Get_response_details')?['re0ff0fa4569848d8a8f8d92b35dd48eb'], 'Industry event', '6af5dffe-4326-4c7a-9175-9c0e09cf8a35')

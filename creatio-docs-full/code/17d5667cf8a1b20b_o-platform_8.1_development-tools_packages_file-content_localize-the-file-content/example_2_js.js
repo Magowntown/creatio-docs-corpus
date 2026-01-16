@@ -1,0 +1,1 @@
+define({    root: {        FileContentAction1: "Some description of file action 1",        FileContentAction2: "Some description of file action 2",    },    "en-US": true,    "de-DE": true,});

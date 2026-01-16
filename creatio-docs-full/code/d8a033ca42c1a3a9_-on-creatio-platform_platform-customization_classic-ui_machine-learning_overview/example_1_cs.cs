@@ -1,0 +1,1 @@
+new Select(userConnection)    .Column("Id")    .Column("Body")    .From("Activity")    .Where("TypeId")        .IsEqual(Column.Parameter("E2831DEC-CFC0-DF11-B00F-001D60E938C6"));

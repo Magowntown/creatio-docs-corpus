@@ -1,0 +1,1 @@
+/* AMD module declaration. */define("UsrAppClientSchemaName", ["@creatio-devkit/common"], (sdk) {    ...    /* Register the component. */    customElements.define('usr-custom-view-element', UsrAppClientSchemaName);    ...});

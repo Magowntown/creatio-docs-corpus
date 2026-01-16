@@ -1,0 +1,1060 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-calculated-field",
+  "title": "Add a calculated field to a record page",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1"
+    },
+    {
+      "text": "Record page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page"
+    },
+    {
+      "text": "Field",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/field-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nExample\nAdd a **Payment balance** calculated field to the order page. The field must display the difference between the order (the **Total** field) and payment (the **Payment amount** field) amounts.\n## 1\\. Create a replacing object schema\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing object** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema\\(7.17\\)/scr_add_entity_schema_replaced.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"Order.\"\n* Set **Title** to \"Order.\"\n* Select \"Order\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_schema_props.png)\n4. Add a **column** to the schema.\n1. Click ![add_button](https://academy.creatio.com/docs/sites/default/files/inline-images/scr_add_button.png) in the context menu of the object structure's **Columns** node.\n2. Click **Number** \u2192 **Currency** in the drop-down list.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_add_column.png)\n3. Fill out the **properties of the added column**.\n* Set **Code** to \"UsrBalance.\"\n* Set **Title** to \"Payment balance.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_column_props.png)\n5. Click **Save** then **Publish** on the Object Designer's toolbar.\n## 2\\. Create a replacing view model schema of the order page\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"OrderPageV2.\"\n* Set **Title** to \"Order edit page.\"\n* Select \"OrderPageV2\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_OrderPageV2_props.png)\n4. Set up the **layout of the calculated field**.\n1. Add the `calculateBalance()` handler method and the `UsrBalance` attribute in the `attributes` property. The attribute must inherit from the **Amount** and **PaymentAmount** columns.\n2. Implement the following **methods** in the `methods` property:\n* `calculateBalance()`. Handles change events of the **Amount** and **PaymentAmount** columns. Required to calculate the value of the **UsrBalance** column specified in the `UsrBalance` attribute.\nKeep in mind the data type of the calculation results to display in the calculated field. For example, the **Decimal (0.01)** data type involves a number with 2 decimal places. In this case, convert the data type using the `toFixed()` function before you pass the outcome to the object field. View the source code of an example that converts the data type below.\nExample that converts the data type\n/* Calculate the difference between the [Amount] and [PaymentAmount] column values. */  \nvar result = amount - paymentAmount;  \n/* Assign the calculation results to the [UsrBalance] column. */  \nthis.set(\"UsrBalance\", result.toFixed(2));  \n* `onEntityInitialized()`. Overloads the base virtual method. Called after Creatio initializes the object schema of the record page. Call the `calculateBalance()` handler method in the `onEntityInitialized()` method. The handler method ensures the payment remainder is calculated not only when the dependency columns change but also when the record page opens.\n3. Add a configuration object with the settings that determine the layout of the calculated field to the `diff` array of modifications.\nView the source code of the order page's replacing view model below.\nOrderPageV2\ndefine(\"OrderPageV2\", [], function() {  \nreturn {  \n/* The name of the record page object's schema. */  \nentitySchemaName: \"Order\",  \ndetails: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,  \n/* The view model attributes. */  \nattributes: {  \n/* The name of the view model attribute. */  \n\"UsrBalance\": {  \n/* The data type of the view model column. */  \ndataValueType: Terrasoft.DataValueType.FLOAT,  \n/* The array of configuration objects that define the [UsrBalance] column dependencies. */  \ndependencies: [  \n{  \n/* The [UsrBalance] column value depends on the [Amount] and [PaymentAmount] column values. */  \ncolumns: [\"Amount\", \"PaymentAmount\"],  \n/* The handler method that is called when the [Amount] or [PaymentAmount] column value changes. */  \nmethodName: \"calculateBalance\"  \n}  \n]  \n}  \n},  \n/* The methods of the record page's view model. */  \nmethods: {  \n/* Overload the base Terrasoft.BasePageV2.onEntityInitialized method that is called after Creatio initializes the schema of the record page object. */  \nonEntityInitialized: function() {  \n/* Call the parent implementation of the method. */  \nthis.callParent(arguments);  \n/* Call the handler method that calculates the [UsrBalance] column value. */  \nthis.calculateBalance();  \n},  \n/* The handler method that calculates the [UsrBalance] column value. */  \ncalculateBalance: function() {  \n/* Check whether Creatio initialized the [Amount] and [PaymentAmount] columns when the record page had opened. If not, set their values to 0. */  \nvar amount = this.get(\"Amount\");  \nif (!amount) {  \namount = 0;  \n}  \nvar paymentAmount = this.get(\"PaymentAmount\");  \nif (!paymentAmount) {  \npaymentAmount = 0;  \n}  \n/* Calculate the difference between the [Amount] and [PaymentAmount] column values. */  \nvar result = amount - paymentAmount;  \n/* Assign the calculation results to the [UsrBalance] column. */  \nthis.set(\"UsrBalance\", result);  \n}  \n},  \n/* Display the field on the record page. */  \ndiff: /**SCHEMA_DIFF*/[  \n/* The properties to add the calculated field to the record page. */  \n{  \n/* Add the element to the page. */  \n\"operation\": \"insert\",  \n/* The meta name of the parent container to add the field. */  \n\"parentName\": \"Header\",  \n/* Add the field to the parent element's collection of elements. */  \n\"propertyName\": \"items\",  \n/* The meta name of the field to add. */  \n\"name\": \"UsrBalance\",  \n/* The properties to pass to the element's constructor. */  \n\"values\": {  \n/* Bind the value of the control to the view model column. */  \n\"bindTo\": \"UsrBalance\",  \n/* Set up the field layout. */  \n\"layout\": {  \n/* The column number. */  \n\"column\": 12,   \n/* The row number. */  \n\"row\": 2,   \n/* The column span. */  \n\"colSpan\": 12  \n}  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n};  \n});  \n5. Click **Save** on the Designer's toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** :\n1. Clear the browser cache.\n2. Refresh the **Orders** section page.\nAs a result, Creatio will add the **Payment balance** calculated field to the order page. The field value is the difference between the order (the **Total** field) and payment (the **Payment amount** field) amounts.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_result.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddCalculatedFieldToPagePackage_2021-11-17_09.28.07.zip)",
+  "code_examples": [
+    {
+      "code": "/* Calculate the difference between the [Amount] and [PaymentAmount] column values. */var result = amount - paymentAmount;/* Assign the calculation results to the [UsrBalance] column. */this.set(\"UsrBalance\", result.toFixed(2));",
+      "language": "js",
+      "context": "Keep in mind the data type of the calculation results to display in the calculated field. For example, theDecimal (0.01)data type involves a number with 2 decimal places. In this case, convert the dat",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"OrderPageV2\", [], function() {    return {        /* The name of the record page object's schema. */        entitySchemaName: \"Order\",        details: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,        /* The view model attributes. */        attributes: {            /* The name of the view model attribute. */            \"UsrBalance\": {                /* The data type of the view model column. */                dataValueType: Terrasoft.DataValueType.FLOAT,                /* The array of configuration objects that define the [UsrBalance] column dependencies. */                dependencies: [                    {                        /* The [UsrBalance] column value depends on the [Amount] and [PaymentAmount] column values. */                        columns: [\"Amount\", \"PaymentAmount\"],                        /* The handler method that is called when the [Amount] or [PaymentAmount] column value changes. */                        methodName: \"calculateBalance\"                    }                ]            }        },        /* The methods of the record page's view model. */        methods: {            /* Overload the base Terrasoft.BasePageV2.onEntityInitialized method that is called after Creatio initializes the schema of the record page object. */            onEntityInitialized: function() {                /* Call the parent implementation of the method. */                this.callParent(arguments);                /* Call the handler method that calculates the [UsrBalance] column value. */                this.calculateBalance();            },            /* The handler method that calculates the [UsrBalance] column value. */            calculateBalance: function() {                /* Check whether Creatio initialized the [Amount] and [PaymentAmount] columns when the record page had opened. If not, set their values to 0. */                var amount = this.get(\"Amount\");                if (!amount) {                    amount = 0;                }                var paymentAmount = this.get(\"PaymentAmount\");                if (!paymentAmount) {                    paymentAmount = 0;                }                /* Calculate the difference between the [Amount] and [PaymentAmount] column values. */                var result = amount - paymentAmount;                /* Assign the calculation results to the [UsrBalance] column. */                this.set(\"UsrBalance\", result);            }        },        /* Display the field on the record page. */        diff: /**SCHEMA_DIFF*/[            /* The properties to add the calculated field to the record page. */            {                /* Add the element to the page. */                \"operation\": \"insert\",                /* The meta name of the parent container to add the field. */                \"parentName\": \"Header\",                /* Add the field to the parent element's collection of elements. */                \"propertyName\": \"items\",                /* The meta name of the field to add. */                \"name\": \"UsrBalance\",                /* The properties to pass to the element's constructor. */                \"values\": {                    /* Bind the value of the control to the view model column. */                    \"bindTo\": \"UsrBalance\",                    /* Set up the field layout. */                    \"layout\": {                        /* The column number. */                        \"column\": 12,                         /* The row number. */                        \"row\": 2,                         /* The column span. */                        \"colSpan\": 12                    }                }            }        ]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "View the source code of the order page's replacing view model below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Payment balance",
+      "content": "ExampleAdd aPayment balancecalculated field to the order page. The field must display the difference between the order (theTotalfield) and payment (thePayment amountfield) amounts.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a <strong>Payment balance</strong> calculated field to the order page. The field must display the difference between the order (the <strong>Total</strong> field) and payment (the <strong>Payment amount</strong> field) amounts.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Payment balance",
+      "content": "Add aPayment balancecalculated field to the order page. The field must display the difference between the order (theTotalfield) and payment (thePayment amountfield) amounts.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a <strong>Payment balance</strong> calculated field to the order page. The field must display the difference between the order (the <strong>Total</strong> field) and payment (the <strong>Payment amount</strong> field) amounts.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema(7.17)/scr_add_entity_schema_replaced.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing objecton the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_e886854da10b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_schema_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_dd1b8a15f582.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/default/files/inline-images/scr_add_button.png",
+      "alt": "add_button",
+      "title": "",
+      "context": "Clickin the context menu of the object structure'sColumnsnode.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_483377ad635b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_add_column.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickNumber\u2192Currencyin the drop-down list.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_de3ddab19d2a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_column_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theproperties of the added column.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_7fdf32a080e2.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_OrderPageV2_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_a7f53bddba08.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCalculatedFieldToPage/7.18/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add thePayment balancecalculated field to the order page. The field value ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_f9a123cecf8e.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddCalculatedFieldToPagePackage_2021-11-17_09.28.07.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAddCalculatedFieldToPagePackage_2021-11-17_09.28.07.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/e6e283f210b6afe7_tform-customization_classic-ui_record-page_field_examples_add-a-calculated-field_sdkAddCalculatedFieldToPagePackage_2021-11-17_09.28.07.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add a calculated field to a record page",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a replacing object schema\u200b",
+      "anchor": "title-3200-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a replacing view model schema of the order page\u200b",
+      "anchor": "title-3200-2"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-3200-3"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "SET",
+        "path": "("
+      },
+      {
+        "method": "TOFIXED",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "CALCULATEBALANCE",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-calculated-field",
+      "text": "Add a calculated field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-a-calculated-field",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/record-page-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/record-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/record-page-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/field-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-field-a-new-column",
+      "text": "Add a field (a new column)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-field-an-existing-column",
+      "text": "Add a field (an existing column)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-an-image-field",
+      "text": "PreviousAdd an image field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-multicurrency-field",
+      "text": "NextAdd a multicurrency field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/implement-the-validation-of-a-date-time-type-field",
+      "text": "Implement the validation of a Date/Time type field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/implement-the-validation-of-a-string-type-field",
+      "text": "Implement the validation of a String type field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-the-default-value",
+      "text": "Set the default field value",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/make-required",
+      "text": "Make required field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-filtering-of-lookup-field-values",
+      "text": "Set up filtering of lookup field values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-filtering-of-bound-lookup-field-values",
+      "text": "Set up filtering of bound lookup field values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-the-lock-conditions",
+      "text": "Set up the conditions that lock a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/keep-fields-unlocked",
+      "text": "Keep fields unlocked",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-the-display-conditions",
+      "text": "Set up the display conditions of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/enable-the-automatic-numbering-front-end",
+      "text": "Enable the automatic field numbering (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/enable-the-automatic-numbering-back-end",
+      "text": "Enable the automatic field numbering (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/attach-an-info-button",
+      "text": "Attach an info button to a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-tooltip",
+      "text": "Add a tooltip to a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/button/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/button-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/button-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/action-dashboard/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/action-dashboard-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/timeline/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/timeline-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/connected-entity-profile/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/connected-profile-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/connected-profile-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:40:51.790363"
+}

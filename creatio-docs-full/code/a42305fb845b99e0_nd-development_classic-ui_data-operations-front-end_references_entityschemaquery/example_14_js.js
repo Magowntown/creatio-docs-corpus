@@ -1,0 +1,1 @@
+createCompareFilter(comparisonType, leftExpression, rightExpression)

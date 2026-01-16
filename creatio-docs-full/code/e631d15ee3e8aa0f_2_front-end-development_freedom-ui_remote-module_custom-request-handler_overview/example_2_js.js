@@ -1,0 +1,1 @@
+viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "attributes"        ],        "values": {            ...,            /* The attribute that stores data received from the external web service. */            "SomeAttributeName": {}        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,

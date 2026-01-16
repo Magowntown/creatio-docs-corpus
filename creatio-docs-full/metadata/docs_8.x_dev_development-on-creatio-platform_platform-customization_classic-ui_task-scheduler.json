@@ -1,0 +1,742 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+  "title": "Customize quartz task scheduler",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: advanced\nnote\nThe functionality is relevant to Classic UI.\n## Recommendations on scheduler setup\u200b\nAll Quartz policies for the processing of overdue tasks can be divided into three groups: `Ignore misfire policy`, `Run immediately and continue` and `Discard and wait for next`. Recommendations about using each specific policy are given below.\n### Ignore misfire policy\u200b\nThis policy is represented by the `MisfireInstruction.IgnoreMisfirePolicy = -1` constant. It is recommended to use it when it is necessary to ensure that all trigger firings will be executed even with overdue tasks. For example, the task A with 2 minutes execution periodicity. Due to lack of Quartz threads or the scheduler shutdown, the next fire time of task A (`NEXT_FIRE_TIME`) lags 10 minutes from the current time. If execution of all 5 overdue tasks is required, use the `IgnoreMisfirePolicy` utility.\nThis policy is recommended to use for triggers that operate with a unique data at each fire and it is important to perform all trigger fires. For example, the task B that is executed once per 1 hour and generates the report for the time period from `PREV_FIRE_TIME` till `PREV_FIRE_TIME + 1`\nApplying this policy to triggers that do not operate with unique data may cause to unnecessary clogging of the scheduler queue and application performance decrease. For example, the Exchange email synchronization is configured with the 1 minute interval for each Creatio user. An update was performed for 1.5 hours. After the update, the Quartz will synchronize user mailboxes 90 times before proceeding with tasks scheduled for the current time. Although it is enough to perform the delayed synchronization of mailboxes once, and then proceed the task according to the schedule.\n### Run immediately and continue\u200b\nThis group includes:\n* `SimpleTrigger.FireNow`;\n* `SimpleTrigger.RescheduleNowWithExistingRepeatCount`;\n* `SimpleTrigger.RescheduleNowWithRemainingRepeatCount;`\n* `CronTrigger.FireOnceNow`;\n* `CalendarIntervalTrigger.FireOnceNow`.\nThis policies should be used if the overdue task should be executed one time and as a priority and then execute scheduled tasks. For example, the email synchronization (`<user>@<server>_LoadExchangeEmailsProcess_<userId>, SyncImap_<user>@<server>_<userId>`) or the `RemindingCountersJob` and `SyncWithLDAPProcess` tasks.\nFor example, email synchronization is configured with the 5 minutes interval for all users and is fired by the `<user>@<server>_LoadExchengeEmailProcess_<userId>Trigger` triggers. The update was performed since 1:30 AM till 2:43 AM. After update, the next fire time for the `<user>@<server>_LoadExchengeEmailsProcess_<userId>Trigger` triggers will be changed to 2:43 AM. All overdue tasks will be fired once at 2:43 AM and further will be fired according to the schedule (2,48 AM, 2:53 AM, 2:58 Am, etc.).\n### Discard and wait for next\u200b\nThis group includes:\n* `SimpleTrigger.RescheduleNextWithRemainingCount`;\n* `SimpleTrigger.RescheduleNextWithExistingCount`;\n* `CronTrigger.DoNothing`;\n* `CalendarIntervalTrigger.DoNothing`.\nThese policies should be applied to the tasks that should be fired strictly at a specific time. For example the statistics collection launched daily at 3:00 AM when there is no active users on the website (the `CronTrigger` is used). This task is resource intensive and time consuming, and it can not be run during working hours, because this can slow down the work of users. In this case, use the `CronTrigger.DoNothing` policy. As a result, if the task was not fired, the next fire will be at 3:00 AM of the next day.\n### Quartz configuration\u200b\n#### `thread count`\u200b\nIf the scheduler delays the tasks or if some tasks have not been executed, increase the number of Quartz threads. For this, set necessary number of threads in the `Web.config` of the application loader:\n<add key=\"quartz.threadPool.threadCount\" value=\"5\" />  \nnote\nThe `Web.config` file of the application loader located in the root folder of the installed Creatio application.\n#### `misfireThreshold`\u200b\nIf the increase in the number of Quartz threads is undesirable (for example, due to limited resources), the change in the `misfireThreshold` setting in the `Web.config` file of the application loader can optimize the task execution.\nFor example, an application with a number of tasks much bigger than a number of threads. The most of tasks are executed with a small interval (1 minute). The value of the `misfireThreshold` setting is 1 minute and the number of threads is 3:\n<add key=\"quartz.jobStore.misfireThreshold\" value=\"60000\" />  \n<add key=\"quartz.threadPool.threadCount\" value=\"3\" />  \nFor the most of the tasks used the policies from the `Run immediately and continue` group. This means following. For the most tasks that have the `MISFIRE_INSTR` not equal \"-1\" and the `NEXT_FIRE_TIME` less than the current time for 1 minute (60000 ms) the Quartz will periodically set the time of the next fire for the current time. This means that the initial order of the scheduled tasks will be lost because all tasks will have the current time as the fire time. The probability that Quartz will often process the same tasks and ignore the other tasks will increase.\nThe scheduler queue after 15 minutes of working is displayed on the figure. Tasks that have the `PREV_FIRE_TIME = NULL` never have been executed. There is a big number of these tasks.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/RecommendedSchedulerSettings/queue_01.png)\nIncrease the `misfireThreshold` value to 10 minutes (and clear the `PREV_FIRE_TIME` in `QRTZ_TRIGGERS`):\n<add key=\"quartz.jobStore.misfireThreshold\" value=\"600000\" />;  \nThe scheduler queue after 15 minutes of working:\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/RecommendedSchedulerSettings/queue_02.png)\nThe number of non-executed tasks is decreased.\nIncreasing of the value of the `misfireThreshold` will lead to more equal tasks execution. Almost all jobs from the queue will be executed. Due to lack of threads, the scheduler does not have time to fire each of the tasks in a minute. This is displayed in the **Last repeat interval** column that has the value `NEXT_FIRE_TIME - PREV_FIRE_TIME`, min. However, the scheduler fires each of the tasks.\n#### `batchTriggerAcquisitionMaxCount`\u200b\nIncrease the `batchTriggerAcquisitionMaxCount` to optimize the scheduler performance if you do not use the clustered Quartz configuration (one scheduler node is used).\n## Quartz policies for the processing of overdue tasks\u200b\nThe Quartz has policies common to all types of triggers, and policies that are specific to a specific type of trigger. All policies used for the `SimpleTrigger`, `CronTrigger` or `CalendarIntervalTrigger` triggers are listed below.\nQuartz policy| The `MISFIRE_INSTR` value| The `Terrasoft.Core.Scheduler.AppSchedulerMisfireInstruction` value| Trigger type  \n---|---|---|---  \nIgnoreMisfirePolicy| -1| IgnoreMisfirePolicy| for all types  \n`IgnoreMisfirePolicy` **behavior description** Triggers with the `IgnoreMisfirePolicy` always will be fired in time. For such triggers, the Quartz will not update the next fire time (`NEXT_FIRE_TIME`).The Quartz will fire all overdue tasks as priority, and then return to the initial trigger schedule. For example, the task with the `SimpleTrigger` was planned for 10 iterations. Initial conditions:\n* `START_TIME = 9:00`\n* `REPEAT_COUNT = 9` (first fire + 9 iterations)\n* `REPEAT_INTERVAL = 0:15`\nIf the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire 2 overdue tasks as priority (in 9:00 and 9:15). After that the Quartz fires the 8 remaining tasks according to the schedule (at 9:30, 9:45, etc.).  \nSmartPolicy| 0| SmartPolicy| for all types  \n`SmartPolicy` **behavior description** By default is used by Quartz for all types of triggers. According to the type and configuration of the trigger, the Quartz will select corresponding policy. The selection algorithm for the Quartz version 2.3.2 is shown in the pseudo-code below.\nif (TRIGGER_TYPE == 'SIMPLE') // Simple trigger.  \nif (REPEAT_COUNT == 0) // Without repeats.  \nMISFIRE_INSTR = 1 // SimpleTrigger.FireNow  \nelse if (REPEAT_COUNT == -1) // COntinious repeating.  \nMISFIRE_INSTR = 4 // SimpleTrigger.RescheduleNextWithRemainingCount  \nelse // The number of repetitions is indicated.  \nMISFIRE_INSTR = 2 // SimpleTrigger.RescheduleNowWithExistingRepeatCount  \nelse if (TRIGGER_TYPE == 'CAL_INT') // CalendarInterval trigger.  \nMISFIRE_INSTR = 1 // CalendarIntervalTrigger.FireOnceNow  \nelse if (TRIGGER_TYPE == 'CRON') // Cron trigger.  \nMISFIRE_INSTR = 1 // CronTrigger.FireOnceNow  \nSimpleTrigger.FireNow| 1| FireNow| SimpleTrigger  \n`SimpleTrigger.FireNow` **behavior description** Applied for the `SimpleTrigger` triggers that have the `REPEAT_COUNT=0` (triggers fired for one time). If the `REPEAT_COUNT` value is not \"0\", then the `SimpleTrigger.RescheduleNowWithRemainingRepeatCount` policy will be applied.For example, the task planned with the `SimpleTrigger`. Initial conditions:\n* `START_TIME = 9:00`\n* `REPEAT_COUNT = 0`\nIf the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire the task as priority. As a result, the task will be fired at 9:20 or later.  \nSimpleTrigger.RescheduleNowWithExistingRepeatCount| 2| RescheduleNowWithExistingRepeatCount| SimpleTrigger  \n`SimpleTrigger.RescheduleNowWithExistingRepeatCount` **behavior description** Scheduler will try to fire the first overdue task as a priority, All other triggers will be fired with the `REPEAT_INTERVAL` interval.For example, the task with the `SimpleTrigger` was planned for 10 iterations. Initial conditions:\n* `START_TIME = 9:00`\n* `REPEAT_COUNT = 9`\n* `REPEAT_INTERVAL = 0:15`\nIf the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire first overdue task scheduled for 9:00 (from tasks scheduled on 9:00 and 9:15) at 9:20. The remained 9 tasks will be fired at 9:35, 9:50, etc. For the `AppScheduler.ScheduleMinutelyJob` methods the behavior of the `RescheduleNowWithExistingRepeatCount` is similar to the `RescheduleNowWithRemainingRepeatCount`, and the behavior of the `RescheduleNextWithRemainingCount` is similar to the `RescheduleNextWithExistingCount`, because the triggers with the `REPEAT_COUNT = -1` are used.  \nSimpleTrigger.RescheduleNowWithRemainingRepeatCount| 3| RescheduleNowWithRemainingRepeatCount| SimpleTrigger  \n`SimpleTrigger.RescheduleNowWithRemainingRepeatCount` **behavior description** Scheduler will try to fire the first overdue task as a priority, Other overdue tasks are ignored. The scheduler fires remained tasks that are not overdue with the `REPEAT_INTERVAL` interval.For example, the task with the `SimpleTrigger` was planned for 10 iterations. Initial conditions:\n* `START_TIME = 9:00`\n* `REPEAT_COUNT = 9`\n* `REPEAT_INTERVAL = 0:15`\nIf the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire first overdue task (from tasks scheduled on 9:00 and 9:15) at 9:20. The second overdue task will be ignored and other 8 tasks will be fired at 9:35, 9:50, etc.  \nSimpleTrigger.RescheduleNextWithRemainingCount| 4| RescheduleNextWithRemainingCount| SimpleTrigger  \n`SimpleTrigger.RescheduleNextWithRemainingCount` **behavior description** The scheduler ignores overdue tasks and waits for the next planned fire of the task. At the next fire time, the remaining non-overdue tasks will be executed with the `REPEAT_INTERVAL` interval.For example, the task with the Simple Trigger was planned for 10 iterations. Initial conditions:\n* `START_TIME = 9:00`\n* `REPEAT_COUNT = 9`\n* `REPEAT_INTERVAL = 0:15`\nIf the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will fire the rest of 8 non-overdue tasks at 9:30, 9:45, etc.  \nSimpleTrigger.RescheduleNextWithExistingCount| 5| RescheduleNextWithExistingCount| SimpleTrigger  \n`SimpleTrigger.RescheduleNextWithExistingCount` **behavior description** The scheduler will wait for the next launch time and will fire all remained tasks with the `REPEAT_INTERVAL` interval.For example, the task with the `SimpleTrigger` was planned for 10 iterations. Initial conditions:\n* `START_TIME = 9:00`\n* `REPEAT_COUNT = 9`\n* `REPEAT_INTERVAL = 0:15`\nIf the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will fire all 10 tasks at 9:30, 9:45, etc.  \nCronTrigger.FireOnceNow| 1| -| CronTrigger  \n`CronTrigger.FireOnceNow` **behavior description** Scheduler will try to fire the first overdue task as a priority. Other overdue tasks are ignored. Remained non-overdue tasks are fired by the scheduler according to the schedule.For example, the task planned with the `CronTrigger`: `CRON_EXPRESSION = '0 0 9-17 ? * MON-FRI` (from Monday to Friday 9:00 AM \u2013 17:00 PM). If the scheduler was disabled from 8:50 till 10:20, then after launch at 10:20 the Quartz will try to fire first overdue task from two (at 9:00 and 10:00). After that, tasks will be fired at 11:00, 12:00, etc.  \nCronTrigger.DoNothing| 2| -| CronTrigger  \n`CronTrigger.DoNothing` **behavior description** Scheduler ignores all overdue tasks. Remained non-overdue tasks will be fired according to the schedule.For example, the task planned with the `CronTrigger`: `CRON_EXPRESSION = '0 0 9-17 ? * MON-FRI` (from Monday to Friday 9:00 AM \u2013 17:00 PM). If the scheduler was disabled from 8:50 till 10:20, then after launch the Quartz will start to fire tasks since 11:00 (at 11:00, 12:00, etc).  \nCalendarIntervalTrigger.FireOnceNow| 1| -| CalendarIntervalTrigger  \n`CalendarIntervalTrigger.FireOnceNow` **behavior description** The behavior is similar to the `CronTrigger.FireOnceNow`.  \nCalendarIntervalTrigger.DoNothing| 2| -| CalendarIntervalTrigger  \n`CalendarIntervalTrigger.DoNothing` **behavior description** The behavior is similar to the `CronTrigger.DoNothing`.",
+  "code_examples": [
+    {
+      "code": "<add key=\"quartz.threadPool.threadCount\" value=\"5\" />",
+      "language": "xml",
+      "context": "If the scheduler delays the tasks or if some tasks have not been executed, increase the number of Quartz threads. For this, set necessary number of threads in theWeb.configof the application loader:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add key=\"quartz.jobStore.misfireThreshold\" value=\"60000\" /><add key=\"quartz.threadPool.threadCount\" value=\"3\" />",
+      "language": "xml",
+      "context": "For example, an application with a number of tasks much bigger than a number of threads. The most of tasks are executed with a small interval (1 minute). The value of themisfireThresholdsetting is 1 m",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add key=\"quartz.jobStore.misfireThreshold\" value=\"600000\" />;",
+      "language": "xml",
+      "context": "Increase themisfireThresholdvalue to 10 minutes (and clear thePREV_FIRE_TIMEinQRTZ_TRIGGERS):",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "if (TRIGGER_TYPE == 'SIMPLE') // Simple trigger.    if (REPEAT_COUNT == 0) // Without repeats.        MISFIRE_INSTR = 1 // SimpleTrigger.FireNow    else if (REPEAT_COUNT == -1) // COntinious repeating.        MISFIRE_INSTR = 4 // SimpleTrigger.RescheduleNextWithRemainingCount    else // The number of repetitions is indicated.        MISFIRE_INSTR = 2 // SimpleTrigger.RescheduleNowWithExistingRepeatCountelse if (TRIGGER_TYPE == 'CAL_INT') // CalendarInterval trigger.    MISFIRE_INSTR = 1 // CalendarIntervalTrigger.FireOnceNowelse if (TRIGGER_TYPE == 'CRON') // Cron trigger.    MISFIRE_INSTR = 1 // CronTrigger.FireOnceNow",
+      "language": "js",
+      "context": "By default is used by Quartz for all types of triggers. According to the type and configuration of the trigger, the Quartz will select corresponding policy. The selection algorithm for the Quartz vers",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Quartz policy",
+          "TheMISFIRE_INSTRvalue",
+          "TheTerrasoft.Core.Scheduler.AppSchedulerMisfireInstructionvalue",
+          "Trigger type"
+        ],
+        [
+          "IgnoreMisfirePolicy",
+          "-1",
+          "IgnoreMisfirePolicy",
+          "for all types"
+        ],
+        [
+          "IgnoreMisfirePolicybehavior descriptionTriggers with theIgnoreMisfirePolicyalways will be fired in time. For such triggers, the Quartz will not update the next fire time (NEXT_FIRE_TIME).The Quartz will fire all overdue tasks as priority, and then return to the initial trigger schedule. For example, the task with theSimpleTriggerwas planned for 10 iterations. Initial conditions:START_TIME = 9:00REPEAT_COUNT = 9(first fire + 9 iterations)REPEAT_INTERVAL = 0:15If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire 2 overdue tasks as priority (in 9:00 and 9:15). After that the Quartz fires the 8 remaining tasks according to the schedule (at 9:30, 9:45, etc.)."
+        ],
+        [
+          "SmartPolicy",
+          "0",
+          "SmartPolicy",
+          "for all types"
+        ],
+        [
+          "SmartPolicybehavior descriptionBy default is used by Quartz for all types of triggers. According to the type and configuration of the trigger, the Quartz will select corresponding policy. The selection algorithm for the Quartz version 2.3.2 is shown in the pseudo-code below.if(TRIGGER_TYPE=='SIMPLE')// Simple trigger.if(REPEAT_COUNT==0)// Without repeats.MISFIRE_INSTR=1// SimpleTrigger.FireNowelseif(REPEAT_COUNT==-1)// COntinious repeating.MISFIRE_INSTR=4// SimpleTrigger.RescheduleNextWithRemainingCountelse// The number of repetitions is indicated.MISFIRE_INSTR=2// SimpleTrigger.RescheduleNowWithExistingRepeatCountelseif(TRIGGER_TYPE=='CAL_INT')// CalendarInterval trigger.MISFIRE_INSTR=1// CalendarIntervalTrigger.FireOnceNowelseif(TRIGGER_TYPE=='CRON')// Cron trigger.MISFIRE_INSTR=1// CronTrigger.FireOnceNow"
+        ],
+        [
+          "SimpleTrigger.FireNow",
+          "1",
+          "FireNow",
+          "SimpleTrigger"
+        ],
+        [
+          "SimpleTrigger.FireNowbehavior descriptionApplied for theSimpleTriggertriggers that have theREPEAT_COUNT=0(triggers fired for one time). If theREPEAT_COUNTvalue is not \"0\", then theSimpleTrigger.RescheduleNowWithRemainingRepeatCountpolicy will be applied.For example, the task planned with theSimpleTrigger. Initial conditions:START_TIME = 9:00REPEAT_COUNT = 0If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire the task as priority. As a result, the task will be fired at 9:20 or later."
+        ],
+        [
+          "SimpleTrigger.RescheduleNowWithExistingRepeatCount",
+          "2",
+          "RescheduleNowWithExistingRepeatCount",
+          "SimpleTrigger"
+        ],
+        [
+          "SimpleTrigger.RescheduleNowWithExistingRepeatCountbehavior descriptionScheduler will try to fire the first overdue task as a priority, All other triggers will be fired with theREPEAT_INTERVALinterval.For example, the task with theSimpleTriggerwas planned for 10 iterations. Initial conditions:START_TIME = 9:00REPEAT_COUNT = 9REPEAT_INTERVAL = 0:15If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire first overdue task scheduled for 9:00 (from tasks scheduled on 9:00 and 9:15) at 9:20. The remained 9 tasks will be fired at 9:35, 9:50, etc. For theAppScheduler.ScheduleMinutelyJobmethods the behavior of theRescheduleNowWithExistingRepeatCountis similar to theRescheduleNowWithRemainingRepeatCount, and the behavior of theRescheduleNextWithRemainingCountis similar to theRescheduleNextWithExistingCount, because the triggers with theREPEAT_COUNT = -1are used."
+        ],
+        [
+          "SimpleTrigger.RescheduleNowWithRemainingRepeatCount",
+          "3",
+          "RescheduleNowWithRemainingRepeatCount",
+          "SimpleTrigger"
+        ],
+        [
+          "SimpleTrigger.RescheduleNowWithRemainingRepeatCountbehavior descriptionScheduler will try to fire the first overdue task as a priority, Other overdue tasks are ignored. The scheduler fires remained tasks that are not overdue with theREPEAT_INTERVALinterval.For example, the task with theSimpleTriggerwas planned for 10 iterations. Initial conditions:START_TIME = 9:00REPEAT_COUNT = 9REPEAT_INTERVAL = 0:15If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire first overdue task (from tasks scheduled on 9:00 and 9:15) at 9:20. The second overdue task will be ignored and other 8 tasks will be fired at 9:35, 9:50, etc."
+        ],
+        [
+          "SimpleTrigger.RescheduleNextWithRemainingCount",
+          "4",
+          "RescheduleNextWithRemainingCount",
+          "SimpleTrigger"
+        ],
+        [
+          "SimpleTrigger.RescheduleNextWithRemainingCountbehavior descriptionThe scheduler ignores overdue tasks and waits for the next planned fire of the task. At the next fire time, the remaining non-overdue tasks will be executed with theREPEAT_INTERVALinterval.For example, the task with the Simple Trigger was planned for 10 iterations. Initial conditions:START_TIME = 9:00REPEAT_COUNT = 9REPEAT_INTERVAL = 0:15If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will fire the rest of 8 non-overdue tasks at 9:30, 9:45, etc."
+        ],
+        [
+          "SimpleTrigger.RescheduleNextWithExistingCount",
+          "5",
+          "RescheduleNextWithExistingCount",
+          "SimpleTrigger"
+        ],
+        [
+          "SimpleTrigger.RescheduleNextWithExistingCountbehavior descriptionThe scheduler will wait for the next launch time and will fire all remained tasks with theREPEAT_INTERVALinterval.For example, the task with theSimpleTriggerwas planned for 10 iterations. Initial conditions:START_TIME = 9:00REPEAT_COUNT = 9REPEAT_INTERVAL = 0:15If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will fire all 10 tasks at 9:30, 9:45, etc."
+        ],
+        [
+          "CronTrigger.FireOnceNow",
+          "1",
+          "-",
+          "CronTrigger"
+        ],
+        [
+          "CronTrigger.FireOnceNowbehavior descriptionScheduler will try to fire the first overdue task as a priority. Other overdue tasks are ignored. Remained non-overdue tasks are fired by the scheduler according to the schedule.For example, the task planned with theCronTrigger:CRON_EXPRESSION = '0 0 9-17 ? * MON-FRI(from Monday to Friday 9:00 AM \u2013 17:00 PM). If the scheduler was disabled from 8:50 till 10:20, then after launch at 10:20 the Quartz will try to fire first overdue task from two (at 9:00 and 10:00). After that, tasks will be fired at 11:00, 12:00, etc."
+        ],
+        [
+          "CronTrigger.DoNothing",
+          "2",
+          "-",
+          "CronTrigger"
+        ],
+        [
+          "CronTrigger.DoNothingbehavior descriptionScheduler ignores all overdue tasks. Remained non-overdue tasks will be fired according to the schedule.For example, the task planned with theCronTrigger:CRON_EXPRESSION = '0 0 9-17 ? * MON-FRI(from Monday to Friday 9:00 AM \u2013 17:00 PM). If the scheduler was disabled from 8:50 till 10:20, then after launch the Quartz will start to fire tasks since 11:00 (at 11:00, 12:00, etc)."
+        ],
+        [
+          "CalendarIntervalTrigger.FireOnceNow",
+          "1",
+          "-",
+          "CalendarIntervalTrigger"
+        ],
+        [
+          "CalendarIntervalTrigger.FireOnceNowbehavior descriptionThe behavior is similar to theCronTrigger.FireOnceNow."
+        ],
+        [
+          "CalendarIntervalTrigger.DoNothing",
+          "2",
+          "-",
+          "CalendarIntervalTrigger"
+        ],
+        [
+          "CalendarIntervalTrigger.DoNothingbehavior descriptionThe behavior is similar to theCronTrigger.DoNothing."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Quartz policy</p></th><th><p>The <code>MISFIRE_INSTR</code> value</p></th><th><p>The <code>Terrasoft.Core.Scheduler.AppSchedulerMisfireInstruction</code> value</p></th><th><p>Trigger type</p></th></tr><tr><td><center><p>IgnoreMisfirePolicy</p></center></td><td><center><p>-1</p></center></td><td><center><p>IgnoreMisfirePolicy</p></center></td><td><center><p>for all types</p></center></td></tr><tr><td colspan=\"4\"><p><code>IgnoreMisfirePolicy</code> <strong>behavior description</strong></p><p>Triggers with the <code>IgnoreMisfirePolicy</code> always will be fired in time. For such triggers, the Quartz will not update the next fire time (<code>NEXT_FIRE_TIME</code>).</p><p>The Quartz will fire all overdue tasks as priority, and then return to the initial trigger schedule. For example, the task with the <code>SimpleTrigger</code> was planned for 10 iterations. Initial conditions:</p><ul>\n<li><code>START_TIME = 9:00</code></li>\n<li><code>REPEAT_COUNT = 9</code> (first fire + 9 iterations)</li>\n<li><code>REPEAT_INTERVAL = 0:15</code></li>\n</ul><p>If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire 2 overdue tasks as priority (in 9:00 and 9:15). After that the Quartz fires the 8 remaining tasks according to the schedule (at 9:30, 9:45, etc.).</p></td></tr><tr><td><center><p>SmartPolicy</p></center></td><td><center><p>0</p></center></td><td><center><p>SmartPolicy</p></center></td><td><center><p>for all types</p></center></td></tr><tr><td colspan=\"4\"><p><code>SmartPolicy</code> <strong>behavior description</strong></p><p>By default is used by Quartz for all types of triggers. According to the type and configuration of the trigger, the Quartz will select corresponding policy. The selection algorithm for the Quartz version 2.3.2 is shown in the pseudo-code below.</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">if</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">TRIGGER_TYPE</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">==</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'SIMPLE'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// Simple trigger.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">if</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">REPEAT_COUNT</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">==</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">0</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// Without repeats.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">MISFIRE_INSTR</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">1</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// SimpleTrigger.FireNow</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">else</span><span class=\"token plain\"> </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">if</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">REPEAT_COUNT</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">==</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">-</span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">1</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// COntinious repeating.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">MISFIRE_INSTR</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">4</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// SimpleTrigger.RescheduleNextWithRemainingCount</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">else</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// The number of repetitions is indicated.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">MISFIRE_INSTR</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">2</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// SimpleTrigger.RescheduleNowWithExistingRepeatCount</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">else</span><span class=\"token plain\"> </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">if</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">TRIGGER_TYPE</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">==</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'CAL_INT'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// CalendarInterval trigger.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">MISFIRE_INSTR</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">1</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// CalendarIntervalTrigger.FireOnceNow</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">else</span><span class=\"token plain\"> </span><span class=\"token keyword control-flow\" style=\"color: rgb(0, 0, 159);\">if</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">TRIGGER_TYPE</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">==</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'CRON'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// Cron trigger.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token constant\" style=\"color: rgb(54, 172, 170);\">MISFIRE_INSTR</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">1</span><span class=\"token plain\"> </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// CronTrigger.FireOnceNow</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td></tr><tr><td><center><p>SimpleTrigger.FireNow</p></center></td><td><center><p>1</p></center></td><td><center><p>FireNow</p></center></td><td><center><p>SimpleTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>SimpleTrigger.FireNow</code> <strong>behavior description</strong></p><p>Applied for the <code>SimpleTrigger</code> triggers that have the <code>REPEAT_COUNT=0</code> (triggers fired for one time). If the <code>REPEAT_COUNT</code> value is not \"0\", then the <code>SimpleTrigger.RescheduleNowWithRemainingRepeatCount</code> policy will be applied.</p><p>For example, the task planned with the <code>SimpleTrigger</code>. Initial conditions:</p><ul>\n<li><code>START_TIME = 9:00</code></li>\n<li><code>REPEAT_COUNT = 0</code></li>\n</ul><p>If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire the task as priority. As a result, the task will be fired at 9:20 or later.</p></td></tr><tr><td><center><p>SimpleTrigger.RescheduleNowWithExistingRepeatCount</p></center></td><td><center><p>2</p></center></td><td><center><p>RescheduleNowWithExistingRepeatCount</p></center></td><td><center><p>SimpleTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>SimpleTrigger.RescheduleNowWithExistingRepeatCount</code> <strong>behavior description</strong></p><p>Scheduler will try to fire the first overdue task as a priority, All other triggers will be fired with the <code>REPEAT_INTERVAL</code> interval.</p><p>For example, the task with the <code>SimpleTrigger</code> was planned for 10 iterations. Initial conditions:</p><ul>\n<li><code>START_TIME = 9:00</code></li>\n<li><code>REPEAT_COUNT = 9</code></li>\n<li><code>REPEAT_INTERVAL = 0:15</code></li>\n</ul><p>If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire first overdue task scheduled for 9:00 (from tasks scheduled on 9:00 and 9:15) at 9:20. The remained 9 tasks will be fired at 9:35, 9:50, etc. For the <code>AppScheduler.ScheduleMinutelyJob</code> methods the behavior of the <code>RescheduleNowWithExistingRepeatCount</code> is similar to the <code>RescheduleNowWithRemainingRepeatCount</code>, and the behavior of the <code>RescheduleNextWithRemainingCount</code> is similar to the <code>RescheduleNextWithExistingCount</code>, because the triggers with the <code>REPEAT_COUNT = -1</code> are used.</p></td></tr><tr><td><center><p>SimpleTrigger.RescheduleNowWithRemainingRepeatCount</p></center></td><td><center><p>3</p></center></td><td><center><p>RescheduleNowWithRemainingRepeatCount</p></center></td><td><center><p>SimpleTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>SimpleTrigger.RescheduleNowWithRemainingRepeatCount</code> <strong>behavior description</strong></p><p>Scheduler will try to fire the first overdue task as a priority, Other overdue tasks are ignored. The scheduler fires remained tasks that are not overdue with the <code>REPEAT_INTERVAL</code> interval.</p><p>For example, the task with the <code>SimpleTrigger</code> was planned for 10 iterations. Initial conditions:</p><ul>\n<li><code>START_TIME = 9:00</code></li>\n<li><code>REPEAT_COUNT = 9</code></li>\n<li><code>REPEAT_INTERVAL = 0:15</code></li>\n</ul><p>If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will try to fire first overdue task (from tasks scheduled on 9:00 and 9:15) at 9:20. The second overdue task will be ignored and other 8 tasks will be fired at 9:35, 9:50, etc.</p></td></tr><tr><td><center><p>SimpleTrigger.RescheduleNextWithRemainingCount</p></center></td><td><center><p>4</p></center></td><td><center><p>RescheduleNextWithRemainingCount</p></center></td><td><center><p>SimpleTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>SimpleTrigger.RescheduleNextWithRemainingCount</code> <strong>behavior description</strong></p><p>The scheduler ignores overdue tasks and waits for the next planned fire of the task. At the next fire time, the remaining non-overdue tasks will be executed with the <code>REPEAT_INTERVAL</code> interval.</p><p>For example, the task with the Simple Trigger was planned for 10 iterations. Initial conditions:</p><ul>\n<li><code>START_TIME = 9:00</code></li>\n<li><code>REPEAT_COUNT = 9</code></li>\n<li><code>REPEAT_INTERVAL = 0:15</code></li>\n</ul><p>If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will fire the rest of 8 non-overdue tasks at 9:30, 9:45, etc.</p></td></tr><tr><td><center><p>SimpleTrigger.RescheduleNextWithExistingCount</p></center></td><td><center><p>5</p></center></td><td><center><p>RescheduleNextWithExistingCount</p></center></td><td><center><p>SimpleTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>SimpleTrigger.RescheduleNextWithExistingCount</code> <strong>behavior description</strong></p><p>The scheduler will wait for the next launch time and will fire all remained tasks with the <code>REPEAT_INTERVAL</code> interval.</p><p>For example, the task with the <code>SimpleTrigger</code> was planned for 10 iterations. Initial conditions:</p><ul>\n<li><code>START_TIME = 9:00</code></li>\n<li><code>REPEAT_COUNT = 9</code></li>\n<li><code>REPEAT_INTERVAL = 0:15</code></li>\n</ul><p>If the scheduler was disabled from 8:50 till 9:20, then after launch the Quartz will fire all 10 tasks at 9:30, 9:45, etc.</p></td></tr><tr><td><center><p>CronTrigger.FireOnceNow</p></center></td><td><center><p>1</p></center></td><td><center><p>-</p></center></td><td><center><p>CronTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>CronTrigger.FireOnceNow</code> <strong>behavior description</strong></p><p>Scheduler will try to fire the first overdue task as a priority. Other overdue tasks are ignored. Remained non-overdue tasks are fired by the scheduler according to the schedule.</p><p>For example, the task planned with the <code>CronTrigger</code>: <code>CRON_EXPRESSION = '0 0 9-17 ? * MON-FRI</code> (from Monday to Friday 9:00 AM \u2013 17:00 PM). If the scheduler was disabled from 8:50 till 10:20, then after launch at 10:20 the Quartz will try to fire first overdue task from two (at 9:00 and 10:00). After that, tasks will be fired at 11:00, 12:00, etc.</p></td></tr><tr><td><center><p>CronTrigger.DoNothing</p></center></td><td><center><p>2</p></center></td><td><center><p>-</p></center></td><td><center><p>CronTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>CronTrigger.DoNothing</code> <strong>behavior description</strong></p><p>Scheduler ignores all overdue tasks. Remained non-overdue tasks will be fired according to the schedule.</p><p>For example, the task planned with the <code>CronTrigger</code>: <code>CRON_EXPRESSION = '0 0 9-17 ? * MON-FRI</code> (from Monday to Friday 9:00 AM \u2013 17:00 PM). If the scheduler was disabled from 8:50 till 10:20, then after launch the Quartz will start to fire tasks since 11:00 (at 11:00, 12:00, etc).</p></td></tr><tr><td><center><p>CalendarIntervalTrigger.FireOnceNow</p></center></td><td><center><p>1</p></center></td><td><center><p>-</p></center></td><td><center><p>CalendarIntervalTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>CalendarIntervalTrigger.FireOnceNow</code> <strong>behavior description</strong></p><p>The behavior is similar to the <code>CronTrigger.FireOnceNow</code>.</p></td></tr><tr><td><center><p>CalendarIntervalTrigger.DoNothing</p></center></td><td><center><p>2</p></center></td><td><center><p>-</p></center></td><td><center><p>CalendarIntervalTrigger</p></center></td></tr><tr><td colspan=\"4\"><p><code>CalendarIntervalTrigger.DoNothing</code> <strong>behavior description</strong></p><p>The behavior is similar to the <code>CronTrigger.DoNothing</code>.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe functionality is relevant to Classic UI.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The functionality is relevant to Classic UI.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteTheWeb.configfile of the application loader located in the root folder of the installed Creatio application.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The <code>Web.config</code> file of the application loader located in the root folder of the installed Creatio application.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "TheWeb.configfile of the application loader located in the root folder of the installed Creatio application.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The <code>Web.config</code> file of the application loader located in the root folder of the installed Creatio application.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/RecommendedSchedulerSettings/queue_01.png",
+      "alt": "",
+      "title": "",
+      "context": "The scheduler queue after 15 minutes of working is displayed on the figure. Tasks that have thePREV_",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_platform-customization_classic-ui_task-scheduler_67ffa85f25d0.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/RecommendedSchedulerSettings/queue_02.png",
+      "alt": "",
+      "title": "",
+      "context": "The scheduler queue after 15 minutes of working:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_platform-customization_classic-ui_task-scheduler_02d5f00c7e77.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Customize quartz task scheduler",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Recommendations on scheduler setup\u200b",
+      "anchor": "title-1492-1"
+    },
+    {
+      "level": 3,
+      "text": "Ignore misfire policy\u200b",
+      "anchor": "title-1492-2"
+    },
+    {
+      "level": 3,
+      "text": "Run immediately and continue\u200b",
+      "anchor": "title-1492-3"
+    },
+    {
+      "level": 3,
+      "text": "Discard and wait for next\u200b",
+      "anchor": "title-1492-4"
+    },
+    {
+      "level": 3,
+      "text": "Quartz configuration\u200b",
+      "anchor": "title-1492-5"
+    },
+    {
+      "level": 4,
+      "text": "thread count\u200b",
+      "anchor": "title-1492-6"
+    },
+    {
+      "level": 4,
+      "text": "misfireThreshold\u200b",
+      "anchor": "title-1492-7"
+    },
+    {
+      "level": 4,
+      "text": "batchTriggerAcquisitionMaxCount\u200b",
+      "anchor": "title-1492-8"
+    },
+    {
+      "level": 2,
+      "text": "Quartz policies for the processing of overdue tasks\u200b",
+      "anchor": "title-1492-9"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/opening-the-page",
+      "text": "Opening the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/emails-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "NextInterface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/anonymous-access",
+      "text": "Retrieve allowed features before login",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/emails/examples/add-a-filtering-property",
+      "text": "PreviousAdd a filtering property",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:16:13.091514"
+}

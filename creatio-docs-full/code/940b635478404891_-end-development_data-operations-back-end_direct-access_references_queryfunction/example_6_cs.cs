@@ -1,0 +1,1 @@
+static QueryColumnExpression Multiply(QueryFunction leftOperand, QueryFunction rightOperand)

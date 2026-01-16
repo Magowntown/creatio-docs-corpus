@@ -1,0 +1,1 @@
+{    "Descriptor": {        "UId": "SomeUserMadePackageID",        "PackageVersion": "SomeUserMadePackageVersion",        "Name": "SomeUserMadePackage",        "ModifiedOnUtc": "\/Date(1522657977000)\/",        "Maintainer": "SomeDeveloper",        "DependsOn": []    }}

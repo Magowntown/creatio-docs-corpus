@@ -1,0 +1,1 @@
+/* AMD module declaration. */define("UsrAppClientSchemaName", ["@creatio-devkit/common"], function (sdk) {    ...});

@@ -1,0 +1,1 @@
+public override SchemaDataBindingStructure ObtainStructure(UserConnection userConnection)

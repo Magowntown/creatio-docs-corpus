@@ -1,0 +1,1 @@
+<terrasoft>    ...    <db>        <general connectionStringName="db" securityEngineType="Terrasoft.DB.MSSql.MSSqlSecurityEngine, Terrasoft.DB.MSSql" ... />    </db>    ...</terrasoft>

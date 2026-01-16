@@ -1,0 +1,1 @@
+// Creating an attachment.var attachment = new EmailContract.DTO.Attachment {    Name = "FileName",    Id = "844F0837-EAA0-4F40-B965-71F5DB9EAE6E"};// Setting data for the attachmentattachment.SetData(byteData);// Adding the attachment to the message.message.Attachments.Add(attachment);

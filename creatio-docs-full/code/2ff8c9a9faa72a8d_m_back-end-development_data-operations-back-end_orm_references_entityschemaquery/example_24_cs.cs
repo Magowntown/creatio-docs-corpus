@@ -1,0 +1,1 @@
+RootSchema Terrasoft.Core.Entities.EntitySchema

@@ -1,0 +1,1 @@
+InsertSelect Into(string schemaName)InsertSelect Into(ModifyQuerySource source)

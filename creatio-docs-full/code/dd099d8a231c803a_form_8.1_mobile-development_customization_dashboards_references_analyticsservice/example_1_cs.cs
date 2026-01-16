@@ -1,0 +1,1 @@
+Stream GetDashboardData(Guid id, int timeZoneOffset)

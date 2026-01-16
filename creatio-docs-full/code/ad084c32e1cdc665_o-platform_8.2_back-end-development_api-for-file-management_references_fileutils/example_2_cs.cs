@@ -1,0 +1,1 @@
+static Stream Read(this IFile source)

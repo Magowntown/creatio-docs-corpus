@@ -1,0 +1,1 @@
+var activitiesCount = new Select(userConnection)    .Column(        Func.Count(            Column.Asterisk()        )    )    .From("Activity")

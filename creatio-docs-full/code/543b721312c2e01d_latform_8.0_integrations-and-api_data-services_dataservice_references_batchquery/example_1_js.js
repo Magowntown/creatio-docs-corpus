@@ -1,0 +1,1 @@
+// URL example of the batch POST query to DataService.http(s)://example.creatio.com/0/dataservice/json/reply/BatchQuery

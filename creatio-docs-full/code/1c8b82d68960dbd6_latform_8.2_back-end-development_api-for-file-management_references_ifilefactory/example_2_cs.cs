@@ -1,0 +1,1 @@
+IFile Create(IFileLocator fileLocator, FileOptions options)

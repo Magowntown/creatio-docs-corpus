@@ -1,0 +1,1 @@
+abstract bool GetIsSupportepataValueType(DataValueType dataValueType)

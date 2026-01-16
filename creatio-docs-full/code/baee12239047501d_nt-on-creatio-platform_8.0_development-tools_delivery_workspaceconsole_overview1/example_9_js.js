@@ -1,0 +1,1 @@
+[Path to WorkspaceConsolee]\Terrasoft.Tools.WorkspaceConsole.exe -operation=ChangeFeatureState -featureCode=[Feature code] -featureState=[Feature status] -adminUnitName=[User name] -workspaceName=[Workspace name] -confRuntimeParentDirectory=[Path to a local directory] -logPath=[Path to a local directory] -autoExit=true

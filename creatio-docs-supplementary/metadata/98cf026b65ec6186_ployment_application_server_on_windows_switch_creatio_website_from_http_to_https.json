@@ -1,0 +1,482 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/switch_creatio_website_from_http_to_https",
+  "title": "Switch a Creatio website from HTTP to HTTPS",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/8.0/category/on-site-deployment"
+    },
+    {
+      "text": "Application server on Windows",
+      "href": "/docs/8.x/setup-and-administration/8.0/category/application-server-on-windows"
+    }
+  ],
+  "content_markdown": "Version: 8.0All Creatio products\nOn this page\nThe HTTPS protocol ensures secure connection between a client and a web service. Switching from HTTP to HTTPS is recommended to increase system security and enable additional services, such as WebRTC support in Webitel. Please note that this article refers only to on-site applications. To switch to HTTPS, you need to change several options of the website in IIS and edit the Web.config file. Creatio cloud uses secure connection by default.\nnote\nYou will not be able to use the advantages of HTTPS if Creatio application is deployed on Windows Server 2008.\n## IIS setup\u200b\nBefore configuring HTTPS, do the following:\n* Obtain a digital certificate from the certification center in PFX format;\nnote\nIf you are using a self-signed certificate, Creatio mobile application will not be able to connect to the Creatio site due to the security policies of mobile applications.\n* [Set up websockets](https://academy.creatio.com/documents?product=studio&ver=7&id=1631) for the correct operation of all system components.\n* Additionally, check the list of installed [IIS components](https://academy.creatio.com/documents?product=studio&ver=7&id=2081) to avoid errors during Creatio setup and operation.\nThe received digital certificate must be loaded into the server certificate storage:\n1. Open Internet Information Services (IIS) Manager.\n2. In the main IIS window, double-click the **Server Certificates** detail ([Fig. 1](https://academy.creatio.com#XREF_77594_371_Server)).\nFig. 1 Selecting the Server Certificates detail\n![Fig.\u00a01 Selecting the Server Certificates detail](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_server_certificates.png)\n3. In the **Server Certificates** window, click the **import** link in the action menu to the right ([Fig. 2](https://academy.creatio.com#XREF_69608_372_Import)).\nFig. 2 Opening the Import window\n![Fig.\u00a02 Opening the Import window](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_import_link.png)\n4. In the import dialog box, specify:\n1. Path to the import file hosted on the server\n2. Password (if required)\n3. Certificate storage ([Fig. 3](https://academy.creatio.com#XREF_95244_373))\nFig. 3 Certificate import window\n![Fig.\u00a03 Certificate import window](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_import_certificate.png)\n5. Click **OK** to import the certificate.\nNext, connect the imported certificate to the Creatio application:\n1. In the IIS window, go to the application website by clicking its name in the left **Connections** menu ([Fig. 4](https://academy.creatio.com#XREF_94357_374_bpm_online_IIS)).\nFig. 4 Selecting the Creatio website in the IIS window\n![Fig.\u00a04 Selecting the Creatio website in the IIS window](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_site_select.png)\n2. Click the **Bindings** link in the action menu ([Fig. 5](https://academy.creatio.com#XREF_85776_375)).\nFig. 5 Selecting website bindings\n![Fig.\u00a05 Selecting website bindings](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_site_bindings_link.png)\n3. In the website bindings menu, click **Add** and add a new binding. In the **Add Site Binding** window, specify:\n1. Type \"https\"\n2. Website address\n3. SSL certificate ([Fig. 6](https://academy.creatio.com#XREF_15061_376_bpm_online)).\nFig. 6 Binding a certificate to the Creatio website\n![Fig.\u00a06 Binding a certificate to the Creatio website](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_site_binding.png)\n4. Click **OK** to confirm the settings.\nNow the certificate is successfully bound to the web application.\n## Web.config setup\u200b\nAfter adding the certificate, you need to make changes to the Web.config configuration file, located in the **root directory** of the Creatio website.\n1. At the end of the file, find:\n<behaviors configSource=\"Terrasoft.WebApp\\ServiceModel\\http\\behaviors.config\" />  \n<bindings configSource=\"Terrasoft.WebApp\\ServiceModel\\http\\bindings.config\" />  \n2. Change paths from \"http\" to \"https\":\n<behaviors configSource=\"Terrasoft.WebApp\\ServiceModel\\https\\behaviors.config\" />  \n<bindings configSource=\"Terrasoft.WebApp\\ServiceModel\\https\\bindings.config\" />  \nEdit the Web.config file located in the **Path to the root website directory\\Terrasoft.WebApp** directory.\n1. Set the variable value to encrypted=\"true\". The configuration differs depending on the operating system of the server with Creatio application.\nFor Windows Server 2016 and higher, the configuration string should look as follows:\n<wsService  \ntype=\"Terrasoft.Messaging.MicrosoftWSService.MicrosoftWSService,  \nTerrasoft.Messaging.MicrosoftWSService\" encrypted=\"true\"  \nportForClientConnection=\"443\" maxConnectionNumber=\"100\"  \nclearIdleSession=\"false\" clearIdleSessionInterval=\"120\" />  \n2. At the end of the file, find:\n<services configSource=\"ServiceModel\\http\\services.config\" />  \n3. Change the path from \"http\" to \"https\":\n<services configSource=\"ServiceModel\\https\\services.config\" />  \nSave the configuration files.\nRestart the application in the IIS and then go to your Creatio website. If all is done right, then in the address bar you will see \"https://\" before the web address of the application.\n* * *\n## See also\u200b\n[Setting up additional parameters and integrations](https://academy.creatio.com/documents?product=studio&ver=7&id=1633)\n[Creatio setup FAQ](https://academy.creatio.com/documents?product=studio&ver=7&id=1634)\n[System requirements calculator](https://academy.creatio.com/docs/requirements/calculator)",
+  "code_examples": [
+    {
+      "code": "<behaviors configSource=\"Terrasoft.WebApp\\ServiceModel\\http\\behaviors.config\" /><bindings configSource=\"Terrasoft.WebApp\\ServiceModel\\http\\bindings.config\" />",
+      "language": "xml",
+      "context": "At the end of the file, find:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<behaviors configSource=\"Terrasoft.WebApp\\ServiceModel\\https\\behaviors.config\" /><bindings configSource=\"Terrasoft.WebApp\\ServiceModel\\https\\bindings.config\" />",
+      "language": "xml",
+      "context": "Change paths from \"http\" to \"https\":",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<wsService type=\"Terrasoft.Messaging.MicrosoftWSService.MicrosoftWSService, Terrasoft.Messaging.MicrosoftWSService\" encrypted=\"true\" portForClientConnection=\"443\" maxConnectionNumber=\"100\" clearIdleSession=\"false\" clearIdleSessionInterval=\"120\" />",
+      "language": "xml",
+      "context": "For Windows Server 2016 and higher, the configuration string should look as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<services configSource=\"ServiceModel\\http\\services.config\" />",
+      "language": "xml",
+      "context": "At the end of the file, find:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<services configSource=\"ServiceModel\\https\\services.config\" />",
+      "language": "xml",
+      "context": "Change the path from \"http\" to \"https\":",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteYou will not be able to use the advantages of HTTPS if Creatio application is deployed on Windows Server 2008.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You will not be able to use the advantages of HTTPS if Creatio application is deployed on Windows Server 2008.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You will not be able to use the advantages of HTTPS if Creatio application is deployed on Windows Server 2008.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You will not be able to use the advantages of HTTPS if Creatio application is deployed on Windows Server 2008.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you are using a self-signed certificate, Creatio mobile application will not be able to connect to the Creatio site due to the security policies of mobile applications.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you are using a self-signed certificate, Creatio mobile application will not be able to connect to the Creatio site due to the security policies of mobile applications.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you are using a self-signed certificate, Creatio mobile application will not be able to connect to the Creatio site due to the security policies of mobile applications.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you are using a self-signed certificate, Creatio mobile application will not be able to connect to the Creatio site due to the security policies of mobile applications.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_server_certificates.png",
+      "alt": "Fig.\u00a01 Selecting the Server Certificates detail",
+      "title": "",
+      "context": "In the main IIS window, double-click theServer Certificatesdetail (Fig.\u00a01).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/98cf026b65ec6186_ployment_application_server_on_windows_switch_creatio_website_from_http_to_https_89a5309f6e13.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_import_link.png",
+      "alt": "Fig.\u00a02 Opening the Import window",
+      "title": "",
+      "context": "In theServer Certificateswindow, click theimportlink in the action menu to the right (Fig.\u00a02).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/98cf026b65ec6186_ployment_application_server_on_windows_switch_creatio_website_from_http_to_https_ecd21f9695b0.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_import_certificate.png",
+      "alt": "Fig.\u00a03 Certificate import window",
+      "title": "",
+      "context": "Certificate storage (Fig.\u00a03)",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/98cf026b65ec6186_ployment_application_server_on_windows_switch_creatio_website_from_http_to_https_e10e2d83684a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_site_select.png",
+      "alt": "Fig.\u00a04 Selecting the Creatio website in the IIS window",
+      "title": "",
+      "context": "In the IIS window, go to the application website by clicking its name in the leftConnectionsmenu (Fi",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/98cf026b65ec6186_ployment_application_server_on_windows_switch_creatio_website_from_http_to_https_560354c4e72d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_iis_site_bindings_link.png",
+      "alt": "Fig.\u00a05 Selecting website bindings",
+      "title": "",
+      "context": "Click theBindingslink in the action menu (Fig.\u00a05).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/98cf026b65ec6186_ployment_application_server_on_windows_switch_creatio_website_from_http_to_https_a788008f827a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/switch_from_HTTP_to_HTTPS/scr_chapter_setup_http_wnd_site_binding.png",
+      "alt": "Fig.\u00a06 Binding a certificate to the Creatio website",
+      "title": "",
+      "context": "SSL certificate (Fig.\u00a06).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/98cf026b65ec6186_ployment_application_server_on_windows_switch_creatio_website_from_http_to_https_72251e99ae68.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Switch a Creatio website from HTTP to HTTPS",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "IIS setup\u200b",
+      "anchor": "title-272-1"
+    },
+    {
+      "level": 2,
+      "text": "Web.config setup\u200b",
+      "anchor": "title-272-2"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/switch_creatio_website_from_http_to_https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/user-access-overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-access-overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-access-overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/email-domain-verification",
+      "text": "Email domain verification",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/general_creatio_deployment_procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/system_requirements/client-side_system_requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/system_requirements/server-side_system_requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/database_server/deploy_ms_sql_database_for_creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/database_server/deploy_oracle_database_for_creatio",
+      "text": "Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/database_server/deploy_postgresql_database_linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/database_server/deploy_postgresql_database_windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/caching_server/set_up_secure_connection_to_redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/caching_server/general_setup_procedure_for_data_caching_server_redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/caching_server/redis_cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_linux/move_creatio_net_core_3_1_to_net_6",
+      "text": "Move Creatio to .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/net-core-server",
+      "text": ".NET Core server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/net-6-server",
+      "text": ".NET 6 server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/enable_required_windows_components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/modify_connectionstrings_config_for_ms_sql_server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/modify_connectionstrings_config_for_oracle_database",
+      "text": "ConnectionStrings.config for Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/modify_connectionstrings_config_for_postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/modify_web_config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/deploy_creatio_application_server_on_iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/application_server_on_windows/set_up_websockets",
+      "text": "PreviousSet up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/additional-setup",
+      "text": "NextAdditional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/oauth-20-authorization",
+      "text": "OAuth 2.0 authorization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/google_integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/landing_page_integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/sase_resolution_notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/data_enrichment_service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/bulk_emails",
+      "text": "Bulk emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/application_server_web_farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/secure_access_to_the_portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/version_control_system_for_development_environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_additional_setup/chat_access_setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/containerized_components/global_search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/containerized_components/bulk_duplicate_search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/containerized_components/global_search_and_deduplication_faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/containerized_components/email_listener_synchronization_service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/containerized_components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_faq/creatio_net_products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_faq/framework_compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_faq/creatio_net_core_products",
+      "text": "Creatio .NET Core products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/deployment_faq/creatio_setup_faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/requirements/calculator",
+      "text": "System requirements calculator",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T08:03:34.490713"
+}

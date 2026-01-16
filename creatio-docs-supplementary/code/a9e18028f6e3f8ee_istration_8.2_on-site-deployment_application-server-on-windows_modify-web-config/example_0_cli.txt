@@ -1,0 +1,1 @@
+.\UpdateMachineKey.ps1 "[Path to the root Creatio directory]"

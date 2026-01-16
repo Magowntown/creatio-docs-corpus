@@ -1,0 +1,1 @@
+methods: {    someFunction: function(val) {        /* ... */    }},diff: /**SCHEMA_DIFF*/[  {      /* ... */      "values": {          "generator": "someFunction"      }      /* ... */  }]/**SCHEMA_DIFF*/

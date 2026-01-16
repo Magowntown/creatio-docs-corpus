@@ -1,0 +1,991 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/examples/add-a-button-to-the-page-combined-mode",
+  "title": "Add a button to the toolbar of the record page in the combined mode",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Record page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page"
+    },
+    {
+      "text": "Button",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nExample\nAdd a button to the toolbar of the account page displayed in combined mode.\n* If the primary contact is specified for an account, clicking on the button opens the contact page.\n* If the primary contact is not specified for an account, the button is inactive.\n## Create a replacement section view model schema\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2098-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"AccountSectionV2.\"\n* Set **Title** to \"Account section.\"\n* Set **Parent object** to \"AccountSectionV2.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToEditPage/7.18/scr_schema_props.png)\n4. Add a **localizable string**.\n1. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_button.png) in the context menu of the **Localizable strings** node.\n2. Fill out the **localizable string properties**.\n* Set **Code** to \"OpenPrimaryContactButtonCaption.\"\n* Set **Value** to \"Primary contact.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToSection/7.18/scr_localizable_string.png)\n3. To add a localizable string, click **Add**.\n5. Implement the **button business logic**.\n1. In the `attributes` property, add the `ButtonEnabled` attribute of the `Terrasoft.DataValueType.BOOLEAN` type, which preserves the accessibility state of the button.\n2. Implement the following **methods** in the `methods` property.\n* `onOpenPrimaryContactClick()` \u2013 opens the primary contact page.\n* `onCardRendered()` \u2013 listens to events emitted by loading data into the list and by changing the active list record. The method is executed after the account page is rendered in the combined mode.\n* `isPrimaryContactExist()` \u2013 defines the existence of the primary contact for active list record.\n* `setButtonEnabled()` \u2013 sets the value of the `ButtonEnabled` attribute depending on whether the main contact of the account is available.\n3. Add a configuration object with the settings that determine the button position in the `diff` array of modifications.\nThe source code of the replacement view model of the section page is available below:\nAccountSectionV2\ndefine(\"AccountSectionV2\", [], function() {  \nreturn {  \n/* The name of the section entity schema. */  \nentitySchemaName: \"Account\",  \nattributes: {  \n/* The attribute for storing the availability status of the button. */  \n\"ButtonEnabled\": {  \n\"dataValueType\": Terrasoft.DataValueType.BOOLEAN,  \n\"type\": Terrasoft.ViewModelColumnType.VIRTUAL_COLUMN,  \n\"value\": false  \n}  \n},  \n/* The methods of the section view model. */  \nmethods: {  \n/* The button click handler method. */  \nonOpenPrimaryContactClick: function() {  \n/* Get the active vertical list record. */  \nvar activeRow = this.get(\"ActiveRow\");  \nif (activeRow) {  \n/* Get the primary contact identifier. */  \nvar primaryId = this.get(\"GridData\").get(activeRow).get(\"PrimaryContact\").value;  \nif (primaryId) {  \n/* Create an address string. */  \nvar requestUrl = \"CardModuleV2/ContactPageV2/edit/\" + primaryId;  \n/* Publish a message about updating the page navigation history and go to the primary contact page. */  \nthis.sandbox.publish(\"PushHistoryState\", {  \nhash: requestUrl  \n});  \n}  \n}  \n},  \n/* Execute after the account page is rendered. */  \nonCardRendered: function() {  \nthis.callParent();  \n/* List data. */  \nvar gridData = this.get(\"GridData\");  \nvar activeRow = this.get(\"ActiveRow\");  \nif (activeRow)  \n{  \nthis.setButtonEnabled(activeRow, this);  \n}  \n/* The reference to the active record is lost after the primary contact page closes. Restore it and check if the primary contact is available. */  \nelse {  \nvar historyState = this.sandbox.publish(\"GetHistoryState\");  \nvar hash = historyState.hash;  \nif (hash && hash.valuePairs)  \n{  \nactiveRow = hash.valuePairs[0].name;  \n/* Restore an active record. */  \nthis.set(\"ActiveRow\", activeRow);  \n/* Save the \"this\" context to a local variable. */  \nvar self = this;  \n/* Listen to the \"dataloaded\" event. Fires when the data is fully loaded into the vertical list. */  \ngridData.on(\"dataloaded\", function() {  \nself.setButtonEnabled(activeRow, self);  \n});  \n}  \n}  \n/* Listen to the \"itemchanged\" event. Fires when the active list entry changes. */  \ngridData.on(\"itemchanged\", function() {  \nthis.setButtonEnabled(activeRow, this);  \n}, this);  \n},  \n/* Determine if there is a primary contact for the active list entry. */  \nisPrimaryContactExist: function(id) {  \nvar pc = this.get(\"GridData\").get(id).get(\"PrimaryContact\");  \nreturn (pc || pc !== \"\") ? true : false;  \n},  \n/* Set the value of the ButtonEnabled attribute depending on whether the primary contact is defined. */  \nsetButtonEnabled: function(activeRow, context) {  \nif (context.isPrimaryContactExist(activeRow)) {  \ncontext.set(\"ButtonEnabled\", true);  \n}  \nelse {  \ncontext.set(\"ButtonEnabled\", false);  \n}  \n}  \n},  \n/* Display the button on the record page. */  \ndiff: [  \n/* Properties to add the the custom button page. */  \n{  \n/* The operation of inserting the element to the page is in progress. */  \n\"operation\": \"insert\",  \n/* The meta name of the parent container to which the button is added. */  \n\"parentName\": \"CombinedModeActionButtonsCardLeftContainer\",  \n/* The button is added to the element collection of the parent element. */  \n\"propertyName\": \"items\",  \n/* The meta name of the added button. */  \n\"name\": \"MainContactButton\",  \n/* Properties passed to the element\u2019s constructor. */  \n\"values\": {  \n/* The type of the added element is a button. */  \n\"itemType\": Terrasoft.ViewItemType.BUTTON,  \n/* Bind the button title to the localizable schema string. */  \n\"caption\": {bindTo: \"Resources.Strings.OpenPrimaryContactButtonCaption\"},  \n/* Bind the button click handler method. */  \n\"click\": {bindTo: \"onOpenPrimaryContactClick\"},  \n/* The display style of the button. */  \n\"style\": Terrasoft.controls.ButtonEnums.style.GREEN,  \n/* Bind the button availability property. */  \n\"enabled\": {bindTo: \"ButtonEnabled\"}  \n}  \n}  \n]  \n};  \n});  \n6. Click **Save** on the Designer toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** , refresh the page in the **Accounts** section.\nAs a result of executing the example, the **Primary contact** button will been added to the toolbar of the **Accounts** section.\nIf the primary contact is specified for an account, click **Primary contact** to open the page of this contact.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToEditPage/7.18/scr_result_enabled.png)\nIf no primary contact is specified for an account, the **Primary contact** button is inactive.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToEditPage/7.18/scr_result_disabled.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddButtonToEditPage_2021-11-03_07.53.49.zip)",
+  "code_examples": [
+    {
+      "code": "define(\"AccountSectionV2\", [], function() {    return {        /* The name of the section entity schema. */        entitySchemaName: \"Account\",        attributes: {            /* The attribute for storing the availability status of the button. */            \"ButtonEnabled\": {                \"dataValueType\": Terrasoft.DataValueType.BOOLEAN,                \"type\": Terrasoft.ViewModelColumnType.VIRTUAL_COLUMN,                \"value\": false            }        },        /* The methods of the section view model. */        methods: {            /* The button click handler method. */            onOpenPrimaryContactClick: function() {                /* Get the active vertical list record. */                var activeRow = this.get(\"ActiveRow\");                if (activeRow) {                    /* Get the primary contact identifier. */                    var primaryId = this.get(\"GridData\").get(activeRow).get(\"PrimaryContact\").value;                    if (primaryId) {                        /* Create an address string. */                        var requestUrl = \"CardModuleV2/ContactPageV2/edit/\" + primaryId;                        /* Publish a message about updating the page navigation history and go to the primary contact page. */                        this.sandbox.publish(\"PushHistoryState\", {                            hash: requestUrl                        });                    }                }            },            /* Execute after the account page is rendered. */            onCardRendered: function() {                this.callParent();                /* List data. */                var gridData = this.get(\"GridData\");                var activeRow = this.get(\"ActiveRow\");                if (activeRow)                {                    this.setButtonEnabled(activeRow, this);                }                /* The reference to the active record is lost after the primary contact page closes. Restore it and check if the primary contact is available. */                else {                    var historyState = this.sandbox.publish(\"GetHistoryState\");                    var hash = historyState.hash;                    if (hash && hash.valuePairs)                    {                        activeRow = hash.valuePairs[0].name;                        /* Restore an active record. */                        this.set(\"ActiveRow\", activeRow);                        /* Save the \"this\" context to a local variable. */                        var self = this;                        /* Listen to the \"dataloaded\" event. Fires when the data is fully loaded into the vertical list. */                        gridData.on(\"dataloaded\", function() {                            self.setButtonEnabled(activeRow, self);                        });                    }                }                /* Listen to the \"itemchanged\" event. Fires when the active list entry changes. */                gridData.on(\"itemchanged\", function() {                    this.setButtonEnabled(activeRow, this);                }, this);            },            /* Determine if there is a primary contact for the active list entry. */            isPrimaryContactExist: function(id) {                var pc = this.get(\"GridData\").get(id).get(\"PrimaryContact\");                return (pc || pc !== \"\") ? true : false;            },            /* Set the value of the ButtonEnabled attribute depending on whether the primary contact is defined. */            setButtonEnabled: function(activeRow, context) {                if (context.isPrimaryContactExist(activeRow)) {                    context.set(\"ButtonEnabled\", true);                }                else {                    context.set(\"ButtonEnabled\", false);                }            }        },        /* Display the button on the record page. */        diff: [            /* Properties to add the the custom button page. */            {                /* The operation of inserting the element to the page is in progress. */                \"operation\": \"insert\",                /* The meta name of the parent container to which the button is added. */                \"parentName\": \"CombinedModeActionButtonsCardLeftContainer\",                /* The button is added to the element collection of the parent element. */                \"propertyName\": \"items\",                /* The meta name of the added button. */                \"name\": \"MainContactButton\",                /* Properties passed to the element\u2019s constructor. */                \"values\": {                    /* The type of the added element is a button. */                    \"itemType\": Terrasoft.ViewItemType.BUTTON,                    /* Bind the button title to the localizable schema string. */                    \"caption\": {bindTo: \"Resources.Strings.OpenPrimaryContactButtonCaption\"},                    /* Bind the button click handler method. */                    \"click\": {bindTo: \"onOpenPrimaryContactClick\"},                    /* The display style of the button. */                    \"style\": Terrasoft.controls.ButtonEnums.style.GREEN,                    /* Bind the button availability property. */                    \"enabled\": {bindTo: \"ButtonEnabled\"}                }            }        ]    };});",
+      "language": "js",
+      "context": "The source code of the replacement view model of the section page is available below:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd a button to the toolbar of the account page displayed in combined mode.If the primary contact is specified for an account, clicking on the button opens the contact page.If the primary contact is not specified for an account, the button is inactive.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a button to the toolbar of the account page displayed in combined mode.</p><ul>\n<li>If the primary contact is specified for an account, clicking on the button opens the contact page.</li>\n<li>If the primary contact is not specified for an account, the button is inactive.</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add a button to the toolbar of the account page displayed in combined mode.If the primary contact is specified for an account, clicking on the button opens the contact page.If the primary contact is not specified for an account, the button is inactive.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a button to the toolbar of the account page displayed in combined mode.</p><ul>\n<li>If the primary contact is specified for an account, clicking on the button opens the contact page.</li>\n<li>If the primary contact is not specified for an account, the button is inactive.</li>\n</ul></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/309f7fddd3fad498_on_classic-ui_record-page_button_examples_add-a-button-to-the-page-combined-mode_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToEditPage/7.18/scr_schema_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/309f7fddd3fad498_on_classic-ui_record-page_button_examples_add-a-button-to-the-page-combined-mode_7a847b726082.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickin the context menu of theLocalizable stringsnode.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/309f7fddd3fad498_on_classic-ui_record-page_button_examples_add-a-button-to-the-page-combined-mode_2bc54520fe09.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToSection/7.18/scr_localizable_string.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out thelocalizable string properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/309f7fddd3fad498_on_classic-ui_record-page_button_examples_add-a-button-to-the-page-combined-mode_fe60d291da78.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToEditPage/7.18/scr_result_enabled.png",
+      "alt": "",
+      "title": "",
+      "context": "If the primary contact is specified for an account, clickPrimary contactto open the page of this con",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/309f7fddd3fad498_on_classic-ui_record-page_button_examples_add-a-button-to-the-page-combined-mode_163d1f414240.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddButtonToEditPage/7.18/scr_result_disabled.png",
+      "alt": "",
+      "title": "",
+      "context": "If no primary contact is specified for an account, thePrimary contactbutton is inactive.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/309f7fddd3fad498_on_classic-ui_record-page_button_examples_add-a-button-to-the-page-combined-mode_c2f7617de04d.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddButtonToEditPage_2021-11-03_07.53.49.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAddButtonToEditPage_2021-11-03_07.53.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/309f7fddd3fad498_on_classic-ui_record-page_button_examples_add-a-button-to-the-page-combined-mode_sdkAddButtonToEditPage_2021-11-03_07.53.49.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add a button to the toolbar of the record page in the combined mode",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Create a replacement section view model schema\u200b",
+      "anchor": "title-1916-1"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-1916-2"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "SETBUTTONENABLED",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      },
+      {
+        "method": "ON",
+        "path": "("
+      },
+      {
+        "method": "SETBUTTONENABLED",
+        "path": "("
+      },
+      {
+        "method": "ON",
+        "path": "("
+      },
+      {
+        "method": "SETBUTTONENABLED",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "ISPRIMARYCONTACTEXIST",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/examples/add-a-button-to-the-page-combined-mode",
+      "text": "Add a button to the page (combined mode)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/button/examples/add-a-button-to-the-page-combined-mode",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/record-page-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/field-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/examples/add-a-button-to-the-section",
+      "text": "PreviousAdd a button to the section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/examples/add-a-button-to-the-page",
+      "text": "NextAdd a button to the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/examples/add-a-color-picker-button-to-the-page",
+      "text": "Add a color picker button to the record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/examples/add-a-tooltip",
+      "text": "Add a button tooltip",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/examples/add-a-button-to-a-section-row",
+      "text": "Add a button to a section row",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/references/diff-of-the-button-object",
+      "text": "diff of the button object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/action-dashboard-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/timeline/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/timeline-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/connected-entity-profile/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:51:06.160003"
+}

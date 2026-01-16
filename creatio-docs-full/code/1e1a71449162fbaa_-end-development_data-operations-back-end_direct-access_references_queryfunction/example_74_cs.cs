@@ -1,0 +1,1 @@
+TrimQueryFunction(TrimQueryFunction source)

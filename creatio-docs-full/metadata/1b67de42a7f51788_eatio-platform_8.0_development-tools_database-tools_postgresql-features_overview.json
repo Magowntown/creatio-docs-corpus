@@ -1,0 +1,678 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/postgresql-features/overview",
+  "title": "Special features of working with PostgreSQL",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools"
+    },
+    {
+      "text": "Database tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools"
+    },
+    {
+      "text": "PostgreSQL features",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/postgresql-features"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: intermediate\n## General recommendations\u200b\n* Create triggers, views, and functions using the `DROP ... IF EXISTS` expression (if needed, you can use the `CASCADE` command), then the `CREATE OR REPLACE` expression. Do not use the `CREATE OR REPLACE` command alone.\n* Use `\"public\"` instead of the `\"dbo\"` schema.\n* Note that system names are case-sensitive. Use quotes (`\"\"`) for names of tables, columns, and other entities.\n* Use the `BOOL` type instead of the `BIT` type used in Microsoft SQL. You do not have to use the `WHERE \"boolColumn\" = true` expression to match the value of a `BOOL` type field. You can use the `WHERE \"boolColumn\"` or `WHERE NOT \"boolColumn\"` expression instead.\n* You can use the short form of the `::TEXT` explicit conversion.\n* String matching in PostgreSQL is case-sensitive. You can use the `iLIKE` keyword to execute a case-insensitive matching. Note that matching that uses this keyword is slower than matching that uses the `UPPER+LIKE` expression. The `UPPER+LIKE` expression has less strict index applicability rules than `iLIKE`.\n* You can use the `CREATE CAST` command to cast types if source code has no implicit type casting. Learn more about the type casting in the official [PostgreSQL documentation](https://www.postgresql.org/docs/current/sql-createcast.html).\n* Create a special procedure parameter to store the current recursion level because PostgreSQL recursive procedures do not have a built-in `NESTLEVEL` function.\n* Use the `NAME` type in PostgreSQL instead of the `SYSNAME` type used in Microsoft SQL.\n* Create rules instead of empty `INSTEAD` triggers. For example:\nCREATE RULE RU_VwAdministrativeObjects AS  \nON UPDATE TO \"VwAdministrativeObjects\"  \nDO INSTEAD NOTHING;  \n* Convert `INT` type to `BOOL` type explicitly. Implicit conversion of `INT` type to `BOOL` type does not work in PostgreSQL if the corresponding `CAST` statement is present and the `UPDATE` command is executed.\n* Use allowed ways to format string literals. Learn more about string literals in the official PostgreSQL documentation ([quote_ident](https://www.postgresql.org/docs/11/plpgsql-statements.html#PLPGSQL-QUOTE-LITERAL-EXAMPLE), [quote_literal](https://www.postgresql.org/docs/11/plpgsql-statements.html#PLPGSQL-QUOTE-LITERAL-EXAMPLE), [format](https://www.postgresql.org/docs/11/functions-string.html#FUNCTIONS-STRING-FORMAT)).\n* Use the following expression\nDECLARE rowsCount BIGINT = 0;  \nGET DIAGNOSTICS rowsCount = row_count;  \ninstead of `@@ROWCOUNT`.\n* Use the following expression\nEXISTS (  \nSELECT 1  \nFROM \"SysSSPEntitySchemaAccessList\"  \nWHERE \"EntitySchemaUId\" = BaseSchema.\"UId\"  \n) \"IsInSSPEntitySchemaAccessList\"  \ninstead of the following Microsoft SQL expression\n(CASE  \nWHEN EXISTS  \n(SELECT 1  \nFROM [SysSSPEntitySchemaAccessList]  \nWHERE [SysSSPEntitySchemaAccessList].[EntitySchemaUId] = [BaseSchemas].[UId] ) THEN 1  \nELSE 0  \nEND) AS [IsInSSPEntitySchemaAccessList]  \nThe response field will have a `BOOL` type.\n## Data type matching\u200b\nCreatio, Microsoft SQL, and PostgreSQL data type matching\nType value in the Creatio object Designer| Data type  \n---|---  \nMicrosoft SQL| PostgreSQL  \nBLOB| `VARBINARY`| `BYTEA`  \nBoolean| `BIT`| `BOOLEAN`  \nColor| `NVARCHAR`| `CHARACTER VARYING`  \nCRC| `NVARCHAR`| `CHARACTER VARYING`  \nCurrency| `DECIMAL`| `NUMERIC`  \nDate| `DATE`| `DATE`  \nDate/Time| `DATETIME2`| `TIMESTAMP WITHOUT TIME ZONE`  \nDecimal (0.00000001)| `DECIMAL`| `NUMERIC`  \nDecimal (0.0001)| `DECIMAL`| `NUMERIC`  \nDecimal (0.001)| `DECIMAL`| `NUMERIC`  \nDecimal (0.01)| `DECIMAL`| `NUMERIC`  \nDecimal (0.1)| `DECIMAL`| `NUMERIC`  \nEncrypted string| `NVARCHAR`| `CHARACTER VARYING`  \nFile| `VARBINARY`| `BYTEA`  \nImage| `VARBINARY`| `BYTEA`  \nImage Link| `UNIQUEIDENTIFIER`| `UUID`  \nInteger| `INTEGER`| `INTEGER`  \nLookup| `UNIQUEIDENTIFIER`| `UUID`  \nText (250 characters)| `NVARCHAR(250)`| `CHARACTER VARYING`  \nText (50 characters)| `NVARCHAR(50)`| `CHARACTER VARYING`  \nText (500 characters)| `NVARCHAR(500)`| `CHARACTER VARYING`  \nTime| `TIME`| `TIME WITHOUT TIME ZONE`  \nUnique identifier| `UNIQUEIDENTIFIER`| `UUID`  \nUnlimited length text| `NVARCHAR(MAX)`| `TEXT`  \n* * *\n## See also\u200b\n[Data access through ORM](https://academy.creatio.com/documents?ver=8.0&id=15246)\n[Access data directly](https://academy.creatio.com/documents?ver=8.0&id=15233)\n* * *\n## Resources\u200b\n[Official PostgreSQL documentation (cast types)](https://www.postgresql.org/docs/current/sql-createcast.html)\n[Official PostgreSQL documentation (quote_ident)](https://www.postgresql.org/docs/11/plpgsql-statements.html#PLPGSQL-QUOTE-LITERAL-EXAMPLE)\n[Official PostgreSQL documentation (quote_literal)](https://www.postgresql.org/docs/11/plpgsql-statements.html#PLPGSQL-QUOTE-LITERAL-EXAMPLE)\n[Official PostgreSQL documentation (format)](https://www.postgresql.org/docs/11/functions-string.html#FUNCTIONS-STRING-FORMAT)",
+  "code_examples": [
+    {
+      "code": "CREATE RULE RU_VwAdministrativeObjects ASON UPDATE TO \"VwAdministrativeObjects\"DO INSTEAD NOTHING;",
+      "language": "sql",
+      "context": "Create rules instead of emptyINSTEADtriggers. For example:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "DECLARE rowsCount BIGINT = 0;GET DIAGNOSTICS rowsCount = row_count;",
+      "language": "sql",
+      "context": "Use the following expression",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "EXISTS (  SELECT 1  FROM \"SysSSPEntitySchemaAccessList\"  WHERE \"EntitySchemaUId\" = BaseSchema.\"UId\") \"IsInSSPEntitySchemaAccessList\"",
+      "language": "sql",
+      "context": "Use the following expression",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(CASE    WHEN EXISTS        (SELECT 1            FROM [SysSSPEntitySchemaAccessList]            WHERE [SysSSPEntitySchemaAccessList].[EntitySchemaUId] = [BaseSchemas].[UId] ) THEN 1    ELSE 0END) AS [IsInSSPEntitySchemaAccessList]",
+      "language": "sql",
+      "context": "instead of the following Microsoft SQL expression",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Type value in the Creatio object Designer",
+          "Data type"
+        ],
+        [
+          "Microsoft SQL",
+          "PostgreSQL"
+        ],
+        [
+          "BLOB",
+          "VARBINARY",
+          "BYTEA"
+        ],
+        [
+          "Boolean",
+          "BIT",
+          "BOOLEAN"
+        ],
+        [
+          "Color",
+          "NVARCHAR",
+          "CHARACTER VARYING"
+        ],
+        [
+          "CRC",
+          "NVARCHAR",
+          "CHARACTER VARYING"
+        ],
+        [
+          "Currency",
+          "DECIMAL",
+          "NUMERIC"
+        ],
+        [
+          "Date",
+          "DATE",
+          "DATE"
+        ],
+        [
+          "Date/Time",
+          "DATETIME2",
+          "TIMESTAMP WITHOUT TIME ZONE"
+        ],
+        [
+          "Decimal (0.00000001)",
+          "DECIMAL",
+          "NUMERIC"
+        ],
+        [
+          "Decimal (0.0001)",
+          "DECIMAL",
+          "NUMERIC"
+        ],
+        [
+          "Decimal (0.001)",
+          "DECIMAL",
+          "NUMERIC"
+        ],
+        [
+          "Decimal (0.01)",
+          "DECIMAL",
+          "NUMERIC"
+        ],
+        [
+          "Decimal (0.1)",
+          "DECIMAL",
+          "NUMERIC"
+        ],
+        [
+          "Encrypted string",
+          "NVARCHAR",
+          "CHARACTER VARYING"
+        ],
+        [
+          "File",
+          "VARBINARY",
+          "BYTEA"
+        ],
+        [
+          "Image",
+          "VARBINARY",
+          "BYTEA"
+        ],
+        [
+          "Image Link",
+          "UNIQUEIDENTIFIER",
+          "UUID"
+        ],
+        [
+          "Integer",
+          "INTEGER",
+          "INTEGER"
+        ],
+        [
+          "Lookup",
+          "UNIQUEIDENTIFIER",
+          "UUID"
+        ],
+        [
+          "Text (250 characters)",
+          "NVARCHAR(250)",
+          "CHARACTER VARYING"
+        ],
+        [
+          "Text (50 characters)",
+          "NVARCHAR(50)",
+          "CHARACTER VARYING"
+        ],
+        [
+          "Text (500 characters)",
+          "NVARCHAR(500)",
+          "CHARACTER VARYING"
+        ],
+        [
+          "Time",
+          "TIME",
+          "TIME WITHOUT TIME ZONE"
+        ],
+        [
+          "Unique identifier",
+          "UNIQUEIDENTIFIER",
+          "UUID"
+        ],
+        [
+          "Unlimited length text",
+          "NVARCHAR(MAX)",
+          "TEXT"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th rowspan=\"2\"><p>Type value in the Creatio object Designer</p></th><th colspan=\"2\"><p>Data type</p></th></tr><tr><th><p>Microsoft SQL</p></th><th><p>PostgreSQL</p></th></tr><tr><td><p>BLOB</p></td><td><p><code>VARBINARY</code></p></td><td><p><code>BYTEA</code></p></td></tr><tr><td><p>Boolean</p></td><td><p><code>BIT</code></p></td><td><p><code>BOOLEAN</code></p></td></tr><tr><td><p>Color</p></td><td><p><code>NVARCHAR</code></p></td><td><p><code>CHARACTER VARYING</code></p></td></tr><tr><td><p>CRC</p></td><td><p><code>NVARCHAR</code></p></td><td><p><code>CHARACTER VARYING</code></p></td></tr><tr><td><p>Currency</p></td><td><p><code>DECIMAL</code></p></td><td><p><code>NUMERIC</code></p></td></tr><tr><td><p>Date</p></td><td><p><code>DATE</code></p></td><td><p><code>DATE</code></p></td></tr><tr><td><p>Date/Time</p></td><td><p><code>DATETIME2</code></p></td><td><p><code>TIMESTAMP WITHOUT TIME ZONE</code></p></td></tr><tr><td><p>Decimal (0.00000001)</p></td><td><p><code>DECIMAL</code></p></td><td><p><code>NUMERIC</code></p></td></tr><tr><td><p>Decimal (0.0001)</p></td><td><p><code>DECIMAL</code></p></td><td><p><code>NUMERIC</code></p></td></tr><tr><td><p>Decimal (0.001)</p></td><td><p><code>DECIMAL</code></p></td><td><p><code>NUMERIC</code></p></td></tr><tr><td><p>Decimal (0.01)</p></td><td><p><code>DECIMAL</code></p></td><td><p><code>NUMERIC</code></p></td></tr><tr><td><p>Decimal (0.1)</p></td><td><p><code>DECIMAL</code></p></td><td><p><code>NUMERIC</code></p></td></tr><tr><td><p>Encrypted string</p></td><td><p><code>NVARCHAR</code></p></td><td><p><code>CHARACTER VARYING</code></p></td></tr><tr><td><p>File</p></td><td><p><code>VARBINARY</code></p></td><td><p><code>BYTEA</code></p></td></tr><tr><td><p>Image</p></td><td><p><code>VARBINARY</code></p></td><td><p><code>BYTEA</code></p></td></tr><tr><td><p>Image Link</p></td><td><p><code>UNIQUEIDENTIFIER</code></p></td><td><p><code>UUID</code></p></td></tr><tr><td><p>Integer</p></td><td><p><code>INTEGER</code></p></td><td><p><code>INTEGER</code></p></td></tr><tr><td><p>Lookup</p></td><td><p><code>UNIQUEIDENTIFIER</code></p></td><td><p><code>UUID</code></p></td></tr><tr><td><p>Text (250 characters)</p></td><td><p><code>NVARCHAR(250)</code></p></td><td><p><code>CHARACTER VARYING</code></p></td></tr><tr><td><p>Text (50 characters)</p></td><td><p><code>NVARCHAR(50)</code></p></td><td><p><code>CHARACTER VARYING</code></p></td></tr><tr><td><p>Text (500 characters)</p></td><td><p><code>NVARCHAR(500)</code></p></td><td><p><code>CHARACTER VARYING</code></p></td></tr><tr><td><p>Time</p></td><td><p><code>TIME</code></p></td><td><p><code>TIME WITHOUT TIME ZONE</code></p></td></tr><tr><td><p>Unique identifier</p></td><td><p><code>UNIQUEIDENTIFIER</code></p></td><td><p><code>UUID</code></p></td></tr><tr><td><p>Unlimited length text</p></td><td><p><code>NVARCHAR(MAX)</code></p></td><td><p><code>TEXT</code></p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Special features of working with PostgreSQL",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "General recommendations\u200b",
+      "anchor": "title-2996-27"
+    },
+    {
+      "level": 2,
+      "text": "Data type matching\u200b",
+      "anchor": "title-2996-24"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/postgresql-features/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/database-tools/postgresql-features/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/database-tools/postgresql-features/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/database-tools/postgresql-features/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/postgresql-features",
+      "text": "PreviousPostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/database-features-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/postgresql-features/examples/mssql-and-postgresql-script-examples",
+      "text": "Script examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://www.postgresql.org/docs/current/sql-createcast.html",
+      "text": "Official PostgreSQL documentation (cast types)",
+      "active": false
+    },
+    {
+      "href": "https://www.postgresql.org/docs/11/plpgsql-statements.html#PLPGSQL-QUOTE-LITERAL-EXAMPLE",
+      "text": "Official PostgreSQL documentation (quote_literal)",
+      "active": false
+    },
+    {
+      "href": "https://www.postgresql.org/docs/11/functions-string.html#FUNCTIONS-STRING-FORMAT",
+      "text": "Official PostgreSQL documentation (format)",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T02:23:27.442918"
+}

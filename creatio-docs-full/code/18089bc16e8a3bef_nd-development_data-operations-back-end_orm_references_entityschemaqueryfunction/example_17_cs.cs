@@ -1,0 +1,1 @@
+override DataValueType GetResultDataValueType(DataValueTypeManager dataValueTypeManager)

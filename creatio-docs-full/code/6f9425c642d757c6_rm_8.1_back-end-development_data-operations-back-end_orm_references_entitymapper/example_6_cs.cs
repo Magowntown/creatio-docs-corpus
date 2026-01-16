@@ -1,0 +1,1 @@
+DetailsConfig List<DetailMapConfig>

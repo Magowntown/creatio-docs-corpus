@@ -1,0 +1,1 @@
+<add key="quartz.jobStore.misfireThreshold" value="60000" /><add key="quartz.threadPool.threadCount" value="3" />

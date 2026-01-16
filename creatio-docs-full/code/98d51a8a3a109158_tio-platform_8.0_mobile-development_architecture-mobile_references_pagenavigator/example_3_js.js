@@ -1,0 +1,1 @@
+refreshPreviousPages(operationConfig, currentPageHistoryItem)

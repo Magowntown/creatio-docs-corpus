@@ -1,0 +1,1 @@
+CurrentDateTimeQueryFunction(CurrentDateTimeQueryFunction source)

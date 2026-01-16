@@ -1,0 +1,1 @@
+Status: 200 OK{    "GetFeatureStatesResult": [        {            "Key": "CommonFeatures.UseCustomCoreLocalizations",            "Value": 0        },        {            "Key": "UseRoleBasedLicenseDistribution",            "Value": 1        }    ]}

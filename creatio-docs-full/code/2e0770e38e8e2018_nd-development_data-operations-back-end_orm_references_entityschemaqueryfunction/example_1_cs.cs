@@ -1,0 +1,1 @@
+abstract DataValueType GetResultDataValueType(DataValueTypeManager dataValueTypeManager)

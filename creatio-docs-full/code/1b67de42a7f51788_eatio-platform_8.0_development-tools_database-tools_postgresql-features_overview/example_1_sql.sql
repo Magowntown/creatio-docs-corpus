@@ -1,0 +1,1 @@
+DECLARE rowsCount BIGINT = 0;GET DIAGNOSTICS rowsCount = row_count;

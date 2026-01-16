@@ -1,0 +1,1 @@
+"modelConfig": {    "primaryDataSourceName": "PDS",    "dataSources": {        "PDS": {            "type": "crt.EntityDataSource",            "config": {                "entitySchemaName": "Opportunity",                "attributes": {                    "Title": {"path": "Title", "name": "PDS_Attribute_Title"}                }            }        }    }}

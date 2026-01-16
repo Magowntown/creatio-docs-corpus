@@ -1,0 +1,1 @@
+curl -X POST "https://api.getgo.com/oauth/v2/token" \:-H "Authorization: Basic {Base64 Encoded consumerKey and consumerSecret}" \-H "Accept:application/json" \-H "Content-Type: application/x-www-form-urlencoded" \-d "grant_type=authorization_code&code={responseKey}&redirect_uri=http%3A%2F%2Fcode.example.com"

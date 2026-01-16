@@ -1,0 +1,1 @@
+<add key="DisableCsrfTokenValidationForPaths" value="/MsgUtilService.svc/Ping,/AuthService.svc/Login" />

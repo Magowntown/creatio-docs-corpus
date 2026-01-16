@@ -1,0 +1,1 @@
+var licenseService = ClassFactory.Get<ILicenseRedistributionService>();

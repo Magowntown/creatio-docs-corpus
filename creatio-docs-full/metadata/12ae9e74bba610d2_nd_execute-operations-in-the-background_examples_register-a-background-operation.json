@@ -1,0 +1,620 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/execute-operations-in-the-background/examples/register-a-background-operation",
+  "title": "Register a background operation",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    },
+    {
+      "text": "Data operations (back-end)",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end"
+    },
+    {
+      "text": "Background operations",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/background-operations-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: intermediate\nExample\nCreate a business process that registers a background operation. The background operation takes approximately 30 seconds. After this time passes, the process must add an **Activity created by background task** record to the list view of the **Activities** section list.\n## 1\\. Create a class for the activity object\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema\\(7.17\\)/scr_add_schema.png)\n3. Go to the Schema Designer and fill out the schema properties:\n* Set **Code** to \"UsrActivityData.\"\n* Set **Title** to \"ActivityData.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_ActivityData_Settings.png)\nClick **Apply** to apply the properties.\n4. Add the source code in the Schema Designer.\nUsrActivityData\nnamespace Terrasoft.Configuration {  \nusing System;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \npublic class UsrActivityData {  \npublic string Title {  \nget;  \nset;  \n}  \npublic Guid TypeId {  \nget;  \nset;  \n}  \n}  \n}  \n5. Click **Save** then **Publish** on the Designer\u2019s toolbar.\n## 2\\. Create a class that adds an activity\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema\\(7.17\\)/scr_add_schema.png)\n3. Go to the Schema Designer and fill out the schema properties:\n* Set **Code** to \"UsrBackgroundActivityCreator.\"\n* Set **Title** to \"BackgroundActivityCreator.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_BackgroundActivityCreator_Settings.png)\nClick **Apply** to apply the properties.\n4. Add the source code in the Schema Designer.\nUsrBackgroundActivityCreator\nnamespace Terrasoft.Configuration {  \nusing System;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Core.Tasks;  \nusing System.Threading.Tasks;  \npublic class UsrBackgroundActivityCreator: IBackgroundTask <UsrActivityData> , IUserConnectionRequired {  \nprivate UserConnection _userConnection;  \n/* Implement the Run method of the IBackgroundTask interface. */  \npublic void Run(UsrActivityData data) {  \n/* Forced 30 second delay. */  \nSystem.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(30));  \n/* Create an activity. */  \nvar activity = new Activity(_userConnection) {  \nUseAdminRights = false,  \nId = Guid.NewGuid(),  \nTypeId = data.TypeId,  \nTitle = data.Title,  \n/* Set the activity category to \"To do.\" */  \nActivityCategoryId = new Guid(\"F51C4643-58E6-DF11-971B-001D60E938C6\")  \n};  \nactivity.SetDefColumnValues();  \nactivity.Save(false);  \n}  \n/* Implement the SetUserConnection method of the IUserConnectionRequired interface. */  \npublic void SetUserConnection(UserConnection userConnection) {  \n_userConnection = userConnection;  \n}  \n}  \n}  \nThe `UsrBackgroundActivityCreator` class implements the `IBackgroundTask<UsrActivityData>` and `IUserConnectionRequired` interfaces. After a forced 30 seconds delay, the `Run()` method creates an instance of the **Activities** section object based on the given `UsrActivityData` instance.\n5. Click **Save** then **Publish** on the Designer\u2019s toolbar.\n## 3\\. Create a business process that starts the background operation\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Business process** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateBusinessProcessSchema/scr_add_schema.png)\n3. Go to the Process Designer and fill out the process properties:\n* Set the **Title** property in the element setup area to \"Background Task Example Process.\"\n* Set the **Code** property on the **Settings** tab of the element setup area to \"UsrBackgroundTaskExampleProcess.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_BackgroundTaskExampleProcess_Settings.png)\n4. Implement the business process.\n1. Click **System actions** in the Designer\u2019s element area and place a **Script task** element between the **Simple** start event and **Terminate** end event on the Process Designer\u2019s working area.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_add_ScriptTask.png)\n2. Set the name of the **Script task** element to \"Create background task.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_add_BusinessProcess.png)\n3. Add the code of the **Script task** element.\n\u0421ode of the Script task element\nvar data = new UsrActivityData {  \nTitle = \"Activity created by background task\",  \nTypeId = ActivityConsts.TaskTypeUId  \n};  \nTerrasoft.Core.Tasks.Task.StartNewWithUserConnection <UsrBackgroundActivityCreator, UsrActivityData> (data);  \nreturn true;  \n4. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_button.png) button in the **Usings** block on the **Methods** tab of the Process Designer and add the `Terrasoft.Configuration` namespace. This is required for the business process to support the implementations of the class for the activity object and class that adds an activity.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_add_Usings.png)\n5. Click **Save** on the Designer\u2019s toolbar. A pop-up box will appear after Creatio saves the process.\n6. Click **Publish** in the box to compile the code of the **Script task** element.\n## Outcome of the example\u200b\nTo **run** the `Background Task Example Process` business process, click **Run** on the Process Designer\u2019s toolbar.\nAs a result, the `Background Task Example Process` business process will add the **Activity created by background task** record to the list view of the **Activities** section list.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_result.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkBackgroundTaskPackage_2021-09-08_09.11.49.zip)",
+  "code_examples": [
+    {
+      "code": "namespace Terrasoft.Configuration {    using System;    using Terrasoft.Common;    using Terrasoft.Core;    using Terrasoft.Core.DB;    public class UsrActivityData {        public string Title {            get;            set;        }        public Guid TypeId {            get;            set;        }    }}",
+      "language": "cs",
+      "context": "Add the source code in the Schema Designer.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration {    using System;    using Terrasoft.Common;    using Terrasoft.Core;    using Terrasoft.Core.DB;    using Terrasoft.Core.Tasks;    using System.Threading.Tasks;    public class UsrBackgroundActivityCreator: IBackgroundTask <UsrActivityData> , IUserConnectionRequired {        private UserConnection _userConnection;        /* Implement the Run method of the IBackgroundTask interface. */        public void Run(UsrActivityData data) {            /* Forced 30 second delay. */            System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(30));            /* Create an activity. */            var activity = new Activity(_userConnection) {                UseAdminRights = false,                    Id = Guid.NewGuid(),                    TypeId = data.TypeId,                    Title = data.Title,                    /* Set the activity category to \"To do.\" */                    ActivityCategoryId = new Guid(\"F51C4643-58E6-DF11-971B-001D60E938C6\")            };            activity.SetDefColumnValues();            activity.Save(false);        }        /* Implement the SetUserConnection method of the IUserConnectionRequired interface. */        public void SetUserConnection(UserConnection userConnection) {            _userConnection = userConnection;        }    }}",
+      "language": "cs",
+      "context": "Add the source code in the Schema Designer.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var data = new UsrActivityData {    Title = \"Activity created by background task\",        TypeId = ActivityConsts.TaskTypeUId};Terrasoft.Core.Tasks.Task.StartNewWithUserConnection <UsrBackgroundActivityCreator, UsrActivityData> (data);return true;",
+      "language": "cs",
+      "context": "Add the code of theScript taskelement.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Activity created by background task",
+      "content": "ExampleCreate a business process that registers a background operation. The background operation takes approximately 30 seconds. After this time passes, the process must add anActivity created by background taskrecord to the list view of theActivitiessection list.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create a business process that registers a background operation. The background operation takes approximately 30 seconds. After this time passes, the process must add an <strong>Activity created by background task</strong> record to the list view of the <strong>Activities</strong> section list.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Activity created by background task",
+      "content": "Create a business process that registers a background operation. The background operation takes approximately 30 seconds. After this time passes, the process must add anActivity created by background taskrecord to the list view of theActivitiessection list.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create a business process that registers a background operation. The background operation takes approximately 30 seconds. After this time passes, the process must add an <strong>Activity created by background task</strong> record to the list view of the <strong>Activities</strong> section list.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema(7.17)/scr_add_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Source codeon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_4b5a781f7680.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_ActivityData_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the Schema Designer and fill out the schema properties:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_8101a414ae18.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema(7.17)/scr_add_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Source codeon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_4b5a781f7680.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_BackgroundActivityCreator_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the Schema Designer and fill out the schema properties:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_f624a2a90f40.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateBusinessProcessSchema/scr_add_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Business processon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_68d2fe75a9f7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_BackgroundTaskExampleProcess_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the Process Designer and fill out the process properties:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_f684100f6b18.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_add_ScriptTask.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickSystem actionsin the Designer\u2019s element area and place aScript taskelement between theSimplesta",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_4d7e3b6842b1.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_add_BusinessProcess.png",
+      "alt": "",
+      "title": "",
+      "context": "Set the name of theScript taskelement to \"Create background task.\"",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_ad787f171a18.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton in theUsingsblock on theMethodstab of the Process Designer and add theTerrasoft.Conf",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_2bc54520fe09.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_add_Usings.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton in theUsingsblock on theMethodstab of the Process Designer and add theTerrasoft.Conf",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_3561a2789bbb.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackgroundTask/7.18/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, theBackground Task Example Processbusiness process will add theActivity created by back",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_859bca18a14e.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkBackgroundTaskPackage_2021-09-08_09.11.49.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkBackgroundTaskPackage_2021-09-08_09.11.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/12ae9e74bba610d2_nd_execute-operations-in-the-background_examples_register-a-background-operation_sdkBackgroundTaskPackage_2021-09-08_09.11.49.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Register a background operation",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a class for the activity object\u200b",
+      "anchor": "title-2170-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a class that adds an activity\u200b",
+      "anchor": "title-2170-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Create a business process that starts the background operation\u200b",
+      "anchor": "title-2170-3"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-2170-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "STARTNEWWITHUSERCONNECTION",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "UsrBackgroundActivityCreator"
+      },
+      {
+        "method": "USRBACKGROUNDACTIVITYCREATOR",
+        "path": ","
+      },
+      {
+        "method": ",",
+        "path": "UsrActivityData"
+      },
+      {
+        "method": "USRACTIVITYDATA",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/execute-operations-in-the-background/examples/register-a-background-operation",
+      "text": "Register a background operation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/execute-operations-in-the-background/examples/register-a-background-operation",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/execute-operations-in-the-background/examples/register-a-background-operation",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/execute-operations-in-the-background/examples/register-a-background-operation",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/execute-operations-in-the-background/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/background-operations-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "NextDirect access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:34:40.112350"
+}

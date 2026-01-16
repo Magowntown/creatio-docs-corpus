@@ -1,0 +1,611 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/overview",
+  "title": "Access data directly",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development"
+    },
+    {
+      "text": "Data operations (back-end)",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end"
+    },
+    {
+      "text": "Direct access",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/direct-access"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: intermediate\nThe back-end core components provide the following database **access options** :\n* access using the ORM model\n* direct access\nWe recommend using the ORM model to access data. That said, direct access to the database is also implemented in the back-end core components. Learn more about running database queries using the ORM model: [Access data through ORM](https://academy.creatio.com/documents?ver=8.2&id=15246).\nThis article covers direct database queries.\nUse the following **classes** to manage data directly:\n* `Terrasoft.Core.DB.Select` builds queries to retrieve records from the database table.\n* `Terrasoft.Core.DB.Insert` builds queries to add records to the database table.\n* `Terrasoft.Core.DB.InsertSelect` builds queries to add records to the database table based on the results of the queries to retrieve records from the database table.\n* `Terrasoft.Core.DB.Update` builds queries to modify records in the database table.\n* `Terrasoft.Core.DB.UpdateSelect` builds queries to modify records in the database table based on the results of the queries to retrieve records from the database table.\n* `Terrasoft.Core.DB.Delete` builds queries to delete records from the database table.\n* `Terrasoft.Core.DB.DBExecutor` builds and runs complex database queries. For example, queries that contain several nested filters, various join combinations, etc.\nImportant\nThe `Terrasoft.Core.DB.CustomQuery` class is deprecated and will be removed in upcoming releases. We do not recommend using this class.\n## Retrieve data from the database\u200b\nUse the following **classes** to retrieve data from the database:\n* `Terrasoft.Core.DB.Select` retrieves data by accessing the database directly.\n* `Terrasoft.Core.Entities.EntitySchemaQuery` retrieves data using the ORM model. Learn more about running database queries using the `Terrasoft.Core.Entities.EntitySchemaQuery` class: [Access data through ORM](https://academy.creatio.com/documents?ver=8.2&id=15246&anchor=title-1263-4).\nThe **purpose** of the `Terrasoft.Core.DB.Select` class is to build queries to select records from database tables. After you create and configure the class instance, Creatio will build a `SELECT` query to the Creatio database. You can add icons, filters, and restriction conditions to the query.\nThe `Terrasoft.Core.DB.Select` class **major features** :\n* The resulting query does not apply the access permissions of the current user. The user can access every database table and record.\n* The resulting query does not use the [cache repository data](https://academy.creatio.com/documents?ver=8.2&id=15268).\nAs **result of the query** , is an instance that implements the `System.Data.IDataReader` interface or a scalar value of the corresponding type.\nIf you need to build queries to select database records that apply the access permissions of the user and use the cache repository data, use the `Terrasoft.Core.Entities.EntitySchemaQuery` class.\n## Add data to the database\u200b\nUse the following **classes** to add data to the database:\n* `Terrasoft.Core.DB.Insert`\n* `Terrasoft.Core.DB.InsertSelect`\n### Add data in bulk\u200b\nThe **purpose** of the `Terrasoft.Core.DB.Insert` class is to build queries to add records to database tables. After you create and configure the class instance, Creatio will build an `INSERT` query to the Creatio database.\nAs **result of the query** , is the number of records added using the query.\nThe class implements multiline insertion via the `Values()` method. After calling the `Values()` method, all subsequent `Set()` method calls fall into the new `ColumnsValues` instance. If the `ColumnsValuesCollection` collection contains more than one dataset, Creatio will build a query that includes several `Values()` blocks.\nMultiline insertion example\nnew Insert(UserConnection)  \n.Into(\"Table\")  \n.Values()  \n.Set(\"Column1\", Column.Parameter(1))  \n.Set(\"Column2\", Column.Parameter(1))  \n.Set(\"Column3\", Column.Parameter(1))  \n.Values()  \n.Set(\"Column1\", Column.Parameter(2))  \n.Set(\"Column2\", Column.Parameter(2))  \n.Set(\"Column3\", Column.Parameter(2))  \n.Values()  \n.Set(\"Column1\", Column.Parameter(3))  \n.Set(\"Column2\", Column.Parameter(3))  \n.Set(\"Column3\", Column.Parameter(3))  \n.Execute();  \nAs a result, Creatio will generate the SQL query.\nSQL query\n-- For Microsoft SQL or PostgreSQL  \nINSERT INTO [dbo].[Table] (Column1, Column2, Column3)  \nVALUES (1, 1, 1),  \n(2, 2, 2),  \n(3, 3, 3)  \n-- For Oracle  \nINSERT ALL  \ninto Table (column1, column2, column3) values (1, 1, 1)  \ninto Table (column1, column2, column3) values (2, 2, 2)  \ninto Table (column1, column2, column3) values (3, 3, 3)  \nSELECT * FROM dual  \nThe **special aspects** of multiline data insertion:\n* Microsoft SQL supports up to 2100 parameters when using `Column.Parameter` in the `Set()` expression.\n* If your query contains more parameters, the developer must divide the query into subqueries since `Terrasoft.Core.DB.Insert` does not support this option.\nExample\nIEnumerable <IEnumerable <ImportEntity>> GetImportEntitiesChunks(IEnumerable <ImportEntity> entities, IEnumerable <ImportColumn> keyColumns) {  \nvar entitiesList = entities.ToList();  \nvar columnsList = keyColumns.ToList();  \nvar maxParamsPerChunk = Math.Abs(MaxParametersCountPerQueryChunk / columnsList.Count + 1);  \nvar chunksCount = (int) Math.Ceiling(entitiesList.Count / (double) maxParamsPerChunk);  \nreturn entitiesList.SplitOnParts(chunksCount);  \n}  \nvar entitiesList = GetImportEntitiesChunks(entities, importColumns);  \nentitiesList.AsParallel().AsOrdered()  \n.ForAll(entitiesBatch => {  \ntry {  \nvar insertQuery = GetBufferedImportEntityInsertQuery();  \nforeach(var importEntity in entitiesBatch) {  \ninsertQuery.Values();  \nSetBufferedImportEntityInsertColumnValues(importEntity, insertQuery,  \nimportColumns);  \ninsertQuery.Set(\"ImportSessionId\", Column.Parameter(importSessionId));  \n}  \ninsertQuery.Execute();  \n} catch (Exception e) {  \n//...  \n}  \n});  \n* The developer must confirm the column number matches the `Set()` condition number since `Terrasoft.Core.DB.Insert` does not support this option. The mismatch will create an exception on the database level.\n### Add data from the selection\u200b\nThe **purpose** of the `Terrasoft.Core.DB.InsertSelect` class is to build queries to add records to the database tables based on the data of the queries to retrieve records from the database table. As such, the class uses the `Terrasoft.Core.DB.Select` class instance as a data source. After you create and configure the class instance, Creatio will build an `INSERT INTO SELECT` query to the Creatio database.\nThe resulting query built using the `Terrasoft.Core.DB.InsertSelect` class does not apply the current user's access permissions to the corresponding records. The class uses the user connection only to access the database table.\nAs a **result of the query** , Creatio will add the records retrieved in the `Select` query to the database.\n## Modify the database data\u200b\nUse the following **classes** to modify the database data:\n* `Terrasoft.Core.DB.Update`\n* `Terrasoft.Core.DB.UpdateSelect`\n### Modify data in bulk\u200b\nThe **purpose** of the `Terrasoft.Core.DB.Update` class is to build queries to modify records in the database tables. After you create and configure the class instance, Creatio will build an `UPDATE` query to the Creatio database.\n### Modify data based on the selection\u200b\nThe **purpose** of the `Terrasoft.Core.DB.UpdateSelect` class is to build queries to modify records in the database tables based on the data of the queries to retrieve records from the database table. As such, the class uses the `Terrasoft.Core.DB.Select` class instance as a data source. After you create and configure the class instance, Creatio will build an `UPDATE FROM` query to the Creatio database.\nAs a **result of the query** , Creatio will modify the records retrieved in the `Select` query in the database table.\n## Delete data from the database\u200b\nThe `Terrasoft.Core.DB.Delete` class deletes data from the database.\nThe **purpose** of the `Terrasoft.Core.DB.Delete` class is to build queries to delete records from the database tables. After you create and configure the class instance, Creatio will build a `DELETE` query to the Creatio database.\n## Use multithreading for database management\u200b\n**Multithreading** is the use of several parallel threads to send database queries via `UserConnection`.\nThe `Terrasoft.Core.DB.DBExecutor` class supports multithreading. The class implements building and running several database queries in a single transaction. A single `DBExecutor` instance is available per user. The user cannot create new instances.\nMultithreading may lead to synchronization issues related to transaction start and confirmation. The issue can occur even if you use the `DBExecutor` indirectly. For example, through `EntitySchemaQuery`.\nIf you use the `Terrasoft.Core.DB.DBExecutor` class, you must wrap the creation of the `DBExecutor` instance in the `using` operator. This is required since Creatio uses `unmanaged` resources to manage the database. You can also call the `Dispose()` method to free up resources. Learn more about using the `using` operator: [official vendor documentation](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/using-statement) (Microsoft).\nCall the `dbExecutor.StartTransaction` method to start the transaction. Call `dbExecutor.CommitTransaction` or `dbExecutor.RollbackTransaction` to end the transaction. If the execution goes beyond the scope of the `using` block and you do not call the `dbExecutor.CommitTransaction` method, the transaction will roll back automatically.\nImportant\nIf you run several queries in a single transaction, pass `dbExecutor` to `Execute`, `ExecuteReader`, `ExecuteScalar` methods.\nView the source code snippets that use `DBExecutor` below. Do not call the methods of the `DBExecutor` instance in parallel threads.\n* Correct DBExecutor use example\n* Incorrect DBExecutor use example\n/* Start using the DBExecutor instance in the main thread. */  \nusing (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \ndbExecutor.StartTransaction();  \n//...  \ndbExecutor.CommitTransaction();  \n}  \n//...  \nvar select = (Select)new Select(UserConnection)  \n.Column(\"Id\")  \n.From(\"Contact\")  \n.Where(\"Name\")  \n.IsEqual(Column.Parameter(\"Supervisor\"));  \n/* Continue using the DBExecutor instance in the main thread. */  \nusing (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing (IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nwhile (dataReader.Read()) {  \n//...  \n}  \n}  \n}  \n/* Create a parallel thread. */  \nvar task = new Task(() => {  \n// Start using the DBExecutor instance in a parallel thread.  \nusing (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \ndbExecutor.StartTransaction();  \n//...  \ndbExecutor.CommitTransaction();  \n}  \n});  \n/* Run an asynchronous task in the parallel thread. Continue executing the program in the main thread. */  \ntask.Start();  \n//...  \nvar select = (Select)new Select(UserConnection)  \n.Column(\"Id\")  \n.From(\"Contact\")  \n.Where(\"Name\")  \n.IsEqual(Column.Parameter(\"Supervisor\"));  \n/* If you use the DBExecutor instance in the main thread, this will lead to an error since the parallel thread is already using the DBExecutor instance. */  \nusing (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing (IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nwhile (dataReader.Read()) {  \n//...  \n}  \n}  \n}  \n* * *\n## See also\u200b\n[Data access through ORM](https://academy.creatio.com/documents?ver=8.2&id=15246)\n[Data storage and cache](https://academy.creatio.com/documents?ver=8.2&id=15268)\n* * *\n## Resources\u200b\n[using operator](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/using-statement) (official Microsoft documentation)",
+  "code_examples": [
+    {
+      "code": "new Insert(UserConnection)    .Into(\"Table\")    .Values()    .Set(\"Column1\", Column.Parameter(1))    .Set(\"Column2\", Column.Parameter(1))    .Set(\"Column3\", Column.Parameter(1))    .Values()    .Set(\"Column1\", Column.Parameter(2))    .Set(\"Column2\", Column.Parameter(2))    .Set(\"Column3\", Column.Parameter(2))    .Values()    .Set(\"Column1\", Column.Parameter(3))    .Set(\"Column2\", Column.Parameter(3))    .Set(\"Column3\", Column.Parameter(3))    .Execute();",
+      "language": "cs",
+      "context": "The class implements multiline insertion via theValues()method. After calling theValues()method, all subsequentSet()method calls fall into the newColumnsValuesinstance. If theColumnsValuesCollectionco",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "-- For Microsoft SQL or PostgreSQLINSERT INTO [dbo].[Table] (Column1, Column2, Column3)VALUES (1, 1, 1),    (2, 2, 2),    (3, 3, 3)-- For OracleINSERT ALL    into Table (column1, column2, column3) values (1, 1, 1)    into Table (column1, column2, column3) values (2, 2, 2)    into Table (column1, column2, column3) values (3, 3, 3)SELECT * FROM dual",
+      "language": "sql",
+      "context": "As a result, Creatio will generate the SQL query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "IEnumerable <IEnumerable <ImportEntity>> GetImportEntitiesChunks(IEnumerable <ImportEntity> entities, IEnumerable <ImportColumn> keyColumns) {    var entitiesList = entities.ToList();    var columnsList = keyColumns.ToList();    var maxParamsPerChunk = Math.Abs(MaxParametersCountPerQueryChunk / columnsList.Count + 1);    var chunksCount = (int) Math.Ceiling(entitiesList.Count / (double) maxParamsPerChunk);    return entitiesList.SplitOnParts(chunksCount);}var entitiesList = GetImportEntitiesChunks(entities, importColumns);entitiesList.AsParallel().AsOrdered()    .ForAll(entitiesBatch => {        try {            var insertQuery = GetBufferedImportEntityInsertQuery();            foreach(var importEntity in entitiesBatch) {                insertQuery.Values();                SetBufferedImportEntityInsertColumnValues(importEntity, insertQuery,                    importColumns);                insertQuery.Set(\"ImportSessionId\", Column.Parameter(importSessionId));            }            insertQuery.Execute();        } catch (Exception e) {            //...        }    });",
+      "language": "cs",
+      "context": "If your query contains more parameters, the developer must divide the query into subqueries sinceTerrasoft.Core.DB.Insertdoes not support this option.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Start using the DBExecutor instance in the main thread. */using (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {    dbExecutor.StartTransaction();    //...    dbExecutor.CommitTransaction();}//...var select = (Select)new Select(UserConnection)    .Column(\"Id\")    .From(\"Contact\")    .Where(\"Name\")    .IsEqual(Column.Parameter(\"Supervisor\"));/* Continue using the DBExecutor instance in the main thread. */using (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {    using (IDataReader dataReader = select.ExecuteReader(dbExecutor)) {        while (dataReader.Read()) {            //...        }    }}",
+      "language": "cs",
+      "context": "View the source code snippets that useDBExecutorbelow. Do not call the methods of theDBExecutorinstance in parallel threads.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a parallel thread. */var task = new Task(() => {    // Start using the DBExecutor instance in a parallel thread.    using (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {        dbExecutor.StartTransaction();        //...        dbExecutor.CommitTransaction();    }});/* Run an asynchronous task in the parallel thread. Continue executing the program in the main thread. */task.Start();//...var select = (Select)new Select(UserConnection)    .Column(\"Id\")    .From(\"Contact\")    .Where(\"Name\")    .IsEqual(Column.Parameter(\"Supervisor\"));/* If you use the DBExecutor instance in the main thread, this will lead to an error since the parallel thread is already using the DBExecutor instance. */using (DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {    using (IDataReader dataReader = select.ExecuteReader(dbExecutor)) {        while (dataReader.Read()) {            //...        }    }}",
+      "language": "cs",
+      "context": "View the source code snippets that useDBExecutorbelow. Do not call the methods of theDBExecutorinstance in parallel threads.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTheTerrasoft.Core.DB.CustomQueryclass is deprecated and will be removed in upcoming releases. We do not recommend using this class.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The <code>Terrasoft.Core.DB.CustomQuery</code> class is deprecated and will be removed in upcoming releases. We do not recommend using this class.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "TheTerrasoft.Core.DB.CustomQueryclass is deprecated and will be removed in upcoming releases. We do not recommend using this class.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The <code>Terrasoft.Core.DB.CustomQuery</code> class is deprecated and will be removed in upcoming releases. We do not recommend using this class.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf you run several queries in a single transaction, passdbExecutortoExecute,ExecuteReader,ExecuteScalarmethods.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you run several queries in a single transaction, pass <code>dbExecutor</code> to <code>Execute</code>, <code>ExecuteReader</code>, <code>ExecuteScalar</code> methods.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you run several queries in a single transaction, passdbExecutortoExecute,ExecuteReader,ExecuteScalarmethods.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you run several queries in a single transaction, pass <code>dbExecutor</code> to <code>Execute</code>, <code>ExecuteReader</code>, <code>ExecuteScalar</code> methods.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Access data directly",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Retrieve data from the database\u200b",
+      "anchor": "title-2001-1"
+    },
+    {
+      "level": 2,
+      "text": "Add data to the database\u200b",
+      "anchor": "title-2001-2"
+    },
+    {
+      "level": 3,
+      "text": "Add data in bulk\u200b",
+      "anchor": "title-2001-3"
+    },
+    {
+      "level": 3,
+      "text": "Add data from the selection\u200b",
+      "anchor": "title-2001-4"
+    },
+    {
+      "level": 2,
+      "text": "Modify the database data\u200b",
+      "anchor": "title-2001-5"
+    },
+    {
+      "level": 3,
+      "text": "Modify data in bulk\u200b",
+      "anchor": "title-2001-6"
+    },
+    {
+      "level": 3,
+      "text": "Modify data based on the selection\u200b",
+      "anchor": "title-2001-7"
+    },
+    {
+      "level": 2,
+      "text": "Delete data from the database\u200b",
+      "anchor": "title-2001-8"
+    },
+    {
+      "level": 2,
+      "text": "Use multithreading for database management\u200b",
+      "anchor": "title-2001-9"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/execute-operations-in-the-background/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/background-operations-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/direct-access",
+      "text": "PreviousDirect access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/direct-access-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/examples/retrieve-data",
+      "text": "Retrieve data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/examples/add-data",
+      "text": "Add data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/examples/add-data-subqueries",
+      "text": "Add data using subqueries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/examples/modify-data",
+      "text": "Modify data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/examples/delete-data",
+      "text": "Delete data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/direct-access-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/references/select",
+      "text": "Select",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/references/insert",
+      "text": "Insert",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/references/insertselect",
+      "text": "InsertSelect",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/references/update",
+      "text": "Update",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/references/updateselect",
+      "text": "UpdateSelect",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/references/delete",
+      "text": "Delete",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/references/queryfunction",
+      "text": "QueryFunction",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/orm/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/orm-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/orm-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:10:35.304404"
+}

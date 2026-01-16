@@ -1,0 +1,1 @@
+{    "bootstraps": [        "src/js/bootstrap.js",        "src/js/anotherBootstrap.js"    ]}

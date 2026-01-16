@@ -1,0 +1,1 @@
+@CrtInterfaceDesignerItem({  toolbarConfig: {    /* The localizable name of the component. */    caption: localize('SomeComponentName.Caption'),    name: 'usr_some_component_name',  },})

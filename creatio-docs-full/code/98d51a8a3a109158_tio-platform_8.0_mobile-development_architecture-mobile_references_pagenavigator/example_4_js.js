@@ -1,0 +1,1 @@
+refreshAllPages(operationConfig, excludedPageHistoryItems)

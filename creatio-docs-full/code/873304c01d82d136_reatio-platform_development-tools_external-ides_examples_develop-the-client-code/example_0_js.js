@@ -1,0 +1,1 @@
+define("ContactPageV2", [], function() {    return {        entitySchemaName: "Contact",        diff: /**SCHEMA_DIFF*/ [{            "operation": "remove",            "name": "JobTitleProfile"        }] /**SCHEMA_DIFF*/    };});

@@ -1,0 +1,1 @@
+addParameterColumn(paramValue, paramDataType, [columnAlias])

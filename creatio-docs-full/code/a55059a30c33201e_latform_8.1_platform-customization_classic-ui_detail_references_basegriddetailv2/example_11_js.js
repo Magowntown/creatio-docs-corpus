@@ -1,0 +1,1 @@
+DetailFilters COLLECTION

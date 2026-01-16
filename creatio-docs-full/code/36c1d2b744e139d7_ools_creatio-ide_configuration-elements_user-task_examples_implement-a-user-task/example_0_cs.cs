@@ -1,0 +1,1 @@
+protected override bool InternalExecute(ProcessExecutingContext context) {    /* Execute operations with task parameters. */    SumNumbers = FirstNumber + SecondNumber;    /* Specify that the task was completed successfully. */    return true;}

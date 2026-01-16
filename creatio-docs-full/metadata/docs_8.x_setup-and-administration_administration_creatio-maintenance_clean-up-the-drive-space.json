@@ -1,0 +1,329 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/administration/creatio-maintenance/clean-up-the-drive-space",
+  "title": "Clean up the drive space",
+  "breadcrumbs": [
+    {
+      "text": "Administration",
+      "href": "/docs/8.x/setup-and-administration/category/administration"
+    },
+    {
+      "text": "Creatio maintenance",
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nIt is important to delete outdated and irrelevant records in a timely manner when you maintain a large database. As a result, the database server will use less space on its drive, which improves the database performance\n## Possible reasons for quick database growth\u200b\nThe following factors may lead to rapid database growth:\n* Incorrectly set up or redundant **record permissions**. For example, the record permissions are set individually for a large number of users not arranged in groups. In this case, we recommend changing the settings and updating Creatio access permissions. Learn more in a separate guide: [Access management](https://academy.creatio.com/docs/8.x/setup-and-administration/category/access-management).\n* Lack of restrictions on **file upload** to Creatio. The files can be added by employees, uploaded as part of the email synchronization, or attached to self-service portal messages. We recommend limiting the size of uploaded files to 10 Mb. You can change this value in the \"Attachment max size\" (\"MaxFileSize\" code) system setting. We also recommend checking the uploaded files for relevancy and deleting the irrelevant files regularly. You can implement this feature using a business process.\n* The **synchronization of all emails** from user mailboxes. We recommend selecting only the mailbox folders whose letters you must process in Creatio. For example, Important or Starred. Learn more in a separate article: [Receive emails in Creatio](https://academy.creatio.com/documents?id=1918&anchor=title-1953-5).\n* **Processes traced** for prolonged periods. Processes are usually debugged on a development environment or a test site. If you must collect the debugging information on a production site, we recommend turning the tracing off as soon as you finish analyzing the process execution problems. Learn more in a separate article: [Trace process parameters](https://academy.creatio.com/documents?id=7149).\n* Incorrectly set up **business process execution logic** that causes the process to have the \"Running\" status for longer than needed. In this case, Creatio will keep the temporary files related to the process execution. We recommend modeling business processes so that they have definite completion conditions and do not have the \"Running\" status for longer than several hours. Learn more in a separate article: [View process execution data](https://academy.creatio.com/documents?id=7108).\n* Incorrectly set up **data reading in business processes**. Creatio stores the values the business process retrieves as part of the **Read data** element execution in temporary data tables until the process finishes. If the business process does not require the values of all object columns, we recommend specifying the exact list of values to read. This will help you to reduce the amount of temporary data stored in Creatio greatly. Learn more in a separate article: [**Read data** process element](https://academy.creatio.com/documents?id=7023).\n* Excessive **change logging**. We recommend turning on the change logging only for the sections in which you must track the data dynamics. For example, the product catalog. If you want to save the record change information, clean up the change log from the irrelevant data regularly. Learn more in a separate article: [Clear the change log](https://academy.creatio.com/documents?id=1455).\n* Incorrectly set up **integration of external services** with Creatio. If the external services send a Creatio request that lacks the ForceUseSession header, they will need to re-authenticate. Learn more in developer documentation: [EntityDataService.svc web service (OData 3)](https://academy.creatio.com/documents?id=15437&anchor=title-2304-6).\n* **Connecting unnecessary cultures**. This will cause Creatio to download translation files, which are then updated in each new Creatio version. We recommend connecting only those cultures that your company's employees use and removing any obsolete cultures.\n* **Files used in Creatio.ai**. While Creatio.ai forgets about files after the session ends, they are still stored in Creatio. We recommend removing them from the `CreatioAISessionFile` object periodically. For example, you can set up a business process that will clear the object automatically outside of working hours.\n## Creatio database cleanup tools\u200b\nThere are several ways to clean up the drive space in Creatio:\n* Configure the process log archival and automatic cleanup.\n* Clear the change log.\n* Delete section records.\n* Delete data as part of a business process.\n### Automatic process log cleanup\u200b\nCreatio can log the processes it runs. Logs help to track diagram bottlenecks and optimize them, as well as to analyze the efficiency of your employees. Creatio automatically deletes or archives the logs older than 30 days to reduce the amount of used space. The archived records remain available for the period specified in the \"Archive data expiration period (days)\" (\"ProcessLogArchiveDataExpirationTerm\" code) system setting before Creatio deletes the records automatically.\nEnsure the archival is disabled to save the most space. If archival is required, you can manage when to archive and for how long to store the archived records. Learn more in a separate article: [Archive the process log records](https://academy.creatio.com/documents?id=7108&anchor=title-1789-3).\n### Clear the change log\u200b\nClear the change log history to avoid storing irrelevant records in Creatio. We recommend clearing the change log regularly to ensure that the **Change log** section contains only the currently relevant information.\nLearn more in a separate article: [Clear the change log](https://academy.creatio.com/documents?id=1455).\n### Delete section records\u200b\nCreatio may store irrelevant section records. You can delete such records from any Creatio section individually or in bulk. If the record you want to delete is connected to other sections, Creatio will ask you to review the connections and confirm what to delete. You can delete all of the information or only the selected record and keep the connected data.\nLearn more in a separate article: [Delete linked records](https://academy.creatio.com/documents?id=1872).\n### Delete data as part of a business process\u200b\nAutomate the drive cleanup with business processes. Use the **Delete data** process element to delete one or more records that meet specific conditions from any Creatio object. For example, create a business process that deletes all scheduled activities that were canceled. Set this process to run:\n* **On a timer** , at a specific time. This is useful if you want to run the process periodically, e. g. once a month, and during the minimum load period, e. g. at night.\n* **After a specific event**. This is useful if you want to run the process automatically and only when there is Creatio data to delete.\n* **Manually**. This is useful if you want to run the process at any required moment.\nLearn more in a separate article: [**Delete data** process element](https://academy.creatio.com/documents?id=7017).\n### Delete unused cultures\u200b\nYou can delete cultures that you no longer plan to use to free up additional disk space. To delete a culture, use the following script:\n* Microsoft SQL\n* PostgreSQL\nIF OBJECT_ID('tempdb..#UsedCultures') IS NOT NULL  \nDROP Table #UsedCultures  \n-- Get a list of used cultures  \nSELECT DISTINCT cult.Id  \nINTO #UsedCultures  \nFROM SysCulture cult  \nINNER JOIN SysAdminUnit au  \nON au.SysCultureId = cult.Id  \nINSERT INTO #UsedCultures  \n(Id)  \nSELECT  \nSysSettingsValue.GuidValue  \nFROM  \nSysSettingsValue  \nINNER JOIN SysSettings  \nON SysSettings.Id = SysSettingsValue.SysSettingsId  \nWHERE  \nSysSettings.Code = 'PrimaryCulture'  \n-- Get a list of tables from which to delete data  \nDECLARE TableNamesCursor CURSOR FOR  \nSELECT  \nt3.TABLE_NAME AS ChildTableName    \nFROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS t1   \nINNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS t2 ON t1.UNIQUE_CONSTRAINT_NAME = t2.CONSTRAINT_NAME  \nINNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS t3 ON t1.CONSTRAINT_NAME = t3.CONSTRAINT_NAME  \nWHERE  \nt2.TABLE_NAME = 'SysCulture'  \nand t2.COLUMN_NAME = 'Id'  \nand t3.COLUMN_NAME = 'SysCultureId'  \nDECLARE @TableName SYSNAME  \nOPEN TableNamesCursor  \nFETCH NEXT FROM TableNamesCursor INTO @TableName  \nWHILE @@FETCH_STATUS = 0    \nBEGIN    \nPRINT @TableName  \nDECLARE @Sql NVARCHAR(MAX);  \nSET @Sql = 'DELETE FROM ' + @TableName + '  \nWHERE SysCultureId NOT IN (SELECT Id FROM #UsedCultures)';  \nPRINT @Sql  \nEXECUTE sp_executesql @Sql  \nFETCH NEXT FROM TableNamesCursor INTO @TableName  \nEND  \nCLOSE TableNamesCursor  \nDEALLOCATE TableNamesCursor  \nDELETE FROM SysCulture  \nWHERE Id NOT IN (SELECT Id FROM #UsedCultures)  \nIF OBJECT_ID('tempdb..#UsedCultures') IS NOT NULL  \nDROP Table #UsedCultures  \nBEGIN;  \n-- Get a list of used cultures  \nCREATE TEMP TABLE \"UsedCultures\" ON COMMIT DROP AS  \nSELECT DISTINCT cult.\"Id\"  \nFROM \"SysCulture\" cult  \nINNER JOIN \"SysAdminUnit\" au  \nON au.\"SysCultureId\" = cult.\"Id\";  \nINSERT INTO \"UsedCultures\" (\"Id\")  \nSELECT \"SysSettingsValue\".\"GuidValue\"  \nFROM \"SysSettingsValue\"  \nINNER JOIN \"SysSettings\"  \nON \"SysSettings\".\"Id\" = \"SysSettingsValue\".\"SysSettingsId\"  \nWHERE \"SysSettings\".\"Code\" = 'PrimaryCulture';\t  \n-- Get a list of tables from which to delete data  \nDO $$  \nDECLARE  \nTableNamesCursor REFCURSOR;  \nTableName varchar;  \nBEGIN  \nOPEN TableNamesCursor FOR  \nSELECT kcu.TABLE_NAME  \nFROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccu  \nINNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc  \nON ccu.CONSTRAINT_CATALOG = rc.UNIQUE_CONSTRAINT_CATALOG  \nAND ccu.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA  \nAND ccu.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAME  \nINNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu  \nON kcu.CONSTRAINT_CATALOG = rc.CONSTRAINT_CATALOG  \nAND kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA  \nAND kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME  \nWHERE ccu.COLUMN_NAME = 'Id'  \nAND ccu.TABLE_SCHEMA = 'public'  \nAND ccu.TABLE_NAME = 'SysCulture';  \n--Delete localizations  \nLOOP  \nFETCH TableNamesCursor INTO TableName;  \nEXIT WHEN TableName IS NULL;  \nRAISE NOTICE 'Deleting from table %', TableName;  \nEXECUTE format('DELETE FROM %I WHERE \"SysCultureId\" NOT IN (SELECT \"Id\" FROM \"UsedCultures\")', TableName);  \nEND LOOP;  \nCLOSE TableNamesCursor;  \nEND $$;  \nDELETE FROM \"SysCulture\"  \nWHERE \"Id\" NOT IN (SELECT \"Id\" FROM \"UsedCultures\");  \nCOMMIT  \nClear the Redis cache immediately afterward.\n* * *\n## See also\u200b\n[Archive the process log records](https://academy.creatio.com/documents?id=7108&anchor=title-1789-3)\n[Delete linked records](https://academy.creatio.com/documents?id=1872)\n[[Delete data] process element](https://academy.creatio.com/documents?id=7017)",
+  "code_examples": [
+    {
+      "code": "IF OBJECT_ID('tempdb..#UsedCultures') IS NOT NULL       DROP Table #UsedCultures-- Get a list of used culturesSELECT DISTINCT cult.IdINTO #UsedCulturesFROM SysCulture cultINNER JOIN SysAdminUnit au       ON au.SysCultureId = cult.IdINSERT INTO #UsedCultures       (Id)SELECT       SysSettingsValue.GuidValueFROM       SysSettingsValueINNER JOIN SysSettings       ON SysSettings.Id = SysSettingsValue.SysSettingsIdWHERE       SysSettings.Code = 'PrimaryCulture'-- Get a list of tables from which to delete dataDECLARE TableNamesCursor CURSOR FORSELECT        t3.TABLE_NAME AS ChildTableName  FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS t1         INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS t2 ON t1.UNIQUE_CONSTRAINT_NAME = t2.CONSTRAINT_NAME        INNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS t3 ON t1.CONSTRAINT_NAME = t3.CONSTRAINT_NAMEWHERE       t2.TABLE_NAME = 'SysCulture'       and t2.COLUMN_NAME = 'Id'       and t3.COLUMN_NAME = 'SysCultureId'DECLARE @TableName SYSNAMEOPEN TableNamesCursorFETCH NEXT FROM TableNamesCursor INTO @TableNameWHILE @@FETCH_STATUS = 0  BEGIN         PRINT @TableName       DECLARE @Sql NVARCHAR(MAX);       SET @Sql = 'DELETE FROM ' + @TableName + '            WHERE SysCultureId NOT IN (SELECT Id FROM #UsedCultures)';       PRINT @Sql       EXECUTE sp_executesql @Sql       FETCH NEXT FROM TableNamesCursor INTO @TableNameENDCLOSE TableNamesCursorDEALLOCATE TableNamesCursorDELETE FROM SysCultureWHERE Id NOT IN (SELECT Id FROM #UsedCultures)IF OBJECT_ID('tempdb..#UsedCultures') IS NOT NULL       DROP Table #UsedCultures",
+      "language": "sql",
+      "context": "You can delete cultures that you no longer plan to use to free up additional disk space. To delete a culture, use the following script:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "BEGIN;-- Get a list of used culturesCREATE TEMP TABLE \"UsedCultures\" ON COMMIT DROP ASSELECT DISTINCT cult.\"Id\"FROM \"SysCulture\" cultINNER JOIN \"SysAdminUnit\" auON au.\"SysCultureId\" = cult.\"Id\";INSERT INTO \"UsedCultures\" (\"Id\")SELECT \"SysSettingsValue\".\"GuidValue\"FROM \"SysSettingsValue\"INNER JOIN \"SysSettings\"ON \"SysSettings\".\"Id\" = \"SysSettingsValue\".\"SysSettingsId\"WHERE \"SysSettings\".\"Code\" = 'PrimaryCulture';\t-- Get a list of tables from which to delete dataDO $$DECLARETableNamesCursor REFCURSOR;TableName varchar;BEGINOPEN TableNamesCursor FORSELECT kcu.TABLE_NAMEFROM INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE ccuINNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc    ON ccu.CONSTRAINT_CATALOG = rc.UNIQUE_CONSTRAINT_CATALOG    AND ccu.CONSTRAINT_SCHEMA = rc.UNIQUE_CONSTRAINT_SCHEMA    AND ccu.CONSTRAINT_NAME = rc.UNIQUE_CONSTRAINT_NAMEINNER JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu    ON kcu.CONSTRAINT_CATALOG = rc.CONSTRAINT_CATALOG    AND kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA    AND kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAMEWHERE ccu.COLUMN_NAME = 'Id'  AND ccu.TABLE_SCHEMA = 'public'  AND ccu.TABLE_NAME = 'SysCulture';--Delete localizationsLOOPFETCH TableNamesCursor INTO TableName;EXIT WHEN TableName IS NULL;RAISE NOTICE 'Deleting from table %', TableName;EXECUTE format('DELETE FROM %I WHERE \"SysCultureId\" NOT IN (SELECT \"Id\" FROM \"UsedCultures\")', TableName);END LOOP;CLOSE TableNamesCursor;END $$;DELETE FROM \"SysCulture\"WHERE \"Id\" NOT IN (SELECT \"Id\" FROM \"UsedCultures\");COMMIT",
+      "language": "sql",
+      "context": "You can delete cultures that you no longer plan to use to free up additional disk space. To delete a culture, use the following script:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Clean up the drive space",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Possible reasons for quick database growth\u200b",
+      "anchor": "title-2112-4"
+    },
+    {
+      "level": 2,
+      "text": "Creatio database cleanup tools\u200b",
+      "anchor": "title-2112-5"
+    },
+    {
+      "level": 3,
+      "text": "Automatic process log cleanup\u200b",
+      "anchor": "title-2112-1"
+    },
+    {
+      "level": 3,
+      "text": "Clear the change log\u200b",
+      "anchor": "title-2112-7"
+    },
+    {
+      "level": 3,
+      "text": "Delete section records\u200b",
+      "anchor": "title-2112-2"
+    },
+    {
+      "level": 3,
+      "text": "Delete data as part of a business process\u200b",
+      "anchor": "title-2112-3"
+    },
+    {
+      "level": 3,
+      "text": "Delete unused cultures\u200b",
+      "anchor": "title-2112-10"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/clean-up-the-drive-space",
+      "text": "Clean up the drive space",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/clean-up-the-drive-space",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/clean-up-the-drive-space",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/user-access-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/synchronize-users-with-ldap",
+      "text": "Synchronize users with LDAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-management",
+      "text": "User management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/access-management",
+      "text": "Access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/creatio-licensing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/manage-user-licenses",
+      "text": "Manage licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/creatio-licensing-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/change-log",
+      "text": "Change log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/audit-log",
+      "text": "Audit log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/secure-file-upload",
+      "text": "Secure file upload",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/recommended-information-security-settings",
+      "text": "Information security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/content-security-policy",
+      "text": "Content security policy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/store-secrets-in-vault",
+      "text": "Sensitive data security",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/host-header-protection",
+      "text": "Host header protection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/limit-ip-for-login",
+      "text": "IP restrictions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/platform-cookies",
+      "text": "Platform cookies",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/remote-access-for-creatio-support",
+      "text": "Remote access for Creatio support",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/creatio-cloud-ips",
+      "text": "PreviousCreatio cloud IP addresses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/process-complex-database-queries-faster",
+      "text": "NextImprove page loading time",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/limit-DB-thread-count",
+      "text": "Limit thread count for DB queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/manage-resource-intensive-queries",
+      "text": "Query management rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/backup-datadase",
+      "text": "Back up database",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/manage-site",
+      "text": "Maintain Creatio website",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/compile-app-on-web-farm",
+      "text": "Compile an app on a web farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/setup-and-administration/category/access-management",
+      "text": "Access management",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:18:23.915387"
+}

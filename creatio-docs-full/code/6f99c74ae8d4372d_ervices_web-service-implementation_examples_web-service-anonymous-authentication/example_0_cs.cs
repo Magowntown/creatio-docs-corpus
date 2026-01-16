@@ -1,0 +1,1 @@
+/* The user on whose behalf to process the HTTP request. */Terrasoft.Web.Common.SessionHelper.SpecifyWebOperationIdentity(    HttpContextAccessor.GetInstance(),    SystemUserConnection.CurrentUser);

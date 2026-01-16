@@ -1,0 +1,551 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/complex-select-queries",
+  "title": "Complex Select queries",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development"
+    },
+    {
+      "text": "Data operations (back-end)",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nComplex database queries can put a 100% load on the resources of the database server for a long time. This obstructs the workflow of other users or makes it impossible.\nThe **types** of complex queries are as follows:\n* suboptimal queries in dynamic folders, dashboard blocks\n* complex analytical selections in dashboard blocks\nYou can execute complex `Select` queries using the following **means** :\n* a dedicated query pool (available for Microsoft SQL Server Enterprise Edition)\n* a read-only replica\nThese **ways** to execute complex `Select` queries let you:\n* limit resources the database server dedicates to complex `Select` query processing\n* reduce the impact of complex `Select` query processing on the workflow of other users and the operation of other parts of Creatio\n## Dedicated query pool\u200b\nThe **purpose** of a dedicated query pool is to process complex `Select` queries that are not part of the transaction and are externalized to a dedicated pool.\n### 1\\. Set up the connection of a dedicated query pool\u200b\nMicrosoft SQL Server lets you limit resource allocation using the built-in [Resource Governor](https://docs.microsoft.com/en-us/sql/relational-databases/resource-governor/resource-governor) tool. The Resource Governor rates connections based on the information about the connection, not a particular query. The impact of the tool is barely noticeable on an idle server and short queries. The effect of the Resource Governor is observable when the database server has a 100% load and a complex query takes a long time to execute.\nTo **set up the connection of a dedicated query pool** , open the `ConnectionStrings.config` configuration file and add the `_Limited` suffix to the `App` or `Application Name` property. This setting enables a special connection that divides the queries into simple and potentially complex.\nThe connection **types** are as follows:\n* If you **do not specify a value** for the `App` property in the connection string of the `ConnectionStrings.config` configuration file, Creatio will use default connections. The default generic connection is \".Net SqlClient DataProvider,\" the default connection of a dedicated query pool is \".Net SqlClient DataProvider_Limited.\"\n* If you **specify** \"creatio\" for the `App` property in the connection string of the `ConnectionStrings.config` configuration file, Creatio will replace the connection property of the dedicated query pool with \"creatio_Limited.\"\n* Example of the set up App property (Creatio 8.1.4 and later)\n* Example of the set up App property (Creatio 8.1.3 and earlier)\n<add name=\"db\" connectionString=\"App=creatio; Data Source=dbserver\\mssql2022; Initial Catalog=BpmonlineSolution; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security=SSPI; Pooling = true; Max Pool Size = 100; Async = true; Connection Timeout=500\" />  \n<add name=\"db\" connectionString=\"App=creatio; Data Source=dbserver\\mssql2016; Initial Catalog=BpmonlineSolution; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security=SSPI; Pooling = true; Max Pool Size = 100; Async = true; Connection Timeout=500\" />  \nAs a result, Creatio adds more database connections when you load dashboards or filter sections using dynamic folders. Unlike main connections, the names of these connections contain the `_Limited` suffix.\nImportant\nCreatio does not limit resources when using a dedicated query pool. Use the `_Limited` suffix to rate connections with Resource Governor tools.\n### 2\\. Enable the dedicated query pool functionality\u200b\nTo **enable the dedicated query pool functionality** , set the `UseQueryKinds` key of the `<appSettings>` element in the `..\\Terrasoft.WebApp\\Web.config` file to `true`. The `UseQueryKinds` key lets you send queries from dashboards and dynamic folders to connections whose names contain the `_Limited` suffix.\n..\\Terrasoft.WebApp\\Web.config\n<add key=\"UseQueryKinds\" value=\"true\" />  \n### 3\\. Set up the Resource Governor tool\u200b\nThe setup of the Resource Governor tool involves the setup of the groups and pool.\nTo **set up the Resource Governor tool** , execute the SQL script.\nExample of the group and pool setup\nALTER RESOURCE POOL poolLimited WITH (  \nMAX_CPU_PERCENT = 20,  \nMIN_CPU_PERCENT = 0  \n-- REQUEST_MAX_MEMORY_GRANT_PERCENT = value  \n-- REQUEST_MAX_CPU_TIME_SEC = value  \n-- REQUEST_MEMORY_GRANT_TIMEOUT_SEC = value  \n-- MAX_DOP = value  \n-- GROUP_MAX_REQUESTS = value  \n);  \nGO  \n--- Create a workload group for off-hours processing  \n--- and configure the relative importance.  \nCREATE WORKLOAD GROUP groupLimited WITH (IMPORTANCE = LOW) USING poolLimited  \nGO ALTER RESOURCE GOVERNOR RECONFIGURE;  \nGO  \nLearn more about setting up the tool in the official [Resource Governor documentation](https://docs.microsoft.com/en-us/sql/relational-databases/resource-governor/resource-governor).\nThe classifier function that returns the group name is run for each new connection.\nExample of the classifier function\nUSE [master]  \nGO  \nALTER FUNCTION [dbo].[fnProtoClassifier]()  \nRETURNS sysname  \nWITH SCHEMABINDING  \nAS  \nBEGIN  \nIF(app_name() like '%_Limited')  \nBEGIN  \nRETURN N'groupLimited'  \nEND  \nRETURN N'default'  \nEND;  \n## Read-only replica\u200b\nCreatio supports reading data from a read-only replica. The **purpose** of a read-only replica is to process complex `Select` queries.\nCreatio can redirect the following **queries** :\n* Custom `SelectQuery` from Creatio UI.\n* `Select` queries from the back-end. For example, the **Script task** process element.\nSimilar to a [dedicated query pool](https://academy.creatio.com/documents?ver=8.1&id=15261&anchor=title-3509-1), a read-only replica only accepts `Select` queries that are not part of the transaction. Creatio supports only a single read-only replica.\nLearn more about setting up a read-only replica in the user documentation: [Process complex database queries faster](https://academy.creatio.com/documents?ver=8.1&id=2375).\n## Execute a complex Select query\u200b\nTo **execute** a `Select` **query** , retrieve a special `DBExecutor` by passing the `Limited` value from the `QueryKind` enumeration as an additional parameter.\n`QueryKind` is the argument of the `EnsureDBConnection()` method in the example below. Creatio retrieves the argument value from the `ESQ` client query and inserts the value into the `ESQ` server query, as well as the `Select` query.\nRetrieve the DBExecutor depending on retrieved QueryKind\nusing (DBExecutor executor = userConnection.EnsureDBConnection(QueryKind)) {  \n/* ... */  \n};  \nThe `EnsureDBConnection(QueryKind.General)` call is identical to the `EnsureDBConnection()` call that does not specify `QueryKind`.\nAs a result, if you select the `QueryKind.Limited` flag in the front-end when you create an instance of the `Terrasoft.EntitySchemaQuery` class, Creatio will pass the value to the server and assign the query a special `DBExecutor` that uses a dedicated query pool.\nExample of the QueryKind.Limited flag selected for the ESQ client query in the ChartModule schema\n...  \ngetChartDataESQ: function() {  \nreturn this.Ext.create(\"Terrasoft.EntitySchemaQuery\", {  \nrootSchema: this.entitySchema,  \nqueryKind: Terrasoft.QueryKind.LIMITED  \n});  \n},  \n...  \nImportant\nIf the code contains nested calls to `userConnection.EnsureDBConnection(QueryKind)`, make sure to use the same `QueryKind` value on every nesting level.\n* * *\n## See also\u200b\n[Process complex database queries faster](https://academy.creatio.com/documents?ver=8.1&id=2375) (user documentation)\n* * *\n## Resources\u200b\n[Resource Governor](https://docs.microsoft.com/en-us/sql/relational-databases/resource-governor/resource-governor) (official Microsoft documentation)\n[SQL Server Replication](https://learn.microsoft.com/en-us/sql/relational-databases/replication/sql-server-replication?view=sql-server-ver15) (official Microsoft documentation)\n[Simple Streams Replication Configuration](https://docs.oracle.com/cd/B19306_01/server.102/b14228/config_simple.htm#STREP056) (official Oracle documentation)\n[Streaming Replication](https://wiki.postgresql.org/index.php?title=Streaming_Replication&oldid=36550) (official Postgres documentation)",
+  "code_examples": [
+    {
+      "code": "<add name=\"db\" connectionString=\"App=creatio; Data Source=dbserver\\mssql2022; Initial Catalog=BpmonlineSolution; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security=SSPI; Pooling = true; Max Pool Size = 100; Async = true; Connection Timeout=500\" />",
+      "language": "xml",
+      "context": "If youspecify\"creatio\" for theAppproperty in the connection string of theConnectionStrings.configconfiguration file, Creatio will replace the connection property of the dedicated query pool with \"crea",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add name=\"db\" connectionString=\"App=creatio; Data Source=dbserver\\mssql2016; Initial Catalog=BpmonlineSolution; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security=SSPI; Pooling = true; Max Pool Size = 100; Async = true; Connection Timeout=500\" />",
+      "language": "xml",
+      "context": "If youspecify\"creatio\" for theAppproperty in the connection string of theConnectionStrings.configconfiguration file, Creatio will replace the connection property of the dedicated query pool with \"crea",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add key=\"UseQueryKinds\" value=\"true\" />",
+      "language": "xml",
+      "context": "Toenable the dedicated query pool functionality, set theUseQueryKindskey of the<appSettings>element in the..\\Terrasoft.WebApp\\Web.configfile totrue. TheUseQueryKindskey lets you send queries from dash",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ALTER RESOURCE POOL poolLimited WITH (    MAX_CPU_PERCENT = 20,    MIN_CPU_PERCENT = 0    -- REQUEST_MAX_MEMORY_GRANT_PERCENT = value    -- REQUEST_MAX_CPU_TIME_SEC = value    -- REQUEST_MEMORY_GRANT_TIMEOUT_SEC = value    -- MAX_DOP = value    -- GROUP_MAX_REQUESTS = value);GO--- Create a workload group for off-hours processing--- and configure the relative importance.    CREATE WORKLOAD GROUP groupLimited WITH (IMPORTANCE = LOW) USING poolLimitedGO ALTER RESOURCE GOVERNOR RECONFIGURE;GO",
+      "language": "sql",
+      "context": "Toset up the Resource Governor tool, execute the SQL script.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "USE [master]GOALTER FUNCTION [dbo].[fnProtoClassifier]()    RETURNS sysname    WITH SCHEMABINDINGASBEGIN    IF(app_name() like '%_Limited')    BEGIN        RETURN N'groupLimited'    END    RETURN N'default'END;",
+      "language": "sql",
+      "context": "The classifier function that returns the group name is run for each new connection.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "using (DBExecutor executor = userConnection.EnsureDBConnection(QueryKind)) {    /* ... */};",
+      "language": "cs",
+      "context": "QueryKindis the argument of theEnsureDBConnection()method in the example below. Creatio retrieves the argument value from theESQclient query and inserts the value into theESQserver query, as well as t",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "...getChartDataESQ: function() {    return this.Ext.create(\"Terrasoft.EntitySchemaQuery\", {        rootSchema: this.entitySchema,        queryKind: Terrasoft.QueryKind.LIMITED    });},...",
+      "language": "cs",
+      "context": "As a result, if you select theQueryKind.Limitedflag in the front-end when you create an instance of theTerrasoft.EntitySchemaQueryclass, Creatio will pass the value to the server and assign the query ",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantCreatio does not limit resources when using a dedicated query pool. Use the_Limitedsuffix to rate connections with Resource Governor tools.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Creatio does not limit resources when using a dedicated query pool. Use the <code>_Limited</code> suffix to rate connections with Resource Governor tools.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio does not limit resources when using a dedicated query pool. Use the_Limitedsuffix to rate connections with Resource Governor tools.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio does not limit resources when using a dedicated query pool. Use the <code>_Limited</code> suffix to rate connections with Resource Governor tools.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf the code contains nested calls touserConnection.EnsureDBConnection(QueryKind), make sure to use the sameQueryKindvalue on every nesting level.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If the code contains nested calls to <code>userConnection.EnsureDBConnection(QueryKind)</code>, make sure to use the same <code>QueryKind</code> value on every nesting level.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If the code contains nested calls touserConnection.EnsureDBConnection(QueryKind), make sure to use the sameQueryKindvalue on every nesting level.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If the code contains nested calls to <code>userConnection.EnsureDBConnection(QueryKind)</code>, make sure to use the same <code>QueryKind</code> value on every nesting level.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Complex Select queries",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Dedicated query pool\u200b",
+      "anchor": "title-3509-1"
+    },
+    {
+      "level": 3,
+      "text": "1. Set up the connection of a dedicated query pool\u200b",
+      "anchor": "title-2996-19"
+    },
+    {
+      "level": 3,
+      "text": "2. Enable the dedicated query pool functionality\u200b",
+      "anchor": "title-2996-20"
+    },
+    {
+      "level": 3,
+      "text": "3. Set up the Resource Governor tool\u200b",
+      "anchor": "title-2996-21"
+    },
+    {
+      "level": 2,
+      "text": "Read-only replica\u200b",
+      "anchor": "title-3509-2"
+    },
+    {
+      "level": 2,
+      "text": "Execute a complex Select query\u200b",
+      "anchor": "title-2996-22"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/execute-operations-in-the-background/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/background-operations-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/direct-access-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/direct-access-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/orm/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/orm-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/orm-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "NextHierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/orm/references/entityschemaqueryoptions",
+      "text": "PreviousEntitySchemaQueryOptions",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:44:58.149745"
+}

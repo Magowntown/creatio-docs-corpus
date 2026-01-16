@@ -1,0 +1,481 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/development-in-creatio/front-end-js",
+  "title": "Front-end (JS) development basics",
+  "breadcrumbs": [
+    {
+      "text": "Architecture",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture"
+    },
+    {
+      "text": "Creatio development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: beginner\nThe front-end platform is a set of modules that are defined and loaded asynchronously on demand.\nThe core is the basis of Creatio's front-end.\nThe core level provides:\n* the ability to use the object-oriented approach and inheritance technique\n* the tools to define and asynchronously load modules and their dependencies\n* the functionality of base Creatio elements\n* the module communication mechanism\nFront-end development in Creatio is done on the configuration level and comes down to creating new and expanding base visual modules, as well as non-visual modules, view models.\u200b\n## Creatio's front-end core components\u200b\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Frontend/scr_frontend_core.png)\n### External JS libraries\u200b\n**ExtJS** \u2013 a JavaScript framework used for web application and UI development. Creatio uses ExtJS as a mechanism to establish the class structure of the core's client segment. ExtJS enables an object-oriented approach, which is not implemented in pure JavaScript. Use it to establish classes, implement an inheritance hierarchy, and group classes into namespaces.\n**RequireJS** \u2013 a library that implements the [Asynchronous Module Definition (AMD)](http://en.wikipedia.org/wiki/Asynchronous_module_definition) approach. The AMD approach declares the mechanism for the definition and asynchronous loading of modules and their dependencies.\n**Angular** \u2013 a JavaScript framework for single-page application development. Use it to expand browser applications based on the MVC template as well as to streamline testing and development. Creatio supports embedding custom Angular components using a common Angular core.\n### Base JS classes\u200b\nAn unmodifiable part of Creatio. These classes:\n* Ensure the operation of the client configuration modules.\n* Define the functionality of base Creatio objects, controls, lists, and constants.\n* Are stored as executable files in Creatio folders on the drive.\n### Messaging\u200b\n**Sandbox** \u2013 the core component that manages the interaction of Creatio modules. The sandbox lets Creatio exchange data between the modules (`sandbox.publish()` and `sandbox.subscribe()` methods) and load the modules into the Creatio UI on demand (`sandbox.load()` module).\n## Asynchronous module definition\u200b\nThe front-end platform has a **modular structure**.\n**Module** \u2013 a functionality set encapsulated in a separate block that can also use other modules as dependencies.\nModule creation in JavaScript is determined by the \"Module\" design pattern. A classic example of this pattern's implementation is using anonymous functions that return a specific value (an object, a function, etc.) associated with the module. The module's value is then exported to the global object.\nTo manage a large number of modules, Creatio loads modules and their dependencies according to the **Asynchronous Module Definition** (AMD) approach.\nThe AMD approach declares the mechanism that defines modules and loads them alongside their dependencies asynchronously. This mechanism allows Creatio to load only the data that is necessary for a particular task. Creatio uses **RequireJS** loader for working with modules.\nModule definition **principles** in Creatio:\n* The module is defined by a special `define()` function that registers a function factory for the module's instantiation. However, this function does not immediately load the module when called.\n* The module's dependencies are passed as a string value array, not via the properties of the global object.\n* The loader loads all dependency modules passed as the arguments to `define()`. The modules load asynchronously. The loader determines their actual load order arbitrarily.\n* Once the loader loads all specified dependencies of the module, the function factory that returns the module's value is called. Loaded dependency modules are passed as arguments to the function factory.\n## Modular development in Creatio\u200b\nCreatio uses **client modules** to implement the entirety of the custom functionality.\nThe module hierarchy in Creatio\n![The module hierarchy in Creatio](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Frontend/scr_modules.png)\nDespite some functional differences, all client modules in Creatio have the same description structure that follows the AMD module description format.\nGeneral client module description structure\ndefine(\"ModuleName\", \"dependencies\", function(dependencies) {  \n// someMethods\u2026  \nreturn { moduleObject };  \n});  \n* `ModuleName` \u2013 the module's name\n* `dependencies` \u2013 dependency modules whose functionality the current module can use\n* `moduleObject` \u2013 the module's configuration object\nCreatio has several **types** of client modules.\n* The non-visual module\n* The visual module\n* The view model scheme\n### Non-visual module\u200b\nThis module implements Creatio functionality that is not associated with data binding and displaying data in the UI.\nNon-visual module's description structure\ndefine(\"ModuleName\", \"dependencies\", function(dependencies) {  \n// Methods that implement the necessary business logic.  \nreturn;  \n});  \nNon-visual module examples: utility modules that fulfill service functions.\n### Visual module\u200b\nUse this module to create custom visual elements in Creatio.\nThe view model follows the MVVM template. The visual module encapsulates data displayed in the GUI's controls as well as the methods for working with such data.\nIt has the following **methods** :\n* `init()` \u2013 the module initialization method.\nManages the initialization of the class object's properties as well as the message subscription.\n* `render(renderTo)` \u2013 the module view's DOM rendering method.\nReturns the view.\nThis method only accepts the `renderTo` argument that specifies the element where the module object's view will be embedded.\n* `destroy()` \u2013 the method that manages the deletion of the module's model or the view model, the unsubscription from the previously subscribed messages, and the destruction of the module class's object.\nYou can use the base core classes to create a visual module. For instance, you can create a class that inherits from `Terrasoft.configuration.BaseModule` or `Terrasoft.configuration.BaseSchemaModule` in the module. These base classes already have a minimal implementation of the essential visual module methods \u2013 `init()`, `render(renderTo)` and `destroy()`.\nStructure description of a visual module that inherits from Terrasoft.BaseModule base class\ndefine(\"ModuleName\", \"dependencies\", function(dependencies) {  \n// The definition of the module's class.  \nExt.define(\"Terrasoft..configuration.className\") {  \nalternateClassName: \"Terrasoft.className\"  \nextend: \"Terrasoft.BaseModule\",  \n...  \n// Properties and methods.  \n...  \n};  \n// Creating the module's object.  \nreturn Ext.create(Terrasoft.className)  \n});  \nVisual module examples: modules in charge of controls on Creatio pages.\n### View model schema\u200b\nThe most common Creatio customization problems include creating and tweaking basic interface elements: sections, pages, details.\nThese elements' modules have a **pattern-based structure**. They are called view model schemas.\nA view model schema is a configuration object Creatio generators `ViewGenerator` and `ViewModelGenerator` use to generate the view and the view model.\nThe base schema substitution mechanism is used for most problems related to Creatio customization. This includes all the schemas in pre-installed configuration packages.\nThe most common base view model schemas are as follows:\n* `BasePageV2`\n* `BaseSectionV2`\n* `BaseDetailV2`\nView model schema's structure\ndefine(\"SchemaName\", \"dependencies\", function(dependencies) {  \nreturn {  \nentitySchemaName: \"ExampleEntity\",  \nmixins: {},  \nattributes: {},  \nmessages: {},  \nmethods: {},  \nrules: {},  \nbusinessRules: {},  \nmodules: {},  \ndiff:  \n};  \n});  \nView model schema examples: page, section and detail schemes.\n* * *\n## See also\u200b\n[Back-end (C#)](https://academy.creatio.com/documents?ver=8.2&id=15083)\n* * *\n## E-learning courses\u200b\n[Development on Creatio platform](https://academy.creatio.com/online-courses/node/529657)",
+  "code_examples": [
+    {
+      "code": "define(\"ModuleName\", \"dependencies\", function(dependencies) {        // someMethods\u2026        return { moduleObject };});",
+      "language": "js",
+      "context": "Despite some functional differences, all client modules in Creatio have the same description structure that follows the AMD module description format.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"ModuleName\", \"dependencies\", function(dependencies) {    // Methods that implement the necessary business logic.    return;});",
+      "language": "js",
+      "context": "This module implements Creatio functionality that is not associated with data binding and displaying data in the UI.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"ModuleName\", \"dependencies\", function(dependencies) {    // The definition of the module's class.    Ext.define(\"Terrasoft..configuration.className\") {        alternateClassName: \"Terrasoft.className\"        extend: \"Terrasoft.BaseModule\",        ...        // Properties and methods.        ...    };    // Creating the module's object.    return Ext.create(Terrasoft.className)});",
+      "language": "js",
+      "context": "You can use the base core classes to create a visual module. For instance, you can create a class that inherits fromTerrasoft.configuration.BaseModuleorTerrasoft.configuration.BaseSchemaModulein the m",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"SchemaName\", \"dependencies\", function(dependencies) {    return {        entitySchemaName: \"ExampleEntity\",        mixins: {},        attributes: {},        messages: {},        methods: {},        rules: {},        businessRules: {},        modules: {},        diff:    };});",
+      "language": "js",
+      "context": "The most common base view model schemas are as follows:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Frontend/scr_frontend_core.png",
+      "alt": "",
+      "title": "",
+      "context": "Creatio's front-end core components\u200b",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.2_architecture_development-in-creatio_front-end-js_7fb44ba38307.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Frontend/scr_modules.png",
+      "alt": "The module hierarchy in Creatio",
+      "title": "",
+      "context": "Creatio usesclient modulesto implement the entirety of the custom functionality.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.2_architecture_development-in-creatio_front-end-js_1bcaf116576b.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Front-end (JS) development basics",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Creatio's front-end core components\u200b",
+      "anchor": "title-1181-1"
+    },
+    {
+      "level": 3,
+      "text": "External JS libraries\u200b",
+      "anchor": "title-1181-2"
+    },
+    {
+      "level": 3,
+      "text": "Base JS classes\u200b",
+      "anchor": "title-1181-3"
+    },
+    {
+      "level": 3,
+      "text": "Messaging\u200b",
+      "anchor": "title-1181-4"
+    },
+    {
+      "level": 2,
+      "text": "Asynchronous module definition\u200b",
+      "anchor": "title-1181-5"
+    },
+    {
+      "level": 2,
+      "text": "Modular development in Creatio\u200b",
+      "anchor": "title-1181-6"
+    },
+    {
+      "level": 3,
+      "text": "Non-visual module\u200b",
+      "anchor": "title-1181-7"
+    },
+    {
+      "level": 3,
+      "text": "Visual module\u200b",
+      "anchor": "title-1181-8"
+    },
+    {
+      "level": 3,
+      "text": "View model schema\u200b",
+      "anchor": "title-1181-9"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "E-learning courses\u200b",
+      "anchor": "e-learning-courses"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/development-in-creatio/front-end-js",
+      "text": "Front-end (JS)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/development-in-creatio/front-end-js",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/development-in-creatio/front-end-js",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/development-in-creatio/front-end-js",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/mobile-application",
+      "text": "Mobile Creatio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/database-enrichment",
+      "text": "Database enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/email-listener",
+      "text": "Email Listener synchronization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/static-content-bundling",
+      "text": "Static content bundling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/microservices/bulk-email",
+      "text": "Bulk email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/development-in-creatio/creating-applications-on-creatio-platform",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/development-in-creatio/no-code",
+      "text": "No-code tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/development-in-creatio/back-end-c-sharp",
+      "text": "PreviousBack-end (C#)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/development-in-creatio/integrations",
+      "text": "NextIntegration tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T06:41:02.258657"
+}

@@ -1,0 +1,1 @@
+[Creatio application URL]/0/rest/UsrCustomConfigurationService/GetContactIdByName?Name=[Contact name]

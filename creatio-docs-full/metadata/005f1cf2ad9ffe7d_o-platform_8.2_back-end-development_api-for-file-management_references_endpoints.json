@@ -1,0 +1,777 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/endpoints",
+  "title": "File API endpoints",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development"
+    },
+    {
+      "text": "File management API",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api"
+    },
+    {
+      "text": "References",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/file-management-references"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\nThe File API interface in Creatio is a mechanism that provides endpoints to perform file operations such as uploading, downloading, and deleting through REST API calls.\n## Upload a file\u200b\nCreatio lets you upload the file in one request or multiple requests using chunks.\n### Request string\u200b\nPOST /FileApiService/UploadFile  \nUpload a file that has specified parameters. We recommend verifying parameters in the browser since the request parameters depend on the object associated with the file.\nParameter| Description  \n---|---  \nfileId| The ID of the file record. For a new record, a random ID.  \ntotalFileLength| The total length of the file.  \nmimeType| The MIME type of the file.  \nfileName| The name of the file.  \ncolumnName| The name of the column in the `File` database table to store the file body. If you store the file body in an external file storage, the `columnName` parameter value is ignored.  \nentitySchemaName| The code of the object schema.  \nparentColumnName| The name of the column in the `File` database table where the ID of the primary record is stored.  \nparentColumnValue| The ID of the primary record.  \n### Request headers\u200b\nHeader| Description  \n---|---  \nContent-Range| The byte range that the current message represents within the entirety of the main resource. Learn more: [Content-Range header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Range) (MDN Wed Docs).Header template: `<unit> <range-start>-<range-end>/<size>`, for example, \"bytes 0-122/123,\" where:\n* `<unit>` is the unit of range. By default, \"bytes.\"\n* `<range-start>` is the start position (zero-indexed and inclusive) of the request range.\n* `<range-end>` is the end position (zero-indexed and inclusive) of the request range.\n* `<size>` is the total length of the file.\nIf you upload the file in multiple requests using chunks, do not forget to edit the `Content-Range` header. View the examples of the `Content-Range` header to upload the file in multiple requests below:\n* First chunk: \"bytes 0-524287/15122860.\"\n* Second chunk: \"bytes 524288-1048575/15122860.\"\n* The last chunk: \"bytes 14680064-15122859/15122860.\"\nContent-Type| The media type of the resource. For example, \"application/x-zip-compressed.\" Learn more: [Content-Type Header Field](https://www.rfc-editor.org/rfc/rfc2045#page-10) (official RFC Editor documentation).  \nContent-Disposition| Specify how the server must handle the request or response content. By default, \"attachment; filename=SomeFile.\" Learn more: [Content-Disposition header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition) (MDN Wed Docs).  \n### Request body\u200b\nPass the binary contents of the file in the request body, i. e., `Type: File (binary)`.\n### Usage example\u200b\nView the example that uploads the `file.zip` file and attaches it to the \"Contact\" (`\u0421ontact` code) object whose ID is \"c4ed336c-3e9b-40fe-8b82-5632476472b4\" below.\n* Upload a file in one request (C#)\n* Upload a file in one request (cURL)\n* Upload a file in multiple requests (C#)\nvar client = new HttpClient();  \nvar request = new HttpRequestMessage(HttpMethod.Post, \"http://CreatioURL/0/rest/FileApiService/UploadFile?fileId=51bc924d-7341-cdbd-0a98-b04a4e6d04cc&totalFileLength=123&mimeType=application%2Fx-zip-compressed&fileName=file.zip&columnName=Data&entitySchemaName=ContactFile&parentColumnName=Contact&parentColumnValue=c4ed336c-3e9b-40fe-8b82-5632476472b4\");  \nrequest.Headers.Add(\"Content-Range\", \"bytes 0-122/123\");  \nrequest.Headers.Add(\"Content-Disposition\", \"attachment; filename=file.zip\");  \nrequest.Content = new StreamContent(File.OpenRead(\"SomeFilePath/file.zip\"));  \nvar response = await client.SendAsync(request);  \nresponse.EnsureSuccessStatusCode();  \nConsole.WriteLine(await response.Content.ReadAsStringAsync());  \ncurl --location 'http://CreatioURL/0/rest/FileApiService/UploadFile?fileId=71bc924d-7341-cdbd-0a98-b04a4e6d04cc&totalFileLength=123&mimeType=application%2Fx-zip-compressed&fileName=file.zip&columnName=Data&entitySchemaName=ContactFile&parentColumnName=Contact&parentColumnValue=c4ed336c-3e9b-40fe-8b82-5632476472b4' \\  \n--header 'Content-Range: bytes 0-122/123' \\  \n--header 'Content-Type: application/x-zip-compressed' \\  \n--data '@/SomeFilePath/file.zip'  \nvar fileName = \"file.zip\";  \nvar filePath = \"SomeFilePath/file.zip\";  \nFileInfo fileInfo = new FileInfo(filePath);  \nusing (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read)){  \nint uploadChunkLength = 10000;  \nbyte[] filePart = new byte[uploadChunkLength];  \nint totalSize = (int) fileInfo.Length;  \nint uploadedSize = 0;  \nint currentChunkLength;  \nwhile ((currentChunkLength = fileStream.Read(filePart, 0, filePart.Length)) != 0){  \nint num = uploadedSize == 0 ? 0 : uploadedSize + 1;  \nbyte[] currentFileChunk = new byte[currentChunkLength];  \nArray.Copy(filePart, currentFileChunk, currentChunkLength);  \nusing (MemoryStream memoryStream = new MemoryStream()) {  \nmemoryStream.Write(currentFileChunk, 0, currentChunkLength);  \nvar request = new HttpRequestMessage(HttpMethod.Post, $\"localhost/0/rest/FileApiService/UploadFile?fileId=51bc924d-7341-cdbd-0a98-b04a4e6d04cc&totalFileLength={totalSize}&mimeType=application%2Fx-zipcompressed&fileName={fileName}&columnName=Data&entitySchemaName=ContactFile&parentColumnName=Contact&parentColumnValue=c4ed336c-3e9b-40fe8b82-5632476472b4\");  \nrequest.Headers.Add(\"Content-Range\", $\"bytes {num}-{uploadedSize + currentFileChunk.Length}/{totalSize}\");  \nrequest.Headers.Add(\"Content-Disposition\", $\"attachment; filename={fileName}\");  \n}  \nuploadedSize += currentChunkLength;  \nnum = totalSize - uploadedSize;  \nuploadChunkLength = num < uploadChunkLength ? num : uploadChunkLength;  \nfilePart = new byte[uploadChunkLength];  \nConsole.WriteLine($\"Loaded {uploadedSize} from {totalSize}\");  \n}  \n}  \n## Download a file\u200b\n### Request string\u200b\nGET /FileService/Download  \nDownload a file.\nParameter| Description  \n---|---  \nfileId| The ID of the file record. For a new record, a random ID.  \nentitySchemaName| The code of the object schema.  \n### Usage example\u200b\nView the example that downloads the file whose ID is \"c4ed336c-3e9b-40fe-8b82-5632476472b4\" below. The file is attached to the \"Contact\" (`\u0421ontact` code) object.\n* Download a file (C#)\n* Download a file (cURL)\nvar client = new HttpClient();  \nvar request = new HttpRequestMessage(HttpMethod.Get, \"http://CreatioURL/0/rest/FileService/Download/ContactFile/71bc924d-7341-cdbd-0a98-b04a4e6d04cc\");  \nvar response = await client.SendAsync(request);  \nresponse.EnsureSuccessStatusCode();  \nConsole.WriteLine(await response.Content.ReadAsStringAsync());  \ncurl -X GET \"http://CreatioURL/0/rest/FileService/Download/ContactFile/71bc924d-7341-cdbd-0a98-b04a4e6d04cc\"  \n## Delete a file\u200b\n### Request string\u200b\nPOST /GridUtilitiesService/DeleteRecords  \nDelete a file.\n### Request headers\u200b\nHeader| Description  \n---|---  \nContent-Type| The media type of the resource. By default, \"application/json.\" Learn more: [Content-Type Header Field](https://www.rfc-editor.org/rfc/rfc2045#page-10) (official RFC Editor documentation).  \n### Request body\u200b\nParameter| Description  \n---|---  \nrootSchema| The root schema associated with the object.  \nprimaryColumnValues| The ID of the file record. For a new record, a random ID.  \nView the example of a request body to delete the file whose ID is \"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\" from the \"Contact attachment\" (`\u0421ontactFile` code) object below.\nExample of a request body to delete the file\n{  \n\"rootSchema\": \"ContactFile\",  \n\"primaryColumnValues\": [  \n\"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\"  \n]  \n}  \n### Usage example\u200b\nView the example that deletes the file whose ID is \"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\" from the \"Contact attachment\" (`\u0421ontactFile` code) object below.\nDelete a file (C#)\nvar client = new HttpClient();  \nvar request = new HttpRequestMessage(HttpMethod.Post, \"http://localhost:8082/0/rest/GridUtilitiesService/DeleteRecords\");  \nvar content = new StringContent(\"{\\r\\n \\\"rootSchema\\\": \\\"ContactFile\\\",\\r\\n \\\"primaryColumnValues\\\": [\\r\\n \\\"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\\\"\\r\\n]\\r\\n}\", null, \"application/json\");  \nrequest.Content = content;  \nvar response = await client.SendAsync(request);  \nresponse.EnsureSuccessStatusCode();  \nConsole.WriteLine(await response.Content.ReadAsStringAsync());  \n* * *\n## Resources\u200b\n[Content-Range header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Range) (official MDN Wed Docs documentation)\n[Content-Disposition header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition) (official MDN Wed Docs documentation)\n[Content-Type Header Field](https://www.rfc-editor.org/rfc/rfc2045#page-10) (official RFC Editor documentation)",
+  "code_examples": [
+    {
+      "code": "POST /FileApiService/UploadFile",
+      "language": "cli",
+      "context": "Request string\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var client = new HttpClient();var request = new HttpRequestMessage(HttpMethod.Post, \"http://CreatioURL/0/rest/FileApiService/UploadFile?fileId=51bc924d-7341-cdbd-0a98-b04a4e6d04cc&totalFileLength=123&mimeType=application%2Fx-zip-compressed&fileName=file.zip&columnName=Data&entitySchemaName=ContactFile&parentColumnName=Contact&parentColumnValue=c4ed336c-3e9b-40fe-8b82-5632476472b4\");request.Headers.Add(\"Content-Range\", \"bytes 0-122/123\");request.Headers.Add(\"Content-Disposition\", \"attachment; filename=file.zip\");request.Content = new StreamContent(File.OpenRead(\"SomeFilePath/file.zip\"));var response = await client.SendAsync(request);response.EnsureSuccessStatusCode();Console.WriteLine(await response.Content.ReadAsStringAsync());",
+      "language": "cs",
+      "context": "View the example that uploads thefile.zipfile and attaches it to the \"Contact\" (\u0421ontactcode) object whose ID is \"c4ed336c-3e9b-40fe-8b82-5632476472b4\" below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "curl --location 'http://CreatioURL/0/rest/FileApiService/UploadFile?fileId=71bc924d-7341-cdbd-0a98-b04a4e6d04cc&totalFileLength=123&mimeType=application%2Fx-zip-compressed&fileName=file.zip&columnName=Data&entitySchemaName=ContactFile&parentColumnName=Contact&parentColumnValue=c4ed336c-3e9b-40fe-8b82-5632476472b4' \\--header 'Content-Range: bytes 0-122/123' \\--header 'Content-Type: application/x-zip-compressed' \\--data '@/SomeFilePath/file.zip'",
+      "language": "cli",
+      "context": "View the example that uploads thefile.zipfile and attaches it to the \"Contact\" (\u0421ontactcode) object whose ID is \"c4ed336c-3e9b-40fe-8b82-5632476472b4\" below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var fileName = \"file.zip\";var filePath = \"SomeFilePath/file.zip\";FileInfo fileInfo = new FileInfo(filePath);using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read)){    int uploadChunkLength = 10000;    byte[] filePart = new byte[uploadChunkLength];    int totalSize = (int) fileInfo.Length;    int uploadedSize = 0;    int currentChunkLength;    while ((currentChunkLength = fileStream.Read(filePart, 0, filePart.Length)) != 0){        int num = uploadedSize == 0 ? 0 : uploadedSize + 1;        byte[] currentFileChunk = new byte[currentChunkLength];        Array.Copy(filePart, currentFileChunk, currentChunkLength);        using (MemoryStream memoryStream = new MemoryStream()) {            memoryStream.Write(currentFileChunk, 0, currentChunkLength);            var request = new HttpRequestMessage(HttpMethod.Post, $\"localhost/0/rest/FileApiService/UploadFile?fileId=51bc924d-7341-cdbd-0a98-b04a4e6d04cc&totalFileLength={totalSize}&mimeType=application%2Fx-zipcompressed&fileName={fileName}&columnName=Data&entitySchemaName=ContactFile&parentColumnName=Contact&parentColumnValue=c4ed336c-3e9b-40fe8b82-5632476472b4\");            request.Headers.Add(\"Content-Range\", $\"bytes {num}-{uploadedSize + currentFileChunk.Length}/{totalSize}\");            request.Headers.Add(\"Content-Disposition\", $\"attachment; filename={fileName}\");        }        uploadedSize += currentChunkLength;        num = totalSize - uploadedSize;        uploadChunkLength = num < uploadChunkLength ? num : uploadChunkLength;        filePart = new byte[uploadChunkLength];        Console.WriteLine($\"Loaded {uploadedSize} from {totalSize}\");    }}",
+      "language": "cs",
+      "context": "View the example that uploads thefile.zipfile and attaches it to the \"Contact\" (\u0421ontactcode) object whose ID is \"c4ed336c-3e9b-40fe-8b82-5632476472b4\" below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "GET /FileService/Download",
+      "language": "cli",
+      "context": "Request string\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var client = new HttpClient();var request = new HttpRequestMessage(HttpMethod.Get, \"http://CreatioURL/0/rest/FileService/Download/ContactFile/71bc924d-7341-cdbd-0a98-b04a4e6d04cc\");var response = await client.SendAsync(request);response.EnsureSuccessStatusCode();Console.WriteLine(await response.Content.ReadAsStringAsync());",
+      "language": "cs",
+      "context": "View the example that downloads the file whose ID is \"c4ed336c-3e9b-40fe-8b82-5632476472b4\" below. The file is attached to the \"Contact\" (\u0421ontactcode) object.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "curl -X GET \"http://CreatioURL/0/rest/FileService/Download/ContactFile/71bc924d-7341-cdbd-0a98-b04a4e6d04cc\"",
+      "language": "cli",
+      "context": "View the example that downloads the file whose ID is \"c4ed336c-3e9b-40fe-8b82-5632476472b4\" below. The file is attached to the \"Contact\" (\u0421ontactcode) object.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "POST /GridUtilitiesService/DeleteRecords",
+      "language": "cli",
+      "context": "Request string\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"rootSchema\": \"ContactFile\",    \"primaryColumnValues\": [        \"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\"    ]}",
+      "language": "json",
+      "context": "View the example of a request body to delete the file whose ID is \"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\" from the \"Contact attachment\" (\u0421ontactFilecode) object below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var client = new HttpClient();var request = new HttpRequestMessage(HttpMethod.Post, \"http://localhost:8082/0/rest/GridUtilitiesService/DeleteRecords\");var content = new StringContent(\"{\\r\\n \\\"rootSchema\\\": \\\"ContactFile\\\",\\r\\n \\\"primaryColumnValues\\\": [\\r\\n \\\"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\\\"\\r\\n]\\r\\n}\", null, \"application/json\");request.Content = content;var response = await client.SendAsync(request);response.EnsureSuccessStatusCode();Console.WriteLine(await response.Content.ReadAsStringAsync());",
+      "language": "cs",
+      "context": "View the example that deletes the file whose ID is \"71bc924d-7341-cdbd-0a98-b04a4e6d04cc\" from the \"Contact attachment\" (\u0421ontactFilecode) object below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "fileId",
+          "The ID of the file record. For a new record, a random ID."
+        ],
+        [
+          "totalFileLength",
+          "The total length of the file."
+        ],
+        [
+          "mimeType",
+          "The MIME type of the file."
+        ],
+        [
+          "fileName",
+          "The name of the file."
+        ],
+        [
+          "columnName",
+          "The name of the column in theFiledatabase table to store the file body. If you store the file body in an external file storage, thecolumnNameparameter value is ignored."
+        ],
+        [
+          "entitySchemaName",
+          "The code of the object schema."
+        ],
+        [
+          "parentColumnName",
+          "The name of the column in theFiledatabase table where the ID of the primary record is stored."
+        ],
+        [
+          "parentColumnValue",
+          "The ID of the primary record."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><p>fileId</p></td><td><p>The ID of the file record. For a new record, a random ID.</p></td></tr><tr><td><p>totalFileLength</p></td><td><p>The total length of the file.</p></td></tr><tr><td><p>mimeType</p></td><td><p>The MIME type of the file.</p></td></tr><tr><td><p>fileName</p></td><td><p>The name of the file.</p></td></tr><tr><td><p>columnName</p></td><td><p>The name of the column in the <code>File</code> database table to store the file body. If you store the file body in an external file storage, the <code>columnName</code> parameter value is ignored.</p></td></tr><tr><td><p>entitySchemaName</p></td><td><p>The code of the object schema.</p></td></tr><tr><td><p>parentColumnName</p></td><td><p>The name of the column in the <code>File</code> database table where the ID of the primary record is stored.</p></td></tr><tr><td><p>parentColumnValue</p></td><td><p>The ID of the primary record.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Header",
+          "Description"
+        ],
+        [
+          "Content-Range",
+          "The byte range that the current message represents within the entirety of the main resource. Learn more:Content-Range header(MDN Wed Docs).Header template:<unit> <range-start>-<range-end>/<size>, for example, \"bytes 0-122/123,\" where:<unit>is the unit of range. By default, \"bytes.\"<range-start>is the start position (zero-indexed and inclusive) of the request range.<range-end>is the end position (zero-indexed and inclusive) of the request range.<size>is the total length of the file.If you upload the file in multiple requests using chunks, do not forget to edit theContent-Rangeheader. View the examples of theContent-Rangeheader to upload the file in multiple requests below:First chunk: \"bytes 0-524287/15122860.\"Second chunk: \"bytes 524288-1048575/15122860.\"The last chunk: \"bytes 14680064-15122859/15122860.\""
+        ],
+        [
+          "Content-Type",
+          "The media type of the resource. For example, \"application/x-zip-compressed.\" Learn more:Content-Type Header Field(official RFC Editor documentation)."
+        ],
+        [
+          "Content-Disposition",
+          "Specify how the server must handle the request or response content. By default, \"attachment; filename=SomeFile.\" Learn more:Content-Disposition header(MDN Wed Docs)."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Header</p></th><th><p>Description</p></th></tr><tr><td><p>Content-Range</p></td><td><p>The byte range that the current message represents within the entirety of the main resource. Learn more: <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Range\" rel=\"noopener noreferrer\" target=\"_blank\">Content-Range header</a> (MDN Wed Docs).</p><p>Header template: <code>&lt;unit&gt; &lt;range-start&gt;-&lt;range-end&gt;/&lt;size&gt;</code>, for example, \"bytes 0-122/123,\" where:</p><ul>\n<li><code>&lt;unit&gt;</code> is the unit of range. By default, \"bytes.\"</li>\n<li><code>&lt;range-start&gt;</code> is the start position (zero-indexed and inclusive) of the request range.</li>\n<li><code>&lt;range-end&gt;</code> is the end position (zero-indexed and inclusive) of the request range.</li>\n<li><code>&lt;size&gt;</code> is the total length of the file.</li>\n</ul><p>If you upload the file in multiple requests using chunks, do not forget to edit the <code>Content-Range</code> header. View the examples of the <code>Content-Range</code> header to upload the file in multiple requests below:</p><ul>\n<li>First chunk: \"bytes 0-524287/15122860.\"</li>\n<li>Second chunk: \"bytes 524288-1048575/15122860.\"</li>\n<li>The last chunk: \"bytes 14680064-15122859/15122860.\"</li>\n</ul></td></tr><tr><td><p>Content-Type</p></td><td><p>The media type of the resource. For example, \"application/x-zip-compressed.\" Learn more: <a href=\"https://www.rfc-editor.org/rfc/rfc2045#page-10\" rel=\"noopener noreferrer\" target=\"_blank\">Content-Type Header Field</a> (official RFC Editor documentation).</p></td></tr><tr><td><p>Content-Disposition</p></td><td><p>Specify how the server must handle the request or response content. By default, \"attachment; filename=SomeFile.\" Learn more: <a href=\"https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition\" rel=\"noopener noreferrer\" target=\"_blank\">Content-Disposition header</a> (MDN Wed Docs).</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "fileId",
+          "The ID of the file record. For a new record, a random ID."
+        ],
+        [
+          "entitySchemaName",
+          "The code of the object schema."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><p>fileId</p></td><td><p>The ID of the file record. For a new record, a random ID.</p></td></tr><tr><td><p>entitySchemaName</p></td><td><p>The code of the object schema.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Header",
+          "Description"
+        ],
+        [
+          "Content-Type",
+          "The media type of the resource. By default, \"application/json.\" Learn more:Content-Type Header Field(official RFC Editor documentation)."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Header</p></th><th><p>Description</p></th></tr><tr><td><p>Content-Type</p></td><td><p>The media type of the resource. By default, \"application/json.\" Learn more: <a href=\"https://www.rfc-editor.org/rfc/rfc2045#page-10\" rel=\"noopener noreferrer\" target=\"_blank\">Content-Type Header Field</a> (official RFC Editor documentation).</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "rootSchema",
+          "The root schema associated with the object."
+        ],
+        [
+          "primaryColumnValues",
+          "The ID of the file record. For a new record, a random ID."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><p>rootSchema</p></td><td><p>The root schema associated with the object.</p></td></tr><tr><td><p>primaryColumnValues</p></td><td><p>The ID of the file record. For a new record, a random ID.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "File API endpoints",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Upload a file\u200b",
+      "anchor": "title-15200-1"
+    },
+    {
+      "level": 3,
+      "text": "Request string\u200b",
+      "anchor": "title-15200-2"
+    },
+    {
+      "level": 3,
+      "text": "Request headers\u200b",
+      "anchor": "title-15200-3"
+    },
+    {
+      "level": 3,
+      "text": "Request body\u200b",
+      "anchor": "title-15200-4"
+    },
+    {
+      "level": 3,
+      "text": "Usage example\u200b",
+      "anchor": "title-15200-5"
+    },
+    {
+      "level": 2,
+      "text": "Download a file\u200b",
+      "anchor": "title-15200-6"
+    },
+    {
+      "level": 3,
+      "text": "Request string\u200b",
+      "anchor": "title-15200-7"
+    },
+    {
+      "level": 3,
+      "text": "Usage example\u200b",
+      "anchor": "title-15200-8"
+    },
+    {
+      "level": 2,
+      "text": "Delete a file\u200b",
+      "anchor": "title-15200-9"
+    },
+    {
+      "level": 3,
+      "text": "Request string\u200b",
+      "anchor": "title-15200-10"
+    },
+    {
+      "level": 3,
+      "text": "Request headers\u200b",
+      "anchor": "title-15200-11"
+    },
+    {
+      "level": 3,
+      "text": "Request body\u200b",
+      "anchor": "title-15200-12"
+    },
+    {
+      "level": 3,
+      "text": "Usage example\u200b",
+      "anchor": "title-15200-13"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "fileId",
+        "type": "The ID of the file record. For a new record, a random ID.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "totalFileLength",
+        "type": "The total length of the file.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "mimeType",
+        "type": "The MIME type of the file.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "fileName",
+        "type": "The name of the file.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "columnName",
+        "type": "The name of the column in theFiledatabase table to store the file body. If you store the file body in an external file storage, thecolumnNameparameter value is ignored.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "entitySchemaName",
+        "type": "The code of the object schema.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "parentColumnName",
+        "type": "The name of the column in theFiledatabase table where the ID of the primary record is stored.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "parentColumnValue",
+        "type": "The ID of the primary record.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "fileId",
+        "type": "The ID of the file record. For a new record, a random ID.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "entitySchemaName",
+        "type": "The code of the object schema.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "rootSchema",
+        "type": "The root schema associated with the object.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "primaryColumnValues",
+        "type": "The ID of the file record. For a new record, a random ID.",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/endpoints",
+      "text": "Endpoints",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/api-for-file-management/references/endpoints",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/endpoints",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/ifile",
+      "text": "IFile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/ifilecontentstorage",
+      "text": "IFileContentStorage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/ifilefactory",
+      "text": "IFileFactory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/entityfilelocator",
+      "text": "EntityFileLocator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/entityfilemetadata",
+      "text": "EntityFileMetadata",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/filefactoryutils",
+      "text": "FileFactoryUtils",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/filemetadata",
+      "text": "FileMetadata",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/references/fileutils",
+      "text": "PreviousFileUtils",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": "Next.NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Range",
+      "text": "Content-Range header",
+      "active": false
+    },
+    {
+      "href": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Disposition",
+      "text": "Content-Disposition header",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:15:24.540530"
+}

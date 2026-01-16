@@ -1,0 +1,1 @@
+/* Source class. */public class ClassA { }/* Class that replaces ClassA. */[Override]public class ClassB : ClassA { }/* Class that replaces ClassB. */[Override]public class ClassC : ClassB { }

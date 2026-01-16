@@ -1,0 +1,1 @@
+<common>    <logging>        <factoryAdapter type="Common.Logging.NLog.NLogLoggerFactoryAdapter, Common.Logging.NLog45">            <arg key="configType" value="FILE" />            <arg key="configFile" value="~/nlog.config" />        </factoryAdapter>    </logging></common>

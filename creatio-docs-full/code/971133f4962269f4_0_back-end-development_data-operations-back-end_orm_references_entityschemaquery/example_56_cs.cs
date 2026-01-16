@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction CreateWeekdayFunction(string columnPath)

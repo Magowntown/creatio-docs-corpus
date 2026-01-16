@@ -1,0 +1,1 @@
+Guid uniqueIdentifierValue = Get<Guid>("UniqueIdentifierParameter");if (uniqueIdentifierValue != Guid.Empty) {    uniqueIdentifierValue = Guid.Empty;    Set<Guid>("UniqueIdentifierParameter", uniqueIdentifierValue);}

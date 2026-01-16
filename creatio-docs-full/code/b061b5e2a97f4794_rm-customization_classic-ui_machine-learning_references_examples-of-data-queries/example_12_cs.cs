@@ -1,0 +1,1 @@
+static Select IsNull(    this Select select,    object checkExpression,    object replacementValue)

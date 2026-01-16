@@ -1,0 +1,1 @@
+{    ...    "columns": [        "298px",        "minmax(64px, 1fr)"    ],    "rows": "minmax(max-content, 32px)",    ...}

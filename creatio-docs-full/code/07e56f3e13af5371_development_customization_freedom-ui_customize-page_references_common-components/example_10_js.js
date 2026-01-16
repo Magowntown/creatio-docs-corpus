@@ -1,0 +1,1 @@
+{    "type": "crt.ListItem",    "title": "\$Name",    "subtitles": ["\$Account"],    "body": [        {"value": "\$JobTitle"},        {"value": "\$MobilePhone"}    ],    "action": {        "type": "crt.Button",        "caption": "Open",        "clicked": {...}    },    "showEmptyValues": true,    "icon": "\$Photo"}

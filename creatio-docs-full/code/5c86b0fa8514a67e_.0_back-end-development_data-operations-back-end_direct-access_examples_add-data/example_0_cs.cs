@@ -1,0 +1,1 @@
+public string InsertContact(string contactName) {    contactName = contactName ?? "Unknown contact";    var ins = new Insert(UserConnection)        .Into("Contact")        .Set("Name", Column.Parameter(contactName));    var affectedRows = ins.Execute();    var result = $ "Inserted new contact with name '{contactName}'. {affectedRows} rows affected";    return result;}

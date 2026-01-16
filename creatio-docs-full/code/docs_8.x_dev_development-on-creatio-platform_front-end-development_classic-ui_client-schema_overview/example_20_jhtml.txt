@@ -1,0 +1,1 @@
+<div id="OpportunityPageV2Container" class="schema-wrap one-el" data-item-marker="OpportunityPageV2Container">    <div id="CardContentWrapper" class="card-content-container page-with-left-el" data-item-marker="EntityLoaded"></div>    <div id="DuplicateContainer" class="DuplicateContainer"></div></div>

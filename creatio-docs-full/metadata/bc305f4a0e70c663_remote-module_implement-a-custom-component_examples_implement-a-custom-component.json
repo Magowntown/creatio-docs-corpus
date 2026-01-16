@@ -1,0 +1,852 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/implement-a-custom-component/examples/implement-a-custom-component",
+  "title": "Implement a custom UI component based on a Classic UI page",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui"
+    },
+    {
+      "text": "Custom components",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/custom-components"
+    },
+    {
+      "text": "Classic UI component",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-component"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/custom-component-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: intermediate\nTo implement the example:\n1. Set up the page UI. Read more >>>\n2. Set up a custom component. Read more >>>\n3. Add the custom component to the page. Read more >>>\nExample\nDisplay the history of the selected account on the **Account timeline** tab of the custom request page. The tab is a component based on the **Timeline** Classic UI tab displayed on the Classic UI contact page.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/scr_result.gif)\n## 1\\. Set up the page UI\u200b\n1. **Create an app** based on the **Records & business processes** template. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.2&id=2377&anchor=title-2232-6) (user documentation).\nFor this example, create a **Requests** app.\n2. **Open the form page** in the Freedom UI Designer.\nFor this example, open **Requests form page** that includes the **Name** field out of the box.\n3. **Add a field**.\nFor this example, add the field that contains the account.\nTo do this:\n1. Add a field of needed type to the working area of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the field properties.\nElement| Element type| Property| Property value  \n---|---|---|---  \nField that contains the account| Dropdown| Title| Account  \nCode| UsrAccount  \nLookup| Account  \nEnable adding new values| Clear the checkbox  \n4. **Add a tab**.\nFor this example, add the tab that contains the history of the selected account.\nTo do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/btn_Add_button.png) and fill out the tab properties.\nElement| Property| Property value  \n---|---|---  \nTab that contains the history of the selected account| Title| Account timeline  \n5. **Save the changes**.\n## 2\\. Set up a custom component\u200b\n1. **Open the Advanced settings tab** in the No-Code Designer. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 \"Application management\" \u2192 \"Application Hub\" \u2192 **Requests** app \u2192 \"Advanced settings.\"\n2. **Select a user-made package** to add the schema.\nFor this example, select the `UsrRequests` user-made package.\n3. **Create the module schema**. To do this, click **Add** \u2192 **Module**.\n4. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrTimelineModule  \nTitle| TimelineModule  \n5. **Apply the changes**.\n6. **Implement the business logic** of the custom component.\n1. Add the dependencies. To do this, add `@creatio-devkit/common` library, `Base7xViewElement`, and `ckeditor-base` modules as a dependency.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function(sdk, Base7xViewElement) {  \n...  \n});  \n2. Declare a custom `UsrTimelineModule` component class.\nUsrTimelineModule\n/* Declare the AMD module. */  \ndefine(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function (sdk, Base7xViewElement) {  \n/* Declare a \"UsrTimelineModule\" class. */  \nclass UsrTimelineModule extends Base7xViewElement {  \nset primaryColumnValue(value) {  \nthis._primaryColumnValue = value;  \nthis._init();  \n}  \nget primaryColumnValue() {  \nreturn this._primaryColumnValue;  \n}  \nset entitySchemaName(value) {  \nthis._entitySchemaName = value;  \nthis._init();  \n}  \nget entitySchemaName() {  \nreturn this._entitySchemaName;  \n}  \nset cardSchemaName(value) {  \nthis._cardSchemaName = value;  \nthis._init();  \n}  \nget cardSchemaName() {  \nreturn this._entitySchemaName;  \n}  \nconstructor() {  \nsuper(\"Timeline\");  \n}  \n_init() {  \nif (this._primaryColumnValue && this._cardSchemaName && this._entitySchemaName) {  \nthis.initContext(() => {  \nthis._moduleId = this.sandbox.id + \"_UsrTimelineModule\";  \nthis.sandbox.subscribe(\"GetColumnsValues\", (attributeNames) => this._getColumnValues(attributeNames), null, [this._moduleId]);  \nthis.sandbox.subscribe(\"GetEntityInfo\", () => this._getEntityInfo(), null, [this._moduleId]);  \nthis._loadTimelineSchemaModule();  \n});  \n}  \n}  \n_loadTimelineSchemaModule() {  \nthis._moduleId = this.sandbox.loadModule(\"BaseSchemaModuleV2\", {  \nid: this._moduleId,  \nrenderTo: this._renderTo,  \ninstanceConfig: {  \nschemaName: \"TimelineSchema\",  \nisSchemaConfigInitialized: true,  \nuseHistoryState: false,  \nshowMask: true,  \nparameters: {  \nviewModelConfigDiff: {  \n\"CardSchemaName\": this._cardSchemaName,  \n\"ReferenceSchemaName\": this._entitySchemaName,  \n\"InitialConfig\": {  \n\"entities\": []  \n}  \n},  \n},  \n}  \n});  \n}  \n_getColumnValues(attributeNames) {  \nconst values = {};  \nattributeNames?.forEach((attributeName) => {  \nswitch (attributeName) {  \ncase \"Id\":  \nvalues[attributeName] = this._primaryColumnValue?.value;  \nbreak;  \ncase \"Name\":  \nvalues[attributeName] = this._primaryColumnValue?.displayValue;  \nbreak;  \ndefault: break;  \n}  \n});  \nreturn values;  \n}  \n_getEntityInfo() {  \nreturn {  \nentitySchemaName: this._entitySchemaName,  \nprimaryColumnValue: this._primaryColumnValue?.value,  \nprimaryDisplayColumnValue: this._primaryColumnValue?.displayValue  \n};  \n}  \ngetMessages() {  \nconst messages = super.getMessages();  \nreturn Object.assign(messages, {  \n\"GetColumnsValues\": {  \nmode: Terrasoft.MessageMode.PTP,  \ndirection: Terrasoft.MessageDirectionType.SUBSCRIBE  \n},  \n\"GetEntityInfo\": {  \nmode: Terrasoft.MessageMode.PTP,  \ndirection: Terrasoft.MessageDirectionType.SUBSCRIBE  \n}  \n});  \n}  \ndisconnectedCallback() {  \nthis.sandbox.unloadModule(this._moduleId, this._renderTo);  \n}  \n}  \n});  \n3. Register the `UsrTimelineModule` module as a component.\nUsrTimelineModule\n/* Declare the AMD module. */  \ndefine(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function (sdk, Base7xViewElement) {  \n...,  \n/* Register the component. */  \ncustomElements.define('usr-timeline', UsrTimelineModule);  \n...,  \n});  \n4. Specify that the `UsrTimelineModule` component is a view element.\nUsrTimelineModule\n/* Declare the AMD module. */  \ndefine(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function (sdk, Base7xViewElement) {  \n...,  \n/* Register a component as a visual element. */  \nsdk.registerViewElement({  \ntype: 'usr.Timeline',  \nselector: 'usr-timeline',  \ninputs: {  \nprimaryColumnValue: {},  \ncardSchemaName: {},  \nentitySchemaName: {}  \n}  \n});  \n});  \n7. **Save the changes**.\n## 3\\. Add the custom component to the page\u200b\n1. **Open the form page** in the Freedom UI Designer.\nFor this example, open **Requests form page**.\n2. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n3. **Add the dependencies**. To do this, add the `UsrTimelineModule` module of the custom component as a dependency.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"UsrTimelineModule\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {  \nreturn {  \n...  \n}  \n});  \n4. **Add a component**.\n1. Go to the `viewConfigDiff` schema section.\n2. Add the configuration object of the `UsrTimelineModule` element.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* Configuration object of the \"UsrTimelineModule\" element. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrTimelineModule\",  \n\"values\": {  \n\"type\": \"usr.Timeline\",  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 12,  \n\"rowSpan\": 8  \n},  \n\"primaryColumnValue\": \"$UsrAccount\",  \n\"cardSchemaName\": \"AccountPageV2\",  \n\"entitySchemaName\": \"Account\"  \n},  \n\"parentName\": \"GridContainer_0eojs6u\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n5. **Save the changes**.\n**As a result** , Freedom UI Designer will display a stub in place of the custom component.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/scr_component_in_Freedom_UI_Designer.png)\n## View the result\u200b\n1. **Open the Requests section**.\n2. **Create a request** that has an arbitrary name. For example, \"Vacation.\"\n3. **Select an arbitrary account** in the **Account** field. For example, \"Alpha Business.\"\n4. **Open the Account timeline tab**.\n**As a result** , Creatio will display the **Account timeline** tab of the selected account on the request page. [View the result >>>](https://academy.creatio.com/documents?ver=8.2&id=15374&anchor=view-result)\n## Source code\u200b\n* UsrTimelineModule\n* UsrRequests_FormPage\n/* Declare the AMD module. */  \ndefine(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function(sdk, Base7xViewElement) {  \n/* Declare a \"UsrTimelineModule\" class. */  \nclass UsrTimelineModule extends Base7xViewElement {  \nset primaryColumnValue(value) {  \nthis._primaryColumnValue = value;  \nthis._init();  \n}  \nget primaryColumnValue() {  \nreturn this._primaryColumnValue;  \n}  \nset entitySchemaName(value) {  \nthis._entitySchemaName = value;  \nthis._init();  \n}  \nget entitySchemaName() {  \nreturn this._entitySchemaName;  \n}  \nset cardSchemaName(value) {  \nthis._cardSchemaName = value;  \nthis._init();  \n}  \nget cardSchemaName() {  \nreturn this._entitySchemaName;  \n}  \nconstructor() {  \nsuper(\"Timeline\");  \n}  \n_init() {  \nif (this._primaryColumnValue && this._cardSchemaName && this._entitySchemaName) {  \nthis.initContext(() => {  \nthis._moduleId = this.sandbox.id + \"_UsrTimelineModule\";  \nthis.sandbox.subscribe(\"GetColumnsValues\", (attributeNames) => this._getColumnValues(attributeNames), null, [this._moduleId]);  \nthis.sandbox.subscribe(\"GetEntityInfo\", () => this._getEntityInfo(), null, [this._moduleId]);  \nthis._loadTimelineSchemaModule();  \n});  \n}  \n}  \n_loadTimelineSchemaModule() {  \nthis._moduleId = this.sandbox.loadModule(\"BaseSchemaModuleV2\", {  \nid: this._moduleId,  \nrenderTo: this._renderTo,  \ninstanceConfig: {  \nschemaName: \"TimelineSchema\",  \nisSchemaConfigInitialized: true,  \nuseHistoryState: false,  \nshowMask: true,  \nparameters: {  \nviewModelConfigDiff: {  \n\"CardSchemaName\": this._cardSchemaName,  \n\"ReferenceSchemaName\": this._entitySchemaName,  \n\"InitialConfig\": {  \n\"entities\": []  \n}  \n},  \n},  \n}  \n});  \n}  \n_getColumnValues(attributeNames) {  \nconst values = {};  \nattributeNames?.forEach((attributeName) => {  \nswitch (attributeName) {  \ncase \"Id\":  \nvalues[attributeName] = this._primaryColumnValue?.value;  \nbreak;  \ncase \"Name\":  \nvalues[attributeName] = this._primaryColumnValue?.displayValue;  \nbreak;  \ndefault: break;  \n}  \n});  \nreturn values;  \n}  \n_getEntityInfo() {  \nreturn {  \nentitySchemaName: this._entitySchemaName,  \nprimaryColumnValue: this._primaryColumnValue?.value,  \nprimaryDisplayColumnValue: this._primaryColumnValue?.displayValue  \n};  \n}  \ngetMessages() {  \nconst messages = super.getMessages();  \nreturn Object.assign(messages, {  \n\"GetColumnsValues\": {  \nmode: Terrasoft.MessageMode.PTP,  \ndirection: Terrasoft.MessageDirectionType.SUBSCRIBE  \n},  \n\"GetEntityInfo\": {  \nmode: Terrasoft.MessageMode.PTP,  \ndirection: Terrasoft.MessageDirectionType.SUBSCRIBE  \n}  \n});  \n}  \ndisconnectedCallback() {  \nthis.sandbox.unloadModule(this._moduleId, this._renderTo);  \n}  \n}  \n/* Register the component. */  \ncustomElements.define('usr-timeline', UsrTimelineModule);  \n/* Register a component as a visual element. */  \nsdk.registerViewElement({  \ntype: 'usr.Timeline',  \nselector: 'usr-timeline',  \ninputs: {  \nprimaryColumnValue: {},  \ncardSchemaName: {},  \nentitySchemaName: {}  \n}  \n});  \nreturn Terrasoft.UsrTimelineModule;  \n});  \n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"UsrTimelineModule\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Tabs\",  \n\"values\": {  \n\"styleType\": \"default\",  \n\"mode\": \"tab\",  \n\"bodyBackgroundColor\": \"primary-contrast-500\",  \n\"selectedTabTitleColor\": \"auto\",  \n\"tabTitleColor\": \"auto\",  \n\"underlineSelectedTabColor\": \"auto\",  \n\"headerBackgroundColor\": \"auto\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Feed\",  \n\"values\": {  \n\"dataSourceName\": \"PDS\",  \n\"entitySchemaName\": \"UsrRequests\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AttachmentList\",  \n\"values\": {  \n\"columns\": [  \n{  \n\"id\": \"0e270bd7-0a80-4794-9676-46a243ddfd54\",  \n\"code\": \"AttachmentListDS_Name\",  \n\"caption\": \"#ResourceString(AttachmentListDS_Name)#\",  \n\"dataValueType\": 28,  \n\"width\": 200  \n}  \n]  \n}  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrName\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrName\",  \n\"control\": \"$UsrName\",  \n\"labelPosition\": \"auto\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n/* Field that contains the account. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrAccount\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 2,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.ComboBox\",  \n\"label\": \"$Resources.Strings.UsrAccount\",  \n\"labelPosition\": \"auto\",  \n\"control\": \"$UsrAccount\",  \n\"listActions\": [],  \n\"showValueAsLink\": true,  \n\"controlActions\": [],  \n\"visible\": true,  \n\"placeholder\": \"\",  \n\"tooltip\": \"\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n/* Tab that contains the history of the selected account. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"AccountTimelineTab\",  \n\"values\": {  \n\"type\": \"crt.TabContainer\",  \n\"items\": [],  \n\"caption\": \"#ResourceString(AccountTimelineTab_caption)#\",  \n\"iconPosition\": \"only-text\",  \n\"visible\": true  \n},  \n\"parentName\": \"Tabs\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridContainer_0eojs6u\",  \n\"values\": {  \n\"type\": \"crt.GridContainer\",  \n\"items\": [],  \n\"rows\": \"minmax(32px, max-content)\",  \n\"columns\": [  \n\"minmax(32px, 1fr)\",  \n\"minmax(32px, 1fr)\"  \n],  \n\"gap\": {  \n\"columnGap\": \"large\",  \n\"rowGap\": 0  \n}  \n},  \n\"parentName\": \"AccountTimelineTab\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n/* Configuration object of the \"UsrTimelineModule\" element. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrTimelineModule\",  \n\"values\": {  \n\"type\": \"usr.Timeline\",  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 12,  \n\"rowSpan\": 8  \n},  \n\"primaryColumnValue\": \"$UsrAccount\",  \n\"cardSchemaName\": \"AccountPageV2\",  \n\"entitySchemaName\": \"Account\"  \n},  \n\"parentName\": \"GridContainer_0eojs6u\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"Id\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.Id\"  \n}  \n},  \n\"UsrName\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrName\"  \n}  \n},  \n\"UsrAccount\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrAccount\"  \n}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"dataSources\": {  \n\"PDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"UsrRequests\"  \n},  \n\"scope\": \"page\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [],  \n\"values\": {  \n\"primaryDataSourceName\": \"PDS\"  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ClassicComponent/8.1/UsrRequests_2024-09-13_07.51.46.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function(sdk, Base7xViewElement) {    ...});",
+      "language": "js",
+      "context": "Add the dependencies. To do this, add@creatio-devkit/commonlibrary,Base7xViewElement, andckeditor-basemodules as a dependency.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function (sdk, Base7xViewElement) {    /* Declare a \"UsrTimelineModule\" class. */    class UsrTimelineModule extends Base7xViewElement {        set primaryColumnValue(value) {            this._primaryColumnValue = value;            this._init();        }        get primaryColumnValue() {            return this._primaryColumnValue;        }        set entitySchemaName(value) {            this._entitySchemaName = value;            this._init();        }        get entitySchemaName() {            return this._entitySchemaName;        }        set cardSchemaName(value) {            this._cardSchemaName = value;            this._init();        }        get cardSchemaName() {            return this._entitySchemaName;        }        constructor() {            super(\"Timeline\");        }        _init() {            if (this._primaryColumnValue && this._cardSchemaName && this._entitySchemaName) {                this.initContext(() => {                    this._moduleId = this.sandbox.id + \"_UsrTimelineModule\";                    this.sandbox.subscribe(\"GetColumnsValues\", (attributeNames) => this._getColumnValues(attributeNames), null, [this._moduleId]);                    this.sandbox.subscribe(\"GetEntityInfo\", () => this._getEntityInfo(), null, [this._moduleId]);                    this._loadTimelineSchemaModule();                });            }        }        _loadTimelineSchemaModule() {            this._moduleId = this.sandbox.loadModule(\"BaseSchemaModuleV2\", {                id: this._moduleId,                renderTo: this._renderTo,                instanceConfig: {                    schemaName: \"TimelineSchema\",                    isSchemaConfigInitialized: true,                    useHistoryState: false,                    showMask: true,                    parameters: {                        viewModelConfigDiff: {                            \"CardSchemaName\": this._cardSchemaName,                            \"ReferenceSchemaName\": this._entitySchemaName,                            \"InitialConfig\": {                                \"entities\": []                            }                        },                    },                }            });        }        _getColumnValues(attributeNames) {            const values = {};            attributeNames?.forEach((attributeName) => {                switch (attributeName) {                    case \"Id\":                        values[attributeName] = this._primaryColumnValue?.value;                        break;                    case \"Name\":                        values[attributeName] = this._primaryColumnValue?.displayValue;                        break;                    default: break;                }            });            return values;        }        _getEntityInfo() {            return {                entitySchemaName: this._entitySchemaName,                primaryColumnValue: this._primaryColumnValue?.value,                primaryDisplayColumnValue: this._primaryColumnValue?.displayValue            };        }        getMessages() {            const messages = super.getMessages();            return Object.assign(messages, {                \"GetColumnsValues\": {                    mode: Terrasoft.MessageMode.PTP,                    direction: Terrasoft.MessageDirectionType.SUBSCRIBE                },                \"GetEntityInfo\": {                    mode: Terrasoft.MessageMode.PTP,                    direction: Terrasoft.MessageDirectionType.SUBSCRIBE                }            });        }        disconnectedCallback() {            this.sandbox.unloadModule(this._moduleId, this._renderTo);        }    }});",
+      "language": "js",
+      "context": "Declare a customUsrTimelineModulecomponent class.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function (sdk, Base7xViewElement) {    ...,    /* Register the component. */    customElements.define('usr-timeline', UsrTimelineModule);    ...,});",
+      "language": "js",
+      "context": "Register theUsrTimelineModulemodule as a component.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function (sdk, Base7xViewElement) {    ...,    /* Register a component as a visual element. */    sdk.registerViewElement({        type: 'usr.Timeline',        selector: 'usr-timeline',        inputs: {            primaryColumnValue: {},            cardSchemaName: {},            entitySchemaName: {}        }    });});",
+      "language": "js",
+      "context": "Specify that theUsrTimelineModulecomponent is a view element.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"UsrTimelineModule\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {    return {        ...    }});",
+      "language": "js",
+      "context": "Add the dependencies. To do this, add theUsrTimelineModulemodule of the custom component as a dependency.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* Configuration object of the \"UsrTimelineModule\" element. */    {        \"operation\": \"insert\",        \"name\": \"UsrTimelineModule\",        \"values\": {            \"type\": \"usr.Timeline\",            \"layoutConfig\": {                \"column\": 1,                \"row\": 1,                \"colSpan\": 12,                \"rowSpan\": 8            },            \"primaryColumnValue\": \"$UsrAccount\",            \"cardSchemaName\": \"AccountPageV2\",            \"entitySchemaName\": \"Account\"        },        \"parentName\": \"GridContainer_0eojs6u\",        \"propertyName\": \"items\",        \"index\": 0    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Add a component.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrTimelineModule\", [\"@creatio-devkit/common\", \"Base7xViewElement\", \"ckeditor-base\"], function(sdk, Base7xViewElement) {    /* Declare a \"UsrTimelineModule\" class. */    class UsrTimelineModule extends Base7xViewElement {        set primaryColumnValue(value) {            this._primaryColumnValue = value;            this._init();        }        get primaryColumnValue() {            return this._primaryColumnValue;        }        set entitySchemaName(value) {            this._entitySchemaName = value;            this._init();        }        get entitySchemaName() {            return this._entitySchemaName;        }        set cardSchemaName(value) {            this._cardSchemaName = value;            this._init();        }        get cardSchemaName() {            return this._entitySchemaName;        }        constructor() {            super(\"Timeline\");        }        _init() {            if (this._primaryColumnValue && this._cardSchemaName && this._entitySchemaName) {                this.initContext(() => {                    this._moduleId = this.sandbox.id + \"_UsrTimelineModule\";                    this.sandbox.subscribe(\"GetColumnsValues\", (attributeNames) => this._getColumnValues(attributeNames), null, [this._moduleId]);                    this.sandbox.subscribe(\"GetEntityInfo\", () => this._getEntityInfo(), null, [this._moduleId]);                    this._loadTimelineSchemaModule();                });            }        }        _loadTimelineSchemaModule() {            this._moduleId = this.sandbox.loadModule(\"BaseSchemaModuleV2\", {                id: this._moduleId,                renderTo: this._renderTo,                instanceConfig: {                    schemaName: \"TimelineSchema\",                    isSchemaConfigInitialized: true,                    useHistoryState: false,                    showMask: true,                    parameters: {                        viewModelConfigDiff: {                            \"CardSchemaName\": this._cardSchemaName,                            \"ReferenceSchemaName\": this._entitySchemaName,                            \"InitialConfig\": {                                \"entities\": []                            }                        },                    },                }            });        }        _getColumnValues(attributeNames) {            const values = {};            attributeNames?.forEach((attributeName) => {                switch (attributeName) {                    case \"Id\":                        values[attributeName] = this._primaryColumnValue?.value;                        break;                    case \"Name\":                        values[attributeName] = this._primaryColumnValue?.displayValue;                        break;                    default: break;                }            });            return values;        }        _getEntityInfo() {            return {                entitySchemaName: this._entitySchemaName,                primaryColumnValue: this._primaryColumnValue?.value,                primaryDisplayColumnValue: this._primaryColumnValue?.displayValue            };        }        getMessages() {            const messages = super.getMessages();            return Object.assign(messages, {                \"GetColumnsValues\": {                    mode: Terrasoft.MessageMode.PTP,                    direction: Terrasoft.MessageDirectionType.SUBSCRIBE                },                \"GetEntityInfo\": {                    mode: Terrasoft.MessageMode.PTP,                    direction: Terrasoft.MessageDirectionType.SUBSCRIBE                }            });        }        disconnectedCallback() {            this.sandbox.unloadModule(this._moduleId, this._renderTo);        }    }    /* Register the component. */    customElements.define('usr-timeline', UsrTimelineModule);    /* Register a component as a visual element. */    sdk.registerViewElement({        type: 'usr.Timeline',        selector: 'usr-timeline',        inputs: {            primaryColumnValue: {},            cardSchemaName: {},            entitySchemaName: {}        }    });    return Terrasoft.UsrTimelineModule;});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"UsrTimelineModule\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"name\": \"Tabs\",                \"values\": {                    \"styleType\": \"default\",                    \"mode\": \"tab\",                    \"bodyBackgroundColor\": \"primary-contrast-500\",                    \"selectedTabTitleColor\": \"auto\",                    \"tabTitleColor\": \"auto\",                    \"underlineSelectedTabColor\": \"auto\",                    \"headerBackgroundColor\": \"auto\"                }            },            {                \"operation\": \"merge\",                \"name\": \"Feed\",                \"values\": {                    \"dataSourceName\": \"PDS\",                    \"entitySchemaName\": \"UsrRequests\"                }            },            {                \"operation\": \"merge\",                \"name\": \"AttachmentList\",                \"values\": {                    \"columns\": [                        {                            \"id\": \"0e270bd7-0a80-4794-9676-46a243ddfd54\",                            \"code\": \"AttachmentListDS_Name\",                            \"caption\": \"#ResourceString(AttachmentListDS_Name)#\",                            \"dataValueType\": 28,                            \"width\": 200                        }                    ]                }            },            {                \"operation\": \"insert\",                \"name\": \"UsrName\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrName\",                    \"control\": \"$UsrName\",                    \"labelPosition\": \"auto\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 0            },            /* Field that contains the account. */            {                \"operation\": \"insert\",                \"name\": \"UsrAccount\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 2,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.ComboBox\",                    \"label\": \"$Resources.Strings.UsrAccount\",                    \"labelPosition\": \"auto\",                    \"control\": \"$UsrAccount\",                    \"listActions\": [],                    \"showValueAsLink\": true,                    \"controlActions\": [],                    \"visible\": true,                    \"placeholder\": \"\",                    \"tooltip\": \"\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 1            },            /* Tab that contains the history of the selected account. */            {                \"operation\": \"insert\",                \"name\": \"AccountTimelineTab\",                \"values\": {                    \"type\": \"crt.TabContainer\",                    \"items\": [],                    \"caption\": \"#ResourceString(AccountTimelineTab_caption)#\",                    \"iconPosition\": \"only-text\",                    \"visible\": true                },                \"parentName\": \"Tabs\",                \"propertyName\": \"items\",                \"index\": 1            },            {                \"operation\": \"insert\",                \"name\": \"GridContainer_0eojs6u\",                \"values\": {                    \"type\": \"crt.GridContainer\",                    \"items\": [],                    \"rows\": \"minmax(32px, max-content)\",                    \"columns\": [                        \"minmax(32px, 1fr)\",                        \"minmax(32px, 1fr)\"                    ],                    \"gap\": {                        \"columnGap\": \"large\",                        \"rowGap\": 0                    }                },                \"parentName\": \"AccountTimelineTab\",                \"propertyName\": \"items\",                \"index\": 0            },            /* Configuration object of the \"UsrTimelineModule\" element. */            {                \"operation\": \"insert\",                \"name\": \"UsrTimelineModule\",                \"values\": {                    \"type\": \"usr.Timeline\",                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 12,                        \"rowSpan\": 8                    },                    \"primaryColumnValue\": \"$UsrAccount\",                    \"cardSchemaName\": \"AccountPageV2\",                    \"entitySchemaName\": \"Account\"                },                \"parentName\": \"GridContainer_0eojs6u\",                \"propertyName\": \"items\",                \"index\": 0            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"Id\": {                        \"modelConfig\": {                            \"path\": \"PDS.Id\"                        }                    },                    \"UsrName\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrName\"                        }                    },                    \"UsrAccount\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrAccount\"                        }                    }                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[            {                \"dataSources\": {                    \"PDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"UsrRequests\"                        },                        \"scope\": \"page\"                    }                },                {                    \"operation\": \"merge\",                    \"path\": [],                    \"values\": {                        \"primaryDataSourceName\": \"PDS\"                    }                }            }        ]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Element type",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Field that contains the account",
+          "Dropdown",
+          "Title",
+          "Account"
+        ],
+        [
+          "Code",
+          "UsrAccount"
+        ],
+        [
+          "Lookup",
+          "Account"
+        ],
+        [
+          "Enable adding new values",
+          "Clear the checkbox"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Element type</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"4\"><p>Field that contains the account</p></td><td rowspan=\"4\"><center><p>Dropdown</p></center></td><td><center><p>Title</p></center></td><td><center><p>Account</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrAccount</p></center></td></tr><tr><td><center><p>Lookup</p></center></td><td><center><p>Account</p></center></td></tr><tr><td><center><p>Enable adding new values</p></center></td><td><center><p>Clear the checkbox</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Tab that contains the history of the selected account",
+          "Title",
+          "Account timeline"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><p>Tab that contains the history of the selected account</p></td><td><center><p>Title</p></center></td><td><center><p>Account timeline</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrTimelineModule"
+        ],
+        [
+          "Title",
+          "TimelineModule"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrTimelineModule</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>TimelineModule</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Account timeline",
+      "content": "ExampleDisplay the history of the selected account on theAccount timelinetab of the custom request page. The tab is a component based on theTimelineClassic UI tab displayed on the Classic UI contact page.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Display the history of the selected account on the <strong>Account timeline</strong> tab of the custom request page. The tab is a component based on the <strong>Timeline</strong> Classic UI tab displayed on the Classic UI contact page.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/scr_result.gif\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Account timeline",
+      "content": "Display the history of the selected account on theAccount timelinetab of the custom request page. The tab is a component based on theTimelineClassic UI tab displayed on the Classic UI contact page.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Display the history of the selected account on the <strong>Account timeline</strong> tab of the custom request page. The tab is a component based on the <strong>Timeline</strong> Classic UI tab displayed on the Classic UI contact page.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/scr_result.gif\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Display the history of the selected account on theAccount timelinetab of the custom request page. Th",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/bc305f4a0e70c663_remote-module_implement-a-custom-component_examples_implement-a-custom-component_a564325cb791.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the field properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/bc305f4a0e70c663_remote-module_implement-a-custom-component_examples_implement-a-custom-component_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/btn_Add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "To do this, clickand fill out the tab properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/bc305f4a0e70c663_remote-module_implement-a-custom-component_examples_implement-a-custom-component_700e26bc57e7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Advanced settings tabin the No-Code Designer. To do this, clickin the top right \u2192 \"Applicat",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/bc305f4a0e70c663_remote-module_implement-a-custom-component_examples_implement-a-custom-component_822ea55f9414.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/bc305f4a0e70c663_remote-module_implement-a-custom-component_examples_implement-a-custom-component_0022b8eb0588.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ClassicComponent/8.1/scr_component_in_Freedom_UI_Designer.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Freedom UI Designer will display a stub in place of the custom component.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/bc305f4a0e70c663_remote-module_implement-a-custom-component_examples_implement-a-custom-component_72ab34014017.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ClassicComponent/8.1/UsrRequests_2024-09-13_07.51.46.zip",
+      "text": "Package with example implementation",
+      "filename": "UsrRequests_2024-09-13_07.51.46.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/bc305f4a0e70c663_remote-module_implement-a-custom-component_examples_implement-a-custom-component_UsrRequests_2024-09-13_07.51.46.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement a custom UI component based on a Classic UI page",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Set up the page UI\u200b",
+      "anchor": "title-3890-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up a custom component\u200b",
+      "anchor": "title-3890-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Add the custom component to the page\u200b",
+      "anchor": "title-3890-3"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-3890-4"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-3890-5"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "_INIT",
+        "path": "("
+      },
+      {
+        "method": "_INIT",
+        "path": "("
+      },
+      {
+        "method": "_INIT",
+        "path": "("
+      },
+      {
+        "method": "INITCONTEXT",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "_GETCOLUMNVALUES",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "_GETENTITYINFO",
+        "path": "("
+      },
+      {
+        "method": "_LOADTIMELINESCHEMAMODULE",
+        "path": "("
+      },
+      {
+        "method": "LOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "FOREACH",
+        "path": "("
+      },
+      {
+        "method": "GETMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "ASSIGN",
+        "path": "("
+      },
+      {
+        "method": "UNLOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "REGISTERVIEWELEMENT",
+        "path": "("
+      },
+      {
+        "method": "_INIT",
+        "path": "("
+      },
+      {
+        "method": "_INIT",
+        "path": "("
+      },
+      {
+        "method": "_INIT",
+        "path": "("
+      },
+      {
+        "method": "INITCONTEXT",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "_GETCOLUMNVALUES",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "_GETENTITYINFO",
+        "path": "("
+      },
+      {
+        "method": "_LOADTIMELINESCHEMAMODULE",
+        "path": "("
+      },
+      {
+        "method": "LOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "FOREACH",
+        "path": "("
+      },
+      {
+        "method": "GETMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "ASSIGN",
+        "path": "("
+      },
+      {
+        "method": "UNLOADMODULE",
+        "path": "("
+      },
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "REGISTERVIEWELEMENT",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/implement-a-custom-component/examples/implement-a-custom-component",
+      "text": "Implement a component based on a Classic UI page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/implement-a-custom-component/examples/implement-a-custom-component",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/implement-a-custom-component/examples/implement-a-custom-component",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/implement-a-custom-component/examples/implement-a-custom-component",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/client-schema-freedomui/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/schema-freedomui-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui-component",
+      "text": "Freedom UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/implement-a-remote-module/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/remote-module-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/validator",
+      "text": "Validator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/custom-validator-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/converter",
+      "text": "Converter",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/custom-converter/converters-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/custom-converter-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/request-handler",
+      "text": "Request handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/custom-request-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/custom-handler-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/localize-remote-module",
+      "text": "Localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/overview",
+      "text": "Asserts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-component",
+      "text": "Classic UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/implement-a-custom-component/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/custom-component-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/requirements-for-icons",
+      "text": "NextRequirements for icons",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "Data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/crud-operations",
+      "text": "CRUD operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/data-sources/data-processing",
+      "text": "Additional data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/creatio-devkit-common",
+      "text": "@creatio-devkit/common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/classic-client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:28:55.208219"
+}

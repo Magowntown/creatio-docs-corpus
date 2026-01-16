@@ -1,0 +1,1 @@
+INSERT INTO WebFormProcessHandlers (Id, EntityName, FullClassName, IsActive)    VALUES (NEWID(), N'EventTarget', 'Terrasoft.Configuration.CustomWebFormEventTargetPreProcessHandler, Terrasoft.Configuration', 1)

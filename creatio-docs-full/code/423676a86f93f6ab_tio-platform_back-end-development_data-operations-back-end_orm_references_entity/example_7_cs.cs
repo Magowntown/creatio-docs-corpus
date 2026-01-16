@@ -1,0 +1,1 @@
+HasColumnValues bool

@@ -1,0 +1,1 @@
+// Creating an attachment.var attachment = new Terrasoft.Mail.Sender.EmailAttachment {    // Attachment ID.    Id = new Guid("844F0837-EAA0-4F40-B965-71F5DB9EAE6E"),    // Attachment name.    Name = "attachName.txt",    // Data.    Data = byteData};// Adding the attachment to the message.message.Attachments.Add(attachment);

@@ -1,0 +1,74 @@
+<!-- Source: page_117 -->
+
+[Skip to main content](https://academy.creatio.com/docs/8.x/mobile/mobile-development/mobile-basics/manifest/examples/load-model-data-upon-synchronization#__docusaurus_skipToContent_fallback)
+
+- [Creatio](https://www.creatio.com/)
+- [Community](https://community.creatio.com/)
+- [Marketplace](https://marketplace.creatio.com/)
+- [Knowledge Hub](https://knowledge-hub.creatio.com/)
+
+On this page
+
+Level: advanced
+
+Example
+
+Load data for `Activity` and `Activity type` models into Creatio Mobile during synchronization:
+
+- All columns of the `Activity` model but filter records to include only those that have the current user as a participant
+- All columns of the `Activity type` model.
+
+## Example implementation [​](https://academy.creatio.com/docs/8.x/mobile/mobile-development/mobile-basics/manifest/examples/load-model-data-upon-synchronization\#title-1502-1 "Direct link to Example implementation")
+
+SyncOptions schema section
+
+```js
+/* Synchronization settings. */
+"SyncOptions": {
+    /* The number of pages to synchronize in the same thread. */
+    "ImportPageSize": 100,
+    /* The number of threads to synchronize. */
+    "PagesInImportTransaction": 5,
+    /* An array of system settings to synchronize. */
+    "SysSettingsImportConfig": [\
+        "SchedulerDisplayTimingStart", "PrimaryCulture", "PrimaryCurrency", "MobileApplicationMode", "CollectMobileAppUsageStatistics", "CanCollectMobileUsageStatistics", "MobileAppUsageStatisticsEmail", "MobileAppUsageStatisticsStorePeriod", "MobileSectionsWithSearchOnly", "MobileShowMenuOnApplicationStart", "MobileAppCheckUpdatePeriod", "ShowMobileLocalNotifications", "UseMobileUIV2"\
+    ],
+    /* An array of lookups to cache. Usually, this array includes database tables that are frequently used by users, such as types, categories, and similar items. */
+    "SysLookupsImportConfig": [\
+        "ActivityCategory", "ActivityPriority", "ActivityResult", "ActivityResultCategory", "ActivityStatus", "ActivityType", "AddressType", "AnniversaryType", "InformationSource", "MobileApplicationMode", "OppContactInfluence", "OppContactLoyality", "OppContactRole", "OpportunityStage", "SupplyPaymentDelay", "SupplyPaymentState", "SupplyPaymentType"\
+    ],
+    /* An array of models whose data to load during synchronization. */
+    "ModelDataImportConfig": [\
+        /* Model name from the "Models" schema section. */\
+        {\
+            "Name": "Activity",\
+            /* The filter applied to the model during synchronization. */\
+            "SyncFilter": {\
+                /* Name of model column to filter. */\
+                "property": "Participant",\
+                /* Name of model to filter. */\
+                "modelName": "ActivityParticipant",\
+                /* Connected model column by which the main model is connected. */\
+                "assocProperty": "Activity",\
+                /* Type of filter operation from the "Terrasoft.FilterOperation" enumeration. */\
+                "operation": "Terrasoft.FilterOperations.Any",\
+                /* Defines whether the filtered value is a macro. */\
+                "valueIsMacros": true,\
+                /* Value of the column from the `property` property. */\
+                "value": "Terrasoft.ValueMacros.CurrentUserContact"\
+            },\
+            /* An array of model columns whose data to synchronize. */\
+            "SyncColumns": [\
+                "Title", "StartDate", "DueDate", "Status", "Result", "DetailedResult", "ActivityCategory", "Priority", "Owner", "Account", "Contact", "ShowInScheduler", "Author", "Type"\
+            ]\
+        },\
+        /* Model name from the "Models" schema section. */\
+        {\
+            "Name": "ActivityType",\
+            "SyncColumns": []\
+        }\
+    ]
+}
+```
+
+- [Example implementation](https://academy.creatio.com/docs/8.x/mobile/mobile-development/mobile-basics/manifest/examples/load-model-data-upon-synchronization#title-1502-1)

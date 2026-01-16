@@ -1,0 +1,945 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/set-up-action-handling-lookup-for-multiple-records",
+  "title": "Set up action handling using a lookup for multiple section records",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1"
+    },
+    {
+      "text": "Section",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nExample\nSet up action handling in the **Activities** section list. The action must open the **Contacts** lookup box. Set the selected contact as the owner of the selected activities.\n## Create a schema of the replacing section view model\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"ActivitySectionV2\".\n* Set **Title** to \"Activities section\".\n* Set **Parent object** to \"ActivitySectionV2\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_ActivitySectionV2_props.png)\n4. Add a **localizable string** that contains the menu item caption.\n1. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_button.png) button in the context menu of the **Localizable strings** node.\n2. Fill out the **localizable string properties**.\n* Set **Code** to \"SetOwnerCaption\".\n* Set **Value** to \"Assign Owner\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_localizable_string.png)\n3. Click **Add** to add a localizable string.\n5. Implement the **menu item behavior**. To do this, implement the following **methods** in the `methods` property:\n* `isCustomActionEnabled()`. Determines whether the menu item is available.\n* `setOwner()`. The action handler method that opens the **Contacts** lookup.\n* `lookupCallback()`. The callback method that sets the contact selected from the lookup as the owner of the selected activities.\n* `getSectionActions()`. The overloaded parent schema method that retrieves the section action collection.\nView the source code of the replacing view model schema of the section below.\nActivitySectionV2\ndefine(\"ActivitySectionV2\", [\"ConfigurationConstants\"], function(ConfigurationConstants) {  \nreturn {  \n/* The name of the section object schema. */  \nentitySchemaName: \"Activity\",  \n/* The methods of the section view model. */  \nmethods: {  \n/* Determine whether the menu item is available. */  \nisCustomActionEnabled: function() {  \n/* Attempt to retrieve the array of the selected record IDs. */  \nvar selectedRows = this.get(\"SelectedRows\");  \n/* Return true if the array contains items (at least one list record is selected), return false otherwise. */  \nreturn selectedRows ? (selectedRows.length > 0) : false;  \n},  \n/* The action handler method. Opens the [Contacts] lookup. */  \nsetOwner: function() {  \n/* Define the lookup configuration. */  \nvar config = {  \n/* The [Contact] schema. */  \nentitySchemaName: \"Contact\",  \n/* Disable multiple selection. */  \nmultiSelect: false,  \n/* Display the [Name] column. */  \ncolumns: [\"Name\"]  \n};  \n/* Open the lookup with a particular configuration and the callback function that triggers when a user clicks the [Select] button. */  \nthis.openLookup(config, this.lookupCallback, this);  \n},  \n/* Set the contact selected from the lookup as the owner of the selected activities. */  \nlookupCallback: function(args) {  \n/* The ID of the selected lookup record. */  \nvar activeRowId;  \n/* Retrieve the selected lookup records. */  \nvar lookupSelectedRows = args.selectedRows.getItems();  \nif (lookupSelectedRows && lookupSelectedRows.length > 0) {  \n/* Retrieve the ID of the first selected lookup record. */  \nactiveRowId = lookupSelectedRows[0].Id;  \n}  \n/* Retrieve the array of the selected record IDs. */  \nvar selectedRows = this.get(\"SelectedRows\");  \n/* Run handling if at least one record was selected and the owner was selected in the lookup. */  \nif ((selectedRows.length > 0) && activeRowId) {  \n/* Create an instance of the batch query class. */  \nvar batchQuery = this.Ext.create(\"Terrasoft.BatchQuery\");  \n/* Update each of the selected records. */  \nselectedRows.forEach(function(selectedRowId) {  \n/* Create an UpdateQuery class instance with the Activity root schema. */  \nvar update = this.Ext.create(\"Terrasoft.UpdateQuery\", {  \nrootSchemaName: \"Activity\"  \n});  \n/* Apply the filter to determine the record to update. */  \nupdate.enablePrimaryColumnFilter(selectedRowId);  \n/* Set the [Owner] column to the ID of the contact selected from the lookup. */  \nupdate.setParameterValue(\"Owner\", activeRowId, this.Terrasoft.DataValueType.GUID);  \n/* Add a record update query to the batch query. */  \nbatchQuery.add(update);  \n}, this);  \n/* Execute the batch server query. */  \nbatchQuery.execute(function() {  \n/* Update the list. */  \nthis.reloadGridData();  \n}, this);  \n}  \n},  \n/* Overload the base virtual method that returns the section action collection. */  \ngetSectionActions: function() {  \n/* Call the parent method implementation that retrieves the collection of the initialized section actions. */  \nvar actionMenuItems = this.callParent(arguments);  \n/* Add a separator line. */  \nactionMenuItems.addItem(this.getButtonMenuItem({  \nType: \"Terrasoft.MenuSeparator\",  \nCaption: \"\"  \n}));  \n/* Add a menu item to the section action index. */  \nactionMenuItems.addItem(this.getButtonMenuItem({  \n/* Bind the menu item caption to the localizable schema string. */  \n\"Caption\": { bindTo: \"Resources.Strings.SetOwnerCaption\" },  \n/* Bind the action handler method. */  \n\"Click\": { bindTo: \"setOwner\" },  \n/* Bind the property of the menu item availability to the value returned by the isCustomActionEnabled method. */  \n\"Enabled\": { bindTo: \"isCustomActionEnabled\" },  \n/* Support the multiple selection mode. */  \n\"IsEnabledForSelectedAll\": true  \n}));  \n/* Return the expanded section action collection. */  \nreturn actionMenuItems;  \n}  \n}  \n};  \n});  \n6. Click **Save** on the Designer&'s toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** :\n1. Clear the browser cache.\n2. Refresh the **Activities** section page.\nThe section single record mode is used by default. To select multiple list records, click **Select multiple records** in the menu of the **Actions** button. This changes the visual view of the list. You will see record selection elements appear.\nAs a result, Creatio will add the **Assign Owner** action to the order page.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_result.png)\nRun the **Assign Owner** action to open the **Contacts** lookup box. Creatio sets the selected contact as the owner of the selected activities in the **Assignee** column.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_modal_window.png)\nTo cancel the multiple selection mode, click **Cancel multiple selection** in the menu of the **Actions** button.\nIf you do not select any records in the **Activities** section list, the **Assign Owner** action will be inactive.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_result_another.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddSectionActionHandlerWithLookupPackage_2021-12-21_12.10.30.zip)",
+  "code_examples": [
+    {
+      "code": "define(\"ActivitySectionV2\", [\"ConfigurationConstants\"], function(ConfigurationConstants) {    return {        /* The name of the section object schema. */        entitySchemaName: \"Activity\",        /* The methods of the section view model. */        methods: {            /* Determine whether the menu item is available. */            isCustomActionEnabled: function() {                /* Attempt to retrieve the array of the selected record IDs. */                var selectedRows = this.get(\"SelectedRows\");                /* Return true if the array contains items (at least one list record is selected), return false otherwise. */                return selectedRows ? (selectedRows.length > 0) : false;            },            /* The action handler method. Opens the [Contacts] lookup. */            setOwner: function() {                /* Define the lookup configuration. */                var config = {                    /* The [Contact] schema. */                    entitySchemaName: \"Contact\",                    /* Disable multiple selection. */                    multiSelect: false,                    /* Display the [Name] column. */                    columns: [\"Name\"]                };                /* Open the lookup with a particular configuration and the callback function that triggers when a user clicks the [Select] button. */                this.openLookup(config, this.lookupCallback, this);            },            /* Set the contact selected from the lookup as the owner of the selected activities. */            lookupCallback: function(args) {                /* The ID of the selected lookup record. */                var activeRowId;                /* Retrieve the selected lookup records. */                var lookupSelectedRows = args.selectedRows.getItems();                if (lookupSelectedRows && lookupSelectedRows.length > 0) {                    /* Retrieve the ID of the first selected lookup record. */                    activeRowId = lookupSelectedRows[0].Id;                }                /* Retrieve the array of the selected record IDs. */                var selectedRows = this.get(\"SelectedRows\");                /* Run handling if at least one record was selected and the owner was selected in the lookup. */                if ((selectedRows.length > 0) && activeRowId) {                    /* Create an instance of the batch query class. */                    var batchQuery = this.Ext.create(\"Terrasoft.BatchQuery\");                    /* Update each of the selected records. */                    selectedRows.forEach(function(selectedRowId) {                        /* Create an UpdateQuery class instance with the Activity root schema. */                        var update = this.Ext.create(\"Terrasoft.UpdateQuery\", {                            rootSchemaName: \"Activity\"                        });                        /* Apply the filter to determine the record to update. */                        update.enablePrimaryColumnFilter(selectedRowId);                        /* Set the [Owner] column to the ID of the contact selected from the lookup. */                        update.setParameterValue(\"Owner\", activeRowId, this.Terrasoft.DataValueType.GUID);                        /* Add a record update query to the batch query. */                        batchQuery.add(update);                    }, this);                    /* Execute the batch server query. */                    batchQuery.execute(function() {                        /* Update the list. */                        this.reloadGridData();                    }, this);                }            },            /* Overload the base virtual method that returns the section action collection. */            getSectionActions: function() {                /* Call the parent method implementation that retrieves the collection of the initialized section actions. */                var actionMenuItems = this.callParent(arguments);                /* Add a separator line. */                actionMenuItems.addItem(this.getButtonMenuItem({                    Type: \"Terrasoft.MenuSeparator\",                    Caption: \"\"                }));                /* Add a menu item to the section action index. */                actionMenuItems.addItem(this.getButtonMenuItem({                    /* Bind the menu item caption to the localizable schema string. */                    \"Caption\": { bindTo: \"Resources.Strings.SetOwnerCaption\" },                    /* Bind the action handler method. */                    \"Click\": { bindTo: \"setOwner\" },                    /* Bind the property of the menu item availability to the value returned by the isCustomActionEnabled method. */                    \"Enabled\": { bindTo: \"isCustomActionEnabled\" },                    /* Support the multiple selection mode. */                    \"IsEnabledForSelectedAll\": true                }));                /* Return the expanded section action collection. */                return actionMenuItems;            }        }    };});",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the section below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Activities",
+      "content": "ExampleSet up action handling in theActivitiessection list. The action must open theContactslookup box. Set the selected contact as the owner of the selected activities.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Set up action handling in the <strong>Activities</strong> section list. The action must open the <strong>Contacts</strong> lookup box. Set the selected contact as the owner of the selected activities.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Activities",
+      "content": "Set up action handling in theActivitiessection list. The action must open theContactslookup box. Set the selected contact as the owner of the selected activities.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Set up action handling in the <strong>Activities</strong> section list. The action must open the <strong>Contacts</strong> lookup box. Set the selected contact as the owner of the selected activities.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_ActivitySectionV2_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_cfa6be6f29cc.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton in the context menu of theLocalizable stringsnode.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_2bc54520fe09.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_localizable_string.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out thelocalizable string properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_10f5bc028961.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add theAssign Owneraction to the order page.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_2af2970e8356.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_modal_window.png",
+      "alt": "",
+      "title": "",
+      "context": "Run theAssign Owneraction to open theContactslookup box. Creatio sets the selected contact as the ow",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_2b6f32127d41.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionHandlerWithLookup/7.18/scr_result_another.png",
+      "alt": "",
+      "title": "",
+      "context": "If you do not select any records in theActivitiessection list, theAssign Owneraction will be inactiv",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_47fe0308d6da.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddSectionActionHandlerWithLookupPackage_2021-12-21_12.10.30.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAddSectionActionHandlerWithLookupPackage_2021-12-21_12.10.30.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/cd9070722281e0ea_n_classic-ui_section_examples_set-up-action-handling-lookup-for-multiple-records_sdkAddSectionActionHandlerWithLookupPackage_2021-12-21_12.10.30.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up action handling using a lookup for multiple section records",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Create a schema of the replacing section view model\u200b",
+      "anchor": "title-3728-1"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-3728-2"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "OPENLOOKUP",
+        "path": "("
+      },
+      {
+        "method": "GETITEMS",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "FOREACH",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "ENABLEPRIMARYCOLUMNFILTER",
+        "path": "("
+      },
+      {
+        "method": "SETPARAMETERVALUE",
+        "path": "("
+      },
+      {
+        "method": "ADD",
+        "path": "("
+      },
+      {
+        "method": "EXECUTE",
+        "path": "("
+      },
+      {
+        "method": "RELOADGRIDDATA",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETBUTTONMENUITEM",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETBUTTONMENUITEM",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/set-up-action-handling-lookup-for-multiple-records",
+      "text": "Set up action handling (lookup) for multiple records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/set-up-action-handling-lookup-for-multiple-records",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/add-an-action-for-a-single-record",
+      "text": "Add an action for a single record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/add-an-action-for-multiple-records",
+      "text": "Add an action for multiple records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/set-up-handling-for-multiple-records",
+      "text": "PreviousSet up action handling for multiple records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/set-up-the-display-conditions-of-the-list",
+      "text": "NextSet up the display conditions of the list",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/set-up-quick-filter-block",
+      "text": "Set up the quick filters block",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/references/basesectionv2",
+      "text": "BaseSectionV2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:51:37.756226"
+}

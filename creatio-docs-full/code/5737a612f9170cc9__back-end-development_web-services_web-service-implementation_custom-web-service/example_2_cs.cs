@@ -1,0 +1,1 @@
+<% @ServiceHost    Service = "Terrasoft.Configuration.UsrSomeAnonymousConfigurationServiceNamespace.UsrSomeAnonymousConfigurationService"    Debug = "true"    Language = "C#"%>

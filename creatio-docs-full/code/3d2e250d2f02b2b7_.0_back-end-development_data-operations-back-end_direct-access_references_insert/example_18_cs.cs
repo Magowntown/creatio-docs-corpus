@@ -1,0 +1,1 @@
+Insert Set(string sourceColumnAlias, Select subSelect)Insert Set(string sourceColumnAlias, Query subSelectQuery)Insert Set(string sourceColumnAlias, QueryColumnExpression columnExpression)Insert Set(string sourceColumnAlias, QueryParameter parameter)

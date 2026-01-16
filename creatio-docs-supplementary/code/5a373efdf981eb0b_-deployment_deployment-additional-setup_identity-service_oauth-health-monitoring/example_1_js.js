@@ -1,0 +1,1 @@
+Status: 500 Internal Server Error{    "HasProblem": true,    "IsSystemSettingsFilledIn": false,    "IsIdentityServiceAvailable": false,    "IsAccessTokenRetrievableForSystemActions": false,    "Message": "System settings OAuth20IdentityServerUrl, OAuth20IdentityServerClientId, OAuth20IdentityServerClientSecret are empty."}

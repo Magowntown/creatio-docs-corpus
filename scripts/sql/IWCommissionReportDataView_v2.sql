@@ -1,0 +1,40 @@
+-- IWCommissionReportDataView v2
+-- Package: IWQBIntegration
+-- Purpose: Resolves lookups for IW_Commission report
+-- Filter: Direct on IWPaymentDue (date) + IWSalesGroupId (GUID)
+--
+-- REQUIREMENT: Must include BaseEntity columns for Creatio inheritance
+-- Reference: https://customerfx.com/article/using-database-views-in-creatio/
+--
+-- Date: 2026-01-14
+
+CREATE OR REPLACE VIEW public."IWCommissionReportDataView" AS
+SELECT
+    -- BaseEntity required columns (for inheritance from BaseEntity)
+    iw."Id",
+    iw."CreatedOn",
+    iw."CreatedById",
+    iw."ModifiedOn",
+    iw."ModifiedById",
+    0 AS "ProcessListeners",
+
+    -- IW-specific columns
+    iw."IWPaymentDue" AS "IWTransactionDate",
+    iw."IWAmount",
+    iw."IWCommissionAmount",
+    iw."IWQBInvoiceNumber",
+    iw."IWDescription",
+    iw."IWMemo",
+
+    -- Lookup columns (keep "Id" suffix - Creatio object will use name without suffix)
+    iw."IWSalesGroupId",
+    sg."BGName" AS "IWSalesGroupName",
+    iw."IWAccountId",
+    acct."Name" AS "IWAccountName",
+    iw."IWPaymentsInvoiceId",
+    ord."Number" AS "IWOrderNumber",
+    iw."IWOwnerId"
+FROM "IWPayments" iw
+LEFT JOIN "BGSalesGroup" sg ON iw."IWSalesGroupId" = sg."Id"
+LEFT JOIN "Account" acct ON iw."IWAccountId" = acct."Id"
+LEFT JOIN "Order" ord ON iw."IWPaymentsInvoiceId" = ord."Id";

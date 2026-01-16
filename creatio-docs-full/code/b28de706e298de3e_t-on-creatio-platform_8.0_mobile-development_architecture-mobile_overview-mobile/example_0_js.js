@@ -1,0 +1,1 @@
+this.element.setStyle('background-image', 'url("' + Terrasoft.util.toUrlScheme(value) +'")');

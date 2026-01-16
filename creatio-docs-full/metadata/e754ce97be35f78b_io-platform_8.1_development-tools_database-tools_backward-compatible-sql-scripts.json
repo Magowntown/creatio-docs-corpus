@@ -1,0 +1,799 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/database-tools/backward-compatible-sql-scripts",
+  "title": "Backward compatible SQL scripts",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools"
+    },
+    {
+      "text": "Database tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nIf the package installation ends with an error, you cannot roll the configuration back completely since SQL scripts make irreversible changes to the database as part of the package installation. To prevent that, use backward compatible SQL scripts instead.\nA **backward compatible SQL script** (safe SQL script) is an SQL script whose execution does not make irreversible changes to the database. Changes made by backward compatible SQL scripts as part of the package installation do not affect Creatio\u2019s operability. Use backward compatible SQL scripts to ensure you can roll back to the previous configuration state completely in case of an error. Learn more in a separate article: [Delivery management process](https://academy.creatio.com/documents?ver=8.1&id=15202&anchor=title-2068-7).\nnote\nSince you can roll back to the previous configuration state from the package backup after the package installation is complete, restoration is accomplished by re-executing the previous version of the SQL script rather than by canceling the transaction.\nCreatio lets you customize delivery process to execute CRUD operations with data as part of package installation in a way that does not cause irreparable changes to the database. Learn more in a separate article: [Customize delivery process](https://academy.creatio.com/documents?ver=8.1&id=15009).\nTo develop a backward compatible SQL script, follow the recommendations listed in a different section during the development: [Development recommendations for backward compatible SQL scripts](https://academy.creatio.com/documents?ver=8.1&id=15109&anchor=title-3917-2).\n## Usage recommendations for backward compatible SQL scripts\u200b\nCreatio lets you roll back to the previous configuration state from the package backup if the package installation ends with an error or a successful installation results in issues with Creatio functionality. Learn more in a separate article: [Delivery management](https://academy.creatio.com/documents?ver=8.1&id=15202&anchor=title-2068-7). To successfully roll back to the previous configuration state from the package backup, **SQL script** configuration items must meet the guidelines.\n**Recommendations** to ensure successful rollback to the previous configuration state from the package backup:\n* No new or changed package configuration elements of the **SQL script** type. I.e., the modification date of the configuration element of the **SQL script** type is the same as date of its modification on the production environment to install the package.\n* New or changed package configuration elements of the **SQL script** type are backward compatible.\nCompliance with one of the recommendations ensures successful rollback to the previous configuration state from the package backup.\n## Implement a backward compatible SQL script\u200b\n1. Create a configuration element of the **SQL script** type. To do this, follow the instructions in a separate article: [SQL script](https://academy.creatio.com/documents?ver=8.1&id=15119&anchor=title-3952-1).\n2. Implement a script that complies with the recommendations. Learn more about the recommendations in a different section: [Development recommendations for backward compatible SQL scripts](https://academy.creatio.com/documents?ver=8.1&id=15109&anchor=title-3917-2).\nFollow these **practices** when you develop a backward compatible SQL script:\n* Analyze the potential behavior of Creatio after it executes the SQL script.\n* Take into account the way the SQL script affects Creatio operability after the configuration rollback.\n3. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_edit_button.png) in the setup area of the Script Designer and select the **Backward compatible** checkbox. The checkbox flags the SQL scenario as backward compatible. The developer that implements the SQL scenario is in charge of selecting the checkbox and ensuring the SQL script complies with the [recommendations](https://academy.creatio.com/documents?ver=8.1&id=15109&anchor=title-3917-2).\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackwardCompatibleSqlScript/8.0/scr_Backward_compatible.png)\nIf an error occurs during the package installation or the installation fails, you can roll back to the previous configuration state from the package backup.\nImportant\nIf you install a package that contains at least one configuration element of the **SQL script** type without the **Backward compatible** checkbox selected, fails, rollback to the previous configuration state from the package backup via the WorkspaceConsole utility will be suspended. Learn more in another article: [Delivery management](https://academy.creatio.com/documents?ver=8.1&id=15202&anchor=title-2068-7).\n## Development recommendations for backward compatible SQL scripts\u200b\nFollow the development **recommendations** to create backward compatible SQL scripts that do not cause issues with Creatio functionality after the configuration rollback. The recommendations are based on open sources as well as the official documentation of Microsoft SQL, PostgreSQL, and Oracle database management systems supported by Creatio.\nRecommendation\nFollow the ACID principle when you develop SQL scripts.\nThe **ACID principle** is a set of properties that ensures the reliability of database transactions. Learn more about the ACID principle in [Wikipedia](https://en.wikipedia.org/w/index.php?title=ACID&oldid=1102677290).\nThe ACID principle is based on the following **properties** :\n* **A** tomicity\n* **C** onsistency\n* **I** solation\n* **D** urability\nA single SQL script must correspond to a single entity. To **execute several SQL scripts in a set order** , follow the instructions in a separate article: [SQL script](https://academy.creatio.com/documents?ver=8.1&id=15119&anchor=title-3952-1).\nRecommendation\nDo not use SQL scripts to change database entities.\nA database entity is a view, function, procedure, or trigger. When you develop SQL scripts that change entities, keep in mind that Creatio might not recognize certain database tables or database table fields when you roll back to the previous configuration state from the package backup. Use SQL scripts to recreate entities instead of editing them.\nTo **recreate an entity using an SQL script** :\n1. Make sure the needed entity exists in the database tables.\n2. Delete the current entity version.\n3. Create a new entity version. Use the `CREATE` operator instead of `ALTER` operator to do this.\n4. Set the **Installation type** property of the configuration element of the **SQL script** type to \"AfterPackage\" or \"AfterSchemaData.\" Learn more about the available values of the **Installation type** property in a separate article: [SQL script](https://academy.creatio.com/documents?ver=8.1&id=15119&anchor=title-3952-1).\nRecommendation\nDo not use SQL scripts to create triggers.\nFor example, if you develop an SQL script that creates a field management trigger, Creatio behaves as follows. After Creatio executes an SQL script and you roll back to the previous configuration version from the package backup, issues with Creatio functionality can occur. Since the fields created by the trigger are new for the version to which you rolled back, you cannot delete the trigger. As such, this can lead to issues with Creatio functionality.\nRecommendation\nDo not use SQL scripts to delete database entities.\nA database entity is a view, procedure, function, trigger, or database table.\nWe do not recommend deleting unused entities. Deleting unused entities violates dependencies in previous versions, thus causing issues with Creatio functionality. After Creatio executes the SQL script and you roll back to the previous configuration version from the package backup, deleted entities are not restored unless the SQL script recreates them in the previous package version. If you decide to delete a database entity regardless, make sure Creatio has not used it for a significant time.\nSituations when you need to delete entities when deleting an app from Creatio, for example, when deleting Marketplace apps, are an exception.\nTo **delete an entity using an SQL script when deleting an app** , set the **Installation type** property of the configuration element of the **SQL script** type to \"UninstallApp.\" Learn more about the available values of the **Installation type** property in a separate article: [SQL script](https://academy.creatio.com/documents?ver=8.1&id=15119&anchor=title-3952-1).\nRecommendation\nDo not use SQL scripts to create and edit database tables.\nUse **objects** instead of SQL scripts to create and edit database tables. Learn more in a separate article: [Object](https://academy.creatio.com/documents?ver=8.1&id=15107).\nYou can use SQL scripts to create and edit the following **database tables** :\n* temporary tables\n* service tables, i. e., tables that do not contain business data and are required to solve technical problems\nFollow these **practices** when creating and editing such database tables using SQL scripts:\n* Make sure changes described by the SQL script do not cause issues with Creatio functionality.\n* Use table versioning that lets you switch logic between table versions.\n* Make sure fields, tables, and other objects required for the SQL scenario exist.\n* Keep in mind the use of such tables and their fields in indexes, primary keys, procedures, functions, triggers, and views.\nRecommendation\nDo not use SQL scripts to change the field type or requirement flag in database tables.\nCreate new fields using **objects** to change the field type or requirement flag in database tables instead of changing the existing fields using SQL scripts. Learn more in a separate article: [Object](https://academy.creatio.com/documents?ver=8.1&id=15107).\nFor example, if you execute an SQL script that changes the field type, Creatio behaves as follows. After Creatio executes the SQL script and you roll back to the previous configuration version from the package backup, the mismatched data type error occurs.\nFor example, if you execute an SQL script that changes the field requirement flag, Creatio behaves as follows. After Creatio executes the SQL script and you roll back to the previous configuration version from the package backup, the field remains required and you still have to fill it out to save the record.\nRecommendation\nDo not use SQL scripts to add required fields that have default values to database tables.\nUse **objects** instead of SQL scripts to add required fields that have default values. Learn more in a separate article: [Object](https://academy.creatio.com/documents?ver=8.1&id=15107).\nRecommendation\nDo not use SQL scripts to add data to database tables.\nUse **data bindings** or install scripts instead of SQL scripts to add data to database tables. Learn more in separate articles: [Packages basics](https://academy.creatio.com/documents?ver=8.1&id=15121&anchor=title-2105-9), [Customize delivery process](https://academy.creatio.com/documents?ver=8.1&id=15009).\nMake sure database tables do not have data that must be added using a complex filter or special procedure. This is relevant for key fields first and foremost. Creatio can execute an SQL script multiple times as part of debugging. Learn more in a separate guide: [Debugging](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools). Creatio does not delete data added by the SQL script when you roll back to the previous configuration version from the package backup. This can lead to issues with Creatio functionality.\nRecommendation\nDo not use SQL scripts to change database table data.\nUse **data bindings** or install scripts instead of SQL scripts to change database table data. Learn more in separate articles: [Packages basics](https://academy.creatio.com/documents?ver=8.1&id=15121&anchor=title-2105-9), [Customize delivery process](https://academy.creatio.com/documents?ver=8.1&id=15009).\nSome changes to database table data executed using an SQL script cannot be reversed using another SQL script or via a rollback to the previous configuration version from the package backup. For example, if Creatio executes an SQL script that changes the value of the `[IsActive]` column in the `[SysProcess]` database table from `true` to `false`, Creatio behaves as follows.\nUPDATE SysProcess SET IsActive = true WHERE IsActive = false  \nAfter Creatio executes the SQL script, the `[IsActive]` column of the `[SysProcess]` database table has no `false` values. I. e., Creatio cannot determine which column values the SQL script changed. You can develop an SQL script that reverses the changes, but this requires significant effort on your end.\nRecommendation\nDo not use SQL scripts to delete business data from database tables.\nWe do not recommend deleting business data. For example, if you execute an SQL script that deletes field data, Creatio behaves as follows. After Creatio executes the SQL script and you roll back to the previous configuration version from the package backup, the field data remains deleted. I. e., the script deletes data permanently. The fact that the SQL script of the package to the version of which you roll back added this data is irrelevant. Use **objects** or install scripts instead of SQL scripts to create and change database table data. Learn more in separate articles: [Object](https://academy.creatio.com/documents?ver=8.1&id=15107), [Customize delivery process](https://academy.creatio.com/documents?ver=8.1&id=15009).\nService data, for example, the cleanup of the scheduler queue, is an exception. However, keep in mind that the deletion is permanent.\nRecommendation\nEnsure that the changes made by backward compatible SQL scripts do not affect the data integrity.\nRecommendation\nCheck whether database tables contain procedures and functions before you call them in SQL scripts.\nIn most cases, you do not need to call procedures and functions in SQL scripts during a package installation. If such a need arises, make sure that the database tables contain the required procedures and functions.\n* * *\n## See also\u200b\n[SQL script](https://academy.creatio.com/documents?ver=8.1&id=15119)\n[Delivery in WorkspaceConsole](https://academy.creatio.com/documents?ver=8.1&id=15207)\n[Object](https://academy.creatio.com/documents?ver=8.1&id=15107)\n[Packages basics](https://academy.creatio.com/documents?ver=8.1&id=15121)\n[Delivery management process](https://academy.creatio.com/documents?ver=8.1&id=15202)\n[Customize delivery process](https://academy.creatio.com/documents?ver=8.1&id=15009)\n* * *\n## Resources\u200b\n[ACID](https://en.wikipedia.org/w/index.php?title=ACID&oldid=1096746664) (Wikipedia)\n[Debugging](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools) (Creatio documentation)",
+  "code_examples": [
+    {
+      "code": "UPDATE SysProcess SET IsActive = true WHERE IsActive = false",
+      "language": "sql",
+      "context": "Some changes to database table data executed using an SQL script cannot be reversed using another SQL script or via a rollback to the previous configuration version from the package backup. For exampl",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteSince you can roll back to the previous configuration state from the package backup after the package installation is complete, restoration is accomplished by re-executing the previous version of the SQL script rather than by canceling the transaction.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Since you can roll back to the previous configuration state from the package backup after the package installation is complete, restoration is accomplished by re-executing the previous version of the SQL script rather than by canceling the transaction.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Since you can roll back to the previous configuration state from the package backup after the package installation is complete, restoration is accomplished by re-executing the previous version of the SQL script rather than by canceling the transaction.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Since you can roll back to the previous configuration state from the package backup after the package installation is complete, restoration is accomplished by re-executing the previous version of the SQL script rather than by canceling the transaction.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "SQL script",
+      "content": "ImportantIf you install a package that contains at least one configuration element of theSQL scripttype without theBackward compatiblecheckbox selected, fails, rollback to the previous configuration state from the package backup via the WorkspaceConsole utility will be suspended. Learn more in another article:Delivery management.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you install a package that contains at least one configuration element of the <strong>SQL script</strong> type without the <strong>Backward compatible</strong> checkbox selected, fails, rollback to the previous configuration state from the package backup via the WorkspaceConsole utility will be suspended. Learn more in another article: <a href=\"https://academy.creatio.com/documents?ver=8.1&amp;id=15202&amp;anchor=title-2068-7\" rel=\"noopener noreferrer\" target=\"_blank\">Delivery management</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "SQL script",
+      "content": "If you install a package that contains at least one configuration element of theSQL scripttype without theBackward compatiblecheckbox selected, fails, rollback to the previous configuration state from the package backup via the WorkspaceConsole utility will be suspended. Learn more in another article:Delivery management.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you install a package that contains at least one configuration element of the <strong>SQL script</strong> type without the <strong>Backward compatible</strong> checkbox selected, fails, rollback to the previous configuration state from the package backup via the WorkspaceConsole utility will be suspended. Learn more in another article: <a href=\"https://academy.creatio.com/documents?ver=8.1&amp;id=15202&amp;anchor=title-2068-7\" rel=\"noopener noreferrer\" target=\"_blank\">Delivery management</a>.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationFollow the ACID principle when you develop SQL scripts.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Follow the ACID principle when you develop SQL scripts.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Follow the ACID principle when you develop SQL scripts.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Follow the ACID principle when you develop SQL scripts.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to change database entities.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to change database entities.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to change database entities.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to change database entities.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to create triggers.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to create triggers.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to create triggers.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to create triggers.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to delete database entities.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to delete database entities.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to delete database entities.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to delete database entities.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to create and edit database tables.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to create and edit database tables.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to create and edit database tables.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to create and edit database tables.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to change the field type or requirement flag in database tables.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to change the field type or requirement flag in database tables.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to change the field type or requirement flag in database tables.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to change the field type or requirement flag in database tables.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to add required fields that have default values to database tables.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to add required fields that have default values to database tables.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to add required fields that have default values to database tables.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to add required fields that have default values to database tables.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to add data to database tables.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to add data to database tables.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to add data to database tables.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to add data to database tables.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to change database table data.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to change database table data.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to change database table data.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to change database table data.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationDo not use SQL scripts to delete business data from database tables.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to delete business data from database tables.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use SQL scripts to delete business data from database tables.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use SQL scripts to delete business data from database tables.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationEnsure that the changes made by backward compatible SQL scripts do not affect the data integrity.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Ensure that the changes made by backward compatible SQL scripts do not affect the data integrity.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Ensure that the changes made by backward compatible SQL scripts do not affect the data integrity.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Ensure that the changes made by backward compatible SQL scripts do not affect the data integrity.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "RecommendationCheck whether database tables contain procedures and functions before you call them in SQL scripts.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Recommendation</div><div class=\"admonitionContent_vXIg\"><p>Check whether database tables contain procedures and functions before you call them in SQL scripts.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Recommendation",
+      "html": "<div class=\"admonitionHeading_TMsN\">Recommendation</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Check whether database tables contain procedures and functions before you call them in SQL scripts.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Check whether database tables contain procedures and functions before you call them in SQL scripts.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_edit_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickin the setup area of the Script Designer and select theBackward compatiblecheckbox. The checkbo",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e754ce97be35f78b_io-platform_8.1_development-tools_database-tools_backward-compatible-sql-scripts_f8d78d76427d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BackwardCompatibleSqlScript/8.0/scr_Backward_compatible.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickin the setup area of the Script Designer and select theBackward compatiblecheckbox. The checkbo",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e754ce97be35f78b_io-platform_8.1_development-tools_database-tools_backward-compatible-sql-scripts_98b9e1c4011a.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Backward compatible SQL scripts",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Usage recommendations for backward compatible SQL scripts\u200b",
+      "anchor": "title-3917-3"
+    },
+    {
+      "level": 2,
+      "text": "Implement a backward compatible SQL script\u200b",
+      "anchor": "title-3917-1"
+    },
+    {
+      "level": 2,
+      "text": "Development recommendations for backward compatible SQL scripts\u200b",
+      "anchor": "title-3917-2"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/database-tools/postgresql-features/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/database-features-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "NextLogging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/hotfix-mode",
+      "text": "Hotfix mode",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/database-tools/postgresql-features/examples/mssql-and-postgresql-script-examples",
+      "text": "PreviousScript examples",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:52:14.310097"
+}

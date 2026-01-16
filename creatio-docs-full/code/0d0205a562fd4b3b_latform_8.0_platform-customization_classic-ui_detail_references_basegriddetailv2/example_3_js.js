@@ -1,0 +1,1 @@
+IsGridEmpty BOOLEAN

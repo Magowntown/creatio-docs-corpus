@@ -1,0 +1,1 @@
+new Select(_userConnection)    .Cols("Id")    .Column(        Func.DateDiff(            DateDiffQueryFunctionInterval.Day,            Column.SourceColumn("L", "CreatedOn"),            Func.CurrentDateTime()        )    ).As("LeadAge")    .From("Lead").As("L");

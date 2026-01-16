@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* "Dropdown" type field. */    {        "operation": "insert",        "name": "ComboBox_x7x538u",        "values": {            ...,            "control": "$PDS_UsrColumn1_b7xlx2a",            ...        },        ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,

@@ -1,0 +1,1 @@
+UPDATE SysProcess SET IsActive = true WHERE IsActive = false

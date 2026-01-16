@@ -1,0 +1,1 @@
+[Creatio URL]/0/NUI/ViewModule.aspx#[SomeModuleName]

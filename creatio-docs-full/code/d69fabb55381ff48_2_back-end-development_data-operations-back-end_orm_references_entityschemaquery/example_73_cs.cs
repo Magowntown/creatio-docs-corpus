@@ -1,0 +1,1 @@
+IEntitySchemaQueryFilterItem CreateIsNullFilter(string leftExpressionColumnPath)

@@ -1,0 +1,1 @@
+define("SomeModule1Schema", ["SomeModuleSchema"], function (someModuleSchema) {    console.log(someModuleSchema.localizableStrings.SomeLocalizableString);});

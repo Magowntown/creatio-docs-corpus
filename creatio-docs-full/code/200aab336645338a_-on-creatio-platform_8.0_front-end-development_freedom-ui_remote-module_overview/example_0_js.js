@@ -1,0 +1,1 @@
+<usr-view-element></usr-view-element>...const viewElement = document.querySelector('usr-view-element');const base64Image = 'data:image/png;base64,...';viewElement.setAttribute('image', base64Image)

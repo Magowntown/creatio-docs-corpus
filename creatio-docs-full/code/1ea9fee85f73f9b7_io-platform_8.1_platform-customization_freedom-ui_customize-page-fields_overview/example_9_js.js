@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    {        /* Bind the "exmpl.Concat" converter with the "SomeParameter" parameter to the "$SomeAttribute" attribute. */        "visible": "$SomeAttribute | exmpl.Concat:' ':$SomeParameter",    },]/**SCHEMA_VIEW_CONFIG_DIFF*/,

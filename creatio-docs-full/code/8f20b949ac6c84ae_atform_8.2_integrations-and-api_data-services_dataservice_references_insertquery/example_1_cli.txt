@@ -1,0 +1,1 @@
+// URL example for the POST query to add data to DataService.http(s)://example.creatio.com/0/dataservice/json/reply/InsertQuery

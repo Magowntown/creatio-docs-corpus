@@ -1,0 +1,1 @@
+<AssemblyName>PackageProjectAssemblyName</AssemblyName>

@@ -1,0 +1,1 @@
+"dataSources": {    "ContactDS": {        "type": "crt.EntityDataSource",        "config": {            "entitySchemaName": "Contact",            "attributes": {                "AccountCityName": {                    "path": "Account.City.Name",                    "type": "ForwardReference"                },            }        }    }}

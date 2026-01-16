@@ -1,0 +1,1 @@
+void AddAllSchemaColumns(bool skipSystemColumns)

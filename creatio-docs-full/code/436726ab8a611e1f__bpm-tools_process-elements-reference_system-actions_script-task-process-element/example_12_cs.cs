@@ -1,0 +1,1 @@
+var list = new CompositeObjectList<CompositeObject>();var item1 = new CompositeObject();item1["Id"] = Guid.NewGuid();item1["Name"] = "Name1";list.Add(item1);var item2 = new CompositeObject();item2["Id"] = Guid.NewGuid();item2["Name"] = "Name2";list.Add(item2);Set<CompositeObjectList<CompositeObject>>("CompositeObjectListParameter", list);

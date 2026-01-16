@@ -1,0 +1,1 @@
+Entity GetEntity(UserConnection userConnection, object primaryColumnValue)

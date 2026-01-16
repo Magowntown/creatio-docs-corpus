@@ -1,0 +1,1 @@
+"1. Make an appointment with the manager." + "\n" + "2. Discuss the deal tactics with the manager."

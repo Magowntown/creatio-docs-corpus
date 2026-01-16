@@ -1,0 +1,1 @@
+WindowQueryFunction(QueryFunction innerFunction, QueryColumnExpression partitionByExpression = null, QueryColumnExpression orderByExpression = null) : this(innerFunction)

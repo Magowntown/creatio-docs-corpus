@@ -1,0 +1,1 @@
+Select Column(string sourceColumnAlias)Select Column(string sourceAlias, string sourceColumnAlias)Select Column(Select subSelect)Select Column(Query subSelectQuery)Select Column(QueryCase queryCase)Select Column(QueryParameter queryParameter)Select Column(QueryColumnExpression columnExpression)

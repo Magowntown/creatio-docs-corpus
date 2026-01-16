@@ -1,0 +1,1 @@
+string textValue = Get<string>("TextParameter");textValue += " and something else";Set<string>("TextParameter", textValue);

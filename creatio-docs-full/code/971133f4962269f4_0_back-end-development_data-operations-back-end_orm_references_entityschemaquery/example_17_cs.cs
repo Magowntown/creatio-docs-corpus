@@ -1,0 +1,1 @@
+Manager Terrasoft.Core.IManager

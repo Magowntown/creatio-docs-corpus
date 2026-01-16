@@ -1,0 +1,672 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/custom-converter/examples/implement-a-custom-converter",
+  "title": "Implement a custom converter using remote module",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui"
+    },
+    {
+      "text": "Custom components",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-components"
+    },
+    {
+      "text": "Converter",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/converter"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/custom-converter-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nExample\nAdd a converter that adds the `is the request name` string to the **Name** field value of the custom **Requests** section. Display the converted value in the **Label** type component. Implement the synchronous converter using a remote module created in Angular framework.\n## 1\\. Create an Angular project to develop a custom converter using remote module\u200b\nTo **create an Angular project to develop a custom converter using remote module** , follow the instruction in a separate article: [Implement custom UI component using remote module](https://academy.creatio.com/documents?ver=8.1&id=15377&anchor=title-3974-1).\n## 2\\. Create a custom converter using remote module\u200b\n1. Create an Angular class in the project. To do this, run the `ng g class concat.converter` command at the command line terminal of Microsoft Visual Studio Code.\nAs a result, Microsoft Visual Studio Code will add the `ConcatConverter` class files to the `src/app/` project directory.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCustomConverter/8.0/scr_ConcatConverter_files.png)\n2. Specify that the `ConcatConverter` class is a converter.\n1. Open the `concat.converter.ts` file.\n2. Create the `ConcatConverter` class that implements the `Converter<string, string>` interface from the `@creatio-devkit/common` library.\n3. Flag the `ConcatConverter` class using the `CrtConverter` decorator.\n4. Import the required functionality from the libraries into the class.\n5. Save the file.\nconcat.converter.ts file\n/* Import the required functionality from the libraries. */  \nimport { Converter, CrtConverter } from \"@creatio-devkit/common\";  \n/* Add the CrtConverter decorator to the ConcatConverter interface. */  \n@CrtConverter({  \ntype: 'usr.ConcatConverter',  \n})  \nexport class ConcatConverter implements Converter<string, string> {  \n}  \n3. Inject dependencies.\n1. Open the `concat.converter.ts` file.\n2. Create the `CONCAT_SEPARATOR_TOKEN` instance of the `InjectionToken` class. The token works with Angular DI (dependency injection).\n3. Flag the `CONCAT_SEPARATOR_TOKEN` token using the `CrtInject` decorator.\n4. Import the required functionality from the libraries into the class.\n5. Save the file.\nconcat.converter.ts file\n/* Import the required functionality from the libraries. */  \nimport { InjectionToken } from \"@angular/core\";  \nimport { Converter, CrtInject } from \"@creatio-devkit/common\";  \n/* The CONCAT_SEPARATOR_TOKEN token that works with Angular DI (dependency injection). */  \nexport const CONCAT_SEPARATOR_TOKEN = new InjectionToken<string>('CONCAT_SEPARATOR_TOKEN');  \n...  \nexport class ConcatConverter implements Converter<string, string> {  \nconstructor(@CrtInject(CONCAT_SEPARATOR_TOKEN) private _separator: string) { };  \n}  \n4. Register the `ConcatConverter` converter as a converter and the `CONCAT_SEPARATOR_TOKEN` token.\n1. Open the `app.module.ts` file.\n2. Add the `ConcatConverter` converter to the `converters` section in the `CrtModule` decorator.\n3. Add the configuration object to the `providers` section in the `NgModule` decorator.\n* Set `provide` property to `CONCAT_SEPARATOR_TOKEN`.\n* Set `useValue` property to space.\n4. Implement the `resolveDependency()` method in the `bootstrapCrtModule()` method of the `AppModule` root module. The `bootstrapCrtModule()` method registers the `ConcatConverter` converter flagged using the `CrtModule` decorator. The `resolveDependency()` method receives the dependencies of the `ConcatConverter` converter.\n5. Import the required functionality from the libraries into the class.\n6. Save the file.\napp.module.ts file\n/* Import the required functionality from the libraries. */  \nimport { DoBootstrap, Injector, NgModule, ProviderToken } from '@angular/core';  \nimport { bootstrapCrtModule, CrtModule } from '@creatio-devkit/common';  \nimport { ConcatConverter, CONCAT_SEPARATOR_TOKEN } from './concat.converter';  \n@CrtModule({  \n...,  \n/* Specify that ConcatConverter is a converter. */  \nconverters: [ConcatConverter]  \n})  \n@NgModule({  \n...,  \nproviders: [  \n{  \nprovide: CONCAT_SEPARATOR_TOKEN,  \nuseValue: ' '  \n},  \n],  \n})  \nexport class AppModule implements DoBootstrap {  \nconstructor(private _injector: Injector) {}  \nngDoBootstrap(): void {  \n/* Bootstrap CrtModule definitions. */  \nbootstrapCrtModule('sdk_remote_module_package', AppModule, {  \nresolveDependency: (token) => this._injector.get(<ProviderToken<unknown>>token),  \n});  \n}  \n}  \n5. Build the project. To do this, run the `npm run build` command at the command line terminal of Microsoft Visual Studio Code.\nAs a result, Microsoft Visual Studio Code will add the build to the `dist` directory of the Angular project. The build will have the `sdk_remote_module_package` name.\n## 3\\. Implement the business logic of the custom converter using remote module\u200b\n1. Implement the conversion of an incoming value.\n1. Open the `concat.converter.ts` file.\n2. Implement the `convert(value: string, context: ViewModelContext, ...params: string[]): string;` method of the `ConcatConverter` interface.\n3. Import the required functionality from the libraries into the class.\n4. Save the file.\nconcat.converter.ts file\n/* Import the required functionality from the libraries. */  \nimport { Converter, ViewModelContext } from \"@creatio-devkit/common\";  \n...  \nexport class ConcatConverter implements Converter<string, string> {  \n...  \n/* Implement the convert() method. */  \npublic convert(value: string, context: ViewModelContext, ...params: string[]): string {  \nreturn [value, ...params].join(this._separator);  \n}  \n}  \n2. Build the project. To do this, run the `npm run build` command at the command line terminal of Microsoft Visual Studio Code.\nAs a result, Microsoft Visual Studio Code will add the build to the `dist` directory of the Angular project. The build will have the `sdk_remote_module_package` name.\n## 4\\. Add the converter implemented using remote module to the Freedom UI page\u200b\n1. Repeat steps 1-7 of the procedure to [Implement custom UI component using remote module](https://academy.creatio.com/documents?ver=8.1&id=15377&anchor=title-3974-3).\n2. Add a **Label** type component to the working area of the Freedom UI Designer.\n3. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png) button in the action panel of the Freedom UI Designer. After you save the page settings, Creatio opens the source code of the Freedom UI page.\n4. Bind the `caption` property of the `Label` element to the `$UsrName` model attribute in the `viewConfigDiff` schema section. `$UsrName` is the value of the **Name** field. Add the `usr.Converter` converter with the `'is the request name'` parameter to the `$UsrName` attribute.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n{  \n\"operation\": \"insert\",  \n\"name\": \"Label\",  \n\"values\": {  \n...,  \n/* Apply the usr.ConcatConverter converter to the $UsrName attribute. */  \n\"caption\": \"$UsrName | usr.ConcatConverter : 'is the request name'\",  \n...  \n},  \n...  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n5. Click **Save** on the Client Module Designer\u2019s toolbar.\nAs a result, Creatio will add the converter to the Freedom UI page.\n## Outcome of the example\u200b\nTo **view the outcome of the example** :\n1. Open the `Requests` app page and click **Run app**.\n2. Click **New** on the `Requests` app toolbar.\n3. Enter \"REQ-001\" in the **Name** input.\nAs a result, Creatio will display the converted value on the request page. The synchronous converter is implemented using a remote module created in Angular framework.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCustomConverter/8.0/scr_result_01.gif)\n## Source code\u200b\n* app.module.ts file\n* concat.converter.ts file\n* UsrRequests_FormPage\n/* Import the required functionality from the libraries. */  \nimport { DoBootstrap, Injector, NgModule, ProviderToken } from '@angular/core';  \nimport { BrowserModule } from '@angular/platform-browser';  \nimport { bootstrapCrtModule, CrtModule } from '@creatio-devkit/common';  \nimport { ConcatConverter, CONCAT_SEPARATOR_TOKEN } from './concat.converter';  \n@CrtModule({  \n/* Specify that component is a view element. */  \nviewElements: [],  \n/* Specify that ConcatConverter is a converter. */  \nconverters: [ConcatConverter]  \n})  \n@NgModule({  \ndeclarations: [],  \nimports: [BrowserModule],  \nproviders: [  \n{  \nprovide: CONCAT_SEPARATOR_TOKEN,  \nuseValue: ' '  \n},  \n],  \n})  \nexport class AppModule implements DoBootstrap {  \nconstructor(private _injector: Injector) {}  \nngDoBootstrap(): void {  \n/* Bootstrap CrtModule definitions. */  \nbootstrapCrtModule('sdk_remote_module_package', AppModule, {  \nresolveDependency: (token) => this._injector.get(<ProviderToken<unknown>>token),  \n});  \n}  \n}  \n/* Import the required functionality from the libraries. */  \nimport { InjectionToken } from \"@angular/core\";  \nimport { Converter, CrtConverter, CrtInject, ViewModelContext } from \"@creatio-devkit/common\";  \n/* The CONCAT_SEPARATOR_TOKEN token that works with Angular DI (dependency injection). */  \nexport const CONCAT_SEPARATOR_TOKEN = new InjectionToken<string>('CONCAT_SEPARATOR_TOKEN');  \n/* Add the CrtConverter decorator to the ConcatConverter interface. */  \n@CrtConverter({  \ntype: 'usr.ConcatConverter',  \n})  \nexport class ConcatConverter implements Converter<string, string> {  \nconstructor(@CrtInject(CONCAT_SEPARATOR_TOKEN) private _separator: string) { };  \n/* Implement the convert() method. */  \npublic convert(value: string, context: ViewModelContext, ...params: string[]): string {  \nreturn [value, ...params].join(this._separator);  \n}  \n}  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Feed\",  \n\"values\": {  \n\"dataSourceName\": \"PDS\",  \n\"entitySchemaName\": \"UsrRequests\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AttachmentList\",  \n\"values\": {  \n\"columns\": [  \n{  \n\"id\": \"df093806-a8ed-40ae-979c-770bec690b3c\",  \n\"code\": \"AttachmentListDS_Name\",  \n\"caption\": \"#ResourceString(AttachmentListDS_Name)#\",  \n\"dataValueType\": 28,  \n\"width\": 200  \n}  \n]  \n}  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrName\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrName\",  \n\"control\": \"$UsrName\",  \n\"labelPosition\": \"auto\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"Label\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 2,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Label\",  \n/* Apply the usr.ConcatConverter converter to the $UsrName attribute. */  \n\"caption\": \"$UsrName | usr.ConcatConverter : 'is the request name'\",  \n\"labelType\": \"body\",  \n\"labelThickness\": \"default\",  \n\"labelEllipsis\": false,  \n\"labelColor\": \"auto\",  \n\"labelBackgroundColor\": \"transparent\",  \n\"labelTextAlign\": \"start\",  \n\"visible\": true  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"UsrName\": {  \n\"modelConfigDiff\": {  \n\"path\": \"PDS.UsrName\"  \n}  \n},  \n\"Id\": {  \n\"modelConfigDiff\": {  \n\"path\": \"PDS.Id\"  \n}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"PDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"UsrRequests\"  \n},  \n\"scope\": \"page\"  \n},  \n\"AttachmentListDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"scope\": \"viewElement\",  \n\"config\": {  \n\"entitySchemaName\": \"SysFile\",  \n\"attributes\": {  \n\"Name\": {  \n\"path\": \"Name\"  \n}  \n}  \n}  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [],  \n\"values\": {  \n\"primaryDataSourceName\": \"PDS\"  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[*.zip archive that contains the implemented Freedom UI app](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/UsrRequests_2023-04-27_11.45.16.zip)\n[Angular project that contains the implemented example](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/converter_in_remote_module.zip)",
+  "code_examples": [
+    {
+      "code": "/* Import the required functionality from the libraries. */import { Converter, CrtConverter } from \"@creatio-devkit/common\";/* Add the CrtConverter decorator to the ConcatConverter interface. */@CrtConverter({  type: 'usr.ConcatConverter',})export class ConcatConverter implements Converter<string, string> {}",
+      "language": "js",
+      "context": "Specify that theConcatConverterclass is a converter.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import { InjectionToken } from \"@angular/core\";import { Converter, CrtInject } from \"@creatio-devkit/common\";/* The CONCAT_SEPARATOR_TOKEN token that works with Angular DI (dependency injection). */export const CONCAT_SEPARATOR_TOKEN = new InjectionToken<string>('CONCAT_SEPARATOR_TOKEN');...export class ConcatConverter implements Converter<string, string> {  constructor(@CrtInject(CONCAT_SEPARATOR_TOKEN) private _separator: string) { };}",
+      "language": "js",
+      "context": "Inject dependencies.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import { DoBootstrap, Injector, NgModule, ProviderToken } from '@angular/core';import { bootstrapCrtModule, CrtModule } from '@creatio-devkit/common';import { ConcatConverter, CONCAT_SEPARATOR_TOKEN } from './concat.converter';@CrtModule({  ...,  /* Specify that ConcatConverter is a converter. */  converters: [ConcatConverter]})@NgModule({  ...,  providers: [    {      provide: CONCAT_SEPARATOR_TOKEN,      useValue: ' '    },  ],})export class AppModule implements DoBootstrap {  constructor(private _injector: Injector) {}  ngDoBootstrap(): void {    /* Bootstrap CrtModule definitions. */    bootstrapCrtModule('sdk_remote_module_package', AppModule, {      resolveDependency: (token) => this._injector.get(<ProviderToken<unknown>>token),    });  }}",
+      "language": "js",
+      "context": "Save the file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import { Converter, ViewModelContext } from \"@creatio-devkit/common\";...export class ConcatConverter implements Converter<string, string> {  ...    /* Implement the convert() method. */  public convert(value: string, context: ViewModelContext, ...params: string[]): string {    return [value, ...params].join(this._separator);  }}",
+      "language": "js",
+      "context": "Implement the conversion of an incoming value.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    {        \"operation\": \"insert\",        \"name\": \"Label\",        \"values\": {            ...,            /* Apply the usr.ConcatConverter converter to the $UsrName attribute. */            \"caption\": \"$UsrName | usr.ConcatConverter : 'is the request name'\",            ...        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Bind thecaptionproperty of theLabelelement to the$UsrNamemodel attribute in theviewConfigDiffschema section.$UsrNameis the value of theNamefield. Add theusr.Converterconverter with the'is the request ",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import { DoBootstrap, Injector, NgModule, ProviderToken } from '@angular/core';import { BrowserModule } from '@angular/platform-browser';import { bootstrapCrtModule, CrtModule } from '@creatio-devkit/common';import { ConcatConverter, CONCAT_SEPARATOR_TOKEN } from './concat.converter';@CrtModule({  /* Specify that component is a view element. */  viewElements: [],  /* Specify that ConcatConverter is a converter. */  converters: [ConcatConverter]})@NgModule({  declarations: [],  imports: [BrowserModule],  providers: [    {      provide: CONCAT_SEPARATOR_TOKEN,      useValue: ' '    },  ],})export class AppModule implements DoBootstrap {  constructor(private _injector: Injector) {}  ngDoBootstrap(): void {        /* Bootstrap CrtModule definitions. */    bootstrapCrtModule('sdk_remote_module_package', AppModule, {      resolveDependency: (token) => this._injector.get(<ProviderToken<unknown>>token),    });  }}",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import { InjectionToken } from \"@angular/core\";import { Converter, CrtConverter, CrtInject, ViewModelContext } from \"@creatio-devkit/common\";/* The CONCAT_SEPARATOR_TOKEN token that works with Angular DI (dependency injection). */export const CONCAT_SEPARATOR_TOKEN = new InjectionToken<string>('CONCAT_SEPARATOR_TOKEN');/* Add the CrtConverter decorator to the ConcatConverter interface. */@CrtConverter({  type: 'usr.ConcatConverter',})export class ConcatConverter implements Converter<string, string> {  constructor(@CrtInject(CONCAT_SEPARATOR_TOKEN) private _separator: string) { };    /* Implement the convert() method. */  public convert(value: string, context: ViewModelContext, ...params: string[]): string {    return [value, ...params].join(this._separator);  }}",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/()/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"name\": \"Feed\",                \"values\": {                    \"dataSourceName\": \"PDS\",                    \"entitySchemaName\": \"UsrRequests\"                }            },            {                \"operation\": \"merge\",                \"name\": \"AttachmentList\",                \"values\": {                    \"columns\": [                        {                            \"id\": \"df093806-a8ed-40ae-979c-770bec690b3c\",                            \"code\": \"AttachmentListDS_Name\",                            \"caption\": \"#ResourceString(AttachmentListDS_Name)#\",                            \"dataValueType\": 28,                            \"width\": 200                        }                    ]                }            },            {                \"operation\": \"insert\",                \"name\": \"UsrName\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrName\",                    \"control\": \"$UsrName\",                    \"labelPosition\": \"auto\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 0            },            {                \"operation\": \"insert\",                \"name\": \"Label\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 2,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Label\",                    /* Apply the usr.ConcatConverter converter to the $UsrName attribute. */                    \"caption\": \"$UsrName | usr.ConcatConverter : 'is the request name'\",                    \"labelType\": \"body\",                    \"labelThickness\": \"default\",                    \"labelEllipsis\": false,                    \"labelColor\": \"auto\",                    \"labelBackgroundColor\": \"transparent\",                    \"labelTextAlign\": \"start\",                    \"visible\": true                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 1            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"UsrName\": {                        \"modelConfigDiff\": {                            \"path\": \"PDS.UsrName\"                        }                    },                    \"Id\": {                        \"modelConfigDiff\": {                            \"path\": \"PDS.Id\"                        }                    }                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"dataSources\"                ],                \"values\": {                    \"PDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"UsrRequests\"                        },                        \"scope\": \"page\"                    },                    \"AttachmentListDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"scope\": \"viewElement\",                        \"config\": {                            \"entitySchemaName\": \"SysFile\",                            \"attributes\": {                                \"Name\": {                                    \"path\": \"Name\"                                }                            }                        }                    }                },                {                    \"operation\": \"merge\",                    \"path\": [],                    \"values\": {                        \"primaryDataSourceName\": \"PDS\"                    }                }            }        ]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Name",
+      "content": "ExampleAdd a converter that adds theis the request namestring to theNamefield value of the customRequestssection. Display the converted value in theLabeltype component. Implement the synchronous converter using a remote module created in Angular framework.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a converter that adds the <code>is the request name</code> string to the <strong>Name</strong> field value of the custom <strong>Requests</strong> section. Display the converted value in the <strong>Label</strong> type component. Implement the synchronous converter using a remote module created in Angular framework.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Name",
+      "content": "Add a converter that adds theis the request namestring to theNamefield value of the customRequestssection. Display the converted value in theLabeltype component. Implement the synchronous converter using a remote module created in Angular framework.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a converter that adds the <code>is the request name</code> string to the <strong>Name</strong> field value of the custom <strong>Requests</strong> section. Display the converted value in the <strong>Label</strong> type component. Implement the synchronous converter using a remote module created in Angular framework.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCustomConverter/8.0/scr_ConcatConverter_files.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Microsoft Visual Studio Code will add theConcatConverterclass files to thesrc/app/proje",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/448e8a926ad6a378__freedom-ui_remote-module_custom-converter_examples_implement-a-custom-converter_b46edb9b4361.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton in the action panel of the Freedom UI Designer. After you save the page settings, Cr",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/448e8a926ad6a378__freedom-ui_remote-module_custom-converter_examples_implement-a-custom-converter_0022b8eb0588.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddCustomConverter/8.0/scr_result_01.gif",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will display the converted value on the request page. The synchronous converter",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/448e8a926ad6a378__freedom-ui_remote-module_custom-converter_examples_implement-a-custom-converter_5889a4bd1dc0.gif"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/UsrRequests_2023-04-27_11.45.16.zip",
+      "text": "*.zip archive that contains the implemented Freedom UI app",
+      "filename": "UsrRequests_2023-04-27_11.45.16.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/448e8a926ad6a378__freedom-ui_remote-module_custom-converter_examples_implement-a-custom-converter_UsrRequests_2023-04-27_11.45.16.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/converter_in_remote_module.zip",
+      "text": "Angular project that contains the implemented example",
+      "filename": "converter_in_remote_module.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/448e8a926ad6a378__freedom-ui_remote-module_custom-converter_examples_implement-a-custom-converter_converter_in_remote_module.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement a custom converter using remote module",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create an Angular project to develop a custom converter using remote module\u200b",
+      "anchor": "title-2628-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a custom converter using remote module\u200b",
+      "anchor": "title-2628-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement the business logic of the custom converter using remote module\u200b",
+      "anchor": "title-2628-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Add the converter implemented using remote module to the Freedom UI page\u200b",
+      "anchor": "title-2628-4"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-2628-4"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-2628-5"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "JOIN",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "JOIN",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/custom-converter/examples/implement-a-custom-converter",
+      "text": "Implement a converter using remote module",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/custom-converter/examples/implement-a-custom-converter",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/custom-converter/examples/implement-a-custom-converter",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/custom-converter/examples/implement-a-custom-converter",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/client-schema-freedomui/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/schema-freedomui-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui-component",
+      "text": "Freedom UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/implement-a-remote-module/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/remote-module-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/validator",
+      "text": "Validator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/custom-validator-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/converter",
+      "text": "Converter",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/custom-converter/converters-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/custom-converter-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/request-handler",
+      "text": "NextRequest handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/custom-request-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/custom-handler-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/localize-remote-module",
+      "text": "Localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/overview",
+      "text": "Asserts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-component",
+      "text": "Classic UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/implement-a-custom-component/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/custom-component-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/requirements-for-icons",
+      "text": "Requirements for icons",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "Data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/crud-operations",
+      "text": "CRUD operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/data-sources/data-processing",
+      "text": "Additional data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/creatio-devkit-common",
+      "text": "@creatio-devkit/common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:27:35.565953"
+}

@@ -1,0 +1,1 @@
+static Entity Read(UserConnection userConnection, DataReader dataReader)

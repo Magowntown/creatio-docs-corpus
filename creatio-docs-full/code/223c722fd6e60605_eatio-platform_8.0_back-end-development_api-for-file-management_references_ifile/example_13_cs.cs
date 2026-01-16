@@ -1,0 +1,1 @@
+TValue GetAttribute<TValue>(string name, TValue defaultValue)

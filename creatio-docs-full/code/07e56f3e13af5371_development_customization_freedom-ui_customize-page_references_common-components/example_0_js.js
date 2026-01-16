@@ -1,0 +1,1 @@
+{    "type": "crt.Button",    "clicked": {        /* Creatio lets you bind the sending of base request to the button click event. Custom requests are not supported. */        "request": "crt.CreateRecordRequest"    },    "icon": "open-button-icon",    "caption": "Button",    "color": "primary",    "size": "medium",    "iconPosition": "left-icon"}

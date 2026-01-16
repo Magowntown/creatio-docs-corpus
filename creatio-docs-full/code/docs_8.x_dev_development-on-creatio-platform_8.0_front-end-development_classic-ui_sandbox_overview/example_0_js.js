@@ -1,0 +1,1 @@
+"MessageName": {     mode: [Message mode],     direction: [Message direction] }

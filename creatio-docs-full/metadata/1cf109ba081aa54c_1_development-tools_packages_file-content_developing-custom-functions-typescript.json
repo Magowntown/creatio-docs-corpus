@@ -1,0 +1,803 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/developing-custom-functions-typescript",
+  "title": "Develop custom functions using TypeScript",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools"
+    },
+    {
+      "text": "Packages",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages"
+    },
+    {
+      "text": "File content",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-content"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nYou can use languages that can be compiled to JavaScript when developing the file contents of the custom functionality. For example, **TypeScript**. Learn more about TypeScript in [documentation](https://www.typescriptlang.org).\nnote\nWhen a user saves the account record, validate the value of the **Also known as** field and display the message with the validation results. The field must contain only letters. Code the validation logic in TypeScript.\n## 1\\. Install TypeScript\u200b\nOne way to install TypeScript is to use the **NPM package manager** for `Node.js`.\nTo **install TypeScript** :\n1. Make sure your OS has the `Node.js` runtime environment.\n[Download the installer](https://nodejs.org/).\n2. Run the following command at the Windows console:\nTypeScript installation command\nnpm install -g typescript  \n## 2\\. Switch to the file system development mode\u200b\nTo **set up Creatio for file system development** :\n1. **Enable the file system development mode.**\nSet the value of the `fileDesignMode` element's `enabled` attribute to `true` in the `Web.config` file in Creatio root directory.\n2. **Disable the retrieval of static file content from the file system.**\nSet the `UseStaticFileContent` flag to `false` in the `Web.config` file in Creatio root directory.\nWeb.config\n<filedesignmode enabled=\"true\"/>  \n...  \n<add key=\"UseStaticFileContent\" value=\"false\"/>  \n3. **Compile Creatio.**\nRun the **Compile all** action in the **Configuration** section.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_compile_all.png)\n4. **Grant IIS access to the configuration directory.**\nTo ensure Creatio works with the configuration project correctly, grant the OS user on whose behalf you run the IIS application pool full access to the `[Path to Creatio]\\Terrasoft.WebApp\\Terrasoft.Configuration` directory. Usually, this is a built-in `IIS_IUSRS` user.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WorkingWithIDE/permissions.png)\nLearn more about the file system development mode: [External IDEs. Visual Studio](https://academy.creatio.com/documents?ver=8.1&id=15126).\n## 3\\. Establish the structure of the file content storage\u200b\nTo **establish the structure of the file content storage** :\n1. Create the `Files` directory in the user-made package downloaded to the file system.\n2. Create the `src` subdirectory in the `Files` directory.\n3. Create the `js` subdirectory in the `src` directory.\n4. Create the `descriptor.json` file in the `Files` directory.\ndescriptor.json\n{  \n\"bootstraps\": [  \n\"src/js/bootstrap.js\"  \n]  \n}  \n5. Create the `bootstrap.js` file in the `Files\\src\\js` directory.\nbootstrap.js\n(function() {  \nrequire.config({  \npaths: {  \nLettersOnlyValidator: Terrasoft.getFileContentUrl(  \n\"sdkTypeScript\",  \n\"src/js/LettersOnlyValidator.js\"  \n),  \n},  \n});  \n})();  \n## 4\\. Code the validation in TypeScript\u200b\nTo **code the validation in TypeScript** :\n1. Create the `Validation.ts` file in the `Files\\src\\js` directory and declare the `StringValidator` interface in the file.\nValidation.ts\ninterface StringValidator {  \nisAcceptable(s: string): boolean;  \n}  \nexport = StringValidator;  \n2. Create the `LettersOnlyValidator.ts` file in the `Files\\src\\js` directory. Declare the `LettersOnlyValidator` class that implements the `StringValidator` interface in the file.\nLettersOnlyValidator.ts\n// Import the module that implements the StringValidator interface.  \nimport StringValidator = require(\"Validation\");  \n// The new class must belong to the Terrasoft namespace (module).  \nmodule Terrasoft {  \n// Declare the value validation class.  \nexport class LettersOnlyValidator implements StringValidator {  \n// The regular expression that only accepts letters.  \nlettersRegexp: any = /^[A-Za-z]+$/;  \n// The validating method.  \nisAcceptable(s: string) {  \nreturn !Ext.isEmpty(s) && this.lettersRegexp.test(s);  \n}  \n}  \n}  \n// Create and export a class instance for require.  \nexport = new Terrasoft.LettersOnlyValidator();  \n## 5\\. Compile the TypeScript source code to JavaScript source code\u200b\nTo **compile the TypeScript source code to JavaScript source code** :\n1. Add the `tsconfig.json` configuration file to the `Files\\src\\js` directory to set up the compilation.\ntsconfig.json\n{  \n\"compilerOptions\":  \n{  \n\"target\": \"es5\",  \n\"module\": \"amd\",  \n\"sourceMap\": true  \n}  \n}  \n2. Go to the `Files\\src\\js` directory via the Windows console and run the `tsc` command.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/scr_compile.png)\nAs a result, Windows will create the JavaScript version of the `Validation.ts` and `LettersOnlyValidator.ts` files, as well as the *.map files that streamline debugging in the browser, in the `Files\\src\\js` directory.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/scr_src_files.png)\nThe contents of the automatically generated `LettersOnlyValidator.js` file to be used in Creatio.\nLettersOnlyValidator.js\ndefine([\"require\", \"exports\"], function(require, exports) {  \n\"use strict\";  \nvar Terrasoft;  \n(function(Terrasoft) {  \nvar LettersOnlyValidator = /** @class */ (  \n(function() {  \nfunction LettersOnlyValidator() {  \nthis.lettersRegexp = /^[A-Za-z]+$/;  \n}  \nLettersOnlyValidator.prototype.isAcceptable = function(s) {  \nreturn !Ext.isEmpty(s) && this.lettersRegexp.test(s);  \n};  \nreturn LettersOnlyValidator;  \n})()  \n);  \nTerrasoft.LettersOnlyValidator = LettersOnlyValidator;  \n})(Terrasoft || (Terrasoft = {}));  \nreturn new Terrasoft.LettersOnlyValidator();  \n});  \n//# sourceMappingURL=LettersOnlyValidator.js.map  \n## 6\\. Generate the auxiliary files\u200b\nTo **generate** the `_FileContentBootstraps.js` and `FileContentDescriptors.js` auxiliary files:\n1. Go to the **Configuration** section.\n2. Run the **Update packages from file system** action to upload packages from the file system.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_update_packages_from_file_system.png)\n3. Run the **Compile all** action to apply the changes to the `bootstrap.js` file.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_compile_all.png)\n## 7\\. Verify the example implementation results\u200b\nTo **enable the validation** :\n1. Go to the **Configuration** section.\n2. Run the **Update packages from file system** action to upload packages from the file system.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_update_packages_from_file_system.png)\n3. Create the [replacing view model schema](https://academy.creatio.com/documents?ver=8.1&id=15106&anchor=title-3028-4) for the account page.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_schema_props_717.png)\n4. Run the **Download packages to the file system** action to download packages to the file system.\n5. Modify the `..\\sdkTypeScript\\Schemas\\AccountPageV2\\AccountPageV2.js` file in the file system.\n..\\sdkTypeScript\\Schemas\\AccountPageV2\\AccountPageV2.js\n// Declare the module and its dependencies.  \ndefine(\"AccountPageV2\", [\"LettersOnlyValidator\"], function(LettersOnlyValidator) {  \nreturn {  \nentitySchemaName: \"Account\",  \nmethods: {  \n// The validation method.  \nvalidateMethod: function() {  \n// Determine if the value of the AlternativeName column is valid.  \nvar res = LettersOnlyValidator.isAcceptable(this.get(\"AlternativeName\"));  \n// Display the results to the user.  \nTerrasoft.showInformation(\"Is 'Also known as' field valid: \" + res);  \n},  \n// Redefine the parent schema method called when saving the record.  \nsave: function() {  \n// Call the validation method.  \nthis.validateMethod();  \n// Call the base functionality.  \nthis.callParent(arguments);  \n}  \n},  \ndiff: /**SCHEMA_DIFF*/ [] /**SCHEMA_DIFF*/  \n};  \n});  \n6. Save the file with the schema source code and refresh the account page.\nCreatio will [validate](https://academy.creatio.com/documents?ver=8.1&id=15536) the field and display the message with the validation results when you save the record.\nThe field value is invalid\n![The field value is invalid](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_result_01.png)\nThe field value is valid\n![The field value is valid](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_result_02.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.terrasoft.ru/sites/default/files/documents/downloads/SDK/Packages/sdkTypeScript_18.05.09_15.53.19.zip)",
+  "code_examples": [
+    {
+      "code": "npm install -g typescript",
+      "language": "cli",
+      "context": "Run the following command at the Windows console:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<filedesignmode enabled=\"true\"/>...<add key=\"UseStaticFileContent\" value=\"false\"/>",
+      "language": "xml",
+      "context": "Set theUseStaticFileContentflag tofalsein theWeb.configfile in Creatio root directory.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{  \"bootstraps\": [    \"src/js/bootstrap.js\"  ]}",
+      "language": "js",
+      "context": "Create thedescriptor.jsonfile in theFilesdirectory.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(function() {    require.config({        paths: {            LettersOnlyValidator: Terrasoft.getFileContentUrl(                \"sdkTypeScript\",                \"src/js/LettersOnlyValidator.js\"            ),        },    });})();",
+      "language": "js",
+      "context": "Create thebootstrap.jsfile in theFiles\\src\\jsdirectory.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "interface StringValidator {    isAcceptable(s: string): boolean;}export = StringValidator;",
+      "language": "js",
+      "context": "Create theValidation.tsfile in theFiles\\src\\jsdirectory and declare theStringValidatorinterface in the file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Import the module that implements the StringValidator interface.import StringValidator = require(\"Validation\");// The new class must belong to the Terrasoft namespace (module).module Terrasoft {    // Declare the value validation class.    export class LettersOnlyValidator implements StringValidator {        // The regular expression that only accepts letters.        lettersRegexp: any = /^[A-Za-z]+$/;        // The validating method.        isAcceptable(s: string) {            return !Ext.isEmpty(s) && this.lettersRegexp.test(s);        }    }}// Create and export a class instance for require.export = new Terrasoft.LettersOnlyValidator();",
+      "language": "js",
+      "context": "Create theLettersOnlyValidator.tsfile in theFiles\\src\\jsdirectory. Declare theLettersOnlyValidatorclass that implements theStringValidatorinterface in the file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"compilerOptions\":        {            \"target\": \"es5\",            \"module\": \"amd\",            \"sourceMap\": true        }}",
+      "language": "js",
+      "context": "Add thetsconfig.jsonconfiguration file to theFiles\\src\\jsdirectory to set up the compilation.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define([\"require\", \"exports\"], function(require, exports) {    \"use strict\";    var Terrasoft;    (function(Terrasoft) {        var LettersOnlyValidator = /** @class */ (            (function() {                function LettersOnlyValidator() {                    this.lettersRegexp = /^[A-Za-z]+$/;                }                LettersOnlyValidator.prototype.isAcceptable = function(s) {                    return !Ext.isEmpty(s) && this.lettersRegexp.test(s);                };                return LettersOnlyValidator;            })()        );        Terrasoft.LettersOnlyValidator = LettersOnlyValidator;    })(Terrasoft || (Terrasoft = {}));    return new Terrasoft.LettersOnlyValidator();});//# sourceMappingURL=LettersOnlyValidator.js.map",
+      "language": "js",
+      "context": "The contents of the automatically generatedLettersOnlyValidator.jsfile to be used in Creatio.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// Declare the module and its dependencies.define(\"AccountPageV2\", [\"LettersOnlyValidator\"], function(LettersOnlyValidator) {    return {        entitySchemaName: \"Account\",        methods: {            // The validation method.            validateMethod: function() {                // Determine if the value of the AlternativeName column is valid.                var res = LettersOnlyValidator.isAcceptable(this.get(\"AlternativeName\"));                // Display the results to the user.                Terrasoft.showInformation(\"Is 'Also known as' field valid: \" + res);            },            // Redefine the parent schema method called when saving the record.            save: function() {                // Call the validation method.                this.validateMethod();                // Call the base functionality.                this.callParent(arguments);            }        },        diff: /**SCHEMA_DIFF*/ [] /**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "Modify the..\\sdkTypeScript\\Schemas\\AccountPageV2\\AccountPageV2.jsfile in the file system.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Also known as",
+      "content": "noteWhen a user saves the account record, validate the value of theAlso known asfield and display the message with the validation results. The field must contain only letters. Code the validation logic in TypeScript.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>When a user saves the account record, validate the value of the <strong>Also known as</strong> field and display the message with the validation results. The field must contain only letters. Code the validation logic in TypeScript.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Also known as",
+      "content": "When a user saves the account record, validate the value of theAlso known asfield and display the message with the validation results. The field must contain only letters. Code the validation logic in TypeScript.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>When a user saves the account record, validate the value of the <strong>Also known as</strong> field and display the message with the validation results. The field must contain only letters. Code the validation logic in TypeScript.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_compile_all.png",
+      "alt": "",
+      "title": "",
+      "context": "Run theCompile allaction in theConfigurationsection.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_684b7e536bab.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/WorkingWithIDE/permissions.png",
+      "alt": "",
+      "title": "",
+      "context": "To ensure Creatio works with the configuration project correctly, grant the OS user on whose behalf ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_aa961a90276b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/scr_compile.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to theFiles\\src\\jsdirectory via the Windows console and run thetsccommand.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_9e1ad9396035.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/scr_src_files.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Windows will create the JavaScript version of theValidation.tsandLettersOnlyValidator.t",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_18769ee477f1.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_update_packages_from_file_system.png",
+      "alt": "",
+      "title": "",
+      "context": "Togeneratethe_FileContentBootstraps.jsandFileContentDescriptors.jsauxiliary files:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_c701c8f19169.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_compile_all.png",
+      "alt": "",
+      "title": "",
+      "context": "Togeneratethe_FileContentBootstraps.jsandFileContentDescriptors.jsauxiliary files:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_684b7e536bab.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_update_packages_from_file_system.png",
+      "alt": "",
+      "title": "",
+      "context": "Toenable the validation:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_c701c8f19169.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_schema_props_717.png",
+      "alt": "",
+      "title": "",
+      "context": "Toenable the validation:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_3d628372f93a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_result_01.png",
+      "alt": "The field value is invalid",
+      "title": "",
+      "context": "Creatio willvalidatethe field and display the message with the validation results when you save the ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_bd4ddec5a21b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingTypeScript/7.17/scr_result_02.png",
+      "alt": "The field value is valid",
+      "title": "",
+      "context": "Creatio willvalidatethe field and display the message with the validation results when you save the ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1cf109ba081aa54c_1_development-tools_packages_file-content_developing-custom-functions-typescript_e58a81341b5e.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.terrasoft.ru/sites/default/files/documents/downloads/SDK/Packages/sdkTypeScript_18.05.09_15.53.19.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkTypeScript_18.05.09_15.53.19.zip",
+      "type": "zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Develop custom functions using TypeScript",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Install TypeScript\u200b",
+      "anchor": "title-1195-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Switch to the file system development mode\u200b",
+      "anchor": "title-1195-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Establish the structure of the file content storage\u200b",
+      "anchor": "title-1195-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Code the validation in TypeScript\u200b",
+      "anchor": "title-1195-4"
+    },
+    {
+      "level": 2,
+      "text": "5. Compile the TypeScript source code to JavaScript source code\u200b",
+      "anchor": "title-1195-5"
+    },
+    {
+      "level": 2,
+      "text": "6. Generate the auxiliary files\u200b",
+      "anchor": "title-1195-6"
+    },
+    {
+      "level": 2,
+      "text": "7. Verify the example implementation results\u200b",
+      "anchor": "title-1195-7"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "CONFIG",
+        "path": "("
+      },
+      {
+        "method": "GETFILECONTENTURL",
+        "path": "("
+      },
+      {
+        "method": "ISEMPTY",
+        "path": "("
+      },
+      {
+        "method": "TEST",
+        "path": "("
+      },
+      {
+        "method": "ISACCEPTABLE",
+        "path": ""
+      },
+      {
+        "method": "ISEMPTY",
+        "path": "("
+      },
+      {
+        "method": "TEST",
+        "path": "("
+      },
+      {
+        "method": "ISACCEPTABLE",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "SHOWINFORMATION",
+        "path": "("
+      },
+      {
+        "method": "VALIDATEMETHOD",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/developing-custom-functions-typescript",
+      "text": "TypeScript development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/developing-custom-functions-typescript",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/bind-data/bind-data-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/bind-data-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/file-content-basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/localize-the-file-content",
+      "text": "Localize the file content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/static-content",
+      "text": "Static content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/static-content/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/static-content-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/create-an-angular-component",
+      "text": "NextAngular component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/hotfix-mode",
+      "text": "Hotfix mode",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/static-content/references/contentwatcher",
+      "text": "PreviousContentWatcher",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:13:28.866645"
+}

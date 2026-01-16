@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentMonthQueryFunction(EntitySchemaStartOfCurrentMonthQueryFunction source) : base(source)

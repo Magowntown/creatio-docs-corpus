@@ -1,0 +1,1 @@
+EntitySchemaCaseNotNullQueryFunction(EntitySchemaQuery parentQuery)

@@ -1,0 +1,1 @@
+"Contact":{ // the object code     "IgnoredColumns":[ // the list of columns to exclude from indexing         "dear", // the code of the column to exclude from indexing        "salutationtype",         "gender",...    ]},

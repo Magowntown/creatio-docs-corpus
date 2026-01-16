@@ -1,0 +1,1 @@
+CanAdd BOOLEAN

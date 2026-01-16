@@ -1,0 +1,1 @@
+Task WriteAsync(Stream stream, FileWriteOptions writeOptions)

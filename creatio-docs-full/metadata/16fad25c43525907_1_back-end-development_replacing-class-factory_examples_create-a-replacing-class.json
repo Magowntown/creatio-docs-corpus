@@ -1,0 +1,567 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/examples/create-a-replacing-class",
+  "title": "Create a replacing class",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development"
+    },
+    {
+      "text": "Replacing class factory",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/class-factory-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nExample\nCreate a replaced class and a custom web service that uses cookie-based authentication in a user-made package. Create a replacement class in another user-made package. Call the custom web service both using and not using the class replacement.\n## 1\\. Implement the replaced class\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to which to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema\\(7.17\\)/scr_add_schema.png)\n3. Fill out the schema properties in the Schema Designer:\n* **Code** \u2013 \"UsrOriginalClass\".\n* **Title** \u2013 \"OriginalClass\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExampleClassReplacement/7.18/scr_OriginalClass_Settings.png)\n4. Create a replaced `UsrOriginalClass` class that contains the `GetAmount(int, int)` virtual method. The method adds two values passed as parameters.\nUsrOriginalClass\nnamespace Terrasoft.Configuration {  \npublic class UsrOriginalClass {  \n/* GetAmount() is a virtual method that has its own implementation. Inheritors can redefine the method. */  \npublic virtual int GetAmount(int originalValue1, int originalValue2) {  \nreturn originalValue1 + originalValue2;  \n}  \n}  \n}  \n5. Click **Save** then **Publish** on the Designer's toolbar.\n## 2\\. Implement a replacing class\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to which to add the schema. Select a package other than the package in which you implemented the `UsrOriginalClass` replaced class.\n2. Add the user-made package that contains the `UsrOriginalClass` replaced class as a [dependency](https://academy.creatio.com/documents?ver=8.1&id=15121&anchor=title-2105-3) for the user-made package that contains the replacing class.\n3. Click **Add** \u2192 **Source code** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema\\(7.17\\)/scr_add_schema.png)\n4. Fill out the schema properties in the Schema Designer:\n* **Code** \u2013 \"UsrSubstituteClass\".\n* **Title** \u2013 \"SubstituteClass\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExampleClassReplacement/7.18/scr_SubstituteClass_Settings.png)\n5. Create a `SubstituteClass` replacing class that contains the `GetAmount(int, int)` method. The method summarizes two values passed as parameters and multiplies the sum by the value passed in the `Rate` property. Creatio will initialize the `Rate` property in the replacing class constructor.\nUsrSubstituteClass\nnamespace Terrasoft.Configuration {  \n[Terrasoft.Core.Factories.Override]  \npublic class UsrSubstituteClass: UsrOriginalClass {  \n/* Rate. Assign the property value in the class. */  \npublic int Rate {  \nget;  \nprivate set;  \n}  \n/* Initialize the Rate property in the constructor using the passed value. */  \npublic UsrSubstituteClass(int rateValue) {  \nRate = rateValue;  \n}  \n/* Replace the parent method using the custom implementation. */  \npublic override int GetAmount(int substValue1, int substValue2) {  \nreturn (substValue1 + substValue2) * Rate;  \n}  \n}  \n}  \n6. Click **Save** then **Publish** on the Designer's toolbar.\n## 3\\. Implement a custom web service\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to which to add the schema. Use the package in which you implemented the `UsrOriginalClass` replaced class for the [custom web service](https://academy.creatio.com/documents?ver=8.1&id=15262).\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema\\(7.17\\)/scr_add_schema.png)\n3. Fill out the schema properties in the Schema Designer:\n* **Code** \u2013 \"UsrAmountService\".\n* **Title** \u2013 \"AmountService\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots//ExampleClassReplacement/7.18/scr_AmountService_Settings.png)\n4. Create a service class.\n1. Add the `Terrasoft.Configuration` namespace in the Schema Designer.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add the name of the `UsrAmountService` class that matches the schema name (the **Code** property).\n4. Specify the `Terrasoft.Nui.ServiceModel.WebService.BaseService` class as a parent class.\n5. Add the `[ServiceContract]` and `[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]` attributes to the class.\n5. Implement a class method.\nAdd the `public string GetAmount(int value1, int value2)` method that implements the endpoint of the custom web service to the class in the Schema Designer. The `GetAmount(int, int)` method adds two values passed as parameters.\nView the source code of the `UsrAmountService` custom web service below.\nUsrAmountService\nnamespace Terrasoft.Configuration  \n{  \nusing System.ServiceModel;  \nusing System.ServiceModel.Activation;  \nusing System.ServiceModel.Web;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrAmountService : BaseService  \n{  \n[OperationContract]  \n[WebGet(RequestFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Wrapped, ResponseFormat = WebMessageFormat.Json)]  \npublic string GetAmount(int value1, int value2) {  \n/*  \n// Create a source class instance using the class factory.  \nvar originalObject = Terrasoft.Core.Factories.ClassFactory.Get<UsrOriginalClass>();  \n// Retrieve the GetAmount() method output. Pass the values of the page input fields as parameters.  \nint result = originalObject.GetAmount(value1, value2);  \n// Display the results on the page.  \nreturn string.Format(\"The result value, retrieved after calling the replacement class method: {0}\", result.ToString());  \n*/  \n/*  \n// Create a replacing class instance using the replaced objects factory.  \n// Pass the instance of the class constructor argument as the parameter of the factory method.  \nvar substObject = Terrasoft.Core.Factories.ClassFactory.Get<UsrOriginalClass>(new Terrasoft.Core.Factories.ConstructorArgument(\"rateValue\", 2));  \n// Retrieve the GetAmount() method output. Pass the values of the page input fields as parameters.  \nint result = substObject.GetAmount(value1, value2);  \n// Display the results on the page.  \nreturn string.Format(\"The result value, retrieved after calling the replaceable class method: {0}\", result.ToString());  \n*/  \n/* Create a replacing class instance using the new() operator. */  \nvar substObjectByNew = new UsrOriginalClass();  \n/* Create a replacing class instance using the replaced objects factory. */  \nvar substObjectByFactory = Terrasoft.Core.Factories.ClassFactory.Get<UsrOriginalClass>(new Terrasoft.Core.Factories.ConstructorArgument(\"rateValue\", 2));  \n/* Retrieve the GetAmount() method output. Do not use replacement, call the UsrOriginalClass method. */  \nint resultByNew = substObjectByNew.GetAmount(value1, value2);  \n/* Retrieve the GetAmount() method output. Call the method of the SubstituteClass class that replaces the UsrOriginalClass class. */  \nint resultByFactory = substObjectByFactory.GetAmount(value1, value2);  \n/* Display the results on the page. */  \nreturn string.Format(\"Result without class replacement: {0}; Result with class replacement: {1}\", resultByNew.ToString(), resultByFactory.ToString());  \n}  \n}  \n}  \nThe code provides examples of creating a replacing class both using the replaced objects factory and using the `new()` operator.\n6. Click **Save** then **Publish** on the Designer's toolbar.\nAs a result, Creatio will add the custom `UsrAmountService` REST web service that has the `GetAmount` endpoint.\n## Outcome of the example\u200b\nTo call the custom web service, access the `GetAmount` endpoint of the `UsrAmountService` web service in the browser and pass 2 arbitrary numbers as `value1` and `value2` parameters.\nRequest string\nhttp://mycreatio.com/0/rest/UsrAmountService/GetAmount?value1=25&value2=125  \nThe `GetAmountResult` property will return the custom web service results executed both using and not using the class replacement.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExampleClassReplacement/7.18/scr_result.png)\n* * *\n## Resources\u200b\n[Packages with example implementation (replaced class and web service)](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkSubstitutableClassPackage_2021-08-30_14.09.53.zip)\n[Packages with example implementation (replacing class)](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkSubstituteClassPackage_2021-08-30_14.10.34.zip)",
+  "code_examples": [
+    {
+      "code": "namespace Terrasoft.Configuration {    public class UsrOriginalClass {        /* GetAmount() is a virtual method that has its own implementation. Inheritors can redefine the method. */        public virtual int GetAmount(int originalValue1, int originalValue2) {            return originalValue1 + originalValue2;        }    }}",
+      "language": "cs",
+      "context": "Create a replacedUsrOriginalClassclass that contains theGetAmount(int, int)virtual method. The method adds two values passed as parameters.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration {    [Terrasoft.Core.Factories.Override]    public class UsrSubstituteClass: UsrOriginalClass {        /* Rate. Assign the property value in the class. */        public int Rate {            get;            private set;        }        /* Initialize the Rate property in the constructor using the passed value. */        public UsrSubstituteClass(int rateValue) {            Rate = rateValue;        }        /* Replace the parent method using the custom implementation. */        public override int GetAmount(int substValue1, int substValue2) {            return (substValue1 + substValue2) * Rate;        }    }}",
+      "language": "cs",
+      "context": "Create aSubstituteClassreplacing class that contains theGetAmount(int, int)method. The method summarizes two values passed as parameters and multiplies the sum by the value passed in theRateproperty. ",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration{using System.ServiceModel;using System.ServiceModel.Activation;using System.ServiceModel.Web;using Terrasoft.Core;using Terrasoft.Web.Common;    [ServiceContract]    [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    public class UsrAmountService : BaseService    {        [OperationContract]        [WebGet(RequestFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Wrapped, ResponseFormat = WebMessageFormat.Json)]        public string GetAmount(int value1, int value2) {            /*            // Create a source class instance using the class factory.            var originalObject = Terrasoft.Core.Factories.ClassFactory.Get<UsrOriginalClass>();            // Retrieve the GetAmount() method output. Pass the values of the page input fields as parameters.            int result = originalObject.GetAmount(value1, value2);            // Display the results on the page.            return string.Format(\"The result value, retrieved after calling the replacement class method: {0}\", result.ToString());            */            /*            // Create a replacing class instance using the replaced objects factory.            // Pass the instance of the class constructor argument as the parameter of the factory method.            var substObject = Terrasoft.Core.Factories.ClassFactory.Get<UsrOriginalClass>(new Terrasoft.Core.Factories.ConstructorArgument(\"rateValue\", 2));            // Retrieve the GetAmount() method output. Pass the values of the page input fields as parameters.            int result = substObject.GetAmount(value1, value2);            // Display the results on the page.            return string.Format(\"The result value, retrieved after calling the replaceable class method: {0}\", result.ToString());            */            /* Create a replacing class instance using the new() operator. */            var substObjectByNew = new UsrOriginalClass();            /* Create a replacing class instance using the replaced objects factory. */            var substObjectByFactory = Terrasoft.Core.Factories.ClassFactory.Get<UsrOriginalClass>(new Terrasoft.Core.Factories.ConstructorArgument(\"rateValue\", 2));            /* Retrieve the GetAmount() method output. Do not use replacement, call the UsrOriginalClass method. */            int resultByNew = substObjectByNew.GetAmount(value1, value2);            /* Retrieve the GetAmount() method output. Call the method of the SubstituteClass class that replaces the UsrOriginalClass class. */            int resultByFactory = substObjectByFactory.GetAmount(value1, value2);            /* Display the results on the page. */            return string.Format(\"Result without class replacement: {0}; Result with class replacement: {1}\", resultByNew.ToString(), resultByFactory.ToString());        }    }}",
+      "language": "cs",
+      "context": "View the source code of theUsrAmountServicecustom web service below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "http://mycreatio.com/0/rest/UsrAmountService/GetAmount?value1=25&value2=125",
+      "language": "cli",
+      "context": "To call the custom web service, access theGetAmountendpoint of theUsrAmountServiceweb service in the browser and pass 2 arbitrary numbers asvalue1andvalue2parameters.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleCreate a replaced class and a custom web service that uses cookie-based authentication in a user-made package. Create a replacement class in another user-made package. Call the custom web service both using and not using the class replacement.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create a replaced class and a custom web service that uses cookie-based authentication in a user-made package. Create a replacement class in another user-made package. Call the custom web service both using and not using the class replacement.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Create a replaced class and a custom web service that uses cookie-based authentication in a user-made package. Create a replacement class in another user-made package. Call the custom web service both using and not using the class replacement.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create a replaced class and a custom web service that uses cookie-based authentication in a user-made package. Create a replacement class in another user-made package. Call the custom web service both using and not using the class replacement.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema(7.17)/scr_add_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Source codeon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_4b5a781f7680.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExampleClassReplacement/7.18/scr_OriginalClass_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Schema Designer:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_00da1228dc49.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema(7.17)/scr_add_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Source codeon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_4b5a781f7680.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExampleClassReplacement/7.18/scr_SubstituteClass_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Schema Designer:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_8d42fba8d232.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateSourceCodeSchema(7.17)/scr_add_schema.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Source codeon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_4b5a781f7680.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots//ExampleClassReplacement/7.18/scr_AmountService_Settings.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Schema Designer:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_fc278caced7d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExampleClassReplacement/7.18/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "TheGetAmountResultproperty will return the custom web service results executed both using and not us",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_56ec4ce10019.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkSubstitutableClassPackage_2021-08-30_14.09.53.zip",
+      "text": "Packages with example implementation (replaced class and web service)",
+      "filename": "sdkSubstitutableClassPackage_2021-08-30_14.09.53.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_sdkSubstitutableClassPackage_2021-08-30_14.09.53.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkSubstituteClassPackage_2021-08-30_14.10.34.zip",
+      "text": "Packages with example implementation (replacing class)",
+      "filename": "sdkSubstituteClassPackage_2021-08-30_14.10.34.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/16fad25c43525907_1_back-end-development_replacing-class-factory_examples_create-a-replacing-class_sdkSubstituteClassPackage_2021-08-30_14.10.34.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Create a replacing class",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement the replaced class\u200b",
+      "anchor": "title-1237-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Implement a replacing class\u200b",
+      "anchor": "title-1237-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement a custom web service\u200b",
+      "anchor": "title-1237-3"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-1237-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "UsrOriginalClass"
+      },
+      {
+        "method": "USRORIGINALCLASS",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/examples/create-a-replacing-class",
+      "text": "Create a replacing class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/replacing-class-factory/examples/create-a-replacing-class",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/replacing-class-factory/examples/create-a-replacing-class",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/examples/create-a-replacing-class",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/examples/replacing-class-management-examples",
+      "text": "PreviousReplacing examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "NextData operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:51:19.853320"
+}

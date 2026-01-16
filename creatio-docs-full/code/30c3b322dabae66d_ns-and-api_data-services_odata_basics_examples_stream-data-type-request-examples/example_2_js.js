@@ -1,0 +1,1 @@
+// Retrieve the "Data" column value of the "SysImage" database table for the contact whose ID is "E07885D2-90AB-42AC-59B5-EF80EB6B8F09."GET CreatioURL/0/odata/SysImage(E07885D2-90AB-42AC-59B5-EF80EB6B8F09)/Data

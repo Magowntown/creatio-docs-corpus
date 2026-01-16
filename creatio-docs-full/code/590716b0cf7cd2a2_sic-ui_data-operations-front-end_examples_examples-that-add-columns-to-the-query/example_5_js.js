@@ -1,0 +1,1 @@
+var esq = this.Ext.create(Terrasoft.EntitySchemaQuery, {    rootSchemaName: "Activity"});esq.addDatePartFunctionColumn("StartDate", Terrasoft.DatePartType.WEEK_DAY, "StartDay");

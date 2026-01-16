@@ -1,0 +1,1 @@
+static void SetAttributes(this IFile source, IReadOnlyDictionary<string, object> attributes)

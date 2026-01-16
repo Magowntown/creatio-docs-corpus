@@ -1,0 +1,1 @@
+virtual Dictionary<string, object> GetColumnsValues(Guid recordId, MapConfig config, Dictionary<string, object> result)

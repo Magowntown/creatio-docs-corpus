@@ -1,0 +1,1 @@
+IsCardOpenedAttribute STRING

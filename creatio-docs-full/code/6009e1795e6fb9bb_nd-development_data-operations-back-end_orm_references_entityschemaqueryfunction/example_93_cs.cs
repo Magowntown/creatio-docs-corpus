@@ -1,0 +1,1 @@
+EntitySchemaLengthQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression expression)

@@ -1,0 +1,1 @@
+{    "parameters": {        "CurrencyName": "USD",        "style": "widget-blue"    },    "configurationMessage": "GetIndicatorConfig"}

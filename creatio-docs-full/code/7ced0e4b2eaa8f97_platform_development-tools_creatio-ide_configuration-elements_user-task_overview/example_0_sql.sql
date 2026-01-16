@@ -1,0 +1,1 @@
+insert into SysProcessUserTask(SysUserTaskSchemaUId, Caption)select s.UId, s.Caption from SysSchema swhere s.Name = 'UsrSomeProcessUserTask'

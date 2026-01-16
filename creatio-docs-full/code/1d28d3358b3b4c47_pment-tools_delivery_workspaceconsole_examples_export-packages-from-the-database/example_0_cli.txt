@@ -1,0 +1,1 @@
+C:\creatio\Terrasoft.WebApp\DesktopBin\WorkspaceConsole\Terrasoft.Tools.WorkspaceConsole.exe -operation=SaveDBContent -contentTypes=Repository -workspaceName=Default -destinationPath=C:\SavedPackages -webApplicationPath=C:\creatio -confRuntimeParentDirectory=C:\creatio\Terrasoft.WebApp -logPath=C:\Logspause

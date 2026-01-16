@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaDatePartQueryFunctionInterval interval, EntitySchemaQueryExpression expression) : base(parentQuery)

@@ -1,0 +1,1 @@
+<button (click)="onBtnClick()">Click me</button>

@@ -1,0 +1,1 @@
+attributes: {    /* Attribute name. */    "NameAttribute": {        /* Data type. */        "dataValueType": this.Terrasoft.DataValueType.TEXT,        /* Column type. */        "type": this.Terrasoft.ViewModelColumnType.VIRTUAL_COLUMN,        /* The default value. */        "value": "NameValue"    }}

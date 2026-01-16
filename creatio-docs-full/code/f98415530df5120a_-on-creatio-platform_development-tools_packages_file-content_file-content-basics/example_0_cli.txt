@@ -1,0 +1,1 @@
+-PackageName    ...    -Files        -src            -js                bootstrap.js                [other *.js files]            -css                [*.css files]            -less                [*.less files]            -img                [image files]            -res                [resource files]        descriptor.json    ...descriptor.json

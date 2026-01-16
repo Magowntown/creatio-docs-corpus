@@ -1,0 +1,1 @@
+ParentEntitySchema Terrasoft.Core.Entities.EntitySchema

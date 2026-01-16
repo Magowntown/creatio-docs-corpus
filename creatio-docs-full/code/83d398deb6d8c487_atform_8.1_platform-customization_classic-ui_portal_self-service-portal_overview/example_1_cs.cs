@@ -1,0 +1,1 @@
+[ServiceContract][SspServiceRoute]public class SspOnlyService : BaseService{}

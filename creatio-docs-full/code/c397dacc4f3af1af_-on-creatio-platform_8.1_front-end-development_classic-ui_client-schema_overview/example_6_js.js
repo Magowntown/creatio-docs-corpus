@@ -1,0 +1,1 @@
+messages: {    /* Message name. */    "GetColumnsValues": {        /* Set the message mode to address. */        mode: this.Terrasoft.MessageMode.PTP,        /* Set the message direction to "publishing." */        direction: this.Terrasoft.MessageDirectionType.PUBLISH    }}

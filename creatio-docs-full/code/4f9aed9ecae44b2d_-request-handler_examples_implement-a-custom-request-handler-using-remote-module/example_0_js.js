@@ -1,0 +1,1 @@
+/* Import the required functionality from the libraries. */import { BaseRequest } from "@creatio-devkit/common";export class UpdateCurrentTimeRequest extends BaseRequest{  /* The type and parameters of the request. */  public dateTime!: string;}

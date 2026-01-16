@@ -1,0 +1,1 @@
+string.IsNullOrEmpty(Entity.GetTypedColumnValue<string>("Code"))

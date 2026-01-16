@@ -1,0 +1,1 @@
+Caption Terrasoft.Common.LocalizableString

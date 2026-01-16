@@ -1,0 +1,1 @@
+[Override]public class MySubstituteClass : SubstitutableClass{    /* Implement the class. */}

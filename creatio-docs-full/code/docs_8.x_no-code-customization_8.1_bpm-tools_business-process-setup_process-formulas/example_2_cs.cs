@@ -1,0 +1,1 @@
+"Compile bundle" + [#Read products.First element of the resulting collection.Name#] + " for customer " + [#Read account data.The first element of the resulting collection.Name#] + ", due date " + ([#Read order.First element of the resulting collection.Planned date of completion#]).ToString()

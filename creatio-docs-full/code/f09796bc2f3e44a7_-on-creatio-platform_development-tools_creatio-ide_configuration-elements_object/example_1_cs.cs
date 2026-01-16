@@ -1,0 +1,1 @@
+var esq = new EntitySchemaQuery(userConnection.EntitySchemaManager, "ContactType") {    UseRecordDeactivation = true};esq.PrimaryQueryColumn.IsAlwaysSelect = true;

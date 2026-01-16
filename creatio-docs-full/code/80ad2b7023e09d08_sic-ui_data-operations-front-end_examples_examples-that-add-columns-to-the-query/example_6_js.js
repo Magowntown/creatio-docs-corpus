@@ -1,0 +1,1 @@
+var esq = this.Ext.create(Terrasoft.EntitySchemaQuery, {    rootSchemaName: "Activity"});esq.addMacrosColumn(Terrasoft.QueryMacrosType.PRIMARY_DISPLAY_COLUMN, "PrimaryDisplayColumnValue");

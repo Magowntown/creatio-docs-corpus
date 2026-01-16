@@ -1,0 +1,1 @@
+diff: /**SCHEMA_DIFF*/[    /* Base container for the detail view. */    {        "operation": "insert",        "name": "Detail",        "values": {            ...        }    }]/**SCHEMA_DIFF*/

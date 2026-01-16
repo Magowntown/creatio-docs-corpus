@@ -1,0 +1,1 @@
+static QueryColumnExpression Subtract(QueryFunction leftOperand, QueryFunction rightOperand)

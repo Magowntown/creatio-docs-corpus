@@ -1,0 +1,1 @@
+DateDiffQueryFunction(DateDiffQueryFunction source)

@@ -1,0 +1,1 @@
+RedistributeLicences(    bool redistributeManuallyAssignedLicences)

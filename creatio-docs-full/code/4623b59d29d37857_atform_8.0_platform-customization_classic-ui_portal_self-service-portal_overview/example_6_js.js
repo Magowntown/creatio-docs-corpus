@@ -1,0 +1,1 @@
+[SspServiceAccess(nameof(SelectQuery))]public class SspSelectQuery : SelectQuery{}

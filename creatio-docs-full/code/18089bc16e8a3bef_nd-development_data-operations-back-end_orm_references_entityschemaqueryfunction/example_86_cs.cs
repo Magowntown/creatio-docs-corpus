@@ -1,0 +1,1 @@
+EntitySchemaCastQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression expression, DBDataValueType castType)

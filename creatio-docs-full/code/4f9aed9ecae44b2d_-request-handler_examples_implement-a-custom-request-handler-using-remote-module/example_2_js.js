@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {        ...,        /* The attribute that stores the current date and time. */        "CurrentDateTime": {}    }}/**SCHEMA_VIEW_MODEL_CONFIG*/,

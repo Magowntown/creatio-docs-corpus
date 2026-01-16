@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction(EntitySchemaQuery parentQuery) : base(parentQuery)

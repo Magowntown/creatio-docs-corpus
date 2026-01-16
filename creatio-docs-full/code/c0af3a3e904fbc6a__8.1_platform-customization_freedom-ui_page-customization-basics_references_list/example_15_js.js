@@ -1,0 +1,1 @@
+/* Enable the editable list. */editable: {    enable: true},

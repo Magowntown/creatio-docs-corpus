@@ -1,0 +1,1 @@
+var monthAgo = Func.DateAddMonth(-1, Func.CurrentDateTime());new Select(userConnection)    .Column("Id")    .Column("Body")    .From("Activity")    .Where("StartDate")        .IsGreater(monthAgo)    .And("ModifiedOn")        .IsGreater(monthAgo);

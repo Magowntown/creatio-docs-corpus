@@ -1,0 +1,1 @@
+createColumnFilterWithParameter(comparisonType, columnPath, paramValue, paramDataType)

@@ -1,0 +1,1 @@
+new AsteriskChannel({    Name: <channel_name>,    UniqueId: <unique_id>});

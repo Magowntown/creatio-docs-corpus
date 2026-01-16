@@ -1,0 +1,1 @@
+IsDeletedFromDB bool

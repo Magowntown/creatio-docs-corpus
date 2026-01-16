@@ -1,0 +1,1 @@
+EntitySchemaIsNullQueryFunction(EntitySchemaIsNullQueryFunction source)

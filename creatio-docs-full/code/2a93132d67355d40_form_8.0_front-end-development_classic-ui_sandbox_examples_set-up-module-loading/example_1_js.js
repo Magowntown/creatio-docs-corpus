@@ -1,0 +1,1 @@
+define("UsrModule", [...], function(...) {    Ext.define("Terrasoft.configuration.UsrModule", {        alternateClassName: "Terrasoft.UsrModule",        extend: "Terrasoft.BaseModel",        Ext: null,        sandbox: null,        Terrasoft: null,    });}

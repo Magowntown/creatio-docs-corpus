@@ -1,0 +1,1 @@
+namespace Terrasoft.Core {    public interface IUserConnectionRequired {        void SetUserConnection(UserConnection userConnection);    }}

@@ -1,0 +1,1 @@
+new Select(userConnection)    .Column("Id")    .Column("Body")    .From("Activity")    .Where("CreatedOn")        .IsGreater(Func.DateAddMonth(-1, Func.CurrentDateTime()))    .And("StartDate")        .IsGreater(Func.DateAddMonth(-1, Func.CurrentDateTime()));

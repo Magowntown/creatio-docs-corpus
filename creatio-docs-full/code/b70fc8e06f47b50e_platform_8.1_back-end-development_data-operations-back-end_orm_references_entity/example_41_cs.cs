@@ -1,0 +1,1 @@
+void AddDefRights()void AddDefRights(Guid primaryColumnValue)void AddDefRights(IEnumerable<Guid> primaryColumnValues)

@@ -1,0 +1,1 @@
+virtual Dictionary<string, object> GetRelationEntityColumnsValues(List<RelationEntityMapConfig> relations, Dictionary<string, object> dictionaryToMerge, string columnName, Terrasoft.Nui.ServiceModel.DataContract.LookupColumnValue entitylookup)

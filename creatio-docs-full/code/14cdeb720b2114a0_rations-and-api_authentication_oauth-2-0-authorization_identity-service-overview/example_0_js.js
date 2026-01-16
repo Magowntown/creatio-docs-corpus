@@ -1,0 +1,1 @@
+GET https://myidentityservice/.well-known/openid-configuration

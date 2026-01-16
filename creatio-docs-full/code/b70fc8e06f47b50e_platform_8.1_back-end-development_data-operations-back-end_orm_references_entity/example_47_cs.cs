@@ -1,0 +1,1 @@
+static Entity DeserializeFromJson(UserConnection userConnection, string jsonValue)

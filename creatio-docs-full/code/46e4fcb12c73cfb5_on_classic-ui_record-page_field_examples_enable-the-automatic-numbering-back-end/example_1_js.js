@@ -1,0 +1,1 @@
+Entity.SetColumnValue("Code", UserTask1.ResultCode);return true;

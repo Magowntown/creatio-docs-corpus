@@ -1,0 +1,1 @@
+Terrasoft.DashboardItemClassName.CustomDashboardItem = "Terrasoft.configuration.controls.CustomDashboardItem";

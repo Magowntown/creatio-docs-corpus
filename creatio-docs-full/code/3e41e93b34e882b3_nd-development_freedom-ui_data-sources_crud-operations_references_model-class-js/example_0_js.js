@@ -1,0 +1,1 @@
+const someModel = await sdk.Model.create('SomeEntity');

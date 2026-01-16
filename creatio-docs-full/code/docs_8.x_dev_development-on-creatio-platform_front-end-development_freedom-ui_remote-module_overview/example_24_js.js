@@ -1,0 +1,1 @@
+@CrtInput()@Input()public set imageUrl(value) {    if (Boolean(value)) {        this._renderrer.setStyle(            document.querySelector('p'),            'background-image',            'url(${value})'        );    }}

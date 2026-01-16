@@ -1,0 +1,1 @@
+Select As(string alias)

@@ -1,0 +1,1 @@
+EntitySchemaIsNullQueryFunction CreateIsNullFunction(string checkColumnPath, string replacementColumnPath)

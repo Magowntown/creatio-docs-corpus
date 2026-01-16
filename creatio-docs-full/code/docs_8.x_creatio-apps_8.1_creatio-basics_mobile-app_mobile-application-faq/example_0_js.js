@@ -1,0 +1,1 @@
+<add key="aspnet:UseLegacyRequestUrlGeneration" value="true" />

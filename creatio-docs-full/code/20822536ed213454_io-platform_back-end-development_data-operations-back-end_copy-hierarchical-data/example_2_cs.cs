@@ -1,0 +1,1 @@
+copyController.CopyRecord(schemaName, recordId);

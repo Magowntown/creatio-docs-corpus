@@ -1,0 +1,1 @@
+"type": "usr.viewElement","fontConfig": {    "fontFamily": "FontFamily Style Bitter",    "fontSrc": "https://fonts.gstatic.com/s/bitter/v7/HEpP8tJXlWaYHimsnXgfCOvvDin1pK8aKtelpeZ5c0A.woff2"}

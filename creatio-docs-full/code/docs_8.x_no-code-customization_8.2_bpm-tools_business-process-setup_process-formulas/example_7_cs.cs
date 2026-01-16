@@ -1,0 +1,1 @@
+([#Read lead data.First element of the resulting collection.Creation date#].AddHours(3)).Hour

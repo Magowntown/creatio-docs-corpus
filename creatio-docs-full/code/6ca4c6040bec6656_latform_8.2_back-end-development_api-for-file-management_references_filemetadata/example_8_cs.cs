@@ -1,0 +1,1 @@
+void SetStoringState(FileStoringState newState)

@@ -1,0 +1,1 @@
+/* Address network and deserialize data. */if (UserConnection.SessionData["SomeKey"] != null) {    /* Address network and deserialize data once again. */    return (string)UserConnection.SessionData["SomeKey"];}

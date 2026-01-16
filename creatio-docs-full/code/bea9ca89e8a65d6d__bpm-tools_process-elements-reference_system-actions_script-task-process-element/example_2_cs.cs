@@ -1,0 +1,1 @@
+int integerValue = Get<int>("IntegerParameter");integerValue += 5;Set<int>("IntegerParameter", integerValue);

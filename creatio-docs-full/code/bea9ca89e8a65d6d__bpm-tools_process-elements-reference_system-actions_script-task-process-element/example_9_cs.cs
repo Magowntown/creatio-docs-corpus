@@ -1,0 +1,1 @@
+bool booleanValue = Get<bool>("BooleanParameter");booleanValue = !booleanValue;Set<bool>("BooleanParameter", booleanValue);

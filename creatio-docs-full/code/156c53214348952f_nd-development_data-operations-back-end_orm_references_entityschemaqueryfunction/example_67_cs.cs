@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentHourQueryFunction(EntitySchemaStartOfCurrentHourQueryFunction source) : base(source)

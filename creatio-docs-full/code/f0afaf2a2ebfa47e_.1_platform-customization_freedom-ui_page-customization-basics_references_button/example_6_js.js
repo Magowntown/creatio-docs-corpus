@@ -1,0 +1,1 @@
+disableRipple boolean

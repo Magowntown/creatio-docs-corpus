@@ -1,0 +1,1 @@
+// URL format of the POST query to add data to DataService.http(s)://[Creatio application address]/[Configuration number]/dataservice/[Data fromat]/reply/InsertQuery

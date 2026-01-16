@@ -1,0 +1,1 @@
+static QueryColumnExpression Add(QueryFunction leftOperand, QueryFunction rightOperand)

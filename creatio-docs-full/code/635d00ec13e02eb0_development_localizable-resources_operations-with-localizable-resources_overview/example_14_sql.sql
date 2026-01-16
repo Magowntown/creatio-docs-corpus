@@ -1,0 +1,1 @@
+SELECT    [City].[Name] [Name]FROM    [dbo].[City] [City] WITH(NOLOCK)

@@ -1,0 +1,1 @@
+setSerializableProperty(serializableObject, propertyName)

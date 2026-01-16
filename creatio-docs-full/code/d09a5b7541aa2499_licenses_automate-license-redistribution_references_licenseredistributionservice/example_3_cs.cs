@@ -1,0 +1,1 @@
+RedistributeLicencesForUser(    Guid userId,    bool redistributeManuallyAssignedLicences,    bool hasManuallyAssignedLicense)

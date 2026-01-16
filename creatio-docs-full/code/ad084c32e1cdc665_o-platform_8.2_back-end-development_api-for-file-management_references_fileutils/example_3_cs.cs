@@ -1,0 +1,1 @@
+static void Write(this IFile source, Stream stream, FileWriteOptions writeOptions) static void Write(this IFile source, byte[] content)

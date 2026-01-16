@@ -1,0 +1,1 @@
+EntitySchemaCurrentTimeQueryFunction(EntitySchemaQuery parentQuery) : base(parentQuery)

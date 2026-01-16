@@ -1,0 +1,1 @@
+HasJoins bool

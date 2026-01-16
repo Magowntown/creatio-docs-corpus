@@ -1,0 +1,1 @@
+[Creatio application URL]/ServiceModel/AuthService.svc/Login

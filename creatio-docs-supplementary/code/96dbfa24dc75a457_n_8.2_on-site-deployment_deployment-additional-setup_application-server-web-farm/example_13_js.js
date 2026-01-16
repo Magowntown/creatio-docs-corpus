@@ -1,0 +1,1 @@
+{    ...    "ForwardedHeaders": {        "Enable": true,        "ForwardedForHeaderName": "X-Forwarded-For",        "KnownProxiesIP": [trusted IP addresses],        "ForwardLimit": 3    }    ...}

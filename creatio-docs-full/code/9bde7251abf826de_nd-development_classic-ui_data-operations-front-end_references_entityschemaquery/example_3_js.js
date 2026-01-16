@@ -1,0 +1,1 @@
+addDatePartFunctionColumn(columnPath, datePartType, [columnAlias])

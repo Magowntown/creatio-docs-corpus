@@ -1,0 +1,1 @@
+prepareResponseCollection(collection)

@@ -1,0 +1,1 @@
+public string ChangeContactName(string oldName, string newName) {    var update = new Update(UserConnection, "Contact")        .Set("Name", Column.Parameter(newName))        .Where("Name").IsEqual(Column.Parameter(oldName));    var cnt = update.Execute();    return $ "Contacts {oldName} changed to {newName}. {cnt} rows affected.";}

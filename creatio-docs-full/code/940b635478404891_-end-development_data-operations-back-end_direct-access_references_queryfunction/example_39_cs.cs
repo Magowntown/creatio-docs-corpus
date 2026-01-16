@@ -1,0 +1,1 @@
+CoalesceQueryFunction(QueryColumnExpression[] expressions)CoalesceQueryFunction(IQueryColumnExpressionConvertible[] expressions)

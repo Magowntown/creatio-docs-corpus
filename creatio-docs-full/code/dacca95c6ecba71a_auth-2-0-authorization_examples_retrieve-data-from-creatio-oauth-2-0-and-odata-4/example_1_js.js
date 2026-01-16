@@ -1,0 +1,1 @@
+GET http://mycreatio.com/0/odata/Account

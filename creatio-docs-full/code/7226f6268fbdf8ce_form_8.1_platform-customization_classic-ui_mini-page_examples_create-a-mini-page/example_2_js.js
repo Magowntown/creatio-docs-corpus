@@ -1,0 +1,1 @@
+div[data-item-marker="UsrKnowledgeBaseArticleMiniPageContainer"] > div {width: 250px;}

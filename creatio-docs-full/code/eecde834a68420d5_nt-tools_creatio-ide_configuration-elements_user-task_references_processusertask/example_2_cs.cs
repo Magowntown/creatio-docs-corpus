@@ -1,0 +1,1 @@
+public virtual void CancelExecuting(params object[] parameters)

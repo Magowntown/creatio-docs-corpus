@@ -1,0 +1,1 @@
+void SpecifyQueryAlias(string queryAlias)

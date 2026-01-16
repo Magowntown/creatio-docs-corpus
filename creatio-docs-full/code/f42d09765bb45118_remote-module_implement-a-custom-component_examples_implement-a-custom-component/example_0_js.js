@@ -1,0 +1,1 @@
+/* Declare the AMD module. */define("UsrTimelineModule", ["@creatio-devkit/common", "Base7xViewElement", "ckeditor-base"], function(sdk, Base7xViewElement) {    ...});

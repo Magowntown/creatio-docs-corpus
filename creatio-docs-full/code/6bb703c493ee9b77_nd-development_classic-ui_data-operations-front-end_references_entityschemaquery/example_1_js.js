@@ -1,0 +1,1 @@
+addAggregationSchemaColumn(columnPath, aggregationType, [columnAlias], aggregationEvalType)

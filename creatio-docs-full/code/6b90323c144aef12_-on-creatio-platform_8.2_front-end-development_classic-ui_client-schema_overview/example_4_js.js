@@ -1,0 +1,1 @@
+define("MixinName", [], function() {     Ext.define("Terrasoft.configuration.mixins.MixinName", {        alternateClassName: "Terrasoft.MixinName",        /* Mixin functionality. */            });    return Ext.create(Terrasoft.MixinName);})

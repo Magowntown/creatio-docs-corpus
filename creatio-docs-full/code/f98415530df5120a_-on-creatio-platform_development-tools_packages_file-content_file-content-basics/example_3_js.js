@@ -1,0 +1,1 @@
+(function() {    require.config({        paths: {            "Module name": "Link to the file content",            ...        }    });})();

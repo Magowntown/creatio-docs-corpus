@@ -1,0 +1,1 @@
+static QueryColumnExpression Negate(QueryFunction operand)

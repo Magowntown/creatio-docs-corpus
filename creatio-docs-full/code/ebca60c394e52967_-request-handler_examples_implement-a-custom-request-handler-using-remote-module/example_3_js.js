@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    {        "operation": "insert",        "name": "Label",        "values": {            ...,            /* Bind the CurrentDateTime attribute to the caption property. */            "caption": "$CurrentDateTime",            ...        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,

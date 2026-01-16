@@ -1,0 +1,1 @@
+{    "type": "crt.Messaging",    "items": "ContactFeed"}

@@ -1,0 +1,1 @@
+(function() {    require.config({        paths: {            "MyPackage1-ContactSectionV2": Terrasoft.getFileContentUrl("MyPackage1", "src/js/ContactSectionV2.js"),            "MyPackage1-Utilities": Terrasoft.getFileContentUrl("MyPackage1", "src/js/Utilities.js")        }    });})();

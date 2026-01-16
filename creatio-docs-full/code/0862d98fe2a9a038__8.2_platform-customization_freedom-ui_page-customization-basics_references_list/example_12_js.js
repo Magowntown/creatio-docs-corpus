@@ -1,0 +1,1 @@
+/* Enable base and multiple row selection, displaying selection checkbox. */selection: {    enable: true,    multiple: true},

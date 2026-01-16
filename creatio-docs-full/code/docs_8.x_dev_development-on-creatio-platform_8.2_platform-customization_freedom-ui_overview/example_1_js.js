@@ -1,0 +1,1 @@
+{  "MetaData": {    "Schema": {      ...,      "AD4": {        "SchemaName": "Case",        ...,        "IconId": "78B0D4C5-891D-49A3-A364-0AFC10F2A93A"        ...      }    }  }}

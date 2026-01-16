@@ -1,0 +1,1 @@
+IsNullQueryFunction(QueryColumnExpression checkExpression, QueryColumnExpression replacementExpression)IsNullQueryFunction(IQueryColumnExpressionConvertible checkExpression, IQueryColumnExpressionConvertible replacementExpression)

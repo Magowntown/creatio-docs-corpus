@@ -1,0 +1,1 @@
+static Select Cols(    this Select select,    params object[] sourceColumns)

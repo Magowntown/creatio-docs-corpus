@@ -1,0 +1,882 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+  "title": "Customize machine learning service",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1"
+    },
+    {
+      "text": "Machine learning",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nThe **machine learning service** predicts lookup values using statistical analysis methods based on historical data. For example, a history of customer communications with customer support is historical data in Creatio. Learn more: [Predictive data analysis](https://academy.creatio.com/documents?ver=8.1&id=1825), [Machine learning service](https://academy.creatio.com/documents?ver=8.1&id=1935) (user documentation).\n## Stages of prediction model processing\u200b\n**Prediction model** is the algorithm that builds predictions and enables the system to automatically make decisions based on historical data.\nProcessing of prediction model in Creatio includes the following stages:\n* training\n* prediction\n### Training\u200b\nThe training stage is designed for training the prediction model. **Main steps** of training model are as follows:\n1. Establish a session for data transfer and training.\n2. Select a portion of data for the model sequentially and upload it to the service.\n3. Send query to include a model training queue.\n4. `Training engine` processes the queue for model training, trains the model and saves its parameters to the local database.\n5. Creatio queries the service to get the model status occasionally. Once the model status is set to \"Done,\" the model is ready for prediction.\nClasses that implement machine learning service call and create instances of each other through the `Terrasoft.Core.Factories.ClassFactory` container. To **implement custom business logic for training model** , implement the appropriate interface listed in the table below and bind the interface in your own implementation.\nInterface| Description  \n---|---  \nIMLModelTrainerJob| Change the set of models for training.  \nIMLModelTrainer| Load data for training and update the status of models.  \nIMLServiceProxy| Execute queries to arbitrary predictive services.  \n### Prediction\u200b\nThe prediction task is performed through a call to the cloud service, indicating the ID of the model instance and data for the prediction. The result of the service operation is a set of values with prediction probabilities that the `MLPrediction` database table stores. If the `MLPrediction` database table includes a prediction for a dedicated record, Creatio displays the predicted values for the field on the record page.\nCreatio provides the following **settings** to work with the prediction service listed in the table below.\nSetting| Description  \n---|---  \n\"Creatio cloud services API key\" (`CloudServicesAPIKey` code) system setting| Authenticate the Creatio instance in cloud services.  \n**ML problem types** (`MLProblemType` code) lookup| Address of the implemented prediction service, i. e., the lookup record that has the **Service endpoint Url** field populated.  \n**ML model** (`MLModel` code) lookup| Information about selected data for the model, the training period, the current training status, etc. For each model, the **ML problem type** field in the **ML model** (`MLModel` code) lookup includes a reference to the corresponding record in the **ML problem types** (`MLProblemType` code) lookup.  \n\"Periodicity of machine learning model training job\" (`MLModelTrainingPeriodMinutes` code) system setting| Determine the frequency of model synchronization launch.  \n## Forecasting\u200b\nUse the classes for forecasting in the following cases:\n* Predict time of creating or updating an object record on the server.\n* Predict when the record on the record page is changed.\nImplement prediction on the Creatio server-side using business process. **Detailed example** : [Implement custom prediction model](https://academy.creatio.com/documents?ver=8.1&id=15759).\n## Create data queries for the machine learning model\u200b\n**Use the** `Terrasoft.Core.DB.Select` **class instance** to query training data or data for predicting machine learning service. The `Terrasoft.Configuration.ML.QueryInterpreter` interpreter imports the `Terrasoft.Core.DB.Select` class instance dynamically.\nImportant\nThe `QueryInterpreter` interpreter does not allow the use of lambda expressions.\nUse the provided `userConnection` variable as a parameter of the `Terrasoft.Core.UserConnection` type in the `Select` constructor when building query expression. The column that has the \"Id\" alias, i. e., the unique ID of the target object instance, is required in the query expression. The `Select` expression can be complex. Use the following practices to **simplify the expression** :\n* **Add types for the interpreter dynamically** by using the `RegisterConfigurationType()` and `RegisterType()` methods provided by `Terrasoft.Configuration.QueryExtensions` utility class directly in the expression. For example, use the name of a constant from dynamically registered enumeration instead of using the type id directly.\n* Recommended way\n* Not recommended way\nRegisterConfigurationType(\"ActivityConsts\");  \nnew Select(userConnection)  \n.Column(\"Id\")  \n.Column(\"Body\")  \n.From(\"Activity\")  \n.Where(\"TypeId\")  \n.IsEqual(Column.Parameter(ActivityConsts.EmailTypeUId));  \nnew Select(userConnection)  \n.Column(\"Id\")  \n.Column(\"Body\")  \n.From(\"Activity\")  \n.Where(\"TypeId\")  \n.IsEqual(Column.Parameter(\"E2831DEC-CFC0-DF11-B00F-001D60E938C6\"));  \nUse the `Terrasoft.Configuration.QueryExtensions` utility class. Learn more: [QueryExtensions class](https://academy.creatio.com/documents?ver=8.1&id=15757).\n* **Use local variables** to avoid code duplication and convenient structuring. For example, the query that uses delegates repetitively.\n* Recommended way\n* Not recommended way\nvar monthAgo = Func.DateAddMonth(-1, Func.CurrentDateTime());  \nnew Select(userConnection)  \n.Column(\"Id\")  \n.Column(\"Body\")  \n.From(\"Activity\")  \n.Where(\"StartDate\")  \n.IsGreater(monthAgo)  \n.And(\"ModifiedOn\")  \n.IsGreater(monthAgo);  \nnew Select(userConnection)  \n.Column(\"Id\")  \n.Column(\"Body\")  \n.From(\"Activity\")  \n.Where(\"CreatedOn\")  \n.IsGreater(Func.DateAddMonth(-1, Func.CurrentDateTime()))  \n.And(\"StartDate\")  \n.IsGreater(Func.DateAddMonth(-1, Func.CurrentDateTime()));  \nUsing local variables has the following **constraints** :\n* Calculate the variable statically.\n* Define the variable type via `var`.\n* * *\n## See also\u200b\n[Predictive data analysis](https://academy.creatio.com/documents?ver=8.1&id=1825) (user documentation)\n[Machine learning service](https://academy.creatio.com/documents?ver=8.1&id=1935) (user documentation)\n[QueryExtensions class](https://academy.creatio.com/documents?ver=8.1&id=15757)",
+  "code_examples": [
+    {
+      "code": "RegisterConfigurationType(\"ActivityConsts\");new Select(userConnection)    .Column(\"Id\")    .Column(\"Body\")    .From(\"Activity\")    .Where(\"TypeId\")        .IsEqual(Column.Parameter(ActivityConsts.EmailTypeUId));",
+      "language": "cs",
+      "context": "Add types for the interpreter dynamicallyby using theRegisterConfigurationType()andRegisterType()methods provided byTerrasoft.Configuration.QueryExtensionsutility class directly in the expression. For",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Column(\"Id\")    .Column(\"Body\")    .From(\"Activity\")    .Where(\"TypeId\")        .IsEqual(Column.Parameter(\"E2831DEC-CFC0-DF11-B00F-001D60E938C6\"));",
+      "language": "cs",
+      "context": "Add types for the interpreter dynamicallyby using theRegisterConfigurationType()andRegisterType()methods provided byTerrasoft.Configuration.QueryExtensionsutility class directly in the expression. For",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var monthAgo = Func.DateAddMonth(-1, Func.CurrentDateTime());new Select(userConnection)    .Column(\"Id\")    .Column(\"Body\")    .From(\"Activity\")    .Where(\"StartDate\")        .IsGreater(monthAgo)    .And(\"ModifiedOn\")        .IsGreater(monthAgo);",
+      "language": "cs",
+      "context": "Use local variablesto avoid code duplication and convenient structuring. For example, the query that uses delegates repetitively.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Column(\"Id\")    .Column(\"Body\")    .From(\"Activity\")    .Where(\"CreatedOn\")        .IsGreater(Func.DateAddMonth(-1, Func.CurrentDateTime()))    .And(\"StartDate\")        .IsGreater(Func.DateAddMonth(-1, Func.CurrentDateTime()));",
+      "language": "cs",
+      "context": "Use local variablesto avoid code duplication and convenient structuring. For example, the query that uses delegates repetitively.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Interface",
+          "Description"
+        ],
+        [
+          "IMLModelTrainerJob",
+          "Change the set of models for training."
+        ],
+        [
+          "IMLModelTrainer",
+          "Load data for training and update the status of models."
+        ],
+        [
+          "IMLServiceProxy",
+          "Execute queries to arbitrary predictive services."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Interface</p></th><th><p>Description</p></th></tr><tr><td><p>IMLModelTrainerJob</p></td><td><p>Change the set of models for training.</p></td></tr><tr><td><p>IMLModelTrainer</p></td><td><p>Load data for training and update the status of models.</p></td></tr><tr><td><p>IMLServiceProxy</p></td><td><p>Execute queries to arbitrary predictive services.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Setting",
+          "Description"
+        ],
+        [
+          "\"Creatio cloud services API key\" (CloudServicesAPIKeycode) system setting",
+          "Authenticate the Creatio instance in cloud services."
+        ],
+        [
+          "ML problem types(MLProblemTypecode) lookup",
+          "Address of the implemented prediction service, i.\u00a0e., the lookup record that has theService endpoint Urlfield populated."
+        ],
+        [
+          "ML model(MLModelcode) lookup",
+          "Information about selected data for the model, the training period, the current training status, etc. For each model, theML problem typefield in theML model(MLModelcode) lookup includes a reference to the corresponding record in theML problem types(MLProblemTypecode) lookup."
+        ],
+        [
+          "\"Periodicity of machine learning model training job\" (MLModelTrainingPeriodMinutescode) system setting",
+          "Determine the frequency of model synchronization launch."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Setting</p></th><th><p>Description</p></th></tr><tr><td><p>\"Creatio cloud services API key\" (<code>CloudServicesAPIKey</code> code) system setting</p></td><td><p>Authenticate the Creatio instance in cloud services.</p></td></tr><tr><td><p><strong>ML problem types</strong> (<code>MLProblemType</code> code) lookup</p></td><td><p>Address of the implemented prediction service, i.\u00a0e., the lookup record that has the <strong>Service endpoint Url</strong> field populated.</p></td></tr><tr><td><p><strong>ML model</strong> (<code>MLModel</code> code) lookup</p></td><td><p>Information about selected data for the model, the training period, the current training status, etc. For each model, the <strong>ML problem type</strong> field in the <strong>ML model</strong> (<code>MLModel</code> code) lookup includes a reference to the corresponding record in the <strong>ML problem types</strong> (<code>MLProblemType</code> code) lookup.</p></td></tr><tr><td><p>\"Periodicity of machine learning model training job\" (<code>MLModelTrainingPeriodMinutes</code> code) system setting</p></td><td><p>Determine the frequency of model synchronization launch.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTheQueryInterpreterinterpreter does not allow the use of lambda expressions.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The <code>QueryInterpreter</code> interpreter does not allow the use of lambda expressions.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "TheQueryInterpreterinterpreter does not allow the use of lambda expressions.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The <code>QueryInterpreter</code> interpreter does not allow the use of lambda expressions.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Customize machine learning service",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Stages of prediction model processing\u200b",
+      "anchor": "title-1471-2"
+    },
+    {
+      "level": 3,
+      "text": "Training\u200b",
+      "anchor": "title-1471-3"
+    },
+    {
+      "level": 3,
+      "text": "Prediction\u200b",
+      "anchor": "title-1471-4"
+    },
+    {
+      "level": 2,
+      "text": "Forecasting\u200b",
+      "anchor": "title-1471-8"
+    },
+    {
+      "level": 2,
+      "text": "Create data queries for the machine learning model\u200b",
+      "anchor": "title-1471-9"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/machine-learning/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "PreviousMachine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+      "text": "Implement prediction model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/references/imlmodeltrainerjob",
+      "text": "IMLModelTrainerJob",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/references/imlmodeltrainer",
+      "text": "IMLModelTrainer",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/references/imlserviceproxy",
+      "text": "IMLServiceProxy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/references/imlentitypredictor",
+      "text": "IMLEntityPredictor",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/references/imlpredictionsaver",
+      "text": "IMLPredictionSaver",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+      "text": "QueryExtensions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:34:28.673094"
+}

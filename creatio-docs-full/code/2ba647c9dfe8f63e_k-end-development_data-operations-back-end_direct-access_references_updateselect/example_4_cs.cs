@@ -1,0 +1,1 @@
+public UpdateSelect Set(string sourceColumnAlias, QueryColumnExpression columnExpression)

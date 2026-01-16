@@ -1,0 +1,1 @@
+void WriteData(DataWriter writer)void WriteData(DataWriter writer, EntitySchema schema)

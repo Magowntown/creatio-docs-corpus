@@ -1,0 +1,1 @@
+// Request string.POST Creatio_application_address/ServiceModel/AuthService.svc/Login// Request headers.Content-Type: application/json; charset=utf-8ForceUseSession: true// Request body.{    "UserName":"User name",    "UserPassword":"User password"}

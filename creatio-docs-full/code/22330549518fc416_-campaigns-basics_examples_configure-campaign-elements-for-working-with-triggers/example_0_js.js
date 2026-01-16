@@ -1,0 +1,1 @@
+public TestSmsElement() {    // TestSmsElement is asynchronous and session element that can be triggered.    ElementType = CampaignSchemaElementType.AsyncTask | CampaignSchemaElementType.Sessioned;}

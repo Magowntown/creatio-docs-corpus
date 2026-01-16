@@ -1,0 +1,1 @@
+(function() {    require.config({        paths: {            LettersOnlyValidator: Terrasoft.getFileContentUrl(                "sdkTypeScript",                "src/js/LettersOnlyValidator.js"            ),        },    });})();

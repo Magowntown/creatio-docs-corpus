@@ -1,0 +1,1 @@
+POST http://mycreatio.com/0/DataService/json/SyncReply/SelectQuery{    "RootSchemaName": "Account",    "columns": {        "items": {            "Name": {                "expression": {                    "columnPath": "Name"                }            }        }    }}

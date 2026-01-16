@@ -1,0 +1,1 @@
+public virtual bool CompleteExecuting(params object[] parameters)

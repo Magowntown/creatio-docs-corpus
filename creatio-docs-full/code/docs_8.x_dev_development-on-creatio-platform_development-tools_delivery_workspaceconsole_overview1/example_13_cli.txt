@@ -1,0 +1,1 @@
+cd [Path to the WorkspaceConsole directory]

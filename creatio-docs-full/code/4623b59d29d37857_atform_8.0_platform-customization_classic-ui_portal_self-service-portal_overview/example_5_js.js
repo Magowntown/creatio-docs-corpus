@@ -1,0 +1,1 @@
+[ServiceContract][ServiceRoute("custom")]public class CustomPrefixService : BaseService{}

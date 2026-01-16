@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/[    "attributes": {        ...,        /* The attribute that stores the contact permission to edit the "Applicant" field. */        "IsApplicantReadonly": {}    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG*/,

@@ -1,0 +1,1 @@
+editRecord(record)

@@ -1,0 +1,1 @@
+[ServiceContract][DefaultServiceRoute][SspServiceRoute]public class CommonService : BaseService{}

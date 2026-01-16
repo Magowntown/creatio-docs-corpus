@@ -1,0 +1,1 @@
+static Dictionary<string, int> GetFeatureStates(this UserConnection source)

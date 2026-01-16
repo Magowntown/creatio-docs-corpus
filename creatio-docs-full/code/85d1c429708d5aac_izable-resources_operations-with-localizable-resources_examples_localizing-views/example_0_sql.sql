@@ -1,0 +1,1 @@
+-- The view name must match the name of database table.CREATE VIEW dbo.UsrContactAddressVwASSELECT    ContactAddress.Id,    -- View columns must match names of the object schema columns.    ContactAddress.Address AS UsrContactAddressValue,    AddressType.Name AS UsrContactAddressTypeFROM ContactAddressINNER JOIN AddressType ON ContactAddress.AddressTypeId = AddressType.Id;

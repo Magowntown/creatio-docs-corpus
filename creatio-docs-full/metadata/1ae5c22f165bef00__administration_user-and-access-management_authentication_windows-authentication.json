@@ -1,0 +1,574 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/windows-authentication",
+  "title": "Windows authentication",
+  "breadcrumbs": [
+    {
+      "text": "Administration",
+      "href": "/docs/8.x/setup-and-administration/8.0/category/administration"
+    },
+    {
+      "text": "User and access management",
+      "href": "/docs/8.x/setup-and-administration/8.0/category/user-and-access-management"
+    },
+    {
+      "text": "Authentication",
+      "href": "/docs/8.x/setup-and-administration/8.0/category/authentication"
+    }
+  ],
+  "content_markdown": "Version: 8.0All Creatio products\nOn this page\nWindows (NTLM) authentication can be used concurrently with LDAP authentication. Windows authentication requires entering login credentials in the browser. During LDAP authentication, user\u2019s password is checked on the Active Directory server. Both Windows (NTLM) and LDAP authentications trigger when the user clicks the \"Log in as domain user\" link (provided that the user account is synchronized with LDAP).\nnote\nWindows authentication is only available for Creatio on-site due to cloud architecture specifics.\nIf the user attempts to log in to the system using the domain credentials, the following authentication algorithm is performed:\n1. A user authentication check within the domain is performed.\n2. If the domain username and the password are stored in a cookie, they will be retrieved from this cookie. Otherwise, a browser window will be displayed to enter the user credential.\nFurther steps depend on the user synchronization with the LDAP directory.\n3. If the user is not synchronized with LDAP:\n* User authentication check is performed through the comparison of the username and the password from the cookie and the corresponding credentials of the Creatio account. Thus, it is required to specify the same username and password that are used in the domain to enable Windows authentication for the users who are not synchronized with LDAP.\n* Based on the check results, if the data matches and the user account is [licensed](https://academy.creatio.com/documents?id=1472), the user authorization will be performed.\n4. If the user is synchronized with LDAP:\n* The browser sends a request to the Active Directory service to authenticate the user.\n* The query returns the credentials of the current domain user that are compared with the username and the password details stored in the cookie.\n* If the data matches and the user account is [licensed](https://academy.creatio.com/documents?id=1472), the user authorization will be performed.\nnote\nUser authentication is performed either for the users of the main application or for the self-service portal users. You can set the check order in the Web.config file of the loader application. Learn more: Set up the Web.config file of the loader application.\nTo use Windows authentication via the NTLM protocol, first add system users (manually or by importing from LDAP) and license them. Users will need to allow writing local data to cookie files in their browsers to be able to store the data locally.\nThe authentication setup is performed on the application server and consists of two steps:\n* IIS server setup that activates authentication using the NTLM protocol. Learn more: Set up the Windows authentication on IIS.\n* Web.config file setup of the loader application that defines authentication providers and users availability check order among those registered in Creatio. Learn more: Set up the Web.config file of the loader application.\n## Set up the Windows authentication on IIS\u200b\n1. Enable anonymous authentication and form authentication for both the web application and loader application (Fig. 1).\nFig. 1 Authentication settings for the loader application in IIS\n![Fig.\u00a01 Authentication settings for the loader application in IIS](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ntlm_auth.png)\nnote\nMake sure you disable the \"Windows Authentication\" setting that is enabled in IIS by default.\n2. Disable the form authentication; enable anonymous authentication and Windows authentication for the \"Login\" directory within the loader application (Fig. 2).\nFig. 2 The login directory settings\n![Fig.\u00a02 The login directory settings](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/Windows_authentication/chapter_ldap_synchronization_ntlm_login_auth.png)\nPlease note that anonymous authentication of the loader application and working applications must be conducted under application pool identity. To enable this, edit anonymous authentication credentials by clicking the **Edit** button in the **Actions** area of the IIS manager and select **Application pool identity** (Fig. 3).\nFig. 3 Enter the credentials for anonymous authentication in IIS\n![Fig.\u00a03 Enter the credentials for anonymous authentication in IIS](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ntlm_auth_anonymous.png)\nnote\nLearn more about Windows Authentication in [Microsoft documentation](https://technet.microsoft.com/en-us/library/828f9515-cc83-435e-bee3-1ebe14711fb8).\n## Set up the Web.config file of the loader application\u200b\n1. Open the Web.config file of the loader application to be edited.\n2. In this file, specify the Windows Authentication providers:\nauth providerNames=\"InternalUserPassword,SSPLdapProvider,Ldap\"  \nautoLoginProviderNames=\"NtlmUser,SSPNtlmUser\"  \n**InternalUserPassword** \u2013 provider that is specified in the Web.config file by default. If you want to provide NTLM authentication only for the users who are not synchronized with LDAP, do not specify an additional value for the providerNames parameter.\n**Ldap** \u2013 add this provider to the **providerNames** parameter values. As a result, the users who are synchronized with LDAP will be able to perform NTLM authentication.\n**SSPLdapProvider** \u2013 add this parameter to the **providerNames** parameter value for the users of the self-service portal who are synchronized with LDAP to be able to perform NTLM authentication.\n**NtlmUser** \u2013 add this provider to the **autoLoginProviderNames** parameter value. As a result, the users will able to perform NTLM authentication regardless of their synchronization with LDAP and the authentication type configured for these Creatio users.\n**SSPNtlmUser** \u2013 add this parameter to the **autoLoginProviderNames** parameter value for the users of the self-service portal to be able to perform NTLM authentication regardless of their synchronization with LDAP and the authentication type configured for these Creatio users.\nThe record order of the **autoLoginProviderNames** parameter defines the order, in which Creatio checks if the system users are available in the list of application users (NtlmUser) or in the list of the self-service portal users (SSPNtlmUser). For example, if you want the check to be performed among the main application users primarily, place the **NtlmUser** provider at the top of the list of the values of the **autoLoginProviderNames** parameter.\nImportant\nYou can specify the **SSPNtlmUser** provider as an **autoLoginProviderNames** parameter value only if the **NtlmUser** provider is specified additionally. You can use the **NtlmUser** provider separately.\n3. If you want to authenticate in Creatio at once, specify the \"true\" value for the **UsePathThroughAuthentication** parameter of the `<appSettings>` element:\n<appSettings>  \n<add key=\"UsePathThroughAuthentication\" value=\"true\" />  \n...  \n</appSettings>  \nIf you want the login page to be displayed with the available **Log in as domain user** link, specify the \"false\" value for the **UsePathThroughAuthentication** parameter. The end-to-end authentication will be performed only when accessing application main page. Add \"/Login/NuiLogin.aspx\" to Creatio website address.\nAs a result, users will be able to log in to Creatio as domain users. They may still be required to enter their credentials in a domain authentication window, which will pop up on login attempt.\nTo prevent displaying of the domain authentication window:\n1. Click \"Start\" \u2192 \"Settings\" \u2192 \"Control Panel\" \u2192 \"Network and Internet\" menu and select \"Internet options\" (Fig. 4).\nFig. 4 Access the Internet options of the Windows Explorer\n![Fig.\u00a04 Access the Internet options of the Windows Explorer](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ie_internet_options.png)\n2. In the opened window, select the \"Security\" tab and click the \"Custom level\" button to go to security settings (Fig. 5).\nFig. 5 The security settings\n![Fig.\u00a05 The security settings](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ie_internet_options_security_tab.png)\n3. In the \"User authentication\" group of settings, select the \"Automatic logon with current user name and password\" authentication method (Fig. 6).\nFig. 6 Select the user authentication method\n![Fig.\u00a06 Select the user authentication method](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ie_internet_options_user_authentication.png)\n4. Click \"OK.\"\nAs a result, the users who are already authenticated in the domain will be able to log in to Creatio by clicking the \"Log in as domain user\" link, and will not have to re-enter their domain credentials each time they access Creatio.\n* * *\n## See also\u200b\n[Windows authentication](internal:#XREF_43633_NTLM)\n[How Windows authentication works](internal:#XREF_36524__NTLM)",
+  "code_examples": [
+    {
+      "code": "auth providerNames=\"InternalUserPassword,SSPLdapProvider,Ldap\"autoLoginProviderNames=\"NtlmUser,SSPNtlmUser\"",
+      "language": "js",
+      "context": "In this file, specify the Windows Authentication providers:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<appSettings>    <add key=\"UsePathThroughAuthentication\" value=\"true\" />    ...</appSettings>",
+      "language": "xml",
+      "context": "If you want to authenticate in Creatio at once, specify the \"true\" value for theUsePathThroughAuthenticationparameter of the<appSettings>element:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteWindows authentication is only available for Creatio on-site due to cloud architecture specifics.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Windows authentication is only available for Creatio on-site due to cloud architecture specifics.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Windows authentication is only available for Creatio on-site due to cloud architecture specifics.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Windows authentication is only available for Creatio on-site due to cloud architecture specifics.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteUser authentication is performed either for the users of the main application or for the self-service portal users. You can set the check order in the Web.config file of the loader application. Learn more:Set up the Web.config file of the loader application.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>User authentication is performed either for the users of the main application or for the self-service portal users. You can set the check order in the Web.config file of the loader application. Learn more: <a href=\"#title-306-2\">Set up the Web.config file of the loader application</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "User authentication is performed either for the users of the main application or for the self-service portal users. You can set the check order in the Web.config file of the loader application. Learn more:Set up the Web.config file of the loader application.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>User authentication is performed either for the users of the main application or for the self-service portal users. You can set the check order in the Web.config file of the loader application. Learn more: <a href=\"#title-306-2\">Set up the Web.config file of the loader application</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteMake sure you disable the \"Windows Authentication\" setting that is enabled in IIS by default.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Make sure you disable the \"Windows Authentication\" setting that is enabled in IIS by default.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Make sure you disable the \"Windows Authentication\" setting that is enabled in IIS by default.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Make sure you disable the \"Windows Authentication\" setting that is enabled in IIS by default.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteLearn more about Windows Authentication inMicrosoft documentation.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Learn more about Windows Authentication in <a href=\"https://technet.microsoft.com/en-us/library/828f9515-cc83-435e-bee3-1ebe14711fb8\" rel=\"noopener noreferrer\" target=\"_blank\">Microsoft documentation</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Learn more about Windows Authentication inMicrosoft documentation.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Learn more about Windows Authentication in <a href=\"https://technet.microsoft.com/en-us/library/828f9515-cc83-435e-bee3-1ebe14711fb8\" rel=\"noopener noreferrer\" target=\"_blank\">Microsoft documentation</a>.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "SSPNtlmUser",
+      "content": "ImportantYou can specify theSSPNtlmUserprovider as anautoLoginProviderNamesparameter value only if theNtlmUserprovider is specified additionally. You can use theNtlmUserprovider separately.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>You can specify the <strong>SSPNtlmUser</strong> provider as an <strong>autoLoginProviderNames</strong> parameter value only if the <strong>NtlmUser</strong> provider is specified additionally. You can use the <strong>NtlmUser</strong> provider separately.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "SSPNtlmUser",
+      "content": "You can specify theSSPNtlmUserprovider as anautoLoginProviderNamesparameter value only if theNtlmUserprovider is specified additionally. You can use theNtlmUserprovider separately.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can specify the <strong>SSPNtlmUser</strong> provider as an <strong>autoLoginProviderNames</strong> parameter value only if the <strong>NtlmUser</strong> provider is specified additionally. You can use the <strong>NtlmUser</strong> provider separately.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ntlm_auth.png",
+      "alt": "Fig.\u00a01 Authentication settings for the loader application in IIS",
+      "title": "",
+      "context": "Enable anonymous authentication and form authentication for both the web application and loader appl",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1ae5c22f165bef00__administration_user-and-access-management_authentication_windows-authentication_bb428870134e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/Windows_authentication/chapter_ldap_synchronization_ntlm_login_auth.png",
+      "alt": "Fig.\u00a02 The login directory settings",
+      "title": "",
+      "context": "Disable the form authentication; enable anonymous authentication and Windows authentication for the ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1ae5c22f165bef00__administration_user-and-access-management_authentication_windows-authentication_70d83b808d84.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ntlm_auth_anonymous.png",
+      "alt": "Fig.\u00a03 Enter the credentials for anonymous authentication in IIS",
+      "title": "",
+      "context": "Please note that anonymous authentication of the loader application and working applications must be",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1ae5c22f165bef00__administration_user-and-access-management_authentication_windows-authentication_15d1ee917872.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ie_internet_options.png",
+      "alt": "Fig.\u00a04 Access the Internet options of the Windows Explorer",
+      "title": "",
+      "context": "Click \"Start\" \u2192 \"Settings\" \u2192 \"Control Panel\" \u2192 \"Network and Internet\" menu and select \"Internet opti",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1ae5c22f165bef00__administration_user-and-access-management_authentication_windows-authentication_44da78b8b8c9.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ie_internet_options_security_tab.png",
+      "alt": "Fig.\u00a05 The security settings",
+      "title": "",
+      "context": "In the opened window, select the \"Security\" tab and click the \"Custom level\" button to go to securit",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1ae5c22f165bef00__administration_user-and-access-management_authentication_windows-authentication_b16d3f3fa91e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/user_access_management/BPMonlineHelp/windows_authentication/chapter_ldap_synchronization_ie_internet_options_user_authentication.png",
+      "alt": "Fig.\u00a06 Select the user authentication method",
+      "title": "",
+      "context": "In the \"User authentication\" group of settings, select the \"Automatic logon with current user name a",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1ae5c22f165bef00__administration_user-and-access-management_authentication_windows-authentication_10f78aa06fc7.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Windows authentication",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up the Windows authentication on IIS\u200b",
+      "anchor": "title-306-1"
+    },
+    {
+      "level": 2,
+      "text": "Set up the Web.config file of the loader application\u200b",
+      "anchor": "title-306-2"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/windows-authentication",
+      "text": "Windows authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/authentication/windows-authentication",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/windows-authentication",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/windows-authentication",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/set-up-sso-via-azure-ad",
+      "text": "Set up SSO via Azure AD",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/set-up-sso-via-okta",
+      "text": "Set up SSO via Okta",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/single-sign-on-via-adfs",
+      "text": "Set up SSO via AD FS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/single-sign-on",
+      "text": "Single Sign-On",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/single-sign-on-via-cognito",
+      "text": "Set up SSO via Cognito AWS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/single-sign-on-via-custom-provider",
+      "text": "Set up SSO via OneLogin",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/authentication/just-in-time-user-provisioning",
+      "text": "PreviousSet up JIT Provisioning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/synchronize-users-with-ldap",
+      "text": "NextSynchronize users with LDAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-synchronization",
+      "text": "Set up LDAP synchronization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/synchronize-users-with-ldap/set-up-active-directory-filters",
+      "text": "Set up AD filters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/synchronize-users-with-ldap/import-new-users-and-roles-from-active-directory",
+      "text": "Import users from AD",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-authentication",
+      "text": "Set up LDAP authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/synchronize-users-with-ldap/ldap-synchronization-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/user-management",
+      "text": "User management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/organizational-roles",
+      "text": "Organizational roles",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/functional-roles",
+      "text": "Functional roles",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/add-users",
+      "text": "Add users",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/change-the-system-user-supervisor",
+      "text": "The system user (Supervisor)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/import-users-from-excel",
+      "text": "Import users from Excel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/assign-a-user-role",
+      "text": "Assign a user role",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/issue-a-license-to-a-user",
+      "text": "Issue a license",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-management/unblock-a-user",
+      "text": "Unblock a user",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/access-management",
+      "text": "Access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/access-management/export-permissions",
+      "text": "Export permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/access-management/object-operation-permissions",
+      "text": "Operation permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/access-management/record-permissions",
+      "text": "Record permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/access-management/column-permissions",
+      "text": "Column permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/access-management/system-operation-permissions",
+      "text": "System operation permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/access-management/system-operation-reference",
+      "text": "System operation reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/access-management/delegate-permissions",
+      "text": "Delegate permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/change-log",
+      "text": "Change log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/audit-log",
+      "text": "Audit log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/licensing/creatio-licensing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/licensing/manage-user-licenses",
+      "text": "Manage licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/email-domain-verification",
+      "text": "Email domain verification",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/email-domain-verification/domain-verification-for-the-elastic-email-provider",
+      "text": "Elastic Email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/email-domain-verification/domain-verification-for-the-sendgrid-provider",
+      "text": "SendGrid",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/email-domain-verification/recommendations-on-setting-up-the-popular-dns-providers",
+      "text": "Recommendations for DNS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/security-settings/recommended-information-security-settings",
+      "text": "Information security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/security-settings/secure-file-upload",
+      "text": "Secure file upload",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/security-settings/manage-http-headers",
+      "text": "HTTP response headers",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/security-settings/remote-access-for-creatio-support",
+      "text": "Remote access for Creatio support",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/security-settings/store-secrets-in-vault",
+      "text": "Sensitive data security",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/security-settings/limit-ip-for-login",
+      "text": "IP restrictions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/creatio-maintenance/clean_up_the_drive_space",
+      "text": "Clean up the drive space",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/creatio-maintenance/compile_app_on_web_farm",
+      "text": "Compile an app on a web farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/creatio-maintenance/process_complex_database_queries_faster",
+      "text": "Improve page loading time",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/creatio-maintenance/limit_DB_thread_count",
+      "text": "Limit thread count for DB queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/creatio-maintenance/manage_resource_intensive_queries",
+      "text": "Query management rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/on-site-deployment/general_creatio_deployment_procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/category/faq",
+      "text": "FAQ",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:30:03.813065"
+}

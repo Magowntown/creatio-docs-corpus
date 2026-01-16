@@ -1,0 +1,954 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/examples/change-where-the-query-handler-is-invoked",
+  "title": "Change where the request handler is invoked on the page",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization"
+    },
+    {
+      "text": "Page customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nTo implement the example:\n1. Set up the page UI. Read more >>>\n2. Change the origin call of the request handler. Read more >>>\nExample\nDisplay the number of the newest request on the custom request page. Set the number to the custom system setting. Increase the request number by 1 after saving the page.\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ChangeWhereTheRequestHandlerIsInvoked/8.1/scr_result.gif)\n## 1\\. Set up page UI\u200b\n1. **Create an app** based on the **Records & business processes** template. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.1&id=2377&anchor=title-2232-6) (user documentation).\nFor this example, create a **Requests** app.\n2. **Add a system setting**.\nFor this example, add the system setting that stores the request number. To do this:\n1. Open the **System settings** section. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 **System setup** \u2192 **System settings**.\n2. Click **Add setting** and fill out the system setting properties.\nElement| Property| Property value  \n---|---|---  \nSystem setting that stores the request number| Name| Request number  \nCode| UsrLastRequestNumber  \nType| Integer  \nDefault value| 0  \n3. **Open the form page** in the Freedom UI Designer.\nFor this example, open **Requests form page**.\n4. **Add labels**.\nFor this example, add the following labels:\n* label of the request number\n* label that contains the value of the request number from the system setting\nTo do this:\n1. Add a label to the working area of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the label properties.\nElement| Property| Property value  \n---|---|---  \nLabel of the request number| Text| Request number  \nStyle| Caption  \nText color| #757575  \nLabel that contains the value of the request number from the system setting| Text| Request number (value)  \nStyle| Body  \n5. **Save the changes**.\n## 2\\. Change the origin call of the request handler\u200b\nConfigure the business logic in the Client Module Designer. For this example, change the origin call of the request handler.\n1. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n2. **Add the dependencies**. To do this, add `@creatio-devkit/common` library as a dependency. The library includes the `sdk.SysSettingsService` service to manage system settings.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \n...  \n}  \n});  \n3. **Add an attribute**.\n1. Go to the `viewModelConfigDiff` schema section \u2192 `values` configuration object.\n2. Add a `LastRequestNumber` attribute that stores data of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting.\nviewModelConfigDiff schema section\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n...,  \n/* The attribute that stores data of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */  \n\"LastRequestNumber\": {},  \n}  \n},  \n...  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n4. **Bind an attribute to the label**.\n1. Go to the `viewConfigDiff` schema section \u2192 `UsrRequestNumberValue` element.\n2. Bind the `$LastRequestNumber` attribute to the `caption` property.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...,  \n/* Label that contains the value of the request number from the system setting. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrRequestNumberValue\",  \n\"values\": {  \n...,  \n/* The property that handles the text contained in the element. Bound to the \"LastRequestNumber\" attribute. */  \n\"caption\": \"$LastRequestNumber\",  \n},  \n...  \n},  \n...,  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n5. **Implement the base request handler**.\n1. Go to the `handlers` schema section.\n2. Add a custom implementation of the `crt.SaveRecordRequest` base request handler.\n1. Create an instance of the system setting service from `@creatio-devkit/common`.\n2. Retrieve the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting.\n3. Increase the value of the system setting, specify the new value in the `LastRequestNumber` attribute.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.SaveRecordRequest\",  \n/* The custom implementation of the system request handler. */  \nhandler: async (request, next) => {  \n/* Wait for the next handler to finish. For this example, the handler that saves the record. */  \nawait next?.handle(request);  \n/* Create an instance of the system setting service from \"@creatio-devkit/common.\" */  \nconst sysSettingsService = new sdk.SysSettingsService();  \n/* Retrieve the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */  \nconst lastNumber = await sysSettingsService.getByCode('UsrLastRequestNumber');  \n/* Send a request to update the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */  \nawait sysSettingsService.update({  \ncode: 'UsrLastRequestNumber',  \n/* The new value is higher than the previous one by 1. */  \nvalue: ++lastNumber.value  \n});  \n/* Specify the new value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting in the \"LastRequestNumber\" attribute. */  \nrequest.$context.LastRequestNumber = lastNumber.value;  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n},  \n},  \n] /**SCHEMA_HANDLERS*/,  \n6. **Save the changes**.\n## View the result\u200b\n1. **Open the Requests section**.\n2. **Create a request** that has an arbitrary name. For example, \"Vacation.\"\n3. **Save the changes**.\n**As a result** , when you click the **Save** button on the request page toolbar, Creatio will display the number of the last created request, increased by 1. The values will be retrieved from the corresponding system setting. [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=15367&anchor=view-result)\n## Source codes\u200b\nUsrRequests_FormPage\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Feed\",  \n\"values\": {  \n\"dataSourceName\": \"PDS\",  \n\"entitySchemaName\": \"UsrRequests\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AttachmentList\",  \n\"values\": {  \n\"columns\": [  \n{  \n\"id\": \"f4e2b09a-b70a-4af3-8ed4-71059b289b55\",  \n\"code\": \"AttachmentListDS_Name\",  \n\"caption\": \"#ResourceString(AttachmentListDS_Name)#\",  \n\"dataValueType\": 28,  \n\"width\": 200  \n}  \n]  \n}  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrName\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrName\",  \n\"control\": \"$UsrName\",  \n\"labelPosition\": \"auto\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GridContainer_4simnvr\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 2,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.GridContainer\",  \n\"columns\": [  \n\"minmax(32px, 1fr)\",  \n\"minmax(32px, 1fr)\"  \n],  \n\"rows\": \"minmax(max-content, 32px)\",  \n\"gap\": {  \n\"columnGap\": \"large\",  \n\"rowGap\": \"none\"  \n},  \n\"items\": [],  \n\"fitContent\": true,  \n\"visible\": true,  \n\"color\": \"transparent\",  \n\"borderRadius\": \"none\",  \n\"padding\": {  \n\"top\": \"none\",  \n\"right\": \"none\",  \n\"bottom\": \"none\",  \n\"left\": \"none\"  \n},  \n\"alignItems\": \"stretch\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n/* Label of the request number. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrRequestNumber\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Label\",  \n\"caption\": \"#MacrosTemplateString(#ResourceString(UsrRequestNumber_caption)#)#\",  \n\"labelType\": \"caption\",  \n\"labelThickness\": \"default\",  \n\"labelEllipsis\": false,  \n\"labelColor\": \"#757575\",  \n\"labelBackgroundColor\": \"transparent\",  \n\"labelTextAlign\": \"start\",  \n\"visible\": true  \n},  \n\"parentName\": \"GridContainer_4simnvr\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n/* Label that contains the value of the request number from the system setting. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrRequestNumberValue\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 2,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Label\",  \n/* The property that handles the text contained in the element. Bound to the \"LastRequestNumber\" attribute. */  \n\"caption\": \"$LastRequestNumber\",  \n\"labelType\": \"body\",  \n\"labelThickness\": \"default\",  \n\"labelEllipsis\": false,  \n\"labelColor\": \"auto\",  \n\"labelBackgroundColor\": \"transparent\",  \n\"labelTextAlign\": \"start\"  \n},  \n\"parentName\": \"GridContainer_4simnvr\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"UsrName\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrName\"  \n}  \n},  \n/* The attribute that stores data of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */  \n\"LastRequestNumber\": {},  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n\"Id\",  \n\"modelConfig\"  \n],  \n\"values\": {  \n\"path\": \"PDS.Id\"  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [],  \n\"values\": {  \n\"primaryDataSourceName\": \"PDS\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"PDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"UsrRequests\"  \n},  \n\"scope\": \"page\"  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.SaveRecordRequest\",  \n/* The custom implementation of the system request handler. */  \nhandler: async (request, next) => {  \n/* Wait for the next handler to finish. For this example, the handler that saves the record. */  \nawait next?.handle(request);  \n/* Create an instance of the system setting service from \"@creatio-devkit/common.\" */  \nconst sysSettingsService = new sdk.SysSettingsService();  \n/* Retrieve the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */  \nconst lastNumber = await sysSettingsService.getByCode('UsrLastRequestNumber');  \n/* Send a request to update the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */  \nawait sysSettingsService.update({  \ncode: 'UsrLastRequestNumber',  \n/* The new value is higher than the previous one by 1. */  \nvalue: ++lastNumber.value  \n});  \n/* Specify the new value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting in the \"LastRequestNumber\" attribute. */  \nrequest.$context.LastRequestNumber = lastNumber.value;  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n},  \n},  \n]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/docs/sites/academy_en/files/packages/ChangeWhereTheRequestHandlerIsInvoked/8.1/UsrRequests_2024-06-25_09.52.32.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        ...    }});",
+      "language": "js",
+      "context": "Add the dependencies. To do this, add@creatio-devkit/commonlibrary as a dependency. The library includes thesdk.SysSettingsServiceservice to manage system settings.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            ...,            /* The attribute that stores data of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */            \"LastRequestNumber\": {},        }    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Add an attribute.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    /* Label that contains the value of the request number from the system setting. */    {        \"operation\": \"insert\",        \"name\": \"UsrRequestNumberValue\",        \"values\": {            ...,            /* The property that handles the text contained in the element. Bound to the \"LastRequestNumber\" attribute. */            \"caption\": \"$LastRequestNumber\",        },        ...    },    ...,]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Bind an attribute to the label.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"crt.SaveRecordRequest\",        /* The custom implementation of the system request handler. */        handler: async (request, next) => {            /* Wait for the next handler to finish. For this example, the handler that saves the record. */            await next?.handle(request);            /* Create an instance of the system setting service from \"@creatio-devkit/common.\" */            const sysSettingsService = new sdk.SysSettingsService();            /* Retrieve the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */            const lastNumber = await sysSettingsService.getByCode('UsrLastRequestNumber');            /* Send a request to update the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */            await sysSettingsService.update({                code: 'UsrLastRequestNumber',                /* The new value is higher than the previous one by 1. */                value: ++lastNumber.value            });            /* Specify the new value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting in the \"LastRequestNumber\" attribute. */            request.$context.LastRequestNumber = lastNumber.value;            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        },    },] /**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "Add a custom implementation of thecrt.SaveRecordRequestbase request handler.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"name\": \"Feed\",                \"values\": {                    \"dataSourceName\": \"PDS\",                    \"entitySchemaName\": \"UsrRequests\"                }            },            {                \"operation\": \"merge\",                \"name\": \"AttachmentList\",                \"values\": {                    \"columns\": [                        {                            \"id\": \"f4e2b09a-b70a-4af3-8ed4-71059b289b55\",                            \"code\": \"AttachmentListDS_Name\",                            \"caption\": \"#ResourceString(AttachmentListDS_Name)#\",                            \"dataValueType\": 28,                            \"width\": 200                        }                    ]                }            },            {                \"operation\": \"insert\",                \"name\": \"UsrName\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrName\",                    \"control\": \"$UsrName\",                    \"labelPosition\": \"auto\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 0            },            {                \"operation\": \"insert\",                \"name\": \"GridContainer_4simnvr\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 2,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.GridContainer\",                    \"columns\": [                        \"minmax(32px, 1fr)\",                        \"minmax(32px, 1fr)\"                    ],                    \"rows\": \"minmax(max-content, 32px)\",                    \"gap\": {                        \"columnGap\": \"large\",                        \"rowGap\": \"none\"                    },                    \"items\": [],                    \"fitContent\": true,                    \"visible\": true,                    \"color\": \"transparent\",                    \"borderRadius\": \"none\",                    \"padding\": {                        \"top\": \"none\",                        \"right\": \"none\",                        \"bottom\": \"none\",                        \"left\": \"none\"                    },                    \"alignItems\": \"stretch\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 1            },            /* Label of the request number. */            {                \"operation\": \"insert\",                \"name\": \"UsrRequestNumber\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Label\",                    \"caption\": \"#MacrosTemplateString(#ResourceString(UsrRequestNumber_caption)#)#\",                    \"labelType\": \"caption\",                    \"labelThickness\": \"default\",                    \"labelEllipsis\": false,                    \"labelColor\": \"#757575\",                    \"labelBackgroundColor\": \"transparent\",                    \"labelTextAlign\": \"start\",                    \"visible\": true                },                \"parentName\": \"GridContainer_4simnvr\",                \"propertyName\": \"items\",                \"index\": 0            },            /* Label that contains the value of the request number from the system setting. */            {                \"operation\": \"insert\",                \"name\": \"UsrRequestNumberValue\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 2,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Label\",                    /* The property that handles the text contained in the element. Bound to the \"LastRequestNumber\" attribute. */                    \"caption\": \"$LastRequestNumber\",                    \"labelType\": \"body\",                    \"labelThickness\": \"default\",                    \"labelEllipsis\": false,                    \"labelColor\": \"auto\",                    \"labelBackgroundColor\": \"transparent\",                    \"labelTextAlign\": \"start\"                },                \"parentName\": \"GridContainer_4simnvr\",                \"propertyName\": \"items\",                \"index\": 1            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"UsrName\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrName\"                        }                    },                    /* The attribute that stores data of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */                    \"LastRequestNumber\": {},                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\",                    \"Id\",                    \"modelConfig\"                ],                \"values\": {                    \"path\": \"PDS.Id\"                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [],                \"values\": {                    \"primaryDataSourceName\": \"PDS\"                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"dataSources\"                ],                \"values\": {                    \"PDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"UsrRequests\"                        },                        \"scope\": \"page\"                    }                }            }        ]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[            {                request: \"crt.SaveRecordRequest\",                /* The custom implementation of the system request handler. */                handler: async (request, next) => {                    /* Wait for the next handler to finish. For this example, the handler that saves the record. */                    await next?.handle(request);                    /* Create an instance of the system setting service from \"@creatio-devkit/common.\" */                    const sysSettingsService = new sdk.SysSettingsService();                    /* Retrieve the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */                    const lastNumber = await sysSettingsService.getByCode('UsrLastRequestNumber');                    /* Send a request to update the value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting. */                    await sysSettingsService.update({                        code: 'UsrLastRequestNumber',                        /* The new value is higher than the previous one by 1. */                        value: ++lastNumber.value                    });                    /* Specify the new value of the \"Request number\" (\"UsrLastRequestNumber\" code) system setting in the \"LastRequestNumber\" attribute. */                    request.$context.LastRequestNumber = lastNumber.value;                    /* Call the next handler if it exists and return its result. */                    return next?.handle(request);                },            },        ]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source codes\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "System setting that stores the request number",
+          "Name",
+          "Request number"
+        ],
+        [
+          "Code",
+          "UsrLastRequestNumber"
+        ],
+        [
+          "Type",
+          "Integer"
+        ],
+        [
+          "Default value",
+          "0"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"4\"><p>System setting that stores the request number</p></td><td><center><p>Name</p></center></td><td><center><p>Request number</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrLastRequestNumber</p></center></td></tr><tr><td><center><p>Type</p></center></td><td><center><p>Integer</p></center></td></tr><tr><td><center><p>Default value</p></center></td><td><center><p>0</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Label of the request number",
+          "Text",
+          "Request number"
+        ],
+        [
+          "Style",
+          "Caption"
+        ],
+        [
+          "Text color",
+          "#757575"
+        ],
+        [
+          "Label that contains the value of the request number from the system setting",
+          "Text",
+          "Request number (value)"
+        ],
+        [
+          "Style",
+          "Body"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"3\"><p>Label of the request number</p></td><td><center><p>Text</p></center></td><td><center><p>Request number</p></center></td></tr><tr><td><center><p>Style</p></center></td><td><center><p>Caption</p></center></td></tr><tr><td><center><p>Text color</p></center></td><td><center><span style=\"background-color:#757575;border-style:solid;border-width:1px;border-color:#000000;border-radius:2px;color:#FFFFFF;padding:0.2rem\">#757575</span></center></td></tr><tr><td rowspan=\"2\"><p>Label that contains the value of the request number from the system setting</p></td><td><center><p>Text</p></center></td><td><center><p>Request number (value)</p></center></td></tr><tr><td><center><p>Style</p></center></td><td><center><p>Body</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleDisplay the number of the newest request on the custom request page. Set the number to the custom system setting. Increase the request number by 1 after saving the page.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Display the number of the newest request on the custom request page. Set the number to the custom system setting. Increase the request number by 1 after saving the page.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ChangeWhereTheRequestHandlerIsInvoked/8.1/scr_result.gif\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Display the number of the newest request on the custom request page. Set the number to the custom system setting. Increase the request number by 1 after saving the page.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Display the number of the newest request on the custom request page. Set the number to the custom system setting. Increase the request number by 1 after saving the page.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ChangeWhereTheRequestHandlerIsInvoked/8.1/scr_result.gif\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ChangeWhereTheRequestHandlerIsInvoked/8.1/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Display the number of the newest request on the custom request page. Set the number to the custom sy",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1c6631f5b7750f3e_-ui_page-customization-basics_examples_change-where-the-query-handler-is-invoked_a2c31a62e7f8.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open theSystem settingssection. To do this, clickin the top right \u2192System setup\u2192System settings.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1c6631f5b7750f3e_-ui_page-customization-basics_examples_change-where-the-query-handler-is-invoked_822ea55f9414.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the label properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1c6631f5b7750f3e_-ui_page-customization-basics_examples_change-where-the-query-handler-is-invoked_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/1c6631f5b7750f3e_-ui_page-customization-basics_examples_change-where-the-query-handler-is-invoked_0022b8eb0588.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/docs/sites/academy_en/files/packages/ChangeWhereTheRequestHandlerIsInvoked/8.1/UsrRequests_2024-06-25_09.52.32.zip",
+      "text": "Package with example implementation",
+      "filename": "UsrRequests_2024-06-25_09.52.32.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/1c6631f5b7750f3e_-ui_page-customization-basics_examples_change-where-the-query-handler-is-invoked_UsrRequests_2024-06-25_09.52.32.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Change where the request handler is invoked on the page",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Set up page UI\u200b",
+      "anchor": "title-3830-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Change the origin call of the request handler\u200b",
+      "anchor": "title-3830-2"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-3830-3"
+    },
+    {
+      "level": 2,
+      "text": "Source codes\u200b",
+      "anchor": "title-3830-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "GETBYCODE",
+        "path": "("
+      },
+      {
+        "method": "UPDATE",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "GETBYCODE",
+        "path": "("
+      },
+      {
+        "method": "UPDATE",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/examples/change-where-the-query-handler-is-invoked",
+      "text": "Change where the request handler is invoked on the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/page-customization-basics/examples/change-where-the-query-handler-is-invoked",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/page-customization-basics/examples/change-where-the-query-handler-is-invoked",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/page-customization-basics/examples/change-where-the-query-handler-is-invoked",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/flexcontainer",
+      "text": "FlexContainer",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/gridcontainer",
+      "text": "GridContainer",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/datetimepicker",
+      "text": "DateTimePicker",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/checkbox",
+      "text": "Checkbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/feed",
+      "text": "Feed",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/input",
+      "text": "Input",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/numberinput",
+      "text": "NumberInput",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/imageinput",
+      "text": "ImageInput",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/dropdown",
+      "text": "Dropdown",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/expansionpanel",
+      "text": "ExpansionPanel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/tabpanel",
+      "text": "TabPanel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/buttontogglepanel",
+      "text": "ButtonTogglePanel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/list",
+      "text": "List",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/references/templatelist",
+      "text": "TemplateList",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/sites/academy_en/files/packages/ChangeWhereTheRequestHandlerIsInvoked/8.1/UsrRequests_2024-06-25_09.52.32.zip",
+      "text": "Package with example implementation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:05:24.966272"
+}

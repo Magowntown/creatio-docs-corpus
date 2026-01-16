@@ -1,0 +1,1 @@
+private static Uri serverUri = new Uri("CreatioURL/0/ServiceModel/EntityDataService.svc/");

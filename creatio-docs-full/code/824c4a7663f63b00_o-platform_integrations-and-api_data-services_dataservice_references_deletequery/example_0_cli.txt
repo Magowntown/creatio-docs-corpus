@@ -1,0 +1,1 @@
+// URL format of the POST query to DataService to delete data.http(s)://[Creatio application address]/[Configuration number]/dataservice/[Data fromat]/reply/DeleteQuery

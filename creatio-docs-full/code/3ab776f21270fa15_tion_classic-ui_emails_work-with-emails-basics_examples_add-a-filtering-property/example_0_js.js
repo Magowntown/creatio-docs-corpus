@@ -1,0 +1,1 @@
+namespace Terrasoft.Configuration{    using System;    public class NoreplyHandler: IHeaderPropertyHandler    {        public bool Check(object value) {            return string.Equals(value.ToString(), "No", StringComparison.OrdinalIgnoreCase);        }    }}

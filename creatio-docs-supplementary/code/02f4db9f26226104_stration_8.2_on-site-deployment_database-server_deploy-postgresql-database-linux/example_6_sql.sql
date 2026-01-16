@@ -1,0 +1,1 @@
+ALTER ROLE pg_sysadmin WITH SUPERUSER;

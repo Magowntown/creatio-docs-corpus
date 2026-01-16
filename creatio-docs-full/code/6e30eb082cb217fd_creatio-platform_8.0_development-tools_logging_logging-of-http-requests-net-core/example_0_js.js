@@ -1,0 +1,1 @@
+"RequestLogging": {    "Standard": {        "Enabled": true,        "StatusCodes": [ 200, 300, 302 ]    },    ...}

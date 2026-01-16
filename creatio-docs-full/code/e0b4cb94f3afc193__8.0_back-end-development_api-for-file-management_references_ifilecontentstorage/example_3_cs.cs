@@ -1,0 +1,1 @@
+Task CopyAsync(IFileContentCopyMoveContext context)

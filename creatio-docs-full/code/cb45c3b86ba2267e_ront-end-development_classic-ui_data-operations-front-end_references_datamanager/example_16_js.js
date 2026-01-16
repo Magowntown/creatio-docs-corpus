@@ -1,0 +1,1 @@
+{Object} save(callback, scope)

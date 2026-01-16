@@ -1,0 +1,1 @@
+Terrasoft.sdk.Model.addBusinessRule("Contact", {    ruleType: Terrasoft.RuleTypes.RegExp,    regExp : /^([0-9\(\)\/\+ \-]*)$/    triggeredByColumns: ["HomeNumber", "BusinessNumber"]});

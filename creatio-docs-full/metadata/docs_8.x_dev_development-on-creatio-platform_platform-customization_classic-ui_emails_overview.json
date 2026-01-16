@@ -1,0 +1,690 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/emails/overview",
+  "title": "Customize emails",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1"
+    },
+    {
+      "text": "Emails",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\nnote\nThe functionality is relevant to Classic UI.\n## Junk case custom filtering\u200b\nCreatio users can filter unwanted cases by creating a list of email addresses and domains for automatic spam detection. Incoming cases from these domains or addresses are either not registered at all or have the \"Canceled\" status (the default status value is set in the **Junk Case Default Status** system setting).\nJunk filter enables email header analysis based on certain flags, e.g. `Auto-Submitted`. Emails with those flags are either not registered or register with the pre-defined initial status, set in system settings.\nTo analyze email addresses and domains, simply add the required value to the **Blacklist of email addresses and domains for case registration** lookup. The emails will be marked as blacklisted during the analysis when you populate the lookup with values (their type is set automatically).\nEmail analysis is done through the **Email header properties management** lookup. Follow these steps to add a new analysis property:\n1. Add a new class that implements the `IHeaderPropertyHandler` interface. This interface contains a single `Check()` method that returns a value of `bool` type. Check the property value and return the result during the `Check()` method implementation. If the method returns `true`, the system creates the case using the standard mechanism, if `false`, the system treats the email as blacklisted.\n2. Add an [Email header properties management] lookup value. Specify the property name used for analysis in the `Name` column. Specify the class name (added in the previous paragraph) in the `handler` column.\n## Working with email threads\u200b\nThe mechanism for creating email threads is available in Creatio since version 7.10.0. The main purpose of this mechanism is to improve the email interface. Use this mechanism to easily find email connections, e.g. by copying the connections of the previous email.\nThe thread construction mechanism is based on the `In-Reply-To` email header data. According to generally accepted agreements, this header should contain the `Message-ID` email identifier. The Creatio application retrieves these headers from the synchronized Email service (IMAP / Exchange).\nThe mechanism can be divided into two logical parts \u2013 creating threads and populating activity connection fields.\n### Creating email threads\u200b\nThe `EmailMessageData` detail contains 3 fields:\n* `MessageId` \u2013 a string of 500 characters in length;\n* `InReplyTo` \u2013 a string of 500 characters in length;\n* `ParentMessageId` \u2013 a lookup field that references the `EmailMessageData` detail.\nThe `MessageId` and `InReplyTo` fields are populated with the corresponding message header values during synchronization.\nThe `ParentMessageId` field is populated with the following values:\n1. The `EmailMessageData` table searches for records where `MessageId` is identical to `InReplyTo`. The first found record is set as the current `ParentMessageId`.\n2. The `ParentMessageId` field is populated with the current `Id` value in all `EmailMessageData` records if the `InReplyTo` field of these records is identical to the `MessageId` field`.`\nEmail thread connections are updated for every email.\n### Copying previous email connections in a thread\u200b\nSpreading activity connections across the thread upon adding an email. The **Case** field is used in this case.\nA parent record with the activity that includes the populated **Contact** field is searched for the current `EmailMessageData` record. The **Case** field values from this activity will be spread across the thread. Starting with the found `EmailMessageData` record, all child `EmailMessageData` records are found and their **Case** field value is updated.\nView a thread with 3 emails in the table below.\nActivityId| Title| CaseId| EmailMessageId| EmailMessageParentId  \n---|---|---|---|---  \n28BD6D59-B9D7-4FF9-89F5-FEE1DD003912| Re: relation| NULL| 66812FBF-411B-4FE0-94C9-1E70FBBEB2D3| F05B529D-C98C-4E26-BE00-21F8721AEF58  \nDC0A40D4-700A-40EB-B394-90E0376C3B5D| Re: relation| 1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B| F05B529D-C98C-4E26-BE00-21F8721AEF58| E1A0120E-B7C0-4261-9DE0-C63341BF1E0B  \nD7A9B82C-ED46-437C-980A-B2650D4FF3DA| relation| 906909E8-4D64-47FD-AF92-B65B0826AEC3| E1A0120E-B7C0-4261-9DE0-C63341BF1E0B| NULL  \nView the another email is received in the thread in the table below.\nActivityId| Title| CaseId| EmailMessageId| EmailMessageParentId  \n---|---|---|---|---  \n6623B052-73AD-4AE5-AE61-A6F9BCD930A0| Re: relation| NULL| 60C00B01-D0BF-40F6-923E-1830E433AEA1| 66812FBF-411B-4FE0-94C9-1E70FBBEB2D3  \n28BD6D59-B9D7-4FF9-89F5-FEE1DD003912| Re: relation| NULL| 66812FBF-411B-4FE0-94C9-1E70FBBEB2D3| F05B529D-C98C-4E26-BE00-21F8721AEF58  \nDC0A40D4-700A-40EB-B394-90E0376C3B5D| Re: relation| 1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B| F05B529D-C98C-4E26-BE00-21F8721AEF58| E1A0120E-B7C0-4261-9DE0-C63341BF1E0B  \nD7A9B82C-ED46-437C-980A-B2650D4FF3DA| relation| 906909E8-4D64-47FD-AF92-B65B0826AEC3| E1A0120E-B7C0-4261-9DE0-C63341BF1E0B| NULL  \nStarting with the record in which `EmailMessageId` is \"60C00B01-D0BF-40F6-923E-1830E433AEA1\", a record with the populated `CaseId` column is searched (does not contain `NULL`). This is a record where `EmailMessageId` = \"F05B529D-C98C-4E26-BE00-21F8721AEF58\", and `CaseId` = \"1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B\".\nNow, starting with the record in which `EmailMessageId` is \"F05B529D-C98C-4E26-BE00-21F8721AEF58\", Creatio updates the value of the `CaseId` field for the connected records throughout the thread.\nActivityId| Title| CaseId| EmailMessageId| EmailMessageParentId  \n---|---|---|---|---  \n6623B052-73AD-4AE5-AE61-A6F9BCD930A0| Re: relation| 1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B| 60C00B01-D0BF-40F6-923E-1830E433AEA1| 66812FBF-411B-4FE0-94C9-1E70FBBEB2D3  \n28BD6D59-B9D7-4FF9-89F5-FEE1DD003912| Re: relation| 1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B| 66812FBF-411B-4FE0-94C9-1E70FBBEB2D3| F05B529D-C98C-4E26-BE00-21F8721AEF58  \nDC0A40D4-700A-40EB-B394-90E0376C3B5D| Re: relation| 1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B| F05B529D-C98C-4E26-BE00-21F8721AEF58| E1A0120E-B7C0-4261-9DE0-C63341BF1E0B  \nD7A9B82C-ED46-437C-980A-B2650D4FF3DA| relation| 906909E8-4D64-47FD-AF92-B65B0826AEC3| E1A0120E-B7C0-4261-9DE0-C63341BF1E0B| NULL  \nnote\nMail servers sometimes send out letters in the wrong sequence, disregarding the way they were written in the thread\n(e.g. during synchronization, emails are received first from the inbox and then from the outbox). This complicates the mechanism. Building a thread for the emails that were not received consistently is impossible during synchronization. In that case, a thread can be built once the synchronization is complete. If certain mailbox folders are not loaded, or if the conversation was interrupted by other participants, the thread search logic may not work. However, the thread can be built when all emails are downloaded from the inbox in most cases.\n### Recommendations for adding a custom search process for all thread connections after downloading an email\u200b\nUse the following guidelines to start working on a new email after thread formation:\n1. The `Id` field of the synchronization session appears in the `EmailMessageData` table (the values are unique for all synchronization processes). This field is populated only for synchronized emails.\n2. A record is added to the new `FinishedSyncSession` table if at least one email was received during synchronization.\n3. Certain processes that responded to the signal of saving activities now respond to the (`Inserted`) insertion signal of the `FinishedSyncSession` object. Emails from `EmailMessageData` are selected based on the synchronization session `Id`. The `MailboxSyncSettings` field of the `EmailMessageData` object can be used to select Email messages from the service box.\n## Macro handler in the email template\u200b\nThe email templates can be used for communication with a service team. They are available in the **Email templates** lookup.\nFor example, the **Case closure notification** template is used to notify the user that the case has been closed. A number of pre-set macros can be used to display the values of some system object columns in the emails (for example contact's title or job).\nCreatio enables to implement a custom logic of adding values that is returned by the macro handler. During the processing of the macro the Creatio will execute the algorithm implemented by the developer instead of the basic logic.\nThe `@Invoke` tag points on the specific handler of a class. After that, the name of the class that implements the `IMacrosInvokable` interface with the `GetMacrosValue()` method should be specified after \"..\" This method will return the string that replaces the macro string.\nTo implement custom macro handler:\n1. Create class that implements the `IMacrosInvokable` interface.\n2. Register a macro in the `EmailTemplateMacros` table by specifying the `ParentId` (base template with the `@Invoke` tag) and the `ColumnPath` (class name).\n3. Add a macro to the email template",
+  "code_examples": [],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "ActivityId",
+          "Title",
+          "CaseId",
+          "EmailMessageId",
+          "EmailMessageParentId"
+        ],
+        [
+          "28BD6D59-B9D7-4FF9-89F5-FEE1DD003912",
+          "Re: relation",
+          "NULL",
+          "66812FBF-411B-4FE0-94C9-1E70FBBEB2D3",
+          "F05B529D-C98C-4E26-BE00-21F8721AEF58"
+        ],
+        [
+          "DC0A40D4-700A-40EB-B394-90E0376C3B5D",
+          "Re: relation",
+          "1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B",
+          "F05B529D-C98C-4E26-BE00-21F8721AEF58",
+          "E1A0120E-B7C0-4261-9DE0-C63341BF1E0B"
+        ],
+        [
+          "D7A9B82C-ED46-437C-980A-B2650D4FF3DA",
+          "relation",
+          "906909E8-4D64-47FD-AF92-B65B0826AEC3",
+          "E1A0120E-B7C0-4261-9DE0-C63341BF1E0B",
+          "NULL"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>ActivityId</p></th><th><p>Title</p></th><th><p>CaseId</p></th><th><p>EmailMessageId</p></th><th><p>EmailMessageParentId</p></th></tr><tr><td><p>28BD6D59-B9D7-4FF9-89F5-FEE1DD003912</p></td><td><p>Re: relation</p></td><td><p>NULL</p></td><td><p>66812FBF-411B-4FE0-94C9-1E70FBBEB2D3</p></td><td><p>F05B529D-C98C-4E26-BE00-21F8721AEF58</p></td></tr><tr><td><p>DC0A40D4-700A-40EB-B394-90E0376C3B5D</p></td><td><p>Re: relation</p></td><td><p>1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B</p></td><td><p>F05B529D-C98C-4E26-BE00-21F8721AEF58</p></td><td><p>E1A0120E-B7C0-4261-9DE0-C63341BF1E0B</p></td></tr><tr><td><p>D7A9B82C-ED46-437C-980A-B2650D4FF3DA</p></td><td><p>relation</p></td><td><p>906909E8-4D64-47FD-AF92-B65B0826AEC3</p></td><td><p>E1A0120E-B7C0-4261-9DE0-C63341BF1E0B</p></td><td><p>NULL</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "ActivityId",
+          "Title",
+          "CaseId",
+          "EmailMessageId",
+          "EmailMessageParentId"
+        ],
+        [
+          "6623B052-73AD-4AE5-AE61-A6F9BCD930A0",
+          "Re: relation",
+          "NULL",
+          "60C00B01-D0BF-40F6-923E-1830E433AEA1",
+          "66812FBF-411B-4FE0-94C9-1E70FBBEB2D3"
+        ],
+        [
+          "28BD6D59-B9D7-4FF9-89F5-FEE1DD003912",
+          "Re: relation",
+          "NULL",
+          "66812FBF-411B-4FE0-94C9-1E70FBBEB2D3",
+          "F05B529D-C98C-4E26-BE00-21F8721AEF58"
+        ],
+        [
+          "DC0A40D4-700A-40EB-B394-90E0376C3B5D",
+          "Re: relation",
+          "1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B",
+          "F05B529D-C98C-4E26-BE00-21F8721AEF58",
+          "E1A0120E-B7C0-4261-9DE0-C63341BF1E0B"
+        ],
+        [
+          "D7A9B82C-ED46-437C-980A-B2650D4FF3DA",
+          "relation",
+          "906909E8-4D64-47FD-AF92-B65B0826AEC3",
+          "E1A0120E-B7C0-4261-9DE0-C63341BF1E0B",
+          "NULL"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>ActivityId</p></th><th><p>Title</p></th><th><p>CaseId</p></th><th><p>EmailMessageId</p></th><th><p>EmailMessageParentId</p></th></tr><tr><td><p>6623B052-73AD-4AE5-AE61-A6F9BCD930A0</p></td><td><p>Re: relation</p></td><td><p>NULL</p></td><td><p>60C00B01-D0BF-40F6-923E-1830E433AEA1</p></td><td><p>66812FBF-411B-4FE0-94C9-1E70FBBEB2D3</p></td></tr><tr><td><p>28BD6D59-B9D7-4FF9-89F5-FEE1DD003912</p></td><td><p>Re: relation</p></td><td><p>NULL</p></td><td><p>66812FBF-411B-4FE0-94C9-1E70FBBEB2D3</p></td><td><p>F05B529D-C98C-4E26-BE00-21F8721AEF58</p></td></tr><tr><td><p>DC0A40D4-700A-40EB-B394-90E0376C3B5D</p></td><td><p>Re: relation</p></td><td><p>1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B</p></td><td><p>F05B529D-C98C-4E26-BE00-21F8721AEF58</p></td><td><p>E1A0120E-B7C0-4261-9DE0-C63341BF1E0B</p></td></tr><tr><td><p>D7A9B82C-ED46-437C-980A-B2650D4FF3DA</p></td><td><p>relation</p></td><td><p>906909E8-4D64-47FD-AF92-B65B0826AEC3</p></td><td><p>E1A0120E-B7C0-4261-9DE0-C63341BF1E0B</p></td><td><p>NULL</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "ActivityId",
+          "Title",
+          "CaseId",
+          "EmailMessageId",
+          "EmailMessageParentId"
+        ],
+        [
+          "6623B052-73AD-4AE5-AE61-A6F9BCD930A0",
+          "Re: relation",
+          "1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B",
+          "60C00B01-D0BF-40F6-923E-1830E433AEA1",
+          "66812FBF-411B-4FE0-94C9-1E70FBBEB2D3"
+        ],
+        [
+          "28BD6D59-B9D7-4FF9-89F5-FEE1DD003912",
+          "Re: relation",
+          "1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B",
+          "66812FBF-411B-4FE0-94C9-1E70FBBEB2D3",
+          "F05B529D-C98C-4E26-BE00-21F8721AEF58"
+        ],
+        [
+          "DC0A40D4-700A-40EB-B394-90E0376C3B5D",
+          "Re: relation",
+          "1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B",
+          "F05B529D-C98C-4E26-BE00-21F8721AEF58",
+          "E1A0120E-B7C0-4261-9DE0-C63341BF1E0B"
+        ],
+        [
+          "D7A9B82C-ED46-437C-980A-B2650D4FF3DA",
+          "relation",
+          "906909E8-4D64-47FD-AF92-B65B0826AEC3",
+          "E1A0120E-B7C0-4261-9DE0-C63341BF1E0B",
+          "NULL"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>ActivityId</p></th><th><p>Title</p></th><th><p>CaseId</p></th><th><p>EmailMessageId</p></th><th><p>EmailMessageParentId</p></th></tr><tr><td><p>6623B052-73AD-4AE5-AE61-A6F9BCD930A0</p></td><td><p>Re: relation</p></td><td><p>1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B</p></td><td><p>60C00B01-D0BF-40F6-923E-1830E433AEA1</p></td><td><p>66812FBF-411B-4FE0-94C9-1E70FBBEB2D3</p></td></tr><tr><td><p>28BD6D59-B9D7-4FF9-89F5-FEE1DD003912</p></td><td><p>Re: relation</p></td><td><p>1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B</p></td><td><p>66812FBF-411B-4FE0-94C9-1E70FBBEB2D3</p></td><td><p>F05B529D-C98C-4E26-BE00-21F8721AEF58</p></td></tr><tr><td><p>DC0A40D4-700A-40EB-B394-90E0376C3B5D</p></td><td><p>Re: relation</p></td><td><p>1C6E18E3-48B1-495E-8EF9-ACA35DB9DE0B</p></td><td><p>F05B529D-C98C-4E26-BE00-21F8721AEF58</p></td><td><p>E1A0120E-B7C0-4261-9DE0-C63341BF1E0B</p></td></tr><tr><td><p>D7A9B82C-ED46-437C-980A-B2650D4FF3DA</p></td><td><p>relation</p></td><td><p>906909E8-4D64-47FD-AF92-B65B0826AEC3</p></td><td><p>E1A0120E-B7C0-4261-9DE0-C63341BF1E0B</p></td><td><p>NULL</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe functionality is relevant to Classic UI.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The functionality is relevant to Classic UI.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteMail servers sometimes send out letters in the wrong sequence, disregarding the way they were written in the thread(e.g. during synchronization, emails are received first from the inbox and then from the outbox). This complicates the mechanism. Building a thread for the emails that were not received consistently is impossible during synchronization. In that case, a thread can be built once the synchronization is complete. If certain mailbox folders are not loaded, or if the conversation was interrupted by other participants, the thread search logic may not work. However, the thread can be built when all emails are downloaded from the inbox in most cases.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Mail servers sometimes send out letters in the wrong sequence, disregarding the way they were written in the thread</p><p>(e.g. during synchronization, emails are received first from the inbox and then from the outbox). This complicates the mechanism. Building a thread for the emails that were not received consistently is impossible during synchronization. In that case, a thread can be built once the synchronization is complete. If certain mailbox folders are not loaded, or if the conversation was interrupted by other participants, the thread search logic may not work. However, the thread can be built when all emails are downloaded from the inbox in most cases.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Mail servers sometimes send out letters in the wrong sequence, disregarding the way they were written in the thread(e.g. during synchronization, emails are received first from the inbox and then from the outbox). This complicates the mechanism. Building a thread for the emails that were not received consistently is impossible during synchronization. In that case, a thread can be built once the synchronization is complete. If certain mailbox folders are not loaded, or if the conversation was interrupted by other participants, the thread search logic may not work. However, the thread can be built when all emails are downloaded from the inbox in most cases.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Mail servers sometimes send out letters in the wrong sequence, disregarding the way they were written in the thread</p><p>(e.g. during synchronization, emails are received first from the inbox and then from the outbox). This complicates the mechanism. Building a thread for the emails that were not received consistently is impossible during synchronization. In that case, a thread can be built once the synchronization is complete. If certain mailbox folders are not loaded, or if the conversation was interrupted by other participants, the thread search logic may not work. However, the thread can be built when all emails are downloaded from the inbox in most cases.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Customize emails",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Junk case custom filtering\u200b",
+      "anchor": "title-1365-1"
+    },
+    {
+      "level": 2,
+      "text": "Working with email threads\u200b",
+      "anchor": "title-1369-1"
+    },
+    {
+      "level": 3,
+      "text": "Creating email threads\u200b",
+      "anchor": "title-1369-2"
+    },
+    {
+      "level": 3,
+      "text": "Copying previous email connections in a thread\u200b",
+      "anchor": "title-1369-3"
+    },
+    {
+      "level": 3,
+      "text": "Recommendations for adding a custom search process for all thread connections after downloading an email\u200b",
+      "anchor": "title-1369-4"
+    },
+    {
+      "level": 2,
+      "text": "Macro handler in the email template\u200b",
+      "anchor": "title-1376-1"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/emails/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/opening-the-page",
+      "text": "Opening the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1",
+      "text": "PreviousEmails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/emails-customization-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/emails/examples/add-a-filtering-property",
+      "text": "Add a filtering property",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/anonymous-access",
+      "text": "Retrieve allowed features before login",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:43:48.552860"
+}

@@ -1,0 +1,1 @@
+POST http://mycreatio.com/0/rest/CryptographicService/GetConvertedPasswordValue{    "password": "test"}

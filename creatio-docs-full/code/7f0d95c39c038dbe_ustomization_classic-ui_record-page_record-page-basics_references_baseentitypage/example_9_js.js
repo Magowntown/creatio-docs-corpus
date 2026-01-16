@@ -1,0 +1,1 @@
+saveCheckCanEditRight(callback, scope)

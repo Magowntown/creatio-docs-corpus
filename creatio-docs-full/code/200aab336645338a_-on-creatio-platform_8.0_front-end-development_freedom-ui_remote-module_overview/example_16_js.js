@@ -1,0 +1,1 @@
+export class ImageComponent {    public imageUrl = 'https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png'}

@@ -1,0 +1,1 @@
+CustomQueryFunction(CustomQueryFunction source)

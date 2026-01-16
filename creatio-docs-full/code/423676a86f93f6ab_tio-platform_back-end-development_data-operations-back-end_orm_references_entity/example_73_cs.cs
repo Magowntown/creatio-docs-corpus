@@ -1,0 +1,1 @@
+bool SetColumnBothValues(EntitySchemaColumn column, object value, string displayValue)bool SetColumnBothValues(string columnValueName, object value, string displayColumnValueName, string displayValue)

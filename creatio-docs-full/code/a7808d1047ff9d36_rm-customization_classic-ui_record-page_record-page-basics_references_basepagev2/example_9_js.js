@@ -1,0 +1,1 @@
+IsMainHeaderVisibleAttribute STRING

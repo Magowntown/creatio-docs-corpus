@@ -1,0 +1,524 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+  "title": "Global search and deduplication FAQ",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment"
+    },
+    {
+      "text": "\u0421ontainerized components",
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components"
+    }
+  ],
+  "content_markdown": "Version: 8.3All Creatio products\nOn this page\n## How do I check which version of the global search service I have?\u200b\n**If you use Creatio cloud** , you will always have the latest version of the global search service.\n**If you use Creatio on-site** , run the following console command:\ndocker ps  \nThis will open the list of all running containers. The number of global search version will be available in the **image** column.\n## How do I initiate the re-indexing of my Creatio site?\u200b\n**For global search version 2.0 and later:**\nExecute the PUT request in this format:\nhttp://[GS-WEB-API]:81/indexation/{siteName}/reindex/full  \n**For global search versions earlier than 2.0:**\n1. Open gs-mysql container via the following command:\ndocker exec -it gs-mysql bash  \n2. Run the following command in the opened gs-mysql container:\nmysql -p1665017 use gs; UPDATE GlobalSearchIndexingEntity SET LastIndexedOn = NULL, InProcess = 0;  \n## How do I enable the global search service logging?\u200b\nBy default, the service logs only errors. To enable logging of all events, locate the following string in the docker-compose.yaml file:\n-Log4NetPath=${LOG$NET_CONFIG_FILE:-log4net.production.config}  \nReplace the string with the following string:\n-Log4NetPath=${LOG$NET_CONFIG_FILE:-log4net.debug.config}  \nnote\nIf you enable logging of all events, the number of log files will increase significantly.\n## Which metrics and tracking schema can I use to monitor the global search operation?\u200b\nExecute the following request:\nhttp:// **GS-WEB-API**:81/sites/ **SITE_NAME** /search/state  \nHere, **GS-WEB-API** is the server address, and **SITE_NAME** is your Creatio website name.\n## How do I set up access to ElasticSearch via a password?\u200b\nYou can restrict access to ElasticSearch using Haproxy that supports base64 authentification. Use the x-pack plugin to set up access to ElasticSearch via a login and a password.\n## How do I add a new object to the ElasticSearch indexing, or change the settings for the indexed fields of existing objects?\u200b\nYou can enable and configure indexing of specific sections using Creatio in-app tools. By default, ElasticSearch will index only sections regardless of their author, as well as string and lookup columns (with a few exceptions). View the up-to-date list of exceptions in the [attached *.pdf file](https://academy.creatio.com/sites/default/files/documents/downloads/exception_list.pdf).\nYou can optimize columns indexed for global search. To improve Creatio performance and reduce the load on the server, you can specify the columns to exclude from global search indexing explicitly. For example, columns that contain service information.\nTo modify the list of indexed columns:\n1. Open the System Designer. For example, click the ![btn_system_designer.png](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/base_integrations/BPMonlineHelp/register_app_in_Gsuite/btn_system_designer.png) button.\n2. Click **System settings** in the **System setup** block (Fig. 1).\nFig. 1 The System settings section\n![Fig.\u00a01 The System settings section](https://academy.creatio.com/docs/sites/en/files/images/On-site_deployment/global_search_and_deduplication_faq/scr_chapter_google_synchronization_administrator_workplace.png)\n3. Select the \"GlobalSearchIndexedDataConfig\" (\"GlobalSearchIndexedDataConfig\" code) system setting in the list and click the **Open** button.\n4. The **Default value** field on the system setting page contains the JSON list of columns to exclude from indexing (Fig. 2).\nFig. 2 The field that contains the list of columns to exclude from indexing\n![Fig.\u00a02 The field that contains the list of columns to exclude from indexing](https://academy.creatio.com/docs/sites/en/files/images/On-site_deployment/global_search_and_deduplication_faq/scr_chapter_on-site_sys_SearchIndexedDataConfig.png)\n5. Copy the list of columns to exclude from indexing and edit it externally. You can do it in any online JSON editor.\nThe list of columns to exclude from indexing consists of blocks. Each block contains a unique object code, which you can find in the **Code** field in the [**Configuration** section](https://academy.creatio.com/documents?id=15107). View an example of the block structure below:\n\"Contact\":{ // the object code   \n\"IgnoredColumns\":[ // the list of columns to exclude from indexing   \n\"dear\", // the code of the column to exclude from indexing  \n\"salutationtype\",   \n\"gender\",...  \n]  \n},  \nnote\nIf you specify \"*\" instead of the column (object) name, Creatio excludes all columns (objects) from indexing. If you add underscore to the column name, Creatio excludes all columns whose names end in the fragment marked by the underscore from indexing. For example, the \"_headerproperties\" column name excludes all columns that end in \"headerproperties\" from indexing.\n6. Validate the JSON string you edited, for example, in an online editor.\n7. Paste the updated list to the **Default value** field and save the changes.\n8. Restart the indexing to force update the column list in ElasticSearch.\n## How do I deploy ElasticSearch on several servers with a single URL? How do I set up clustering?\u200b\nLearn more in the [Elastic service documentation](https://www.elastic.co/guide/en/cloud-on-k8s/master/k8s-deploy-elasticsearch.html).\n## Why is the \"Duplicates search rules\" setting not displayed for me?\u200b\nCheck if the \"Deduplication service api address\" (\"DeduplicationWebApiUrl\" code) system setting is populated and whether the following features are enabled in \"FeatureToggle:\"\n* \"BulkESDeduplication\"\n* \"ESDeduplication\"\n* \"Deduplication\"\nLearn more about enabling additional functionality in developer documentation: [Feature Toggle mechanism](https://academy.creatio.com/documents?id=15631).\n## Can I use the global search and bulk duplicate search services in two Creatio applications simultaneously?\u200b\nIf you are using two Creatio applications, for example, production and developer environments, you can set up the global search and bulk duplicate search services for each of them independently. Use the following guides to set up the services:\n* [Global search](https://academy.creatio.com/documents?id=1712).\n* [Bulk duplicate search](https://academy.creatio.com/documents?id=1959).\n## How does Creatio sort the search results?\u200b\nThe display order of the search results mainly depends on their relevance. The following factors affect relevance:\n* The volume of text in the document.\n* The frequency of the search query in the document.\n* The frequency of the search query in the index, as well as other, less important, parameters.\nThe following system settings affect the display order of search results as well:\n* \"Global search default entity weight\" (\"GlobalSearchDefaultEntityWeight\" code). Increases the display priority of section records where the search was performed. For example, if you enter a search query from the **Contacts** section, the records of this section will appear first in the list.\n* \"Global search default primary column weight\" (\"GlobalSearchDefaultPrimaryColumnWeight\" code). Increases the display priority of specific search results. It applies to records whose primary column value matches the search query. For example, **Full name** is a primary column for the contact, and **Name** is a primary column for the account. If the search query matches the value in the record\u2019s primary column, this record will be displayed at the top of the search results.\nWhile these system settings affect relevance, they do not guarantee the exact display order of search results as the other factors affect the order as well.\n## Do microservices support Windows authentication?\u200b\nSince you must deploy the global search and deduplication service using Docker, microservices do not support Windows authentication.\n## How do I configure phone number indexing per character? \u200b\nGlobal Search automatically indexes phone numbers per character and can find them using partial matches. If you have added custom communication options of the Phone type, the default indexing mode is the exact match, and you can configure indexing per character by using the \"Global Search Telephone Number Columns\" system setting (code: GlobalSearchTelephoneNumberColumns).\nThe \"Global Search Telephone Number Columns\" system setting is available for Creatio version 8.0.7 and later. To customize this feature, use a JSON string in the **Default value** field to list objects as JSON keys and field names of the Phone type as their array values to index them individually per character, then save the setting. \nFor example, configure Global Search Telephone Number Columns as follows: \n{\u00a0  \n\"Contact\": [\"Phone\", \"MobilePhone\", \"HomePhone\"],\u00a0  \n\"Account\": [\"Phone\", \"AdditionalPhone\"],\u00a0  \n\"Lead\": [\"MobilePhone\", \"BusinesPhone\"]\u00a0  \n}  \n* * *\n## See also\u200b\n[Global search](https://academy.creatio.com/documents?id=1712)",
+  "code_examples": [
+    {
+      "code": "http://[GS-WEB-API]:81/indexation/{siteName}/reindex/full",
+      "language": "cli",
+      "context": "Execute the PUT request in this format:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker exec -it gs-mysql bash",
+      "language": "cli",
+      "context": "Open gs-mysql container via the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "mysql -p1665017 use gs; UPDATE GlobalSearchIndexingEntity SET LastIndexedOn = NULL, InProcess = 0;",
+      "language": "cli",
+      "context": "Run the following command in the opened gs-mysql container:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "-Log4NetPath=${LOG$NET_CONFIG_FILE:-log4net.production.config}",
+      "language": "cli",
+      "context": "By default, the service logs only errors. To enable logging of all events, locate the following string in the docker-compose.yaml file:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "-Log4NetPath=${LOG$NET_CONFIG_FILE:-log4net.debug.config}",
+      "language": "cli",
+      "context": "Replace the string with the following string:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "http:// **GS-WEB-API**:81/sites/ **SITE_NAME** /search/state",
+      "language": "cli",
+      "context": "Execute the following request:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"Contact\":{ // the object code     \"IgnoredColumns\":[ // the list of columns to exclude from indexing         \"dear\", // the code of the column to exclude from indexing        \"salutationtype\",         \"gender\",...    ]},",
+      "language": "js",
+      "context": "The list of columns to exclude from indexing consists of blocks. Each block contains a unique object code, which you can find in theCodefield in theConfigurationsection. View an example of the block s",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{\u00a0    \"Contact\": [\"Phone\", \"MobilePhone\", \"HomePhone\"],\u00a0    \"Account\": [\"Phone\", \"AdditionalPhone\"],\u00a0    \"Lead\": [\"MobilePhone\", \"BusinesPhone\"]\u00a0}",
+      "language": "js",
+      "context": "For example, configure Global Search Telephone Number Columns as follows:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you enable logging of all events, the number of log files will increase significantly.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you enable logging of all events, the number of log files will increase significantly.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you enable logging of all events, the number of log files will increase significantly.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you enable logging of all events, the number of log files will increase significantly.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you specify \"*\" instead of the column (object) name, Creatio excludes all columns (objects) from indexing. If you add underscore to the column name, Creatio excludes all columns whose names end in the fragment marked by the underscore from indexing. For example, the \"_headerproperties\" column name excludes all columns that end in \"headerproperties\" from indexing.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you specify \"*\" instead of the column (object) name, Creatio excludes all columns (objects) from indexing. If you add underscore to the column name, Creatio excludes all columns whose names end in the fragment marked by the underscore from indexing. For example, the \"_headerproperties\" column name excludes all columns that end in \"headerproperties\" from indexing.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you specify \"*\" instead of the column (object) name, Creatio excludes all columns (objects) from indexing. If you add underscore to the column name, Creatio excludes all columns whose names end in the fragment marked by the underscore from indexing. For example, the \"_headerproperties\" column name excludes all columns that end in \"headerproperties\" from indexing.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you specify \"*\" instead of the column (object) name, Creatio excludes all columns (objects) from indexing. If you add underscore to the column name, Creatio excludes all columns whose names end in the fragment marked by the underscore from indexing. For example, the \"_headerproperties\" column name excludes all columns that end in \"headerproperties\" from indexing.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/base_integrations/BPMonlineHelp/register_app_in_Gsuite/btn_system_designer.png",
+      "alt": "btn_system_designer.png",
+      "title": "",
+      "context": "Open the System Designer. For example, click thebutton.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22199df5df0e260b__on-site-deployment_containerized-components_global-search-and-deduplication-faq_852fba0b11fa.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/On-site_deployment/global_search_and_deduplication_faq/scr_chapter_google_synchronization_administrator_workplace.png",
+      "alt": "Fig.\u00a01 The System settings section",
+      "title": "",
+      "context": "ClickSystem settingsin theSystem setupblock (Fig.\u00a01).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22199df5df0e260b__on-site-deployment_containerized-components_global-search-and-deduplication-faq_72a405e8b8a2.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/On-site_deployment/global_search_and_deduplication_faq/scr_chapter_on-site_sys_SearchIndexedDataConfig.png",
+      "alt": "Fig.\u00a02 The field that contains the list of columns to exclude from indexing",
+      "title": "",
+      "context": "TheDefault valuefield on the system setting page contains the JSON list of columns to exclude from i",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/22199df5df0e260b__on-site-deployment_containerized-components_global-search-and-deduplication-faq_bce20db8452a.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/exception_list.pdf",
+      "text": "attached *.pdf file",
+      "filename": "exception_list.pdf",
+      "type": "pdf",
+      "local_path": "creatio-docs-full/downloads/22199df5df0e260b__on-site-deployment_containerized-components_global-search-and-deduplication-faq_exception_list.pdf"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Global search and deduplication FAQ",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "How do I check which version of the global search service I have?\u200b",
+      "anchor": "title-2069-1"
+    },
+    {
+      "level": 2,
+      "text": "How do I initiate the re-indexing of my Creatio site?\u200b",
+      "anchor": "title-2069-2"
+    },
+    {
+      "level": 2,
+      "text": "How do I enable the global search service logging?\u200b",
+      "anchor": "title-2069-3"
+    },
+    {
+      "level": 2,
+      "text": "Which metrics and tracking schema can I use to monitor the global search operation?\u200b",
+      "anchor": "title-2069-4"
+    },
+    {
+      "level": 2,
+      "text": "How do I set up access to ElasticSearch via a password?\u200b",
+      "anchor": "title-2069-5"
+    },
+    {
+      "level": 2,
+      "text": "How do I add a new object to the ElasticSearch indexing, or change the settings for the indexed fields of existing objects?\u200b",
+      "anchor": "title-2069-6"
+    },
+    {
+      "level": 2,
+      "text": "How do I deploy ElasticSearch on several servers with a single URL? How do I set up clustering?\u200b",
+      "anchor": "title-2069-7"
+    },
+    {
+      "level": 2,
+      "text": "Why is the \"Duplicates search rules\" setting not displayed for me?\u200b",
+      "anchor": "title-2069-8"
+    },
+    {
+      "level": 2,
+      "text": "Can I use the global search and bulk duplicate search services in two Creatio applications simultaneously?\u200b",
+      "anchor": "title-2069-9"
+    },
+    {
+      "level": 2,
+      "text": "How does Creatio sort the search results?\u200b",
+      "anchor": "title-2069-10"
+    },
+    {
+      "level": 2,
+      "text": "Do microservices support Windows authentication?\u200b",
+      "anchor": "title-2069-11"
+    },
+    {
+      "level": 2,
+      "text": "How do I configure phone number indexing per character?\u200b",
+      "anchor": "how-do-i-configure-phone-number-indexing-per-character"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/creatio-ai-on-site",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search",
+      "text": "PreviousGlobal search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "NextBulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:17:12.721965"
+}

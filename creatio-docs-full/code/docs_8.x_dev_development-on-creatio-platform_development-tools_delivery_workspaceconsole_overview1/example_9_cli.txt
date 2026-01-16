@@ -1,0 +1,1 @@
+[Path to WorkspaceConsole]\Terrasoft.Tools.WorkspaceConsole.exe -operation=RestoreConfiguration -backupPath=[Path to a local directory] -confRuntimeParentDirectory=[Path to a local directory] -configurationPath=[Path to a local directory] -logPath=[Path to a local directory]

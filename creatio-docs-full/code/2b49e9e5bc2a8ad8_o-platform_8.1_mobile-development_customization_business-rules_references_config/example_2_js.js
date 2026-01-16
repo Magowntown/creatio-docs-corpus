@@ -1,0 +1,1 @@
+Terrasoft.sdk.Model.addBusinessRule("Contact", {    ruleType: Terrasoft.RuleTypes.Requirement,    requireType : Terrasoft.RequirementTypes.OneOf,    events: [Terrasoft.BusinessRuleEvents.Save],    triggeredByColumns: ["HomeNumber", "BusinessNumber"],    columnNames: ["HomeNumber", "BusinessNumber"]});

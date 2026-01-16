@@ -1,0 +1,763 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/examples/develop-c-sharp-code-in-a-custom-project",
+  "title": "Develop C# code in a custom project",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools"
+    },
+    {
+      "text": "External IDEs",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides"
+    },
+    {
+      "text": "Functionality development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/functionality-development"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: advanced\n## Preliminary setup\u200b\nWe recommend using a local Creatio instance to connect the libraries of Creatio classes, deploy the local database from an archive copy, and use the WorkspaceConsole utility. The examples in this article assume Creatio is installed into the `C:\\Creatio` local directory.\nThe examples for Creatio in the cloud use the Executor utility in the `C:\\Executor` directory. You can download the utility set up to execute the example via the following link: [Download the utility](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Executor.zip).\n## Write C# code for Creatio on-site\u200b\n### 1\\. Restore the database from backup (if needed)\u200b\n[Deploy](https://academy.creatio.com/docs/8.x/setup-and-administration/8.0/category/on-site-deployment) the Creatio database from backup. The archived Creatio database backup is in the `C:\\Creatio\\db` directory.\n### 2\\. Set up the WorkspaceConsole utility\u200b\nTo manage the deployed database, [set up the WorkspaceConsole utility](https://academy.creatio.com/documents?ver=8.0&id=15207) using Creatio files:\n1. Open the `C:\\Creatio\\Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole` directory.\n2. Execute the `PrepareWorkspaceConsole.x64.bat` or `PrepareWorkspaceConsole.x86.bat` batch file depending on the Windows version.\nnote\nAfter the batch file execution finishes, make sure that the file copied the `SharpPlink-xXX.svnExe` and `SharpSvn-DB44-20-xXX.svnDll` files to the `Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole` directory from the corresponding directory (x64 or x86) as well.\n1. Specify the database connection parameters in the `Terrasoft.Tools.WorkspaceConsole.exe.config` file in the `C:\\Creatio\\Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole` directory. For example, if the **CreatioDB** database is deployed on the `dbserver` server, the connection string looks as follows:\nConnection string for the CreatioDB database\n<connectionStrings>  \n<add name=\"db\" connectionString=\"Data Source=dbserver; Initial Catalog=CreatioDB; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security=SSPI; Pooling = true; Max Pool Size = 100; Async = true; Connection Timeout=500\" />  \n</connectionStrings>  \n### 3\\. Create and set up a Visual Studio project\u200b\nCreate a standard class library project in Visual Studio.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_new_solution.png)\nUse the **Debug** tab of the class library project's properties window to specify the full path to the configured WorkspaceConsole utility in the **Start external program** property. The WorkspaceConsole utility is used as an external debugger of the developed software logic.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_proj_props_local.png)\nSet the following [WorkspaceConsole launch arguments](https://academy.creatio.com/documents?ver=8.0&id=15211) in the **Command line arguments** property:\n* Specify the full path to the debug version of the developed class library in the `-filename` argument, for example, \"C:\\Projects\\CreatioCustomServerLogic\\CreatioCustomServerLogic\\bin\\Debug\\CreatioCustomServerLogic.dll.\"\n* Specify the full name of the class to implement the developed software logic, including the names of every namespace, in the `-typeName` argument, for example, \"CreatioCustomServerLogic.MyContactCreator.\"\n* Specify the WorkspaceConsole operation in the `-operation` argument, for example, \"ExecuteScript.\"\n* Specify the workspace name in the `-workspaceName` argument, for example, \"Default.\"\n* Specify the path to the [parent directory](https://academy.creatio.com/documents?ver=8.0&id=15126) of the `conf` directory in the `-confRuntimeParentDirectory` argument, for example, \"C:\\creatio\\Terrasoft.WebApp.\"\nExample of the WorkspaceConsole launch arguments\n-filename=\"C:\\Projects\\CreatioCustomServerLogic\\CreatioCustomServerLogic\\bin\\Debug\\CreatioCustomServerLogic.dll\" -typeName=CreatioCustomServerLogic.MyContactCreator -operation=ExecuteScript -workspaceName=Default -logPath=C:\\Projects\\Logs -confRuntimeParentDirectory=C:\\creatio\\Terrasoft.WebApp -autoExit=true  \nImportant\nSpecify .NET Framework version 4.7 in the **Target framework** property of the **Application** tab in the properties of Visual Studio projects that interact with Creatio version 7.11.0 and later.\nTo use the Creatio core\u2019s server-side classes, set up dependencies from the appropriate Creatio class libraries in the created project. For example, add a dependency from the `Terrasoft.Core.dll` library.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_references.png)\nYou can find class libraries of the `Terrasoft` namespace in the `Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole` directory of the Creatio distribution.\nnote\nThe class libraries are copied to the `Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole` directory when you [execute batch files](https://academy.creatio.com/documents?ver=8.0&id=15207).\n### 4\\. Develop the functionality\u200b\nAdd a class to the created class library project. The full class name must match the name specified in the `-typeName` argument of the WorkspaceConsole utility\u2019s launch argument string. For example, \"CreatioCustomServerLogic.MyContactCreator.\" The class must implement the `Terrasoft.Core.IExecutor` interface.\nMyContactCreator.cs\nusing System;  \nusing Terrasoft.Core;  \nnamespace CreatioCustomServerLogic {  \npublic class MyContactCreator: IExecutor {  \npublic void Execute(UserConnection userConnection) {  \n/* Retrieve the instance of the [Contacts] schema. */  \nvar schema = userConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");  \nvar length = 10;  \nfor (int i = 0; i < length; i++) {  \n/* Create a new contact. */  \nvar entity = schema.CreateEntity(userConnection);  \n/* Set contact properties. */  \nentity.SetColumnValue(\"Name\", string.Format(\"Name {0}\", i));  \nentity.SetDefColumnValues();  \n/* Save the contact to the database. */  \nentity.Save(false);  \n}  \n/* Display a console message. */  \nConsole.WriteLine($ \"{length} contacts created\");  \n}  \n}  \n}  \nAfter you run the project (`F5` key), the WorkspaceConsole window that contains the corresponding message appears.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_01.png)\nYou can also set a breakpoint on any line of code and see what the values of variables are while the program is running (i. e., debug the program).\nView the execution outcome of the aforementioned code in the **Contacts** Creatio section or by executing the database request.\nAdded contacts\n![Added contacts](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_02.png)\nRequest to the contact database table\n![Request to the contact database table](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_03.png)\n## Write C# code for Creatio in the cloud\u200b\n### 1\\. Create a class library project\u200b\nCreate a standard class library project in Visual Studio. For example, name the project \"CreatioCustomServerLogic.Cloud.\"\nTo use the Creatio core\u2019s server-side classes, set up the dependencies from the necessary Creatio class libraries in the created project. For example, add a dependency from the `Terrasoft.Core.dll` library.\nSpecify the full path to the configured Executor utility (\"C:\\Executor\\Executor.exe\") and select the condition to launch the library build event (Always) in the **Post-build event command line** property on the **BuildEvents** tab of the created class library project\u2019s properties window.\nBuild Eventstab properties\n![Build Eventstab properties](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_build_events.png)\n### 2\\. Develop the functionality\u200b\nAdd the class that implements the `Terrasoft.Core.IExecutor` interface to the created class library project.\nMyContactReader.cs\nusing System;  \nusing System.Web;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Entities;  \nnamespace CreatioCustomServerLogic.Cloud {  \npublic class MyContactReader: IExecutor {  \npublic void Execute(UserConnection userConnection) {  \n/* Retrieve the instance of the [Contacts] schema. */  \nvar entitySchema = userConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");  \n/* Create an instance of the request class. */  \nvar esq = new EntitySchemaQuery(entitySchema);  \n/* Add all schema columns to the request. */  \nesq.AddAllSchemaColumns();  \n/* Retrieve the collection of [Contacts] section records. */  \nvar collection = esq.GetEntityCollection(userConnection);  \nforeach(var entity in collection) {  \n/* Pass the needed values to the HTTP response to the Executor utility request. */  \nHttpContext.Current.Response.Write(entity.GetTypedColumnValue <string> (\"Name\"));  \nHttpContext.Current.Response.Write(Environment.NewLine);  \n}  \n}  \n}  \n}  \n### 3\\. Set up the Executor utility\u200b\nnote\nYou can download the utility set up to execute the example via the following link: [Download the utility](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Executor.zip).\nOpen the directory that contains the installed Executor utility (`C:\\Executor`). Then, set the values of the following setup elements in the configuration file:\n* Specify the URL of the Creatio application loader in the `Loader` element. Usually, this is the Creatio website URL, for example, \"<https://mycloudapp.creatio.com>.\"\n* Specify the Creatio application URL in the `WebApp` element. Usually, this is the path to the default Creatio configuration, for example, \"<https://mycloudapp.creatio.com/0>.\"\n* Specify the name of the Creatio user in the `Login` element, for example, \"Supervisor.\"\n* Specify the password of the Creatio user in the `Password` element.\n* Specify the path to the original class library copy in the `LibraryOriginalPath` element. Usually, this is a path to where the Visual Studio creates a class library after the compilation, for example, \"C:\\Projects\\CreatioCustomServerLogic\\CreatioCustomServerLogic.Cloud\\bin\\Debug\\CreatioCustomServerLogic.Cloud.dll.\"\n* Specify the path to create a class library copy that interacts with the remote server in the `LibraryCopyPath` element. You can specify any temporary directory or a directory that contains the Executor utility, for example, \"C:\\Executor\\CreatioCustomServerLogic.Cloud.dll.\"\n* Specify the full name of the class to implement the developed software logic, including the names of all namespaces, in the `LibraryType` element, for example, \"CreatioCustomServerLogic.Cloud.MyContactReader.\"\n* Enter the name of the class library in the `LibraryName` element, for example, \"CreatioCustomServerLogic.Cloud.dll.\"\n### 4\\. Execute the developed code\u200b\nTo launch the building process, use the **Build Solution** and **Rebuild Solution** menu commands.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_build_menu.png)\nView the execution outcome of the developed code in the **Output** window of Visual Studio after each successful build of the class library.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_04.png)",
+  "code_examples": [
+    {
+      "code": "<connectionStrings>    <add name=\"db\" connectionString=\"Data Source=dbserver; Initial Catalog=CreatioDB; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security=SSPI; Pooling = true; Max Pool Size = 100; Async = true; Connection Timeout=500\" /></connectionStrings>",
+      "language": "js",
+      "context": "After the batch file execution finishes, make sure that the file copied theSharpPlink-xXX.svnExeandSharpSvn-DB44-20-xXX.svnDllfiles to theTerrasoft.WebApp\\DesktopBin\\WorkspaceConsoledirectory from the",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "-filename=\"C:\\Projects\\CreatioCustomServerLogic\\CreatioCustomServerLogic\\bin\\Debug\\CreatioCustomServerLogic.dll\" -typeName=CreatioCustomServerLogic.MyContactCreator -operation=ExecuteScript -workspaceName=Default -logPath=C:\\Projects\\Logs -confRuntimeParentDirectory=C:\\creatio\\Terrasoft.WebApp -autoExit=true",
+      "language": "js",
+      "context": "Set the followingWorkspaceConsole launch argumentsin theCommand line argumentsproperty:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "using System;using Terrasoft.Core;namespace CreatioCustomServerLogic {    public class MyContactCreator: IExecutor {        public void Execute(UserConnection userConnection) {            /* Retrieve the instance of the [Contacts] schema. */            var schema = userConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");            var length = 10;            for (int i = 0; i < length; i++) {                /* Create a new contact. */                var entity = schema.CreateEntity(userConnection);                /* Set contact properties. */                entity.SetColumnValue(\"Name\", string.Format(\"Name {0}\", i));                entity.SetDefColumnValues();                /* Save the contact to the database. */                entity.Save(false);            }            /* Display a console message. */            Console.WriteLine($ \"{length} contacts created\");        }    }}",
+      "language": "cs",
+      "context": "Add a class to the created class library project. The full class name must match the name specified in the-typeNameargument of the WorkspaceConsole utility\u2019s launch argument string. For example, \"Crea",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "using System;using System.Web;using Terrasoft.Core;using Terrasoft.Core.Entities;namespace CreatioCustomServerLogic.Cloud {    public class MyContactReader: IExecutor {        public void Execute(UserConnection userConnection) {            /* Retrieve the instance of the [Contacts] schema. */            var entitySchema = userConnection.EntitySchemaManager.GetInstanceByName(\"Contact\");            /* Create an instance of the request class. */            var esq = new EntitySchemaQuery(entitySchema);            /* Add all schema columns to the request. */            esq.AddAllSchemaColumns();            /* Retrieve the collection of [Contacts] section records. */            var collection = esq.GetEntityCollection(userConnection);            foreach(var entity in collection) {                /* Pass the needed values to the HTTP response to the Executor utility request. */                HttpContext.Current.Response.Write(entity.GetTypedColumnValue <string> (\"Name\"));                HttpContext.Current.Response.Write(Environment.NewLine);            }        }    }}",
+      "language": "cs",
+      "context": "Add the class that implements theTerrasoft.Core.IExecutorinterface to the created class library project.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteAfter the batch file execution finishes, make sure that the file copied theSharpPlink-xXX.svnExeandSharpSvn-DB44-20-xXX.svnDllfiles to theTerrasoft.WebApp\\DesktopBin\\WorkspaceConsoledirectory from the corresponding directory (x64 or x86) as well.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>After the batch file execution finishes, make sure that the file copied the <code>SharpPlink-xXX.svnExe</code> and <code>SharpSvn-DB44-20-xXX.svnDll</code> files to the <code>Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole</code> directory from the corresponding directory (x64 or x86) as well.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "After the batch file execution finishes, make sure that the file copied theSharpPlink-xXX.svnExeandSharpSvn-DB44-20-xXX.svnDllfiles to theTerrasoft.WebApp\\DesktopBin\\WorkspaceConsoledirectory from the corresponding directory (x64 or x86) as well.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>After the batch file execution finishes, make sure that the file copied the <code>SharpPlink-xXX.svnExe</code> and <code>SharpSvn-DB44-20-xXX.svnDll</code> files to the <code>Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole</code> directory from the corresponding directory (x64 or x86) as well.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Target framework",
+      "content": "ImportantSpecify .NET Framework version 4.7 in theTarget frameworkproperty of theApplicationtab in the properties of Visual Studio projects that interact with Creatio version 7.11.0 and later.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Specify .NET Framework version 4.7 in the <strong>Target framework</strong> property of the <strong>Application</strong> tab in the properties of Visual Studio projects that interact with Creatio version 7.11.0 and later.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Target framework",
+      "content": "Specify .NET Framework version 4.7 in theTarget frameworkproperty of theApplicationtab in the properties of Visual Studio projects that interact with Creatio version 7.11.0 and later.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Specify .NET Framework version 4.7 in the <strong>Target framework</strong> property of the <strong>Application</strong> tab in the properties of Visual Studio projects that interact with Creatio version 7.11.0 and later.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe class libraries are copied to theTerrasoft.WebApp\\DesktopBin\\WorkspaceConsoledirectory when youexecute batch files.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The class libraries are copied to the <code>Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole</code> directory when you <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15207\" rel=\"noopener noreferrer\" target=\"_blank\">execute batch files</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The class libraries are copied to theTerrasoft.WebApp\\DesktopBin\\WorkspaceConsoledirectory when youexecute batch files.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The class libraries are copied to the <code>Terrasoft.WebApp\\DesktopBin\\WorkspaceConsole</code> directory when you <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15207\" rel=\"noopener noreferrer\" target=\"_blank\">execute batch files</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteYou can download the utility set up to execute the example via the following link:Download the utility.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can download the utility set up to execute the example via the following link: <a href=\"https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Executor.zip\" rel=\"noopener noreferrer\" target=\"_blank\">Download the utility</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You can download the utility set up to execute the example via the following link:Download the utility.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can download the utility set up to execute the example via the following link: <a href=\"https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Executor.zip\" rel=\"noopener noreferrer\" target=\"_blank\">Download the utility</a>.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_new_solution.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a standard class library project in Visual Studio.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_18e0893d69de.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_proj_props_local.png",
+      "alt": "",
+      "title": "",
+      "context": "Use theDebugtab of the class library project's properties window to specify the full path to the con",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_6cc0251773a9.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_references.png",
+      "alt": "",
+      "title": "",
+      "context": "To use the Creatio core\u2019s server-side classes, set up dependencies from the appropriate Creatio clas",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_3755778ecdf4.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_01.png",
+      "alt": "",
+      "title": "",
+      "context": "After you run the project (F5key), the WorkspaceConsole window that contains the corresponding messa",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_952b7a1fee5c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_02.png",
+      "alt": "Added contacts",
+      "title": "",
+      "context": "View the execution outcome of the aforementioned code in theContactsCreatio section or by executing ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_0039177f1d99.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_03.png",
+      "alt": "Request to the contact database table",
+      "title": "",
+      "context": "View the execution outcome of the aforementioned code in theContactsCreatio section or by executing ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_d0911831cce3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_build_events.png",
+      "alt": "Build Eventstab properties",
+      "title": "",
+      "context": "Specify the full path to the configured Executor utility (\"C:\\Executor\\Executor.exe\") and select the",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_333a67277f6c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_build_menu.png",
+      "alt": "",
+      "title": "",
+      "context": "To launch the building process, use theBuild SolutionandRebuild Solutionmenu commands.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_d54eb6d3ca54.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ServerCodeDeveloping/scr_result_04.png",
+      "alt": "",
+      "title": "",
+      "context": "View the execution outcome of the developed code in theOutputwindow of Visual Studio after each succ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_e2ef1b7d2e09.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Executor.zip",
+      "text": "Download the utility",
+      "filename": "Executor.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_Executor.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Executor.zip",
+      "text": "Download the utility",
+      "filename": "Executor.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/6dd6a66370068a0f_evelopment-tools_external-ides_examples_develop-c-sharp-code-in-a-custom-project_Executor.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Develop C# code in a custom project",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Preliminary setup\u200b",
+      "anchor": "title-2096-2"
+    },
+    {
+      "level": 2,
+      "text": "Write C# code for Creatio on-site\u200b",
+      "anchor": "title-2096-3"
+    },
+    {
+      "level": 3,
+      "text": "1. Restore the database from backup (if needed)\u200b",
+      "anchor": "title-2096-4"
+    },
+    {
+      "level": 3,
+      "text": "2. Set up the WorkspaceConsole utility\u200b",
+      "anchor": "title-2096-5"
+    },
+    {
+      "level": 3,
+      "text": "3. Create and set up a Visual Studio project\u200b",
+      "anchor": "title-2096-6"
+    },
+    {
+      "level": 3,
+      "text": "4. Develop the functionality\u200b",
+      "anchor": "title-2096-7"
+    },
+    {
+      "level": 2,
+      "text": "Write C# code for Creatio in the cloud\u200b",
+      "anchor": "title-2096-8"
+    },
+    {
+      "level": 3,
+      "text": "1. Create a class library project\u200b",
+      "anchor": "title-2096-9"
+    },
+    {
+      "level": 3,
+      "text": "2. Develop the functionality\u200b",
+      "anchor": "title-2096-10"
+    },
+    {
+      "level": 3,
+      "text": "3. Set up the Executor utility\u200b",
+      "anchor": "title-2096-11"
+    },
+    {
+      "level": 3,
+      "text": "4. Execute the developed code\u200b",
+      "anchor": "title-2096-12"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/examples/develop-c-sharp-code-in-a-custom-project",
+      "text": "C# code (custom project)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/external-ides/examples/develop-c-sharp-code-in-a-custom-project",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/external-ides/examples/develop-c-sharp-code-in-a-custom-project",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/external-ides/examples/develop-c-sharp-code-in-a-custom-project",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/examples/develop-c-sharp-code-in-a-configuration-project",
+      "text": "PreviousC# code (configuration project)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/examples/develop-the-client-code",
+      "text": "NextJS code",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.0/category/on-site-deployment",
+      "text": "Deploy",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:27:13.714584"
+}

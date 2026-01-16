@@ -1,0 +1,1 @@
+var mainPageController = Terrasoft.util.getMainController();Terrasoft.Router.route("record", mainPageController, [{pageSchemaName: "MobileActivityGridPage"}]);

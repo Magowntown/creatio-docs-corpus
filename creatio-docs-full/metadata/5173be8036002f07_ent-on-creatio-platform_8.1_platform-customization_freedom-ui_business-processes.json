@@ -1,0 +1,701 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+  "title": "Run a business process using base request handler",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization"
+    }
+  ],
+  "content_markdown": "Version: 8.1  \nOn this page\nLevel: advanced\n`@creatio-devkit/common` lets you run business processes using base request handler. This ensures context transfer, enabling stable and predictable business logic execution as part of automation and development. Learn more: [Base request handlers](https://academy.creatio.com/documents?ver=8.1&id=15368&anchor=crt-run-business-process-request).\nnote\nCreatio forbids running the business process that has output parameters in the background.\nTo run a business process:\n1. **Add a button** to run a business process from a Freedom UI page if needed. Instructions: [Set up Button components](https://academy.creatio.com/documents?ver=8.1&id=2401) (user documentation).\n2. **Add the dependencies**. Instructions: [Display the value of a system variable](https://academy.creatio.com/documents?ver=8.1&id=15380&anchor=amd-dependencies) (similarly to step 2). Instead of the `SysValuesService` service, use the `ProcessEngineService` service that lets you interact with business processes.\n3. **Set up how to handle the action** executed on button click.\n1. Go to the `viewConfigDiff` schema section \u2192 select required element. For example, `SomeButton`.\n2. Bind the sending of base `crt.RunBusinessProcessRequest` request to the element event. We recommend using the base `crt.RunBusinessProcessRequest` request that has parameters to determine the context to run the business process precisely, based on your business goals. Learn more: [Base request handlers](https://academy.creatio.com/documents?ver=8.1&id=15368&anchor=crt-run-business-process-request).\nView the example that binds the sending of base `crt.RunBusinessProcessRequest` request to the element event below. The type of business process to run, i. e., the `processRunType` parameter value, determines the entity with which the business process interacts. Learn more: [Base request handlers](https://academy.creatio.com/documents?ver=8.1&id=15368&anchor=crt-run-business-process-request).\n* viewConfigDiff schema section (for the selected app page)\n* viewConfigDiff schema section (without connection to a dedicated app page)\n* viewConfigDiff schema section (for the selected list records)\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that calls the business process. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the base request to the \"clicked\" button event. */  \n\"request\": \"crt.RunBusinessProcessRequest\",  \n/* List of request parameters. */  \n\"params\": {  \n/* Code of the business process schema. */  \n\"processName\": \"CodeOfSomeBusinessProcessSchema\",  \n/* Type of business process to run. Run the business process for the selected app page. */  \n\"processRunType\": \"ForTheSelectedPage\",  \n/* Save the current record before the business process is run. */  \n\"saveAtProcessStart\": true,  \n/* Display the notification when the business process is run. */  \n\"showNotification\": true,  \n/* Name of the process parameter that is received by the record whose ID is specified. */  \n\"recordIdProcessParameterName\": \"SomeBusinessProcessParameter\"  \n}  \n}  \n},  \n...  \n},  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that calls the business process. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the base request to the \"clicked\" button event. */  \n\"request\": \"crt.RunBusinessProcessRequest\",  \n/* List of request parameters. */  \n\"params\": {  \n/* Code of the business process schema. */  \n\"processName\": \"CodeOfSomeBusinessProcessSchema\",  \n/* Type of business process to run. Run the business process without connection to a dedicated app page. */  \n\"processRunType\": \"RegardlessOfThePage\",  \n/* Save the current record before the business process is run. */  \n\"saveAtProcessStart\": true,  \n/* Display the notification when the business process is run. */  \n\"showNotification\": true  \n}  \n}  \n},  \n...  \n},  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that calls the business process. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the base request to the \"clicked\" button event. */  \n\"request\": \"crt.RunBusinessProcessRequest\",  \n/* List of request parameters. */  \n\"params\": {  \n/* Code of the business process schema. */  \n\"processName\": \"CodeOfSomeBusinessProcessSchema\",  \n/* Type of business process to run. Run the business process for the selected list records. */  \n\"processRunType\": \"ForTheSelectedRecords\",  \n/* Save the current record before the business process is run. */  \n\"saveAtProcessStart\": true,  \n/* Display the notification when the business process is run. */  \n\"showNotification\": true,  \n/* The data source name. */  \n\"dataSourceName\": \"PDS\",  \n/* Key-value collection where key is the business process parameter and the value is the data source field. */  \n\"parameterMappings\": {  \n\"SomeBusinessProcessParameter\": \"Id\"  \n},  \n/* Filter selected list records. */  \n\"filters\": \"$Items | crt.ToCollectionFilters : 'Items' : $DataTable_SelectionState | crt.SkipIfSelectionEmpty : $DataTable_SelectionState\",  \n/* Sorting of selected records before they are passed to the business process. */  \n\"sorting\": \"$ItemsSorting\",  \n/* Track changes of the selected variable in data source. */  \n\"selectionStateAttributeName\": \"DataTable_SelectionState\"  \n}  \n}  \n},  \n...  \n},  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n4. **Implement the base** `crt.RunBusinessProcessRequest` **request handler**.\n1. Go to the `handlers` schema section.\n2. Add a custom implementation of the base `crt.RunBusinessProcessRequest` request handler.\n1. Retrieve the instance of the HTTP client from `@creatio-devkit/common`.\n2. Send the base `crt.RunBusinessProcessRequest` request that runs a business process.\n3. Pass the required request parameters.\n4. Implement custom business logic that handles result and error of business process running.\nView an example of the base `crt.RunBusinessProcessRequest` request handler that determines context and runs the business process below.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"crt.RunBusinessProcessRequest\",  \n/* Custom implementation of a base request handler. */  \nhandler: async (request, next) => {  \n/* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */  \nconst handlerChain = sdk.HandlerChainService.instance;  \n/* Send the base request that determines context and runs the business process. */  \nvar result = await handlerChain.process({  \ntype: 'crt.RunBusinessProcessRequest',  \n/* Code of the business process schema. */  \nprocessName: 'CodeOfSomeBusinessProcessSchema',  \n/* Type of business process to run. Run the business process for the selected app page. */  \nprocessRunType: 'ForTheSelectedPage',  \n/* Save the current record before the business process is run. */  \nsaveAtProcessStart: true,  \n/* Display the notification when the business process is run. */  \nshowNotification: true,  \n/* Name of the process parameter that is received by the record whose ID is specified. */  \nrecordIdProcessParameterName: 'SomeBusinessProcessParameter'  \n});  \n/* If Creatio can run the business process, execute custom business logic. */  \nif (result.isSuccess) {  \n/* Implement custom business logic that handles result of business process running. */  \n...  \n} else {  \n/* Implement custom business logic that handles an error of business process running. */  \n...  \n}  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n},  \n},  \n]  \n* * *\n## See also\u200b\n[Display the value of a system variable](https://academy.creatio.com/documents?ver=8.1&id=15380)\n[Element setup examples](https://academy.creatio.com/docs/8.x/no-code-customization/8.1/category/element-setup-examples) (user documentation)",
+  "code_examples": [
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    /* Button that calls the business process. */    {        \"operation\": \"insert\",        \"name\": \"SomeButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the base request to the \"clicked\" button event. */                \"request\": \"crt.RunBusinessProcessRequest\",                /* List of request parameters. */                \"params\": {                    /* Code of the business process schema. */                    \"processName\": \"CodeOfSomeBusinessProcessSchema\",                    /* Type of business process to run. Run the business process for the selected app page. */                    \"processRunType\": \"ForTheSelectedPage\",                    /* Save the current record before the business process is run. */                    \"saveAtProcessStart\": true,                    /* Display the notification when the business process is run. */                    \"showNotification\": true,                    /* Name of the process parameter that is received by the record whose ID is specified. */                    \"recordIdProcessParameterName\": \"SomeBusinessProcessParameter\"                }            }        },        ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that binds the sending of basecrt.RunBusinessProcessRequestrequest to the element event below. The type of business process to run, i.\u00a0e., theprocessRunTypeparameter value, determines",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    /* Button that calls the business process. */    {        \"operation\": \"insert\",        \"name\": \"SomeButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the base request to the \"clicked\" button event. */                \"request\": \"crt.RunBusinessProcessRequest\",                /* List of request parameters. */                \"params\": {                    /* Code of the business process schema. */                    \"processName\": \"CodeOfSomeBusinessProcessSchema\",                    /* Type of business process to run. Run the business process without connection to a dedicated app page. */                    \"processRunType\": \"RegardlessOfThePage\",                    /* Save the current record before the business process is run. */                    \"saveAtProcessStart\": true,                    /* Display the notification when the business process is run. */                    \"showNotification\": true                }            }        },        ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that binds the sending of basecrt.RunBusinessProcessRequestrequest to the element event below. The type of business process to run, i.\u00a0e., theprocessRunTypeparameter value, determines",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    /* Button that calls the business process. */    {        \"operation\": \"insert\",        \"name\": \"SomeButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the base request to the \"clicked\" button event. */                \"request\": \"crt.RunBusinessProcessRequest\",                /* List of request parameters. */                \"params\": {                    /* Code of the business process schema. */                    \"processName\": \"CodeOfSomeBusinessProcessSchema\",                    /* Type of business process to run. Run the business process for the selected list records. */                    \"processRunType\": \"ForTheSelectedRecords\",                    /* Save the current record before the business process is run. */                    \"saveAtProcessStart\": true,                    /* Display the notification when the business process is run. */                    \"showNotification\": true,                    /* The data source name. */                    \"dataSourceName\": \"PDS\",                    /* Key-value collection where key is the business process parameter and the value is the data source field. */                    \"parameterMappings\": {                        \"SomeBusinessProcessParameter\": \"Id\"                    },                    /* Filter selected list records. */                    \"filters\": \"$Items | crt.ToCollectionFilters : 'Items' : $DataTable_SelectionState | crt.SkipIfSelectionEmpty : $DataTable_SelectionState\",                    /* Sorting of selected records before they are passed to the business process. */                    \"sorting\": \"$ItemsSorting\",                    /* Track changes of the selected variable in data source. */                    \"selectionStateAttributeName\": \"DataTable_SelectionState\"                }            }        },        ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View the example that binds the sending of basecrt.RunBusinessProcessRequestrequest to the element event below. The type of business process to run, i.\u00a0e., theprocessRunTypeparameter value, determines",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"crt.RunBusinessProcessRequest\",        /* Custom implementation of a base request handler. */        handler: async (request, next) => {            /* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */            const handlerChain = sdk.HandlerChainService.instance;            /* Send the base request that determines context and runs the business process. */            var result = await handlerChain.process({                type: 'crt.RunBusinessProcessRequest',                /* Code of the business process schema. */                processName: 'CodeOfSomeBusinessProcessSchema',                /* Type of business process to run. Run the business process for the selected app page. */                processRunType: 'ForTheSelectedPage',                /* Save the current record before the business process is run. */                saveAtProcessStart: true,                /* Display the notification when the business process is run. */                showNotification: true,                /* Name of the process parameter that is received by the record whose ID is specified. */                recordIdProcessParameterName: 'SomeBusinessProcessParameter'            });            /* If Creatio can run the business process, execute custom business logic. */            if (result.isSuccess) {                /* Implement custom business logic that handles result of business process running. */                ...            } else {                            /* Implement custom business logic that handles an error of business process running. */                ...            }            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        },    },]",
+      "language": "js",
+      "context": "View an example of the basecrt.RunBusinessProcessRequestrequest handler that determines context and runs the business process below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteCreatio forbids running the business process that has output parameters in the background.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Creatio forbids running the business process that has output parameters in the background.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio forbids running the business process that has output parameters in the background.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio forbids running the business process that has output parameters in the background.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Run a business process using base request handler",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "PreviousBusiness rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "NextCreatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/no-code-customization/8.1/category/element-setup-examples",
+      "text": "Element setup examples",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:12:02.645554"
+}

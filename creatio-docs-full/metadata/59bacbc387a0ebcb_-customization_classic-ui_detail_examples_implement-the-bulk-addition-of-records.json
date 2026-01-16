@@ -1,0 +1,685 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/detail/examples/implement-the-bulk-addition-of-records",
+  "title": "Implement the bulk addition of records to the detail",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1"
+    },
+    {
+      "text": "Detail",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\nnote\nThe functionality is relevant to Classic UI.\nExample\nImplement the bulk addition of records to the **Contacts** detail on the record page of the **Opportunities** section.\n## 1\\. Create the view model schema of the detail\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.2&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.2&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the schema properties in the Module Designer:\n* Set **Code** to \"OpportunityContactDetailV2.\"\n* Set **Title** to \"OpportunityContactDetailV2.\"\n* Set **Parent object** to \"OpportunityContactDetailV2.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_detail_schema_props.png)\n## 2\\. Implement the business logic of the detail\u200b\n1. Add the `LookupMultiAddMixin` mixin to the `mixins` property of the detail schema.\n2. Initialize the `LookupMultiAddMixin` mixin in the overridden `init()` method of the detail schema. Learn more about the `init()` module: [Module types and their specificities](https://academy.creatio.com/documents?ver=8.2&id=15304).\n3. Override the `getAddRecordButtonVisible()` method that displays the addition button.\n4. Override the `onCardSaved()` method that saves the detail page.\nUse the `openLookupWithMultiSelect()` method that calls the multiple selection dialog box.\n5. Implement the `getMultiSelectLookupConfig()` method that configures the dialog box. The method is connected to the `openLookupWithMultiSelect()` method and returns the configuration object for the dialog box.\nThe object **properties** are as follows:\n* `rootEntitySchemaName` is the root object schema.\n* `rootColumnName` is the connected column that indicates the root schema record.\n* `relatedEntitySchemaName` is the connected schema.\n* `relatedColumnName` is the column that indicates the connected schema record.\n6. Override the `addRecord()` method that adds records to the detail. Use the `openLookupWithMultiSelect()`, similar to `onCardSaved()` method. Set the value to `true` to run a check if the record is new.\nIn this example, the dialog box uses the data of the `[OpportunityContact]` table connected to the `[Opportunity]` column of the `[Opportunity]` root schema and the `[Contact]` column of the `[Contact]` connected schema.\nView the source code of the detail schema below.\nOpportunityContactDetailV2\ndefine(\"OpportunityContactDetailV2\", [\"LookupMultiAddMixin\"], function() {  \nreturn {  \nmixins: {  \n/* Enable the mixin in the schema. */  \nLookupMultiAddMixin: \"Terrasoft.LookupMultiAddMixin\"  \n},  \nmethods: {  \n/* Override the base method that initializes the schema. */  \ninit: function() {  \nthis.callParent(arguments);  \n/* Initialize the mixin. */  \nthis.mixins.LookupMultiAddMixin.init.call(this);  \n},  \n/* Override the base method that displays the addition button. */  \ngetAddRecordButtonVisible: function() {  \n/* Display the addition button if the detail is expanded regardless of whether you implemented the record page for the detail. */  \nreturn this.getToolsVisible();  \n},  \n/* Override the base method.  \nHandles the save event of the detail record page. */  \nonCardSaved: function() {  \n/* Open the multiple selection dialog box. */  \nthis.openLookupWithMultiSelect();  \n},  \n/* Override the base method that adds records to the detail. */  \naddRecord: function() {  \n/* Open the multiple selection dialog box. */  \nthis.openLookupWithMultiSelect(true);  \n},  \n/* The method that returns the configuration object for the dialog box. */  \ngetMultiSelectLookupConfig: function() {  \nreturn {  \n/* Set the root schema to [Opportunity]. */  \nrootEntitySchemaName: \"Opportunity\",  \n/* The root schema column. */  \nrootColumnName: \"Opportunity\",  \n/* Set the connected schema to [Contact]. */  \nrelatedEntitySchemaName: \"Contact\",  \n/* The connected schema column. */  \nrelatedColumnName: \"Contact\"  \n};  \n}  \n}  \n};  \n});  \n7. **Save the changes**.\n## Outcome of the example\u200b\n1. Refresh the Creatio page.\n2. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_button.png) button on the **Contacts** detail on the record page of the **Opportunities** section.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_add_record_mnu.png)\nAs a result, you will be able to select multiple records from the lookup.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_multi_select_lookup.png)\nOnce you confirm the selection, Creatio will add the records to the **Contacts** detail on the record page of the **Opportunities** section.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_result.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddMultipleRecordsToDetail_18.05.24_02.50.27.zip)",
+  "code_examples": [
+    {
+      "code": "define(\"OpportunityContactDetailV2\", [\"LookupMultiAddMixin\"], function() {    return {        mixins: {            /* Enable the mixin in the schema. */            LookupMultiAddMixin: \"Terrasoft.LookupMultiAddMixin\"        },        methods: {            /* Override the base method that initializes the schema. */            init: function() {                this.callParent(arguments);                /* Initialize the mixin. */                this.mixins.LookupMultiAddMixin.init.call(this);            },            /* Override the base method that displays the addition button. */            getAddRecordButtonVisible: function() {                /* Display the addition button if the detail is expanded regardless of whether you implemented the record page for the detail. */                return this.getToolsVisible();            },            /* Override the base method.            Handles the save event of the detail record page. */            onCardSaved: function() {                /* Open the multiple selection dialog box. */                this.openLookupWithMultiSelect();            },            /* Override the base method that adds records to the detail. */            addRecord: function() {                /* Open the multiple selection dialog box. */                this.openLookupWithMultiSelect(true);            },            /* The method that returns the configuration object for the dialog box. */            getMultiSelectLookupConfig: function() {                return {                    /* Set the root schema to [Opportunity]. */                    rootEntitySchemaName: \"Opportunity\",                    /* The root schema column. */                    rootColumnName: \"Opportunity\",                    /* Set the connected schema to [Contact]. */                    relatedEntitySchemaName: \"Contact\",                    /* The connected schema column. */                    relatedColumnName: \"Contact\"                };            }        }    };});",
+      "language": "js",
+      "context": "View the source code of the detail schema below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe functionality is relevant to Classic UI.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The functionality is relevant to Classic UI.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Contacts",
+      "content": "ExampleImplement the bulk addition of records to theContactsdetail on the record page of theOpportunitiessection.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Implement the bulk addition of records to the <strong>Contacts</strong> detail on the record page of the <strong>Opportunities</strong> section.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Contacts",
+      "content": "Implement the bulk addition of records to theContactsdetail on the record page of theOpportunitiessection.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Implement the bulk addition of records to the <strong>Contacts</strong> detail on the record page of the <strong>Opportunities</strong> section.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/59bacbc387a0ebcb_-customization_classic-ui_detail_examples_implement-the-bulk-addition-of-records_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_detail_schema_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Module Designer:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/59bacbc387a0ebcb_-customization_classic-ui_detail_examples_implement-the-bulk-addition-of-records_7327934fe387.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton on theContactsdetail on the record page of theOpportunitiessection.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/59bacbc387a0ebcb_-customization_classic-ui_detail_examples_implement-the-bulk-addition-of-records_2bc54520fe09.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_add_record_mnu.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton on theContactsdetail on the record page of theOpportunitiessection.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/59bacbc387a0ebcb_-customization_classic-ui_detail_examples_implement-the-bulk-addition-of-records_060bb87c9f96.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_multi_select_lookup.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, you will be able to select multiple records from the lookup.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/59bacbc387a0ebcb_-customization_classic-ui_detail_examples_implement-the-bulk-addition-of-records_8e65aadd146f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultipleRecordsToDetail/7.18/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "Once you confirm the selection, Creatio will add the records to theContactsdetail on the record page",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/59bacbc387a0ebcb_-customization_classic-ui_detail_examples_implement-the-bulk-addition-of-records_94ddc9a70b3b.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddMultipleRecordsToDetail_18.05.24_02.50.27.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAddMultipleRecordsToDetail_18.05.24_02.50.27.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/59bacbc387a0ebcb_-customization_classic-ui_detail_examples_implement-the-bulk-addition-of-records_sdkAddMultipleRecordsToDetail_18.05.24_02.50.27.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement the bulk addition of records to the detail",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create the view model schema of the detail\u200b",
+      "anchor": "title-1928-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Implement the business logic of the detail\u200b",
+      "anchor": "title-1928-2"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-1928-3"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "INIT",
+        "path": "."
+      },
+      {
+        "method": "CALL",
+        "path": "("
+      },
+      {
+        "method": "GETTOOLSVISIBLE",
+        "path": "("
+      },
+      {
+        "method": "OPENLOOKUPWITHMULTISELECT",
+        "path": "("
+      },
+      {
+        "method": "OPENLOOKUPWITHMULTISELECT",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/detail/examples/implement-the-bulk-addition-of-records",
+      "text": "Implement the bulk addition of records to the detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/detail/examples/implement-the-bulk-addition-of-records",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/examples/implement-the-bulk-addition-of-records",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/examples/implement-the-bulk-addition-of-records",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/detail/references/basedetailv2",
+      "text": "BaseDetailV2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:42:24.842926"
+}

@@ -1,0 +1,1 @@
+static QueryColumnExpression operator *(QueryFunction leftOperand, QueryFunction rightOperand)

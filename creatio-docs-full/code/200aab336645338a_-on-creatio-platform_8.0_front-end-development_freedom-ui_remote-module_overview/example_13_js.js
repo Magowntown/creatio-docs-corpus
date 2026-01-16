@@ -1,0 +1,1 @@
+<ng-container *ngIf="svgImage">    <img [src]="svgImage" alt="svgImage" /></ng-container>

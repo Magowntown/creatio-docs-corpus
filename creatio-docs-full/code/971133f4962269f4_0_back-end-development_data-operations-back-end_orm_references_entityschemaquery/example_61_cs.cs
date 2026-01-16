@@ -1,0 +1,1 @@
+EntitySchemaTrimQueryFunction CreateTrimFunction(string columnPath)EntitySchemaTrimQueryFunction CreateTrimFunction(params EntitySchemaQueryExpression[] expressions)

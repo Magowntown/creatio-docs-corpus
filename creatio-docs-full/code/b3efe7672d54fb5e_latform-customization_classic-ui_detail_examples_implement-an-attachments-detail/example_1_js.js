@@ -1,0 +1,1 @@
+define("UsrSchemae9733d1bDetail", ["css!UsrSchemaDetailCSS"], function() {    return {        entitySchemaName: "UsrPhotosFile",        details: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,        methods: {},        diff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/    };});

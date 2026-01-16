@@ -1,0 +1,1 @@
+function customFunc (args) {    ...    debugger; // <-- Debugger stops here.    ...}

@@ -1,0 +1,1 @@
+SubstringQueryFunction(SubstringQueryFunction source)

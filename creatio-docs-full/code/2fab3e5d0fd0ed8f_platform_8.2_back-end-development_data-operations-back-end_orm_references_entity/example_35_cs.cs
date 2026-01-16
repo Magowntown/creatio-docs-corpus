@@ -1,0 +1,1 @@
+UseDefRights bool

@@ -1,0 +1,1 @@
+var idOfRadiobutton = $('input **name=name_of_your_radiobutton**:checked').val();

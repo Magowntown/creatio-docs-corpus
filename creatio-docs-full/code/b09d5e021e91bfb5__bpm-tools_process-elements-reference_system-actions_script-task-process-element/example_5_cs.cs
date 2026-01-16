@@ -1,0 +1,1 @@
+DateTime dateTimeValue = Get<DateTime>("DateTimeParameter");dateTimeValue = dateTimeValue.AddDays(1);Set<DateTime>("DateTimeParameter", dateTimeValue);

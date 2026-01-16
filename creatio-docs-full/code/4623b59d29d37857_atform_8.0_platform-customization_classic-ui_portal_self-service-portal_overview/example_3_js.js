@@ -1,0 +1,1 @@
+[ServiceContract][DefaultServiceRoute]public class InternalService : BaseService{}

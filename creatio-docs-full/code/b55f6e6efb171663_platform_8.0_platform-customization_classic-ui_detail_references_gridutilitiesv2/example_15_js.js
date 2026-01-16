@@ -1,0 +1,1 @@
+removeGridRecords(records)

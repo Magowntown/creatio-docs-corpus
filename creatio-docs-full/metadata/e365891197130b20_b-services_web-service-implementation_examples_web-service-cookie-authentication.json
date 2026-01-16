@@ -1,0 +1,580 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-implementation/examples/web-service-cookie-authentication",
+  "title": "Implement a custom web service that uses cookie-based authentication",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development"
+    },
+    {
+      "text": "Web services",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services"
+    },
+    {
+      "text": "Implementation",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/implementation"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-service-implementation-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nTo implement the example, set up a custom web service. Read more >>>\nExample\nImplement the `UsrReceiveContactDataService` custom web service that uses cookie-based authentication and receives the contact information by the specified name. Creatio must return the following data:\n* The contact ID if the contact is found.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_single_contact.png)\n* The ID of the first contact only if multiple contacts are found.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_several_contacts.png)\n* The empty string if no contacts are found.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_non_existing_contact.png)\n## Implement a custom web service\u200b\n1. **Open the Customer 360 app** in the No-Code Designer.\n2. **Click** ![btn_system_designer_8_shell.png](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 **Application management** \u2192 **Application Hub** \u2192 **Customer 360** app \u2192 **Advanced settings** tab.\n3. **Create a user-made package** to add the schema. To do this, click ![btn_create_a_package.png](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png) \u2192 **Create new package** \u2192 fill out the package properties \u2192 **Save**.\nFor this example, create the `sdkReceiveContactData` user-made package.\n4. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n5. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrReceiveContactDataService  \nTitle| ReceiveContactDataService  \n6. **Apply the changes**.\n7. **Create a service class**.\n1. Add the arbitrary namespace nested into `Terrasoft.Configuration` in the Schema Designer. For example, `UsrReceiveContactDataServiceNamespace`.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (the **Code** property).\n4. Specify the `Terrasoft.Nui.ServiceModel.WebService.BaseService` class as a parent class.\n5. Add the `[ServiceContract]` and `[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]` attributes to the class.\n8. **Implement a class method**.\nFor this example, add the `public string GetContactIdByName(string Name)` method that implements the endpoint of the custom web service. The method executes database queries using the `EntitySchemaQuery` class. Depending on the `Name` parameter value specified in the query string, the response body returns the following:\n* The contact ID (`string` type) if the contact is found.\n* The ID of the first contact (`string` type) if several contacts are found.\n* The empty string if no contacts are found.\nView the source code of the `UsrReceiveContactDataService` custom web service below.\nUsrReceiveContactDataService\nnamespace Terrasoft.Configuration.UsrReceiveContactDataServiceNamespace {  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \nusing Terrasoft.Core.Entities;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(  \nRequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrReceiveContactDataService: BaseService {  \n/* The method that returns the contact ID by the contact name. */  \n[OperationContract]  \n[WebInvoke(  \nMethod = \"GET\",  \nRequestFormat = WebMessageFormat.Json,  \nBodyStyle = WebMessageBodyStyle.Wrapped,  \nResponseFormat = WebMessageFormat.Json)]  \npublic string GetContactIdByName(string Name) {  \n/* The default result. */  \nvar result = \"\";  \n/* The EntitySchemaQuery instance that accesses the \"Contact\"  \ndatabase table. */  \nvar esq = new EntitySchemaQuery(  \nUserConnection.EntitySchemaManager,  \n\"Contact\");  \n/* Add columns to the query. */  \nvar colId = esq.AddColumn(\"Id\");  \nvar colName = esq.AddColumn(\"Name\");  \n/* Filter the query data. */  \nvar esqFilter = esq.CreateFilterWithParameters(  \nFilterComparisonType.Equal,  \n\"Name\",  \nName);  \nesq.Filters.Add(esqFilter);  \n/* Retrieve the query results. */  \nvar entities = esq.GetEntityCollection(UserConnection);  \n/* If the service receives data. */  \nif (entities.Count > 0) {  \n/* Return the \"Id\" column value of the first query result record. */  \nresult = entities[0].GetColumnValue(colId.Name).ToString();  \n/* You can also use the following option.  \nresult = entities[0].GetTypedColumnValue<string>(colId.Name); */  \n}  \n/* Return the results. */  \nreturn result;  \n}  \n}  \n}  \n9. **Publish the schema**.\n**As a result** , Creatio will add the custom `UsrReceiveContactDataService` REST web service that has the `GetContactIdByName` endpoint.\n## View the result\u200b\nTo view the outcome of the example **without preauthorization** :\n1. **Access the** `GetContactIdByName` **endpoint** of the `UsrReceiveContactDataService` web service from the browser address bar.\n2. **Pass the contact name** in the `Name` parameter. For example, \"Mary King.\"\nRequest string\n[CreatioURL]/0/rest/UsrReceiveContactDataService/GetContactIdByName?Name=Mary%20King  \n**As a result** , the Creatio instance will return the **401 Unauthorized** error.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_unauthorized_request.png)\nTo view the outcome of the example that **receives the name of a single contact** :\n1. **Log in to Creatio**.\n2. **Access the** `GetContactIdByName` **endpoint** of the `UsrReceiveContactDataService` web service from the browser address bar.\n3. **Pass the contact name** in the `Name` parameter. For example, \"Mary King.\"\nRequest string\nCreatioURL/0/rest/UsrReceiveContactDataService/GetContactIdByName?Name=Mary%20King  \n**As a result** , the Creatio instance will return:\n* The contact ID if the contact is found. [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=15263&anchor=view-result)\n* The empty string if no contact is found. [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=15263&anchor=view-result-1)\nTo view the outcome of the example that **receives the names of multiple contacts** :\n1. **Log in to Creatio**.\n2. **Access the** `GetContactIdByName` **endpoint** of the `UsrReceiveContactDataService` web service from the browser address bar.\n3. **Pass the contact names** in the `Name` parameter. For example, \"Mary King\" and \"Andrew Wayne.\"\nRequest string\nCreatioURL/0/rest/UsrReceiveContactDataService/GetContactIdByName?Name=Mary%20King&Andrew%20Wayne  \n**As a result** , the Creatio instance will return:\n* The ID of the first contact only if several contacts are found. [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=263&anchor=view-result-2)\n* The empty string if no contacts are found. [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=263&anchor=view-result-1)\n## Source code\u200b\nUsrReceiveContactDataService\nnamespace Terrasoft.Configuration.UsrReceiveContactDataServiceNamespace  \n{  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \nusing Terrasoft.Core.Entities;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(  \nRequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrReceiveContactDataService: BaseService  \n{  \n/* The method that returns the contact ID by the contact name. */  \n[OperationContract]  \n[WebInvoke(  \nMethod = \"GET\",  \nRequestFormat = WebMessageFormat.Json,  \nBodyStyle = WebMessageBodyStyle.Wrapped,  \nResponseFormat = WebMessageFormat.Json)]  \npublic string GetContactIdByName(string Name)  \n{  \n/* The default result. */  \nvar result = \"\";  \n/* The \"EntitySchemaQuery\" instance that accesses the \"Contact\"  \ndatabase table. */  \nvar esq = new EntitySchemaQuery(  \nSystemUserConnection.EntitySchemaManager,  \n\"Contact\");  \n/* Add columns to the query. */  \nvar colId = esq.AddColumn(\"Id\");  \nvar colName = esq.AddColumn(\"Name\");  \n/* Filter the query data. */  \nvar esqFilter = esq.CreateFilterWithParameters(  \nFilterComparisonType.Equal,  \n\"Name\",  \nName);  \nesq.Filters.Add(esqFilter);  \n/* Retrieve the query results. */  \nvar entities = esq.GetEntityCollection(UserConnection);  \n/* If the service receives data. */  \nif (entities.Count > 0)  \n{  \n/* Return the \"Id\" column value of the first query result  \nrecord. */  \nresult = entities[0].GetColumnValue(colId.Name).ToString();  \n/* You can also use the following option.  \nresult = entities[0].GetTypedColumnValue<string>(colId.Name); */  \n}  \n/* Return the results. */  \nreturn result;  \n}  \n}  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CreateConfigurationWebService/8.1/sdkReceiveContactData_2024-09-09_10.06.46.zip)",
+  "code_examples": [
+    {
+      "code": "    namespace Terrasoft.Configuration.UsrReceiveContactDataServiceNamespace {    using System;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using Terrasoft.Core;    using Terrasoft.Web.Common;    using Terrasoft.Core.Entities;    [ServiceContract]    [AspNetCompatibilityRequirements(        RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    public class UsrReceiveContactDataService: BaseService {        /* The method that returns the contact ID by the contact name. */        [OperationContract]        [WebInvoke(            Method = \"GET\",            RequestFormat = WebMessageFormat.Json,            BodyStyle = WebMessageBodyStyle.Wrapped,            ResponseFormat = WebMessageFormat.Json)]        public string GetContactIdByName(string Name) {            /* The default result. */            var result = \"\";            /* The EntitySchemaQuery instance that accesses the \"Contact\"            database table. */            var esq = new EntitySchemaQuery(                UserConnection.EntitySchemaManager,                \"Contact\");            /* Add columns to the query. */            var colId = esq.AddColumn(\"Id\");            var colName = esq.AddColumn(\"Name\");            /* Filter the query data. */            var esqFilter = esq.CreateFilterWithParameters(                FilterComparisonType.Equal,                \"Name\",                Name);            esq.Filters.Add(esqFilter);            /* Retrieve the query results. */            var entities = esq.GetEntityCollection(UserConnection);            /* If the service receives data. */            if (entities.Count > 0) {                /* Return the \"Id\" column value of the first query result record. */                result = entities[0].GetColumnValue(colId.Name).ToString();                /* You can also use the following option.                result = entities[0].GetTypedColumnValue<string>(colId.Name); */            }            /* Return the results. */            return result;        }    }}",
+      "language": "cs",
+      "context": "View the source code of theUsrReceiveContactDataServicecustom web service below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[CreatioURL]/0/rest/UsrReceiveContactDataService/GetContactIdByName?Name=Mary%20King",
+      "language": "cli",
+      "context": "Pass the contact namein theNameparameter. For example, \"Mary King.\"",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "CreatioURL/0/rest/UsrReceiveContactDataService/GetContactIdByName?Name=Mary%20King",
+      "language": "cli",
+      "context": "Pass the contact namein theNameparameter. For example, \"Mary King.\"",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "CreatioURL/0/rest/UsrReceiveContactDataService/GetContactIdByName?Name=Mary%20King&Andrew%20Wayne",
+      "language": "cli",
+      "context": "Pass the contact namesin theNameparameter. For example, \"Mary King\" and \"Andrew Wayne.\"",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.UsrReceiveContactDataServiceNamespace{    using System;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using Terrasoft.Core;    using Terrasoft.Web.Common;    using Terrasoft.Core.Entities;    [ServiceContract]    [AspNetCompatibilityRequirements(        RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    public class UsrReceiveContactDataService: BaseService    {        /* The method that returns the contact ID by the contact name. */        [OperationContract]        [WebInvoke(            Method = \"GET\",            RequestFormat = WebMessageFormat.Json,            BodyStyle = WebMessageBodyStyle.Wrapped,            ResponseFormat = WebMessageFormat.Json)]        public string GetContactIdByName(string Name)        {            /* The default result. */            var result = \"\";            /* The \"EntitySchemaQuery\" instance that accesses the \"Contact\"            database table. */            var esq = new EntitySchemaQuery(                SystemUserConnection.EntitySchemaManager,                \"Contact\");            /* Add columns to the query. */            var colId = esq.AddColumn(\"Id\");            var colName = esq.AddColumn(\"Name\");            /* Filter the query data. */            var esqFilter = esq.CreateFilterWithParameters(                FilterComparisonType.Equal,                \"Name\",                Name);            esq.Filters.Add(esqFilter);            /* Retrieve the query results. */            var entities = esq.GetEntityCollection(UserConnection);            /* If the service receives data. */            if (entities.Count > 0)            {                /* Return the \"Id\" column value of the first query result                record. */                result = entities[0].GetColumnValue(colId.Name).ToString();                /* You can also use the following option.                result = entities[0].GetTypedColumnValue<string>(colId.Name); */            }            /* Return the results. */            return result;        }    }}",
+      "language": "cs",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrReceiveContactDataService"
+        ],
+        [
+          "Title",
+          "ReceiveContactDataService"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrReceiveContactDataService</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>ReceiveContactDataService</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleImplement theUsrReceiveContactDataServicecustom web service that uses cookie-based authentication and receives the contact information by the specified name. Creatio must return the following data:The contact ID if the contact is found.The ID of the first contact only if multiple contacts are found.The empty string if no contacts are found.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Implement the <code>UsrReceiveContactDataService</code> custom web service that uses cookie-based authentication and receives the contact information by the specified name. Creatio must return the following data:</p><ul>\n<li>\n<p>The contact ID if the contact is found.</p>\n<figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_single_contact.png\"/></div></figure>\n</li>\n<li>\n<p>The ID of the first contact only if multiple contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_several_contacts.png\"/></div></figure>\n</li>\n<li>\n<p>The empty string if no contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_non_existing_contact.png\"/></div></figure>\n</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Implement theUsrReceiveContactDataServicecustom web service that uses cookie-based authentication and receives the contact information by the specified name. Creatio must return the following data:The contact ID if the contact is found.The ID of the first contact only if multiple contacts are found.The empty string if no contacts are found.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Implement the <code>UsrReceiveContactDataService</code> custom web service that uses cookie-based authentication and receives the contact information by the specified name. Creatio must return the following data:</p><ul>\n<li>\n<p>The contact ID if the contact is found.</p>\n<figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_single_contact.png\"/></div></figure>\n</li>\n<li>\n<p>The ID of the first contact only if multiple contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_several_contacts.png\"/></div></figure>\n</li>\n<li>\n<p>The empty string if no contacts are found.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_non_existing_contact.png\"/></div></figure>\n</li>\n</ul></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_single_contact.png",
+      "alt": "",
+      "title": "",
+      "context": "The contact ID if the contact is found.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e365891197130b20_b-services_web-service-implementation_examples_web-service-cookie-authentication_930d9ca20fab.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_several_contacts.png",
+      "alt": "",
+      "title": "",
+      "context": "The ID of the first contact only if multiple contacts are found.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e365891197130b20_b-services_web-service-implementation_examples_web-service-cookie-authentication_3b838fe9ef37.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_non_existing_contact.png",
+      "alt": "",
+      "title": "",
+      "context": "The empty string if no contacts are found.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e365891197130b20_b-services_web-service-implementation_examples_web-service-cookie-authentication_d441c367a3d6.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "btn_system_designer_8_shell.png",
+      "title": "",
+      "context": "Clickin the top right \u2192Application management\u2192Application Hub\u2192Customer 360app \u2192Advanced settingstab.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e365891197130b20_b-services_web-service-implementation_examples_web-service-cookie-authentication_822ea55f9414.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png",
+      "alt": "btn_create_a_package.png",
+      "title": "",
+      "context": "Create a user-made packageto add the schema. To do this, click\u2192Create new package\u2192 fill out the pack",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e365891197130b20_b-services_web-service-implementation_examples_web-service-cookie-authentication_520896d23b28.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/scr_unauthorized_request.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the Creatio instance will return the401 Unauthorizederror.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/e365891197130b20_b-services_web-service-implementation_examples_web-service-cookie-authentication_58e2c07fbb24.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CreateConfigurationWebService/8.1/sdkReceiveContactData_2024-09-09_10.06.46.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkReceiveContactData_2024-09-09_10.06.46.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/e365891197130b20_b-services_web-service-implementation_examples_web-service-cookie-authentication_sdkReceiveContactData_2024-09-09_10.06.46.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement a custom web service that uses cookie-based authentication",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Implement a custom web service\u200b",
+      "anchor": "title-1239-1"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-1239-4"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15093-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-implementation/examples/web-service-cookie-authentication",
+      "text": "Implement a web service (cookie-authentication)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-implementation/examples/web-service-cookie-authentication",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/web-services/web-service-implementation/examples/web-service-cookie-authentication",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-implementation/examples/web-service-cookie-authentication",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-implementation/custom-web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-service-implementation-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-implementation/examples/web-service-anonymous-authentication",
+      "text": "NextImplement a web service (anonymous authentication)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-implementation/examples/web-service-non-standard-text-encoding",
+      "text": "Implement a web service (anonymous authentication and non-standard text encoding)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-calling/call-web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/call-web-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:53:22.430554"
+}

@@ -1,0 +1,1 @@
+[Path to WorkspaceConsole]\Terrasoft.Tools.WorkspaceConsole.exe -operation=SaveDBContent -contentTypes=Repository -workspaceName=[Workspace name] -destinationPath=[Path to a local directory] -webApplicationPath=[Path to the Creatio directory] -configurationPath=[Path to a local directory]

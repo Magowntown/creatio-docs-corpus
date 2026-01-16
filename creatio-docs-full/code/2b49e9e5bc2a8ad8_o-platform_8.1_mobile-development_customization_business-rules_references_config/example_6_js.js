@@ -1,0 +1,1 @@
+Terrasoft.Configuration.Consts = {    AccountTypePharmacy: "d12dc11d-8c74-46b7-9198-5a4385428f9a"};

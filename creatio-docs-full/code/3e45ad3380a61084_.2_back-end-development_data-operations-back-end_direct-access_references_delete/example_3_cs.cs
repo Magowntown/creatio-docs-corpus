@@ -1,0 +1,1 @@
+Condition Terrasoft.Core.DB.QueryCondition

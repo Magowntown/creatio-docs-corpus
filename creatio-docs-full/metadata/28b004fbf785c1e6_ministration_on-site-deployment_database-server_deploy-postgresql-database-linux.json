@@ -1,0 +1,622 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-linux",
+  "title": "Deploy PostgreSQL database (Linux)",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment"
+    },
+    {
+      "text": "Database server",
+      "href": "/docs/8.x/setup-and-administration/category/database-server"
+    }
+  ],
+  "content_markdown": "Version: 8.3All Creatio products\nOn this page\nUse one of two database configurations to deploy Creatio:\n* Use a remote DBMS (recommended)\n* Use a local PostgreSQL server.\nIf you already have a PostgreSQL server running on the intended machine, skip to step II.\nIf you have set up sysadmin (with privileges to log in, create and modify databases) and public (unprivileged) user roles, skip to step III.\n## I. Install PostgreSQL\u200b\nPostgreSQL is unavailable in most standard repositories. To install PostgreSQL on Linux:\n1. Log in as root:\nsudo su  \n2. Add the PostgreSQL repository:\necho -e \"deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -sc)-pgdg main\" > /etc/apt/sources.list.d/pgdg.list  \n3. Import the signing key of the PostgreSQL repository:\nwget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -  \n4. Update the package lists:\napt-get update  \n5. Install PostgreSQL:\napt-get install -y postgresql-16  \n6. Log out from your root session:\nexit  \nnote\nPlease refer to the [PostgreSQL documenation](https://www.postgresql.org/docs/9.5/high-availability.html) for details on PostgreSQL clustering.\n## II. Create PostgreSQL user\u200b\nA fresh installation of PostgreSQL is not ready for deploying Creatio immediately. If you plan to use a fresh installation of PostgreSQL, you need to create a user that can log in to the database using a password and has sufficient privileges to create and update a database. By default, no such user will be available.\nWe recommend to create two database users in PostgreSQL:\n* A user with the \"**sysadmin** \" role, who has maximum access privileges on the database server level. This user will restore the Creatio database from a backup file and assign access permissions.\n* A user with the \"**public** \" role, whose permissions are limited. You will need this user to set up a secure connection to the restored Creatio database using PostgreSQL authentication.\nIf your PostgreSQL instance already has sysadmin (privileged) and public (unprivileged) user roles, skip this step.\nTo create PostgreSQL users:\n1. Log in as **postgres** :\nsudo su - postgres  \n2. Open PostgreSQL shell:\npsql  \n3. Create a sysadmin user:\nCREATE USER pg_sysadmin;  \n**pg_sysadmin** \u2013 user who will be granted sysadmin privileges. This user will restore the Creatio database from a backup file and assign access permissions\n4. Make **pg_sysadmin** a system administrator:\nALTER ROLE pg_sysadmin WITH SUPERUSER;  \n5. Allow **pg_sysadmin** to log in:\nALTER ROLE pg_sysadmin WITH LOGIN;  \n6. Set a password for **pg_sysadmin** :\nALTER ROLE pg_sysadmin WITH PASSWORD 'pg_syspassword';  \n**pg_password** \u2013 sysadmin user password for connecting to the PostgreSQL server.\n7. Create a public user:\nCREATE USER pg_user;  \n**pg_user** \u2013 public user for connecting to the PostgreSQL server. You will need this user to set up a connection to the restored Creatio database.\n8. Allow **pg_user** to log in:\nALTER ROLE pg_user WITH LOGIN;  \n9. Set a password for **pg_user** :\nALTER ROLE pg_user WITH PASSWORD 'pg_password';  \n**pg_password** \u2013 public user password for connecting to the PostgreSQL server.\n10. Exit the PostgreSQL shell:\n\\q  \n11. Log out from your postgres session:\nexit  \n## III. Restore PostgreSQL database\u200b\nTo restore a PostgreSQL database from a backup file, you will need **psql** and **pg_restore** utilities. Both are part of the **postgresql-client-common** package.\nIf you install **postgresql-12** locally using **apt-get** , APT will install **postgresql-client-common** as a dependency for **postgresql-12**.\nIf you plan to use a remote PostgreSQL database without installing the PostgreSQL DBMS on your server, install the **postgresql-client-common** package manually by running:\nsudo apt-get install postgresql-client-common  \nTo restore the Creatio database from a backup file:\n1. Enter DB connection password in the environment variable:\nexport PGPASSWORD=pg_syspassword  \n**pg_syspassword** \u2013 pg_sysadmin user password for connecting to the PostgreSQL server.\n2. Create a database where the backup data will be restored:\npsql --host=pg_server_address --port=pg_server_port --username=pg_sysadmin --dbname=pg_dbname -c \"CREATE DATABASE pg_dbname_creatio WITH OWNER = pg_user ENCODING = 'UTF8' CONNECTION LIMIT = -1\"  \n**pg_server_address** \u2013 PostgreSQL server address\n**pg_server_port** \u2013 PostgreSQL server port\n**pg_sysadmin** \u2013 sysadmin user for connecting to the PostgreSQL server\n**pg_dbname** \u2013 name of the PostgreSQL DB where the instructions will be executed\nnote\nIf you have not created any databases yet or an attempt to connect to a database triggers the \"FATAL: database \"pg_dbname\" does not exist\" error, use the default database \"template1\".\n**pg_dbname_creatio** \u2013 name of the PostgreSQL DB which will host Creatio tables\n**pg_user** \u2013 the \"public\" user who will be granted permission to use and update the Creatio database\n3. If you are using AWS RDS:\n1. Download the [ChangeTypesOwner.sql](https://academy.creatio.com/sites/default/files/documents/downloads/ChangeTypesOwner.sql) script.\n2. In the script, replace the \"postgres\" value with a valid Postgres username.\n3. Run the updated ChangeTypesOwner.sql script.\n4. Navigate to the application directory:\ncd /path/to/application/directory/  \n**/path/to/application/directory/** \u2013 the directory with Creatio setup files.\n5. Navigate to the database directory:\ncd db  \n6. Restore the database from the backup file:\npg_restore --host pg_server_ip --port pg_server_port --username=pg_sysadmin --dbname=pg_dbname_creatio --no-owner --no-privileges --verbose \\path\\to\\db.backup  \n**pg_server_address** \u2013 PostgreSQL server address\n**pg_server_port** \u2013 PostgreSQL server port\n**pg_sysadmin** \u2013 sysadmin user for connecting to the PostgreSQL server\n**pg_dbname_creatio** \u2013 name of the PostgreSQL DB to insert backup tables. Use the name you specified in the \"CREATE DATABASE\" command on step 2.\n7. Download the [CreateTypeCastsPostgreSql.sql file](https://academy.creatio.com/sites/default/files/documents/downloads/CreateTypeCastsPostgreSql.sql).\n8. Execute type conversion:\npsql --host=pg_server_address --port=pg_server_port --username=pg_sysadmin --dbname=pg_dbname_creatio --file=/path/to/CreateTypeCastsPostgreSql.sql  \n**pg_server_ip** \u2013 PostgreSQL server address\n**pg_server_port** \u2013 PostgreSQL server port\n**pg_sysadmin** \u2013 sysadmin user for connecting to the PostgreSQL server\n**pg_dbname_creatio** \u2013 name of the PostgreSQL DB where the instructions will be executed\n**/path/to/CreateTypeCastsPostgreSql.sql** \u2013 path to the CreateTypeCastsPostgreSql.sql file.\n## IV. Configure max connections (optional)\u200b\nImportant\nTake these steps only if your Creatio deployment is going to serve more than 100 simultaneous users.\nTo configure max connections, set up the following parameters:\n* **max_connections** in the postgresql.conf file\n* **shared_buffers** in the postgresql.conf file\n* **kernel.shmmax** in the /etc/sysctl.conf file\nRun the following command to find the path to the postgresql.conf file:\nSHOW config_file  \n1. Set **max_connections** parameter based on the expected number of simultaneous users. Calculate the parameter value using the following formula:\nExpected number of users * 1.5  \nIf the result is less or equals 1024, use the resulting number. If the result is more or equals 1024, set the parameter to 1024.\n2. Set **shared_buffers** based on the **max_connections** value. Calculate the parameter value using the following formula:\nmax_connections * 0.24MB  \nSet the parameter value to MB and round the resulting value up. For example, if **max_connections** is 1024, **shared_buffers** is 245,76MB rounded up, i.e., 246MB.\n3. Set **kernel.shmmax** based on the **shared_buffers** value. Calculate the parameter value using the following formula:\nshared_buffers + 16MB  \nConvert the resulting value to bytes. For example, if **shared_buffers** is 246MB, **kernel.shmmax** is 274 726 912.\n## V. Change the database owner (optional)\u200b\nCreatio lets you replace the owner of the database and its objects to a non-administrator user (not a superuser) during the restoration. Use the ChangeDbObjectsOwner script for that. For Postgres version 10 and earlier: [Download the script](https://academy.creatio.com/sites/default/files/documents/downloads/ChangeDbObjectsOwner.sql). For Postgres version 11 and later: [Download the script](https://academy.creatio.com/sites/default/files/documents/downloads/ChangeDbObjectsOwner_Postgres11.v2.sql).\nTo restore the database on behalf of a non-administrator user:\n1. Replace the database owner:\npsql --host pg_server_address --port pg_server_port --username=pg_sysadmin --dbname=pg_dbname \u2013-command \"ALTER DATABASE pg_dbname_creatio OWNER TO pg_user\"  \n**pg_server_address** \u2013 PostgreSQL server address\n**pg_server_port** \u2013 PostgreSQL server port\n**pg_sysadmin** \u2013 sysadmin user for connecting to the PostgreSQL server This user must be an administrator (superuser) or have the \"ALTER DATABASE\" privileges.\n**pg_user** \u2013 the placeholder to replace with the actual username of the new database owner. You will need this user to set up a connection to the Creatio database.\n**pg_dbname_creatio** \u2013 the name of the database whose owner is being changed.\n2. Replace the owner of the database objects:\npsql --host pg_server_address --port pg_server_port --username=pg_sysadmin --dbname=pg_dbname_creatio --file=/path/toChangeDbObjectsOwner.sql --variable owner=pg_user --variable ON_ERROR_STOP=1  \n**pg_server_address** \u2013 PostgreSQL server address\n**pg_server_port** \u2013 PostgreSQL server port\n**pg_sysadmin** \u2013 sysadmin user for connecting to the PostgreSQL server This user must be an administrator (superuser) or the Creatio database owner\n**pg_user** \u2013 the placeholder to replace with the actual username of the new database owner. You will need this user to set up a connection to the Creatio database.\n**pg_dbname_creatio** \u2013 the name of the database whose owner is being changed.\n**/path/toChangeDbObjectsOwner.sql** \u2013 the path to the previously saved toChangeDbObjectsOwner.sql file.\nYou can ignore this step. In that case, the user who ran the pg_restore command will remain the owner of the database and its objects. Normally, this is the postgres user.\n* * *\n## See also\u200b\n[Set up Creatio caching server](https://academy.creatio.com/documents?product=administration&ver=7&id=2135)\n[Set up Creatio application server on IIS](https://academy.creatio.com/documents?product=administration&ver=7&id=2136)\n[Creatio setup FAQ](https://academy.creatio.com/documents?product=administration&ver=7&id=1634)\n[System requirements calculator](https://academy.creatio.com/docs/requirements/calculator)",
+  "code_examples": [
+    {
+      "code": "echo -e \"deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -sc)-pgdg main\" > /etc/apt/sources.list.d/pgdg.list",
+      "language": "cli",
+      "context": "Add the PostgreSQL repository:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -",
+      "language": "cli",
+      "context": "Import the signing key of the PostgreSQL repository:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get update",
+      "language": "cli",
+      "context": "Update the package lists:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get install -y postgresql-16",
+      "language": "cli",
+      "context": "Install PostgreSQL:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "sudo su - postgres",
+      "language": "cli",
+      "context": "Log in aspostgres:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "CREATE USER pg_sysadmin;",
+      "language": "sql",
+      "context": "Create a sysadmin user:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ALTER ROLE pg_sysadmin WITH SUPERUSER;",
+      "language": "sql",
+      "context": "Makepg_sysadmina system administrator:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ALTER ROLE pg_sysadmin WITH LOGIN;",
+      "language": "sql",
+      "context": "Allowpg_sysadminto log in:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ALTER ROLE pg_sysadmin WITH PASSWORD 'pg_syspassword';",
+      "language": "sql",
+      "context": "Set a password forpg_sysadmin:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "CREATE USER pg_user;",
+      "language": "sql",
+      "context": "Create a public user:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ALTER ROLE pg_user WITH LOGIN;",
+      "language": "sql",
+      "context": "Allowpg_userto log in:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ALTER ROLE pg_user WITH PASSWORD 'pg_password';",
+      "language": "sql",
+      "context": "Set a password forpg_user:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "sudo apt-get install postgresql-client-common",
+      "language": "cli",
+      "context": "If you plan to use a remote PostgreSQL database without installing the PostgreSQL DBMS on your server, install thepostgresql-client-commonpackage manually by running:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "export PGPASSWORD=pg_syspassword",
+      "language": "cli",
+      "context": "Enter DB connection password in the environment variable:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "psql --host=pg_server_address --port=pg_server_port --username=pg_sysadmin --dbname=pg_dbname -c \"CREATE DATABASE pg_dbname_creatio WITH OWNER = pg_user ENCODING = 'UTF8' CONNECTION LIMIT = -1\"",
+      "language": "cli",
+      "context": "Create a database where the backup data will be restored:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "cd /path/to/application/directory/",
+      "language": "cli",
+      "context": "Navigate to the application directory:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "pg_restore --host pg_server_ip --port pg_server_port --username=pg_sysadmin --dbname=pg_dbname_creatio --no-owner --no-privileges --verbose \\path\\to\\db.backup",
+      "language": "cli",
+      "context": "Restore the database from the backup file:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "psql --host=pg_server_address --port=pg_server_port --username=pg_sysadmin --dbname=pg_dbname_creatio --file=/path/to/CreateTypeCastsPostgreSql.sql",
+      "language": "cli",
+      "context": "Execute type conversion:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "SHOW config_file",
+      "language": "sql",
+      "context": "Run the following command to find the path to the postgresql.conf file:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Expected number of users * 1.5",
+      "language": "text",
+      "context": "Setmax_connectionsparameter based on the expected number of simultaneous users. Calculate the parameter value using the following formula:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "max_connections * 0.24MB",
+      "language": "text",
+      "context": "Setshared_buffersbased on themax_connectionsvalue. Calculate the parameter value using the following formula:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "shared_buffers + 16MB",
+      "language": "text",
+      "context": "Setkernel.shmmaxbased on theshared_buffersvalue. Calculate the parameter value using the following formula:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "psql --host pg_server_address --port pg_server_port --username=pg_sysadmin --dbname=pg_dbname \u2013-command \"ALTER DATABASE pg_dbname_creatio OWNER TO pg_user\"",
+      "language": "cli",
+      "context": "Replace the database owner:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "psql --host pg_server_address --port pg_server_port --username=pg_sysadmin --dbname=pg_dbname_creatio --file=/path/toChangeDbObjectsOwner.sql --variable owner=pg_user --variable ON_ERROR_STOP=1",
+      "language": "cli",
+      "context": "Replace the owner of the database objects:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "notePlease refer to thePostgreSQL documenationfor details on PostgreSQL clustering.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Please refer to the <a href=\"https://www.postgresql.org/docs/9.5/high-availability.html\" rel=\"noopener noreferrer\" target=\"_blank\">PostgreSQL documenation</a> for details on PostgreSQL clustering.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Please refer to thePostgreSQL documenationfor details on PostgreSQL clustering.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Please refer to the <a href=\"https://www.postgresql.org/docs/9.5/high-availability.html\" rel=\"noopener noreferrer\" target=\"_blank\">PostgreSQL documenation</a> for details on PostgreSQL clustering.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you have not created any databases yet or an attempt to connect to a database triggers the \"FATAL: database \"pg_dbname\" does not exist\" error, use the default database \"template1\".",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you have not created any databases yet or an attempt to connect to a database triggers the \"FATAL: database \"pg_dbname\" does not exist\" error, use the default database \"template1\".</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you have not created any databases yet or an attempt to connect to a database triggers the \"FATAL: database \"pg_dbname\" does not exist\" error, use the default database \"template1\".",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you have not created any databases yet or an attempt to connect to a database triggers the \"FATAL: database \"pg_dbname\" does not exist\" error, use the default database \"template1\".</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTake these steps only if your Creatio deployment is going to serve more than 100 simultaneous users.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Take these steps only if your Creatio deployment is going to serve more than 100 simultaneous users.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Take these steps only if your Creatio deployment is going to serve more than 100 simultaneous users.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Take these steps only if your Creatio deployment is going to serve more than 100 simultaneous users.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/ChangeTypesOwner.sql",
+      "text": "ChangeTypesOwner.sql",
+      "filename": "ChangeTypesOwner.sql",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/28b004fbf785c1e6_ministration_on-site-deployment_database-server_deploy-postgresql-database-linux_ChangeTypesOwner.sql"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/CreateTypeCastsPostgreSql.sql",
+      "text": "CreateTypeCastsPostgreSql.sql file",
+      "filename": "CreateTypeCastsPostgreSql.sql",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/28b004fbf785c1e6_ministration_on-site-deployment_database-server_deploy-postgresql-database-linux_CreateTypeCastsPostgreSql.sql"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/ChangeDbObjectsOwner.sql",
+      "text": "Download the script",
+      "filename": "ChangeDbObjectsOwner.sql",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/28b004fbf785c1e6_ministration_on-site-deployment_database-server_deploy-postgresql-database-linux_ChangeDbObjectsOwner.sql"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/ChangeDbObjectsOwner_Postgres11.v2.sql",
+      "text": "Download the script",
+      "filename": "ChangeDbObjectsOwner_Postgres11.v2.sql",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/28b004fbf785c1e6_ministration_on-site-deployment_database-server_deploy-postgresql-database-linux_ChangeDbObjectsOwner_Postgres11.v2.sql"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Deploy PostgreSQL database (Linux)",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "I. Install PostgreSQL\u200b",
+      "anchor": "title-250-1"
+    },
+    {
+      "level": 2,
+      "text": "II. Create PostgreSQL user\u200b",
+      "anchor": "title-250-2"
+    },
+    {
+      "level": 2,
+      "text": "III. Restore PostgreSQL database\u200b",
+      "anchor": "title-250-3"
+    },
+    {
+      "level": 2,
+      "text": "IV. Configure max connections (optional)\u200b",
+      "anchor": "title-2500-7"
+    },
+    {
+      "level": 2,
+      "text": "V. Change the database owner (optional)\u200b",
+      "anchor": "title-2500-6"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "PreviousMS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "NextPostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/creatio-ai-on-site",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://www.postgresql.org/docs/9.5/high-availability.html",
+      "text": "PostgreSQL documenation",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/requirements/calculator",
+      "text": "System requirements calculator",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:16:44.490821"
+}

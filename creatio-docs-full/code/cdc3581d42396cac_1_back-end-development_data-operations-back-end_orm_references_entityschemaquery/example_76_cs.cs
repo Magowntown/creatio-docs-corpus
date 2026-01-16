@@ -1,0 +1,1 @@
+static int GetDayOfWeekNumber(UserConnection userConnection, DayOfWeek dayOfWeek)

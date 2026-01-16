@@ -1,0 +1,1 @@
+var esq = this.Ext.create(Terrasoft.EntitySchemaQuery, {    rootSchemaName: "Activity"});esq.addAggregationSchemaColumn("DurationInMinutes", Terrasoft.AggregationType.COUNT, "UniqueActivitiesCount", Terrasoft.AggregationEvalType.DISTINCT);

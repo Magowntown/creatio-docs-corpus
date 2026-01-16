@@ -1,0 +1,1 @@
+{    "operation": "insert",    "name": "Button_nptvn7b",    "values": {        "type": "crt.Button",        "clicked": {            "request": "crt.LoadDefaultValuesRequest",            "params": {                "dataSourceName": "ContactDS",            },        },    },},

@@ -1,0 +1,1 @@
+sqlplus.exe "SYS/SYS_PASSWORD@your_server.com:1521/YOUR_SERVICE_NAME AS SYSDBA" @CreateUser.sql

@@ -1,0 +1,1 @@
+public string DeleteContacts(string name) {    var delete = new Delete(UserConnection)        .From("Contact")        .Where("Name").IsEqual(Column.Parameter(name));    var cnt = delete.Execute();    return $ "Contacts with name {name} were deleted. {cnt} rows affected";}

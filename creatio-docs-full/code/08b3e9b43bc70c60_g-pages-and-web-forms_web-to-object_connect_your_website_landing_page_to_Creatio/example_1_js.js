@@ -1,0 +1,1 @@
+contactFields: {        "FullName": "css-selector", // Name of a contact        "Phone": "css-selector", // Contact's mobile phone        "Email": "css-selector" // Contact's email}

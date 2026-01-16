@@ -1,0 +1,1 @@
+onCanManageAnalytics(result)

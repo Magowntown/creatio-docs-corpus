@@ -1,0 +1,1 @@
+Target field: [Works for the company, years]Elements: the values of [Career start date] field and the current date. Formula: = DiffYear(CurrentDateTime(), [Career start date])

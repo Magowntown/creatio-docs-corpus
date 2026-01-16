@@ -1,0 +1,1 @@
+ng new angular-element-test --style=scss

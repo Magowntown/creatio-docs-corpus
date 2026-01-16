@@ -1,0 +1,1 @@
+converters: /**SCHEMA_CONVERTERS*/{    /* Implement a custom converter. */    "usr.SomeConverter": function(value) {        ...;    }}/**SCHEMA_CONVERTERS*/,

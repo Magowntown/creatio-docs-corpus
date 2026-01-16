@@ -1,0 +1,1 @@
+static QueryColumnExpression Divide(QueryFunction leftOperand, QueryFunction rightOperand)

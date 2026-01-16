@@ -1,0 +1,1 @@
+Terrasoft.sdk.GridPage.setSubtitleColumns("Case", ["RegisteredOn", {    name: "Number",    convertFunction: function(values){        return values.Number;    }]);

@@ -1,0 +1,1 @@
+DatePartQueryFunction(DatePartQueryFunctionInterval interval, QueryColumnExpression expression)DatePartQueryFunction(DatePartQueryFunctionInterval interval, IQueryColumnExpressionConvertible expression)

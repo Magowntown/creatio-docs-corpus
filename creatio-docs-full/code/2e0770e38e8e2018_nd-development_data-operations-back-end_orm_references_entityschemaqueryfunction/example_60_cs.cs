@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentQuarterQueryFunction(EntitySchemaStartOfCurrentQuarterQueryFunction source) : base(source)

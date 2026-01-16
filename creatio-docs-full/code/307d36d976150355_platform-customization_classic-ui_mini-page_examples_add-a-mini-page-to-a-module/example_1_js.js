@@ -1,0 +1,1 @@
+.current-user-class a {    font-weight: bold;    font-size: 2.0em;    margin: 6px 20px;}.current-user-class a:hover {    text-decoration: none;}

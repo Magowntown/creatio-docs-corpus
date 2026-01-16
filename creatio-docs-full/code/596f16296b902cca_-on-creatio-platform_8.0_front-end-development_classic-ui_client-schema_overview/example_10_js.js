@@ -1,0 +1,1 @@
+methods: {    messageHandler: function(args) {         /* Return an object to process as a message publishing result. */        return { };     }}

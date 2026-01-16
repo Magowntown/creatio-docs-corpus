@@ -1,0 +1,1 @@
+@CrtInput()@Input()public set svgImage(value: string){    if (Boolean(value)) {        this._svgImage = this._domSanitizer.bypassSecurityTrustResourceUrl(            value        ) as string;    }}public get svgImage(): string {    return this._svgImage;}

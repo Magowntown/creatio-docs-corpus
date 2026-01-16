@@ -1,0 +1,1 @@
+new Select(userConnection)    .Cols("L.Id")    .IsNull(        "L.CreatedOn",        "L.ModifiedOn"    )    .From("Lead").As("L");

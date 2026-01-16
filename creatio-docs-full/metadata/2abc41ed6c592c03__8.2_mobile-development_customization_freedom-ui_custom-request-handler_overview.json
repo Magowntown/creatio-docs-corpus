@@ -1,0 +1,698 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/custom-request-handler/overview",
+  "title": "Custom request handler implemented using remote module in Mobile Creatio",
+  "breadcrumbs": [
+    {
+      "text": "Mobile app development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development"
+    },
+    {
+      "text": "Customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedomui-mobile"
+    },
+    {
+      "text": "Request handler",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/request-handler-1"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: intermediate\nMobile Creatio lets you implement the business logic of the Freedom UI page using **request handlers**. You can implement a custom request handler in Mobile Creatio using remote module.\nMobile Creatio executes request handlers when an event is triggered on a visual element of a Freedom UI page. For example, bind a custom request handler implemented using remote module to the `clicked` button event. You can use base request handlers or implement a new request handler. Base handlers are executed at different life cycle stages. Both main Creatio app and Mobile Creatio have the same request handlers. Learn more: [Generic request handlers](https://academy.creatio.com/documents?ver=8.2&id=15368&anchor=title-3832-1).\nYou can modify the business logic of a request handler based on the type of related request. View the request type in the component documentation or source code of the schema that implements the request logic.\n## General procedure\u200b\n### 1\\. Create a TypeScript project\u200b\nDevelop a custom request handler in a dedicated `npm` package using an external IDE. This example covers the request handler development in Microsoft Visual Studio Code. We recommend utilizing request handlers created in the TypeScript project. You can develop a custom request handler using remote module in Mobile Creatio via a *.zip archive of the TypeScript project that contains the template of a remote module.\nTo create a TypeScript project to develop a custom request handler using remote module:\n1. **Install or update Node.js\u00ae and npm package manager** if needed. [Download the file](https://nodejs.org/en/).\nLearn more: [Downloading and installing Node.js and npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (official npm Docs documentation).\n2. **Download and unpack the *.zip archive**. [Download](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/RequestHandlerMobileCreatio/8.2/ts_sdk_template_module.zip).\n3. **Change the directory name** of the TypeScript project to the name of the package to transfer the remote module. Enter the directory name in `snake case`, for example, \"process_designer.\"\n4. **Open the project** in Microsoft Visual Studio Code.\n5. **Install the** `npm` **modules**. To do this, run the `npm install` command at the command line terminal of Microsoft Visual Studio Code. The installation might take some time.\n6. **Install or update the** `@creatio/mobile-common` **library** (optional).\n* Run the `npm install @creatio/mobile-common` command at the command line terminal of Microsoft Visual Studio Code to **install the release version of the library**.\n* Run the `npm update @creatio/mobile-common` command at the command line terminal of Microsoft Visual Studio Code to **update the library version**.\n**As a result** , Microsoft Visual Studio Code will create a TypeScript project to develop a custom request handler using remote module.\n### 2\\. Create a custom request\u200b\n1. **Open the** `index.ts` **file**.\n2. **Inherit the** `BaseRequest` **class** from the `@creatio/mobile-common` library.\n3. **Add the type and parameter** of the request if needed.\n4. **Import the required functionality** from the libraries into the class.\n5. **Save the file**.\nindex.ts file\n/* Import the required functionality from the libraries. */  \nimport {  \nBaseRequest,  \nCrtRequest  \n} from \"@creatio/mobile-common\";  \n/* Add the \"CrtRequest\" decorator to the \"SomeRequestNameRequest\" class. */  \n@CrtRequest({  \ntype: 'usr.SomeRequestNameRequest'  \n})  \nexport class SomeRequestNameRequest extends BaseRequest {  \n/* The type and parameter of the request (optional). */  \npublic someParameterName?: someParameterType;  \n}  \n### 3\\. Create a custom request handler\u200b\n1. **Implement a request handler** that displays data on the Freedom UI page. Mobile Creatio lets you implement both custom and base request handlers.\n* Implement a base request handler that is executed when the value of any attribute on a Freedom UI page changes.\n1. Open the `index.ts` file.\n2. Add the configuration object that declares the request handler.\n* Set `type` property to `usr.SomeRequestNameHandler`.\n* Set `requestType` property to `crt.HandleFUIActivityViewModelAttributeChangeHandler`.\n* Set `scopes` property to `MobileFUIActivityRecordPageSettingsDefaultWorkplace` code of Freedom UI page. The request handler is executed when Creatio initializes the Freedom UI page that has the specified code. If the property is empty or missing, it is a global handler that Creatio executes on all Freedom UI pages.\n3. Flag the `SomeRequestNameHandler` class using the `CrtRequestHandler` decorator.\n4. Inherit the `BaseRequestHandler<HandleViewModelAttributeChangeRequest>` class from the `@creatio/mobile-common` library.\n5. Implement the update of data received from the external web service when Creatio initializes the Freedom UI page. Based on your business goals, the business logic of the request handler lets you implement different operations. Read more >>>\n6. Import the required functionality from the libraries into the class.\n7. Save the file.\nindex.ts file\n/* Import the required functionality from the libraries. */  \nimport {  \nBaseRequestHandler,  \nCrtRequestHandler,  \nHandlerChainService,  \nHandleViewModelAttributeChangeRequest  \n} from \"@creatio/mobile-common\";  \n/* Add the \"CrtRequestHandler\" decorator to the \"SomeRequestNameHandler\" class. */  \n@CrtRequestHandler({  \ntype: 'usr.SomeRequestNameHandler',  \nrequestType: 'crt.HandleViewModelAttributeChangeRequest',  \nscopes: ['MobileFUIActivityRecordPageSettingsDefaultWorkplace'],  \n})  \nexport class SomeRequestNameHandler extends BaseRequestHandler<HandleViewModelAttributeChangeRequest> {  \npublic async handle(request: HandleViewModelAttributeChangeRequest): Promise<unknown> {  \n/* Execute a request handler when the value of any attribute on a Freedom UI page changes. */  \nawait HandlerChainService.instance.process({  \ntype: 'crt.SomeRequestNameRequest',  \nsomeParameterName: 'someParameterValue',  \n$context: request.$context  \n} as SomeRequestNameRequest);  \nreturn this.next?.handle(request);  \n}  \n}  \n* Implement a custom request handler that displays data on the Freedom UI page.\n1. Open the `index.ts` file.\n2. Add the configuration object that declares the request handler.\n* Set `type` property to `usr.SomeRequestNameHandler`. The `type` property is the type of handler.\n* Set `requestType` property to `usr.SomeRequestNameRequest`. The `type` property is the type of request to execute the handler specified in the `type` property.\n3. Flag the `SomeRequestNameHandler` class using the `CrtRequestHandler` decorator.\n4. Inherit the `BaseRequestHandler` class from the `@creatio-devkit/common` library.\n5. Implement the handling of the request result. Based on your business goals, the business logic of the request handler lets you implement different operations. Read more >>>\n6. Generate the value to display on the Freedom UI page.\n7. Import the required functionality from the libraries into the class.\n8. Save the file.\nindex.ts file\n/* Import the required functionality from the libraries. */  \nimport {  \nBaseRequestHandler,  \nCrtRequestHandler  \n} from \"@creatio/mobile-common\";  \n/* Add the \"CrtRequestHandler\" decorator to the \"SomeRequestNameHandler\" class. */  \n@CrtRequestHandler({  \nrequestType: 'usr.SomeRequestNameRequest',  \ntype: 'usr.SomeRequestNameHandler',  \n})  \nexport class SomeRequestNameHandler extends BaseRequestHandler<SomeRequestNameRequest> {  \npublic async handle(request: SomeRequestNameRequest): Promise<unknown> {  \n/* Generate the value to display on the Freedom UI page. */  \n...;  \nreturn this.next?.handle(request);  \n}  \n}  \n2. **Register the request handler**.\n1. Open the `index.ts` file.\n2. Add the `SomeRequestNameHandler` handler to the `requestHandlers` section in the `CrtModule` decorator.\n3. Import the required functionality from the libraries into the class.\n4. Save the file.\nindex.ts file\n/* Import the required functionality from the libraries. */  \nimport {  \nCrtModule,  \nbootstrapCrtModule,  \nDoBootstrap  \n} from '@creatio/mobile-common';  \n...  \n@CrtModule({  \n...,  \n/* Specify that \"SomeRequestNameHandler\" is request handler. */  \nrequestHandlers: [  \nSomeRequestNameHandler  \n],  \n})  \nexport class SomeMainAppClass implements DoBootstrap {  \nbootstrap(): void {  \nbootstrapCrtModule('SomeMainAppClass', SomeMainAppClass);  \n}  \n}  \n3. **Build the project**.\n1. Run the `npm run build` command at the command line terminal of Microsoft Visual Studio Code.\n2. Open the `package.json` file.\n3. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/RequestHandlerMobileCreatio/8.2/scr_Debug_button.png) \u2192 `build` command.\n**As a result** , Microsoft Visual Studio Code will add the `main.js` build file to the TypeScript project's directory that is specified in the `webpack.config.js` file \u2192 `baseConfig` configuration object \u2192 `output` configuration object \u2192 `path` property. Out of the box, Microsoft Visual Studio Code adds the build files to the `../ts_sdk_template_module/out/mobile/SomeMainAppClass` project directory.\n### 4\\. Add the custom request handler to the Freedom UI page\u200b\n1. **Ensure the** `EnableMobileSDK` **additional feature is enabled**. Instructions: [Change the status of an additional feature for all users](https://academy.creatio.com/documents?ver=8.2&id=15631&anchor=title-3459-3).\n2. **Create a new Freedom UI app or open an existing app**. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.2&id=2377&anchor=title-2232-6) (user documentation).\n3. **Open the Package settings tab** in the No-Code Designer. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 \"Application management\" \u2192 \"Application Hub\" \u2192 select the app \u2192 \"Package settings.\"\n4. **Create a user-made package** to add the schema. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png) \u2192 **Create new package** \u2192 fill out the package properties \u2192 **Save**.\n5. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.2&id=15072&anchor=change-the-current-package).\n6. **Enable the file system development mode**. Instructions: [Set up Creatio to work with the file system](https://academy.creatio.com/documents?ver=8.2&id=15111&anchor=title-2098-4).\n7. **Download packages to the file system**.\nUsing Creatio IDE\n1. Open the **Configuration** section. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.2&id=15101&anchor=title-2093-2).\n2. Click **Actions** \u2192 **File system development mode** group \u2192 **Download packages to file system**.\n3. Go to the `../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files` file system directory.\n4. Create a `/src/mobile/SomeMainAppClass` directory.\n5. Specify the directory to add the build files automatically if needed.\n1. Open the `webpack.config.js` file.\n2. Go to the `output` configuration object.\n3. Set the `path` property to the full path to the directory to add the build files. Path template: `../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass` directory, where:\n* `SomePackage` is a directory of a Freedom UI app package in the file system.\n* `SomeMainAppClass` is a unique class name in the TypeScript project.\nwebpack.config.js file\nconst baseConfig = {  \n...,  \noutput: {  \npath: '../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass',  \n...  \n},  \n...  \n};  \nOtherwise, Microsoft Visual Studio Code adds the build files to the `../ts_sdk_template_module/out/mobile/SomeMainAppClass` project directory.\n6. Copy the `main.js` build file from the `../ts_sdk_template_module/out/mobile/SomeMainAppClass` project directory to the `../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/sdkChangeContactTypeMobile/Files/src/mobile/SomeMainAppClass` directory. If you specify the directory to add the build files automatically, omit the step for further development.\n7. Click **Actions** \u2192 **File system development mode** group \u2192 **Update packages from file system**.\n8. Compile the configuration. Instructions: [Compile the configuration](https://academy.creatio.com/documents?ver=8.2&id=15101&anchor=title-2093-8).\nUsing Clio utility\n1. Install the Clio utility. This is a one-time procedure. To do this, run the `dotnet tool install clio -g` command at the terminal of Microsoft Visual Studio Code.\n2. Register an existing Creatio instance in Clio. To do this, run the `clio reg-web-app some_application_name -u https://mycreatio.com/ -l SomeLogin -p SomePassword` command at the Microsoft Visual Studio Code terminal, where:\n* `some_application_name` is the Creatio instance name.\n* `https://mycreatio.com/` is the Creatio instance URL.\n* `SomeLogin` is the user login to the Creatio instance.\n* `SomePassword` is the user password to the Creatio instance.\n3. Ensure that Clio is connected to the Creatio instance. To do this, run the `clio ping -e some_application_name` command at the Microsoft Visual Studio Code terminal.\n4. Install the `cliogate` system package into your development environment. To do this, run the `clio install-gate some_application_name` command at the Microsoft Visual Studio Code terminal.\n5. Register an existing Freedom UI app package in Clio. To do this, run the following commands at the Microsoft Visual Studio Code terminal.\nclio pull-pkg SomePackage -e some_application_name   \nclio extract-pkg-zip SomePackage.zip -e some_application_name   \n6. Go to the `../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files` file system directory.\n7. Create a `../Files/src/mobile/SomeMainAppClass` directory.\n8. Specify the directory to add the build files automatically if needed.\n1. Open the `webpack.config.js` file.\n2. Go to the `output` configuration object.\n3. Set the `path` property to the full path to the directory to add the build files. Path template: `../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass` directory, where:\n* `SomePackage` is a directory of a Freedom UI app package in the file system.\n* `SomeMainAppClass` is a unique class name in the TypeScript project.\nwebpack.config.js file\nconst baseConfig = {  \n...,  \noutput: {  \npath: '../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass',  \n...  \n},  \n...  \n};  \nOtherwise, Microsoft Visual Studio Code adds the build files to the `../ts_sdk_template_module/out/mobile/SomeMainAppClass` directory of the TypeScript project.\n9. Copy the `main.js` build file from the `../ts_sdk_template_module/out/mobile/SomeMainAppClass` project directory to the .`./Terrasoft.WebApp/Terrasoft.Configuration/Pkg/sdkChangeContactTypeMobile/Files/src/mobile/SomeMainAppClass` directory. If you specify the directory to add the build files automatically, omit the step for further development.\n10. Update the packages from file system. To do this, run the `clio push-pkg SomePackage -e some_application_name` command at the Microsoft Visual Studio Code terminal.\n8. **Add the schemas that configure manifest and page settings** of Mobile Creatio section to the user-made package. Instructions: [Add the schemas that configure manifest and page settings of Mobile Creatio section](https://academy.creatio.com/documents?ver=8.2&id=15087&anchor=title-15087-2).\n9. **Define the position of the button**. Instructions: [Define the position of the Freedom UI component](https://academy.creatio.com/documents?ver=8.2&id=15087&anchor=title-15087-4).\n10. **Configure the Freedom UI component**. Instructions: [Configure the Freedom UI component](https://academy.creatio.com/documents?ver=8.2&id=15087&anchor=title-15087-5).\n11. **Add the Freedom UI component** to the Freedom UI page. Instructions: [Add the Freedom UI component to the Freedom UI page](https://academy.creatio.com/documents?ver=8.2&id=15087&anchor=title-15087-6).\n12. **Save the changes**.\n13. **Synchronize Mobile Creatio** with the main Creatio app.\n1. Run Mobile Creatio using the emulator created in Android Studio.\n2. Log in to Mobile Creatio using the same user credentials as the main Creatio app.\n3. Open the **Settings** page. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_settings_in_mobile.jpg).\n4. Go to the **Synchronization** block.\n5. Click **Synchronize**.\n14. **Synchronize the emulator file system** if needed. To do this, go to the **Device Explorer** tab \u2192 right-click an arbitrary directory \u2192 **Synchronize**.\n15. **Debug the implemented business logic** if needed. Instructions: [Debug Mobile Creatio in Freedom UI](https://academy.creatio.com/documents?ver=8.2&id=15904&anchor=title-15904-1).\n**As a result** , the request handler implemented using remote module will be added to the Freedom UI page and displayed in the Mobile Creatio.\n## Operations with data of Freedom UI page\u200b\nBased on your business goals, the business logic of the request handler lets you implement the following operations:\n* **Operations with column values**.\nView the examples that execute different operations with column values below.\n* Column value of a string type\n* Column value of a lookup type\n* Column value of a date type\n/* Receive the \"Name\" column value of a \"string\" type and save it to the \"name\" variable. */  \nlet name = await request.$context['Name'];  \n/* Change the \"Name\" column value of a \"string\" type to the \"Some new column value.\" */  \nrequest.$context['Name'] = 'Some new column value';  \n/* Receive the \"OpportunityType\" column value of a \"lookup\" type and save it to the \"type\" variable. When you work with the \"lookup\" type field, use the \"value\" and \"displayValue\" properties of the \"LookupValue\" instance. */  \nlet type = await request.$context[\"OpportunityType\"];  \nlet isVisible = type != null && (type as LookupValue).value === \"19127009-20ae-4003-8eb8-7bb7764663d4\";  \n/* Receive the \"RegisteredOn\" column value of a \"date\" type and save it to the \"registeredOnString\" variable. The column value corresponds to the ISO 8601 standard. */  \nlet registeredOnString = await request.$context[\"RegisteredOn\"];  \n/* Create a \"date\" object instance from the \"registeredOnString\" variable. */  \nlet registeredOnDate = new Date(registeredOnString);  \n/* Change the \"RegisteredOn\" column value to the current date and time */  \nrequest.$context[\"RegisteredOn\"] = new Date();  \n/* Change the \"RegisteredOn\" column value to the \"2024-07-19T12:13:42.394Z.\" */  \nrequest.$context[\"RegisteredOn\"] = '2024-07-19T12:13:42.394Z';  \n* **Operations with attribute values**.\nView the examples that execute different operations with attribute values below.\nExamples that execute different operations with attribute values\n/* Specify the \"Contact_PrimaryTab_Body_profileColumnSet_Account\" attribute value as required. */  \nawait request.$context.setAttributePropertyValue('Contact_PrimaryTab_Body_profileColumnSet_Account', 'required', true);  \n/* Receive the \"Contact_PrimaryTab_Body_profileColumnSet_Account\" attribute value and display it in the console. */  \nlet widgetAttr = await request.$context.getAttributePropertyValue('Contact_PrimaryTab_Body_profileColumnSet_Account', 'visible');  \nconsole.log(widgetAttr);  \nOut of the box, an attribute is bound to the Freedom UI component whose name is specified as an attribute value.\n* **Filter data**.\nView the examples that filter data below.\n* Filter values of lookup type column\n* Filter columns of the embedded list\n/* Filter values of the \"Account\" \"lookup\" type column. */  \nlet result = await this.next?.handle(request);  \nawait request.$context.setAttributePropertyValue('Account', 'filter', {  \n\"filterType\": 4,  \n\"comparisonType\": 3,  \n\"isEnabled\": true,  \n\"trimDateTimeParameterToDate\": false,  \n\"leftExpression\": {  \n\"expressionType\": 0,  \n\"columnPath\": \"PrimaryContact\"  \n},  \n\"rightExpressions\": [  \n{  \n\"expressionType\": 2,  \n\"parameter\": {  \n\"dataValueType\": 10,  \n\"value\": \"410006e1-ca4e-4502-a9ec-e54d922d2c00\"  \n}  \n}  \n],  \n\"isAggregative\": false,  \n\"key\": \"63871ecc-40a1-4f00-a7e5-9c5099a76ea4\",  \n\"dataValueType\": 10,  \n\"referenceSchemaName\": \"Contact\"  \n});  \nreturn result;  \n/* Filter columns of the \"OpportunityContactDetailV2EmbeddedDetail\" embedded list. */  \n\"viewModelConfig\": {  \n\"attributes\": {  \n...,  \n\"OpportunityContactDetailV2EmbeddedDetail\": {  \n\"modelConfig\": {  \n...,  \n\"filterAttributes\": [{  \n\"name\": \"OpportunityContactDetailV2EmbeddedDetail_Filter\"  \n}],  \n},  \n}  \n}  \n}  \n/* Apply the filter before the \"crt.LoadDataRequest\" request handler. */  \nrequest.$context['OpportunityContactDetailV2EmbeddedDetail_Filter'] = {  \n\"filterType\": 4,  \n\"comparisonType\": 4,  \n\"isEnabled\": true,  \n\"trimDateTimeParameterToDate\": false,  \n\"leftExpression\": {\"expressionType\": 0, \"columnPath\": \"Contact\"},  \n\"isAggregative\": false,  \n\"key\": \"63871ecc-40a1-4f00-a7e5-9c5099a76ea4\",  \n\"dataValueType\": 10,  \n\"leftExpressionCaption\": \"Contact\",  \n\"referenceSchemaName\": \"Contact\",  \n\"rightExpressions\": [  \n{  \n\"expressionType\": 2,  \n\"parameter\": {\"dataValueType\": 10, \"value\": \"410006e1-ca4e-4502-a9ec-e54d922d2c00\"}  \n}  \n]  \n};  \nreturn await this.next?.handle(request);  \n* * *\n## See also\u200b\n[handlers schema section](https://academy.creatio.com/documents?ver=8.2&id=15368)\n[Manage an existing additional feature](https://academy.creatio.com/documents?ver=8.2&id=15631)\n[Manage apps](https://academy.creatio.com/documents?ver=8.2&id=2377) (user documentation)\n[Regular package](https://academy.creatio.com/documents?ver=8.2&id=15072)\n[External IDEs basics](https://academy.creatio.com/documents?ver=8.2&id=15111)\n[Creatio IDE overview](https://academy.creatio.com/documents?ver=8.2&id=15101)\n[Customize Freedom UI page for Mobile Creatio](https://academy.creatio.com/documents?ver=8.2&id=15087)\n[Debug Mobile Creatio](https://academy.creatio.com/documents?ver=8.2&id=15904)\n* * *\n## Resources\u200b\n[Node.js installation file](https://nodejs.org/en/)\n[Official vendor documentation](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (npm Docs)\n[Template of remote module in Mobile Creatio](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/RequestHandlerMobileCreatio/8.2/ts_sdk_template_module.zip)",
+  "code_examples": [
+    {
+      "code": "/* Import the required functionality from the libraries. */import {    BaseRequest,    CrtRequest} from \"@creatio/mobile-common\";/* Add the \"CrtRequest\" decorator to the \"SomeRequestNameRequest\" class. */@CrtRequest({    type: 'usr.SomeRequestNameRequest'})export class SomeRequestNameRequest extends BaseRequest {    /* The type and parameter of the request (optional). */    public someParameterName?: someParameterType;}",
+      "language": "js",
+      "context": "2. Create a custom request\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import {    BaseRequestHandler,    CrtRequestHandler,    HandlerChainService,    HandleViewModelAttributeChangeRequest} from \"@creatio/mobile-common\";/* Add the \"CrtRequestHandler\" decorator to the \"SomeRequestNameHandler\" class. */@CrtRequestHandler({    type: 'usr.SomeRequestNameHandler',    requestType: 'crt.HandleViewModelAttributeChangeRequest',    scopes: ['MobileFUIActivityRecordPageSettingsDefaultWorkplace'],})export class SomeRequestNameHandler extends BaseRequestHandler<HandleViewModelAttributeChangeRequest> {    public async handle(request: HandleViewModelAttributeChangeRequest): Promise<unknown> {        /* Execute a request handler when the value of any attribute on a Freedom UI page changes. */        await HandlerChainService.instance.process({            type: 'crt.SomeRequestNameRequest',            someParameterName: 'someParameterValue',            $context: request.$context        } as SomeRequestNameRequest);        return this.next?.handle(request);    }}",
+      "language": "js",
+      "context": "Save the file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import {    BaseRequestHandler,    CrtRequestHandler} from \"@creatio/mobile-common\";/* Add the \"CrtRequestHandler\" decorator to the \"SomeRequestNameHandler\" class. */@CrtRequestHandler({    requestType: 'usr.SomeRequestNameRequest',    type: 'usr.SomeRequestNameHandler',})export class SomeRequestNameHandler extends BaseRequestHandler<SomeRequestNameRequest> {    public async handle(request: SomeRequestNameRequest): Promise<unknown> {        /* Generate the value to display on the Freedom UI page. */        ...;        return this.next?.handle(request);    }}",
+      "language": "js",
+      "context": "Save the file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import {    CrtModule,    bootstrapCrtModule,    DoBootstrap} from '@creatio/mobile-common';...@CrtModule({    ...,    /* Specify that \"SomeRequestNameHandler\" is request handler. */    requestHandlers: [        SomeRequestNameHandler    ],})export class SomeMainAppClass implements DoBootstrap {    bootstrap(): void {        bootstrapCrtModule('SomeMainAppClass', SomeMainAppClass);    }}",
+      "language": "js",
+      "context": "Register the request handler.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "const baseConfig = {    ...,    output: {        path: '../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass',        ...    },    ...};",
+      "language": "js",
+      "context": "Set thepathproperty to the full path to the directory to add the build files. Path template:../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClassdirectory, wher",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "clio pull-pkg SomePackage -e some_application_name clio extract-pkg-zip SomePackage.zip -e some_application_name ",
+      "language": "cli",
+      "context": "Register an existing Freedom UI app package in Clio. To do this, run the following commands at the Microsoft Visual Studio Code terminal.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Receive the \"Name\" column value of a \"string\" type and save it to the \"name\" variable. */let name = await request.$context['Name'];/* Change the \"Name\" column value of a \"string\" type to the \"Some new column value.\" */request.$context['Name'] = 'Some new column value';",
+      "language": "js",
+      "context": "View the examples that execute different operations with column values below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Receive the \"OpportunityType\" column value of a \"lookup\" type and save it to the \"type\" variable. When you work with the \"lookup\" type field, use the \"value\" and \"displayValue\" properties of the \"LookupValue\" instance. */let type = await request.$context[\"OpportunityType\"];let isVisible = type != null && (type as LookupValue).value === \"19127009-20ae-4003-8eb8-7bb7764663d4\";",
+      "language": "js",
+      "context": "View the examples that execute different operations with column values below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Receive the \"RegisteredOn\" column value of a \"date\" type and save it to the \"registeredOnString\" variable. The column value corresponds to the ISO 8601 standard. */let registeredOnString = await request.$context[\"RegisteredOn\"];/* Create a \"date\" object instance from the \"registeredOnString\" variable. */let registeredOnDate = new Date(registeredOnString);/* Change the \"RegisteredOn\" column value to the current date and time */request.$context[\"RegisteredOn\"] = new Date();/* Change the \"RegisteredOn\" column value to the \"2024-07-19T12:13:42.394Z.\" */request.$context[\"RegisteredOn\"] = '2024-07-19T12:13:42.394Z';",
+      "language": "js",
+      "context": "View the examples that execute different operations with column values below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Specify the \"Contact_PrimaryTab_Body_profileColumnSet_Account\" attribute value as required. */await request.$context.setAttributePropertyValue('Contact_PrimaryTab_Body_profileColumnSet_Account', 'required', true);/* Receive the \"Contact_PrimaryTab_Body_profileColumnSet_Account\" attribute value and display it in the console. */let widgetAttr = await request.$context.getAttributePropertyValue('Contact_PrimaryTab_Body_profileColumnSet_Account', 'visible');console.log(widgetAttr);",
+      "language": "js",
+      "context": "View the examples that execute different operations with attribute values below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Filter values of the \"Account\" \"lookup\" type column. */let result = await this.next?.handle(request);await request.$context.setAttributePropertyValue('Account', 'filter', {    \"filterType\": 4,    \"comparisonType\": 3,    \"isEnabled\": true,    \"trimDateTimeParameterToDate\": false,    \"leftExpression\": {        \"expressionType\": 0,        \"columnPath\": \"PrimaryContact\"    },    \"rightExpressions\": [        {            \"expressionType\": 2,            \"parameter\": {                \"dataValueType\": 10,                \"value\": \"410006e1-ca4e-4502-a9ec-e54d922d2c00\"            }        }    ],    \"isAggregative\": false,    \"key\": \"63871ecc-40a1-4f00-a7e5-9c5099a76ea4\",    \"dataValueType\": 10,    \"referenceSchemaName\": \"Contact\"});return result;",
+      "language": "js",
+      "context": "View the examples that filter data below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Filter columns of the \"OpportunityContactDetailV2EmbeddedDetail\" embedded list. */\"viewModelConfig\": {    \"attributes\": {        ...,        \"OpportunityContactDetailV2EmbeddedDetail\": {            \"modelConfig\": {                ...,                \"filterAttributes\": [{                    \"name\": \"OpportunityContactDetailV2EmbeddedDetail_Filter\"                }],            },        }    }}/* Apply the filter before the \"crt.LoadDataRequest\" request handler. */request.$context['OpportunityContactDetailV2EmbeddedDetail_Filter'] = {    \"filterType\": 4,    \"comparisonType\": 4,    \"isEnabled\": true,    \"trimDateTimeParameterToDate\": false,    \"leftExpression\": {\"expressionType\": 0, \"columnPath\": \"Contact\"},    \"isAggregative\": false,    \"key\": \"63871ecc-40a1-4f00-a7e5-9c5099a76ea4\",    \"dataValueType\": 10,    \"leftExpressionCaption\": \"Contact\",    \"referenceSchemaName\": \"Contact\",    \"rightExpressions\": [        {            \"expressionType\": 2,            \"parameter\": {\"dataValueType\": 10, \"value\": \"410006e1-ca4e-4502-a9ec-e54d922d2c00\"}        }    ]};return await this.next?.handle(request);",
+      "language": "js",
+      "context": "View the examples that filter data below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Configuration",
+      "content": "Using Creatio IDEOpen theConfigurationsection. Instructions:Open theConfigurationsection.ClickActions\u2192File system development modegroup \u2192Download packages to file system.Go to the../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Filesfile system directory.Create a/src/mobile/SomeMainAppClassdirectory.Specify the directory to add the build files automatically if needed.Open thewebpack.config.jsfile.Go to theoutputconfiguration object.Set thepathproperty to the full path to the directory to add the build files. Path template:../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClassdirectory, where:SomePackageis a directory of a Freedom UI app package in the file system.SomeMainAppClassis a unique class name in the TypeScript project.webpack.config.js fileconstbaseConfig={...,output:{path:'../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass',...},...};Otherwise, Microsoft Visual Studio Code adds the build files to the../ts_sdk_template_module/out/mobile/SomeMainAppClassproject directory.Copy themain.jsbuild file from the../ts_sdk_template_module/out/mobile/SomeMainAppClassproject directory to the../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/sdkChangeContactTypeMobile/Files/src/mobile/SomeMainAppClassdirectory. If you specify the directory to add the build files automatically, omit the step for further development.ClickActions\u2192File system development modegroup \u2192Update packages from file system.Compile the configuration. Instructions:Compile the configuration.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Using Creatio IDE</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 442ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>\n<p>Open the <strong>Configuration</strong> section. Instructions: <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15101&amp;anchor=title-2093-2\" rel=\"noopener noreferrer\" target=\"_blank\">Open the <strong>Configuration</strong> section</a>.</p>\n</li>\n<li>\n<p>Click <strong>Actions</strong> \u2192 <strong>File system development mode</strong> group \u2192 <strong>Download packages to file system</strong>.</p>\n</li>\n<li>\n<p>Go to the <code>../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files</code> file system directory.</p>\n</li>\n<li>\n<p>Create a <code>/src/mobile/SomeMainAppClass</code> directory.</p>\n</li>\n<li>\n<p>Specify the directory to add the build files automatically if needed.</p>\n<ol>\n<li>\n<p>Open the <code>webpack.config.js</code> file.</p>\n</li>\n<li>\n<p>Go to the <code>output</code> configuration object.</p>\n</li>\n<li>\n<p>Set the <code>path</code> property to the full path to the directory to add the build files. Path template: <code>../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass</code> directory, where:</p>\n<ul>\n<li><code>SomePackage</code> is a directory of a Freedom UI app package in the file system.</li>\n<li><code>SomeMainAppClass</code> is a unique class name in the TypeScript project.</li>\n</ul>\n</li>\n</ol>\n<div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">webpack.config.js file</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">const</span><span class=\"token plain\"> baseConfig </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">output</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">path</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div>\n<p>Otherwise, Microsoft Visual Studio Code adds the build files to the <code>../ts_sdk_template_module/out/mobile/SomeMainAppClass</code> project directory.</p>\n</li>\n<li>\n<p>Copy the <code>main.js</code> build file from the <code>../ts_sdk_template_module/out/mobile/SomeMainAppClass</code> project directory to the <code>../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/sdkChangeContactTypeMobile/Files/src/mobile/SomeMainAppClass</code> directory. If you specify the directory to add the build files automatically, omit the step for further development.</p>\n</li>\n<li>\n<p>Click <strong>Actions</strong> \u2192 <strong>File system development mode</strong> group \u2192 <strong>Update packages from file system</strong>.</p>\n</li>\n<li>\n<p>Compile the configuration. Instructions: <a href=\"https://academy.creatio.com/documents?ver=8.2&amp;id=15101&amp;anchor=title-2093-8\" rel=\"noopener noreferrer\" target=\"_blank\">Compile the configuration</a>.</p>\n</li>\n</ol></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Using Clio utilityInstall the Clio utility. This is a one-time procedure. To do this, run thedotnet tool install clio -gcommand at the terminal of Microsoft Visual Studio Code.Register an existing Creatio instance in Clio. To do this, run theclio reg-web-app some_application_name -u https://mycreatio.com/ -l SomeLogin -p SomePasswordcommand at the Microsoft Visual Studio Code terminal, where:some_application_nameis the Creatio instance name.https://mycreatio.com/is the Creatio instance URL.SomeLoginis the user login to the Creatio instance.SomePasswordis the user password to the Creatio instance.Ensure that Clio is connected to the Creatio instance. To do this, run theclio ping -e some_application_namecommand at the Microsoft Visual Studio Code terminal.Install thecliogatesystem package into your development environment. To do this, run theclio install-gate some_application_namecommand at the Microsoft Visual Studio Code terminal.Register an existing Freedom UI app package in Clio. To do this, run the following commands at the Microsoft Visual Studio Code terminal.clio pull-pkg SomePackage -e some_application_nameclio extract-pkg-zip SomePackage.zip -e some_application_nameGo to the../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Filesfile system directory.Create a../Files/src/mobile/SomeMainAppClassdirectory.Specify the directory to add the build files automatically if needed.Open thewebpack.config.jsfile.Go to theoutputconfiguration object.Set thepathproperty to the full path to the directory to add the build files. Path template:../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClassdirectory, where:SomePackageis a directory of a Freedom UI app package in the file system.SomeMainAppClassis a unique class name in the TypeScript project.webpack.config.js fileconstbaseConfig={...,output:{path:'../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass',...},...};Otherwise, Microsoft Visual Studio Code adds the build files to the../ts_sdk_template_module/out/mobile/SomeMainAppClassdirectory of the TypeScript project.Copy themain.jsbuild file from the../ts_sdk_template_module/out/mobile/SomeMainAppClassproject directory to the ../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/sdkChangeContactTypeMobile/Files/src/mobile/SomeMainAppClassdirectory. If you specify the directory to add the build files automatically, omit the step for further development.Update the packages from file system. To do this, run theclio push-pkg SomePackage -e some_application_namecommand at the Microsoft Visual Studio Code terminal.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Using Clio utility</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 506ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>\n<p>Install the Clio utility. This is a one-time procedure. To do this, run the <code>dotnet tool install clio -g</code> command at the terminal of Microsoft Visual Studio Code.</p>\n</li>\n<li>\n<p>Register an existing Creatio instance in Clio. To do this, run the <code>clio reg-web-app some_application_name -u https://mycreatio.com/ -l SomeLogin -p SomePassword</code> command at the Microsoft Visual Studio Code terminal, where:</p>\n<ul>\n<li><code>some_application_name</code> is the Creatio instance name.</li>\n<li><code>https://mycreatio.com/</code> is the Creatio instance URL.</li>\n<li><code>SomeLogin</code> is the user login to the Creatio instance.</li>\n<li><code>SomePassword</code> is the user password to the Creatio instance.</li>\n</ul>\n</li>\n<li>\n<p>Ensure that Clio is connected to the Creatio instance. To do this, run the <code>clio ping -e some_application_name</code> command at the Microsoft Visual Studio Code terminal.</p>\n</li>\n<li>\n<p>Install the <code>cliogate</code> system package into your development environment. To do this, run the <code>clio install-gate some_application_name</code> command at the Microsoft Visual Studio Code terminal.</p>\n</li>\n<li>\n<p>Register an existing Freedom UI app package in Clio. To do this, run the following commands at the Microsoft Visual Studio Code terminal.</p>\n<div class=\"language-cli codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-cli codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">clio pull-pkg SomePackage -e some_application_name </span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">clio extract-pkg-zip SomePackage.zip -e some_application_name </span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div>\n</li>\n<li>\n<p>Go to the <code>../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files</code> file system directory.</p>\n</li>\n<li>\n<p>Create a <code>../Files/src/mobile/SomeMainAppClass</code> directory.</p>\n</li>\n<li>\n<p>Specify the directory to add the build files automatically if needed.</p>\n<ol>\n<li>\n<p>Open the <code>webpack.config.js</code> file.</p>\n</li>\n<li>\n<p>Go to the <code>output</code> configuration object.</p>\n</li>\n<li>\n<p>Set the <code>path</code> property to the full path to the directory to add the build files. Path template: <code>../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass</code> directory, where:</p>\n<ul>\n<li><code>SomePackage</code> is a directory of a Freedom UI app package in the file system.</li>\n<li><code>SomeMainAppClass</code> is a unique class name in the TypeScript project.</li>\n</ul>\n</li>\n</ol>\n<div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockTitle_d3dP\">webpack.config.js file</div><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">const</span><span class=\"token plain\"> baseConfig </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">output</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">path</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">'../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass'</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div>\n<p>Otherwise, Microsoft Visual Studio Code adds the build files to the <code>../ts_sdk_template_module/out/mobile/SomeMainAppClass</code> directory of the TypeScript project.</p>\n</li>\n<li>\n<p>Copy the <code>main.js</code> build file from the <code>../ts_sdk_template_module/out/mobile/SomeMainAppClass</code> project directory to the .<code>./Terrasoft.WebApp/Terrasoft.Configuration/Pkg/sdkChangeContactTypeMobile/Files/src/mobile/SomeMainAppClass</code> directory. If you specify the directory to add the build files automatically, omit the step for further development.</p>\n</li>\n<li>\n<p>Update the packages from file system. To do this, run the <code>clio push-pkg SomePackage -e some_application_name</code> command at the Microsoft Visual Studio Code terminal.</p>\n</li>\n</ol></div></div></div></details>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/RequestHandlerMobileCreatio/8.2/scr_Debug_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Build the project.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_95bca62c5917.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Package settings tabin the No-Code Designer. To do this, clickin the top right \u2192 \"Applicati",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_822ea55f9414.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a user-made packageto add the schema. To do this, click\u2192Create new package\u2192 fill out the pack",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_520896d23b28.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_settings_in_mobile.jpg",
+      "alt": "",
+      "title": "",
+      "context": "Synchronize Mobile Creatiowith the main Creatio app.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_792cb8505bd2.jpg"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm",
+      "text": "Downloading and installing Node.js and npm",
+      "filename": "downloading-and-installing-node-js-and-npm",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_downloading-and-installing-node-js-and-npm"
+    },
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/RequestHandlerMobileCreatio/8.2/ts_sdk_template_module.zip",
+      "text": "Download",
+      "filename": "ts_sdk_template_module.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_ts_sdk_template_module.zip"
+    },
+    {
+      "url": "https://docs.npmjs.com/downloading-and-installing-node-js-and-npm",
+      "text": "Official vendor documentation",
+      "filename": "downloading-and-installing-node-js-and-npm",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_downloading-and-installing-node-js-and-npm"
+    },
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/RequestHandlerMobileCreatio/8.2/ts_sdk_template_module.zip",
+      "text": "Template of remote module in Mobile Creatio",
+      "filename": "ts_sdk_template_module.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/2abc41ed6c592c03__8.2_mobile-development_customization_freedom-ui_custom-request-handler_overview_ts_sdk_template_module.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Custom request handler implemented using remote module in Mobile Creatio",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "General procedure\u200b",
+      "anchor": "title-15177-5"
+    },
+    {
+      "level": 3,
+      "text": "1. Create a TypeScript project\u200b",
+      "anchor": "title-15177-1"
+    },
+    {
+      "level": 3,
+      "text": "2. Create a custom request\u200b",
+      "anchor": "title-15177-2"
+    },
+    {
+      "level": 3,
+      "text": "3. Create a custom request handler\u200b",
+      "anchor": "title-15177-3"
+    },
+    {
+      "level": 3,
+      "text": "4. Add the custom request handler to the Freedom UI page\u200b",
+      "anchor": "title-15177-4"
+    },
+    {
+      "level": 2,
+      "text": "Operations with data of Freedom UI page\u200b",
+      "anchor": "title-15177-6"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "SETATTRIBUTEPROPERTYVALUE",
+        "path": "("
+      },
+      {
+        "method": "GETATTRIBUTEPROPERTYVALUE",
+        "path": "("
+      },
+      {
+        "method": "LOG",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "SETATTRIBUTEPROPERTYVALUE",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/custom-request-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/manifest",
+      "text": "Manifest",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-rules",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedomui-mobile",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/client-schema-mobile",
+      "text": "Freedom UI page schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/customize-page",
+      "text": "Customize Freedom UI page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/customize-page/customize-page-mobile",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/components-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/request-handler-1",
+      "text": "PreviousRequest handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-custom-handler-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/custom-request-handler/examples/implement-a-custom-request-handler-using-remote-module",
+      "text": "Implement a request handler using remote module",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/bind-data-mobile",
+      "text": "Bind Freedom UI component to the attribute value",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/operations-with-data-source",
+      "text": "Operations with data source",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/operations-with-data-source/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/operations-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/data-operations-mobile",
+      "text": "Additional data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/freedom-ui/creatio-mobile-common",
+      "text": "@creatio/mobile-common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/set-up-section-icon",
+      "text": "Set up a dedicated section icon",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/scan-qr-and-bar-codes",
+      "text": "Scan QR and bar codes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/scan-bar-codes/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/scan-bar-codes-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/overview",
+      "text": "Set up the mobile portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/brand-and-publish-mobile-apps",
+      "text": "Brand and publish mobile apps",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/mobile-application-branding/brand-and-publish-mobile-apps-built",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-branding-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/customization/mobile-creatio-for-intune",
+      "text": "Manage the Mobile Creatio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/debugging-mobile-app/overview",
+      "text": "Set up the emulator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/mobile-development/debugging-mobile-app/general-procedure",
+      "text": "General procedure",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:17:45.822385"
+}

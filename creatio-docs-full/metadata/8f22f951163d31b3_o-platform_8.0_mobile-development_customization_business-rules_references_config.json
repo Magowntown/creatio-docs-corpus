@@ -1,0 +1,915 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/references/config",
+  "title": "config object property",
+  "breadcrumbs": [
+    {
+      "text": "Mobile app development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development"
+    },
+    {
+      "text": "Customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization"
+    },
+    {
+      "text": "Business rules",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-rules"
+    },
+    {
+      "text": "References",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/business-rules-references"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\n## Base business rule\u200b\nThe base business rule is an abstract class, i.e., all business rules should be its inheritors.\nThe properties of the `config` configuration object that can be used by the inheritors of the business rule.\n### Configuration object properties\u200b\nruleType  \nThe type of rule. The value must be included into the `Terrasoft.RuleTypes` enumeration.\ntriggeredByColumns  \nThe column array that triggers the rule.\nmessage  \nA text message displayed under the control element connected with the column in case business rule is not executed. It is necessary for rules that inform a user of warnings.\nname  \nA unique name of a business rule. It is necessary if you need to delete a rule by the `Terrasoft.sdk` methods.\nposition  \nA position of a business rule that defines its order priority in the current queue.\nevents  \nAn event array, defining the time of running business rules. It should contain values included into the `Terrasoft.BusinessRuleEvents` enumeration.\nAvailable values (Terrasoft.BusinessRuleEvents)\nSave| the rule is executed before saving the data  \n---|---  \nValueChanged| the rule is executed when the data is modified (while editing)  \nLoad| the rule is executed when the edit page is opened  \n## **Is required** business rule (Terrasoft.RuleTypes.Requirement)\u200b\nDefines whether an edit page field is required.\n### Configuration object properties\u200b\nruleType  \nShould contain the `Terrasoft.RuleTypes.Requirement` value for this rule.\nrequireType  \nVerification type. The value must be included into the `Terrasoft.RequirementTypes` enumeration. The rule can verify one or all the columns from `triggeredByColumns`.\ntriggeredByColumns  \nThe column array that triggers the rule. If the verification type equals `Terrasoft.RequirementTypes.Simple`, one column in the array should be specified.\nAvailable values (Terrasoft.RequirementTypes)\nSimple| value verification in one column  \n---|---  \nOneOf| one of the columns specified in the `triggeredByColumns` should be populated  \nUse case\nTerrasoft.sdk.Model.addBusinessRule(\"Contact\", {  \nruleType: Terrasoft.RuleTypes.Requirement,  \nrequireType : Terrasoft.RequirementTypes.OneOf,  \nevents: [Terrasoft.BusinessRuleEvents.Save],  \ntriggeredByColumns: [\"HomeNumber\", \"BusinessNumber\"],  \ncolumnNames: [\"HomeNumber\", \"BusinessNumber\"]  \n});  \n## Visibility business rule (Terrasoft.RuleTypes.Visibility)\u200b\nYou can hide and display fields per condition using this rule.\n### Configuration object properties\u200b\nruleType  \nShould contain the `Terrasoft.RuleTypes.Visibility` value for this rule.\ntriggeredByColumns  \nThe column array that triggers the rule.\nevents  \nAn event array, defining the time of running business rules. It should contain values included into the `Terrasoft.BusinessRuleEvents` enumeration.\nconditionalColumns  \nCondition array of business rule execution. Usually, these are specific column values.\ndependentColumnNames  \nColumn name array that the business rule is applied to.\nUse case\nTerrasoft.sdk.Model.addBusinessRule(\"Account\", {  \nruleType: Terrasoft.RuleTypes.Visibility,  \nconditionalColumns: [  \n{name: \"Type\", value: Terrasoft.Configuration.Consts.AccountTypePharmacy}  \n],  \ntriggeredByColumns: [\"Type\"],  \ndependentColumnNames: [\"IsRx\", \"IsOTC\"]  \n});  \nThe fields connected with the `IsRx` and `IsOTC` columns are displayed if the `Type` column contains the value defined by the `Terrasoft.Configuration.Consts.AccountTypePharmacy` invariable.\nTerrasoft.Configuration.Consts = {  \nAccountTypePharmacy: \"d12dc11d-8c74-46b7-9198-5a4385428f9a\"  \n};  \nYou can use the 'd12dc11d-8c74-46b7-9198-5a4385428f9a\u2019 value instead of the invariable.\n## Enabled/Disabled business rule (Terrasoft.RuleTypes.Activation)\u200b\nThis business rule enables and disables fields for entering values per condition.\n### Configuration object properties\u200b\nruleType  \nShould contain the `Terrasoft.RuleTypes.Activation` value for this rule.\ntriggeredByColumns  \nThe column array that triggers the rule.\nevents  \nAn event array, defining the time of running business rules. It should contain values included into the `Terrasoft.BusinessRuleEvents` enumeration.\nconditionalColumns  \nCondition array of business rule execution. Usually, these are specific column values.\ndependentColumnNames  \nColumn name array that the business rule is applied to.\nWhether a field connected with the `Stock` column is enabled depends on the value in the `IsPresence` column.\nUse case\nTerrasoft.sdk.Model.addBusinessRule(\"ActivitySKU\", {  \nruleType: Terrasoft.RuleTypes.Activation,  \nevents: [Terrasoft.BusinessRuleEvents.Load, Terrasoft.BusinessRuleEvents.ValueChanged],  \ntriggeredByColumns: [\"IsPresence\"],  \nconditionalColumns: [  \n{name: \"IsPresence\", value: true}  \n],  \ndependentColumnNames: [\"Stock\"]  \n});  \n## Filtration business rule (Terrasoft.RuleTypes.Filtration)\u200b\nThis business rule can be used for filtration of lookup columns by condition, or by another column value.\n### Configuration object properties\u200b\nruleType  \nShould contain the `Terrasoft.RuleTypes.Filtration` value for this rule.\ntriggeredByColumns  \nThe column array that triggers the rule.\nevents  \nAn event array, defining the time of running business rules. It should contain values included into the `Terrasoft.BusinessRuleEvents` enumeration.\nfilters  \nFilter. The property should contain the `Terrasoft.Filter` class instance.\nfilteredColumn  \nThe column used for filtering values.\n## Mutual Filtration business rule (Terrasoft.RuleTypes.MutualFiltration)\u200b\nThis business rule enables mutual filtering of two lookup fields. Works only with columns with the \"one-to-many\" relationship, e.g., **Country** \u2013 **City**. Create a separate business rule for every field cluster. For example, for the **Country** \u2013 **Region** \u2013 **City** and the **Country** \u2013 **City** clusters, create three business rules:\n* **Country** \u2013 **Region** ;\n* **Region** \u2013 **City** ;\n* **Country** \u2013 **City**.\n### Configuration object properties\u200b\nruleType  \nShould contain the `Terrasoft.RuleTypes.MutualFiltration` value for this rule.\ntriggeredByColumns  \nThe column array that triggers the rule.\nconnections  \nObject array that configures cluster relationship\n* Mutual filtration of the [Country], [Region] and [City] fields\n* Mutual filtration of the [Contact], [Account] fields\nTerrasoft.sdk.Model.addBusinessRule(\"ContactAddress\", {  \nruleType: Terrasoft.RuleTypes.MutualFiltration,  \ntriggeredByColumns: [\"City\", \"Region\", \"Country\"],  \nconnections: [  \n{  \nparent: \"Country\",  \nchild: \"City\"  \n},  \n{  \nparent: \"Country\",  \nchild: \"Region\"  \n},  \n{  \nparent: \"Region\",  \nchild: \"City\"  \n}  \n]  \n});  \nTerrasoft.sdk.Model.addBusinessRule(\"Activity\", {  \nruleType: Terrasoft.RuleTypes.MutualFiltration,  \ntriggeredByColumns: [\"Contact\", \"Account\"],  \nconnections: [  \n{  \nparent: \"Contact\",  \nchild: \"Account\",  \nconnectedBy: \"PrimaryContact\"  \n}  \n]  \n});  \n## Regular expression business rule (Terrasoft.RuleTypes.RegExp)\u200b\nVerifies the conformity of the column value with the regular expression.\n### Configuration object properties\u200b\nruleType  \nShould contain the `Terrasoft.RuleTypes.RegExp` value for this rule.\nRegExp  \nRegular expression whose conformity with all the `triggeredByColumns` array columns is verified.\ntriggeredByColumns  \nThe column array that triggers the rule.\nUse case\nTerrasoft.sdk.Model.addBusinessRule(\"Contact\", {  \nruleType: Terrasoft.RuleTypes.RegExp,  \nregExp : /^([0-9\\(\\)\\/\\+ \\-]*)$/  \ntriggeredByColumns: [\"HomeNumber\", \"BusinessNumber\"]  \n});  \n## Custom business rules\u200b\nWhen adding a custom business rule via the `Terrasoft.sdk.Model.addBusinessRule(name, config)` method you can use properties of the `config` configuration object of the base business rule. In addition, the `executeFn` property is also provided.\n### Configuration object properties\u200b\nruleType  \nRule type. For the custom rules it should contain the `Terrasoft.RuleTypes.Custom` value.\ntriggeredByColumns  \nArray of columns which initiates trigging of the business rule.\nevents  \nArray of events determining the start time of the business rule. It should contain values from the `Terrasoft.BusinessRuleEvents` enumeration. Default value: `Terrasoft.BusinessRuleEvents.ValueChanged`.\nAvailable values (Terrasoft.BusinessRuleEvents)\nSave| the rule trigs before saving the data  \n---|---  \nValueChanged| the rule trigs after changing the data (at modification)  \nLoad| the rule trigs when the edit page is opened  \nexecuteFn  \nA handler function that contains the user logic for executing the business rule.\n### Properties of the executeFn handler function\u200b\nHandler function signature\nexecuteFn: function(record, rule, checkColumnName, customData, callbackConfig, event) {    }  \nParameters\nrecord| a record for which the business rule is executed  \n---|---  \nrule| an instance of the current business rule  \ncheckColumnName| a column name that calls business-rules firing  \ncustomData| an object that is shared between all rules. Not used. Left for compatibility with previous versions  \ncallbackConfig| a configuration object of the `Ext.callback` asynchronous callback  \nevent| an event that triggered the business rul.  \nAfter the completion of function operation it is necessary to call either the `callbackConfig.success` or `callbackConfig.failure`.\nUse cases options\nExt.callback(callbackConfig.success, callbackConfig.scope, [result]);  \nExt.callback(callbackConfig.failure, callbackConfig.scope, [exception]);  \nWhere:\n* `result` \u2013 the returned boolean value obtained when the function is executed (`true`/`false`).\n* `exception` \u2013 the exception of the `Terrasoft.Exception` type, which occurred in the handler function.\n### Methods\u200b\nIn the source code of the handler function, you can use the following methods of the model passed in the `record` parameter:\nget(columnName)  \nTo get the value of a record column. The `columnName` argument should contain the column name.\nset(columnName, value, fireEventConfig)  \nTo set the value of the record column.\nParameters\ncolumnName| the name of the column  \n---|---  \nvalue| the value assigned to the column  \nfireEventConfig| a configuration object to set the properties that are passed to the column modification event  \nchangeProperty(columnName, propertyConfig)  \nFor changing column properties except its value. The `columnName` argument should contain the column name and the `propertyConfig` object that sets the column properties.\npropertyConfig object properties\ndisabled| activity of the column. If `true`, the control associated with the column will be inactive and disabled for operation  \n---|---  \nreadOnly| \"Read only\" flag. If `true`, the control associated with the column will be available only for reading. If `false` \u2013 the access for reading and writing  \nhidden| column visibility. If `true`, the control associated with the column will be hidden. If `false` \u2013 the control will be displayed  \naddFilter| add filter. If the property is specified, it should have a filter of the `Terrasoft.Filter` type that will be added to the column filtration. Property is used only for lookup fields  \nremoveFilter| remove the filter. If the property is specified, it should have a name of the filter that will be removed from the column filtration. Property is used only for lookup fields  \nisValid| flag of column validity. If the property is specified, it will change the validity flag of the control associated with the column. If the column is invalid, then this can mean canceling of saving the record, and can also lead to the determining the record as invalid  \nExample of changing the properties (but not the values) of the Owner column\nrecord.changeProperty(\"Owner\", {  \ndisabled: false,  \nreadOnly: false,  \nhidden: false,  \naddFilter: {  \nproperty: \"IsChief\",  \nvalue: true  \n},  \nisValid: {  \nvalue: false,  \nmessage: LocalizableStrings[\"Owner_should_be_a_chief_only\"]  \n}  \n});",
+  "code_examples": [
+    {
+      "code": "triggeredByColumns",
+      "language": "js",
+      "context": "The type of rule. The value must be included into theTerrasoft.RuleTypesenumeration.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "requireType",
+      "language": "js",
+      "context": "Should contain theTerrasoft.RuleTypes.Requirementvalue for this rule.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"Contact\", {    ruleType: Terrasoft.RuleTypes.Requirement,    requireType : Terrasoft.RequirementTypes.OneOf,    events: [Terrasoft.BusinessRuleEvents.Save],    triggeredByColumns: [\"HomeNumber\", \"BusinessNumber\"],    columnNames: [\"HomeNumber\", \"BusinessNumber\"]});",
+      "language": "js",
+      "context": "one of the columns specified in thetriggeredByColumnsshould be populated",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "conditionalColumns",
+      "language": "js",
+      "context": "An event array, defining the time of running business rules. It should contain values included into theTerrasoft.BusinessRuleEventsenumeration.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "dependentColumnNames",
+      "language": "js",
+      "context": "Condition array of business rule execution. Usually, these are specific column values.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"Account\", {    ruleType: Terrasoft.RuleTypes.Visibility,    conditionalColumns: [        {name: \"Type\", value: Terrasoft.Configuration.Consts.AccountTypePharmacy}    ],    triggeredByColumns: [\"Type\"],    dependentColumnNames: [\"IsRx\", \"IsOTC\"]});",
+      "language": "js",
+      "context": "Column name array that the business rule is applied to.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.Configuration.Consts = {    AccountTypePharmacy: \"d12dc11d-8c74-46b7-9198-5a4385428f9a\"};",
+      "language": "js",
+      "context": "The fields connected with theIsRxandIsOTCcolumns are displayed if theTypecolumn contains the value defined by theTerrasoft.Configuration.Consts.AccountTypePharmacyinvariable.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"ActivitySKU\", {    ruleType: Terrasoft.RuleTypes.Activation,    events: [Terrasoft.BusinessRuleEvents.Load, Terrasoft.BusinessRuleEvents.ValueChanged],    triggeredByColumns: [\"IsPresence\"],    conditionalColumns: [        {name: \"IsPresence\", value: true}    ],    dependentColumnNames: [\"Stock\"]});",
+      "language": "js",
+      "context": "Whether a field connected with theStockcolumn is enabled depends on the value in theIsPresencecolumn.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "filteredColumn",
+      "language": "js",
+      "context": "Filter. The property should contain theTerrasoft.Filterclass instance.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "connections",
+      "language": "js",
+      "context": "The column array that triggers the rule.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"ContactAddress\", {    ruleType: Terrasoft.RuleTypes.MutualFiltration,    triggeredByColumns: [\"City\", \"Region\", \"Country\"],    connections: [        {            parent: \"Country\",            child: \"City\"        },        {            parent: \"Country\",            child: \"Region\"        },        {            parent: \"Region\",            child: \"City\"        }    ]});",
+      "language": "js",
+      "context": "Object array that configures cluster relationship",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"Activity\", {    ruleType: Terrasoft.RuleTypes.MutualFiltration,    triggeredByColumns: [\"Contact\", \"Account\"],    connections: [        {            parent: \"Contact\",            child: \"Account\",            connectedBy: \"PrimaryContact\"        }    ]});",
+      "language": "js",
+      "context": "Object array that configures cluster relationship",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"Contact\", {    ruleType: Terrasoft.RuleTypes.RegExp,    regExp : /^([0-9\\(\\)\\/\\+ \\-]*)$/    triggeredByColumns: [\"HomeNumber\", \"BusinessNumber\"]});",
+      "language": "js",
+      "context": "The column array that triggers the rule.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "executeFn: function(record, rule, checkColumnName, customData, callbackConfig, event) {    }",
+      "language": "js",
+      "context": "Properties of the executeFn handler function\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Ext.callback(callbackConfig.success, callbackConfig.scope, [result]);Ext.callback(callbackConfig.failure, callbackConfig.scope, [exception]);",
+      "language": "js",
+      "context": "After the completion of function operation it is necessary to call either thecallbackConfig.successorcallbackConfig.failure.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "get(columnName)",
+      "language": "js",
+      "context": "In the source code of the handler function, you can use the following methods of the model passed in therecordparameter:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "set(columnName, value, fireEventConfig)",
+      "language": "js",
+      "context": "To get the value of a record column. ThecolumnNameargument should contain the column name.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "changeProperty(columnName, propertyConfig)",
+      "language": "js",
+      "context": "a configuration object to set the properties that are passed to the column modification event",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "record.changeProperty(\"Owner\", {    disabled: false,    readOnly: false,    hidden: false,    addFilter: {        property: \"IsChief\",        value: true    },    isValid: {        value: false,        message: LocalizableStrings[\"Owner_should_be_a_chief_only\"]    } });",
+      "language": "js",
+      "context": "flag of column validity. If the property is specified, it will change the validity flag of the control associated with the column. If the column is invalid, then this can mean canceling of saving the ",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Save",
+          "the rule is executed before saving the data"
+        ],
+        [
+          "ValueChanged",
+          "the rule is executed when the data is modified (while editing)"
+        ],
+        [
+          "Load",
+          "the rule is executed when the edit page is opened"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>Save</p></td><td><p>the rule is executed before saving the data</p></td></tr><tr><td><p>ValueChanged</p></td><td><p>the rule is executed when the data is modified (while editing)</p></td></tr><tr><td><p>Load</p></td><td><p>the rule is executed when the edit page is opened</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Simple",
+          "value verification in one column"
+        ],
+        [
+          "OneOf",
+          "one of the columns specified in thetriggeredByColumnsshould be populated"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>Simple</p></td><td><p>value verification in one column</p></td></tr><tr><td><p>OneOf</p></td><td><p>one of the columns specified in the <code>triggeredByColumns</code> should be populated</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Save",
+          "the rule trigs before saving the data"
+        ],
+        [
+          "ValueChanged",
+          "the rule trigs after changing the data (at modification)"
+        ],
+        [
+          "Load",
+          "the rule trigs when the edit page is opened"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>Save</p></td><td><p>the rule trigs before saving the data</p></td></tr><tr><td><p>ValueChanged</p></td><td><p>the rule trigs after changing the data (at modification)</p></td></tr><tr><td><p>Load</p></td><td><p>the rule trigs when the edit page is opened</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "record",
+          "a record for which the business rule is executed"
+        ],
+        [
+          "rule",
+          "an instance of the current business rule"
+        ],
+        [
+          "checkColumnName",
+          "a column name that calls business-rules firing"
+        ],
+        [
+          "customData",
+          "an object that is shared between all rules. Not used. Left for compatibility with previous versions"
+        ],
+        [
+          "callbackConfig",
+          "a configuration object of theExt.callbackasynchronous callback"
+        ],
+        [
+          "event",
+          "an event that triggered the business rul."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>record</p></td><td><p>a record for which the business rule is executed</p></td></tr><tr><td><p>rule</p></td><td><p>an instance of the current business rule</p></td></tr><tr><td><p>checkColumnName</p></td><td><p>a column name that calls business-rules firing</p></td></tr><tr><td><p>customData</p></td><td><p>an object that is shared between all rules. Not used. Left for compatibility with previous versions</p></td></tr><tr><td><p>callbackConfig</p></td><td><p>a configuration object of the <code>Ext.callback</code> asynchronous callback</p></td></tr><tr><td><p>event</p></td><td><p>an event that triggered the business rul.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "columnName",
+          "the name of the column"
+        ],
+        [
+          "value",
+          "the value assigned to the column"
+        ],
+        [
+          "fireEventConfig",
+          "a configuration object to set the properties that are passed to the column modification event"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>columnName</p></td><td><p>the name of the column</p></td></tr><tr><td><p>value</p></td><td><p>the value assigned to the column</p></td></tr><tr><td><p>fireEventConfig</p></td><td><p>a configuration object to set the properties that are passed to the column modification event</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "disabled",
+          "activity of the column. Iftrue, the control associated with the column will be inactive and disabled for operation"
+        ],
+        [
+          "readOnly",
+          "\"Read only\" flag. Iftrue, the control associated with the column will be available only for reading. Iffalse\u2013 the access for reading and writing"
+        ],
+        [
+          "hidden",
+          "column visibility. Iftrue, the control associated with the column will be hidden. Iffalse\u2013 the control will be displayed"
+        ],
+        [
+          "addFilter",
+          "add filter. If the property is specified, it should have a filter of theTerrasoft.Filtertype that will be added to the column filtration. Property is used only for lookup fields"
+        ],
+        [
+          "removeFilter",
+          "remove the filter. If the property is specified, it should have a name of the filter that will be removed from the column filtration. Property is used only for lookup fields"
+        ],
+        [
+          "isValid",
+          "flag of column validity. If the property is specified, it will change the validity flag of the control associated with the column. If the column is invalid, then this can mean canceling of saving the record, and can also lead to the determining the record as invalid"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>disabled</p></td><td><p>activity of the column. If <code>true</code>, the control associated with the column will be inactive and disabled for operation</p></td></tr><tr><td><p>readOnly</p></td><td><p>\"Read only\" flag. If <code>true</code>, the control associated with the column will be available only for reading. If <code>false</code> \u2013 the access for reading and writing</p></td></tr><tr><td><p>hidden</p></td><td><p>column visibility. If <code>true</code>, the control associated with the column will be hidden. If <code>false</code> \u2013 the control will be displayed</p></td></tr><tr><td><p>addFilter</p></td><td><p>add filter. If the property is specified, it should have a filter of the <code>Terrasoft.Filter</code> type that will be added to the column filtration. Property is used only for lookup fields</p></td></tr><tr><td><p>removeFilter</p></td><td><p>remove the filter. If the property is specified, it should have a name of the filter that will be removed from the column filtration. Property is used only for lookup fields</p></td></tr><tr><td><p>isValid</p></td><td><p>flag of column validity. If the property is specified, it will change the validity flag of the control associated with the column. If the column is invalid, then this can mean canceling of saving the record, and can also lead to the determining the record as invalid</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Available values (Terrasoft.BusinessRuleEvents)Savethe rule is executed before saving the dataValueChangedthe rule is executed when the data is modified (while editing)Loadthe rule is executed when the edit page is opened",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.BusinessRuleEvents)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 274ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>Save</p></td><td><p>the rule is executed before saving the data</p></td></tr><tr><td><p>ValueChanged</p></td><td><p>the rule is executed when the data is modified (while editing)</p></td></tr><tr><td><p>Load</p></td><td><p>the rule is executed when the edit page is opened</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Available values (Terrasoft.RequirementTypes)Simplevalue verification in one columnOneOfone of the columns specified in thetriggeredByColumnsshould be populated",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.RequirementTypes)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 255ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>Simple</p></td><td><p>value verification in one column</p></td></tr><tr><td><p>OneOf</p></td><td><p>one of the columns specified in the <code>triggeredByColumns</code> should be populated</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Available values (Terrasoft.BusinessRuleEvents)Savethe rule trigs before saving the dataValueChangedthe rule trigs after changing the data (at modification)Loadthe rule trigs when the edit page is opened",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Available values (Terrasoft.BusinessRuleEvents)</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 274ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>Save</p></td><td><p>the rule trigs before saving the data</p></td></tr><tr><td><p>ValueChanged</p></td><td><p>the rule trigs after changing the data (at modification)</p></td></tr><tr><td><p>Load</p></td><td><p>the rule trigs when the edit page is opened</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Parametersrecorda record for which the business rule is executedrulean instance of the current business rulecheckColumnNamea column name that calls business-rules firingcustomDataan object that is shared between all rules. Not used. Left for compatibility with previous versionscallbackConfiga configuration object of theExt.callbackasynchronous callbackeventan event that triggered the business rul.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 319ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>record</p></td><td><p>a record for which the business rule is executed</p></td></tr><tr><td><p>rule</p></td><td><p>an instance of the current business rule</p></td></tr><tr><td><p>checkColumnName</p></td><td><p>a column name that calls business-rules firing</p></td></tr><tr><td><p>customData</p></td><td><p>an object that is shared between all rules. Not used. Left for compatibility with previous versions</p></td></tr><tr><td><p>callbackConfig</p></td><td><p>a configuration object of the <code>Ext.callback</code> asynchronous callback</p></td></tr><tr><td><p>event</p></td><td><p>an event that triggered the business rul.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParameterscolumnNamethe name of the columnvaluethe value assigned to the columnfireEventConfiga configuration object to set the properties that are passed to the column modification event",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 274ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>columnName</p></td><td><p>the name of the column</p></td></tr><tr><td><p>value</p></td><td><p>the value assigned to the column</p></td></tr><tr><td><p>fireEventConfig</p></td><td><p>a configuration object to set the properties that are passed to the column modification event</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "propertyConfig object propertiesdisabledactivity of the column. Iftrue, the control associated with the column will be inactive and disabled for operationreadOnly\"Read only\" flag. Iftrue, the control associated with the column will be available only for reading. Iffalse\u2013 the access for reading and writinghiddencolumn visibility. Iftrue, the control associated with the column will be hidden. Iffalse\u2013 the control will be displayedaddFilteradd filter. If the property is specified, it should have a filter of theTerrasoft.Filtertype that will be added to the column filtration. Property is used only for lookup fieldsremoveFilterremove the filter. If the property is specified, it should have a name of the filter that will be removed from the column filtration. Property is used only for lookup fieldsisValidflag of column validity. If the property is specified, it will change the validity flag of the control associated with the column. If the column is invalid, then this can mean canceling of saving the record, and can also lead to the determining the record as invalid",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>propertyConfig object properties</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 357ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>disabled</p></td><td><p>activity of the column. If <code>true</code>, the control associated with the column will be inactive and disabled for operation</p></td></tr><tr><td><p>readOnly</p></td><td><p>\"Read only\" flag. If <code>true</code>, the control associated with the column will be available only for reading. If <code>false</code> \u2013 the access for reading and writing</p></td></tr><tr><td><p>hidden</p></td><td><p>column visibility. If <code>true</code>, the control associated with the column will be hidden. If <code>false</code> \u2013 the control will be displayed</p></td></tr><tr><td><p>addFilter</p></td><td><p>add filter. If the property is specified, it should have a filter of the <code>Terrasoft.Filter</code> type that will be added to the column filtration. Property is used only for lookup fields</p></td></tr><tr><td><p>removeFilter</p></td><td><p>remove the filter. If the property is specified, it should have a name of the filter that will be removed from the column filtration. Property is used only for lookup fields</p></td></tr><tr><td><p>isValid</p></td><td><p>flag of column validity. If the property is specified, it will change the validity flag of the control associated with the column. If the column is invalid, then this can mean canceling of saving the record, and can also lead to the determining the record as invalid</p></td></tr></tbody></table></div></div></div></details>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "config object property",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Base business rule\u200b",
+      "anchor": "title-1523-1"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-1523-12"
+    },
+    {
+      "level": 2,
+      "text": "Is requiredbusiness rule (Terrasoft.RuleTypes.Requirement)\u200b",
+      "anchor": "title-1523-2"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-1523-12"
+    },
+    {
+      "level": 2,
+      "text": "Visibility business rule (Terrasoft.RuleTypes.Visibility)\u200b",
+      "anchor": "title-1523-3"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-1523-12"
+    },
+    {
+      "level": 2,
+      "text": "Enabled/Disabled business rule (Terrasoft.RuleTypes.Activation)\u200b",
+      "anchor": "title-1523-4"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-1523-12"
+    },
+    {
+      "level": 2,
+      "text": "Filtration business rule (Terrasoft.RuleTypes.Filtration)\u200b",
+      "anchor": "title-1523-5"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-1523-12"
+    },
+    {
+      "level": 2,
+      "text": "Mutual Filtration business rule (Terrasoft.RuleTypes.MutualFiltration)\u200b",
+      "anchor": "title-1523-6"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-1523-12"
+    },
+    {
+      "level": 2,
+      "text": "Regular expression business rule (Terrasoft.RuleTypes.RegExp)\u200b",
+      "anchor": "title-1523-7"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-2430-12"
+    },
+    {
+      "level": 2,
+      "text": "Custom business rules\u200b",
+      "anchor": "title-1523-8"
+    },
+    {
+      "level": 3,
+      "text": "Configuration object properties\u200b",
+      "anchor": "title-1523-12"
+    },
+    {
+      "level": 3,
+      "text": "Properties of the executeFn handler function\u200b",
+      "anchor": "title-1523-10"
+    },
+    {
+      "level": 3,
+      "text": "Methods\u200b",
+      "anchor": "title-1523-29"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "CALLBACK",
+        "path": "("
+      },
+      {
+        "method": "CALLBACK",
+        "path": "("
+      },
+      {
+        "method": "CHANGEPROPERTY",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/references/config",
+      "text": "config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/references/config",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/architecture-mobile/overview-mobile",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-architecture-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/freedomui-mobile",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/freedom-ui/client-schema-mobile",
+      "text": "Freedom UI page schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/customize-page",
+      "text": "Customize Freedom UI page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/freedom-ui/bind-data-mobile",
+      "text": "Bind Freedom UI component to the attribute value",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/freedom-ui/data-operations-mobile",
+      "text": "Data operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/manifest",
+      "text": "Manifest",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/manifest/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/manifest-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/manifest-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/list",
+      "text": "List",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/list/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/list-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/list-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-rules",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/business-rules-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/examples/filter-values",
+      "text": "Filter values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/examples/select-a-field-by-condition",
+      "text": "Select a field by condition",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/examples/reset-negative-values-to-0",
+      "text": "Reset negative values to 0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/examples/generate-the-title-of-an-activity",
+      "text": "Generate the activity title",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/business-rules-references",
+      "text": "PreviousReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboards",
+      "text": "NextDashboards",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/dashboards/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboards-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboards-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/overview",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/set-up-section-icon",
+      "text": "Set up a dedicated section icon",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/branding-and-publishing",
+      "text": "Branding and publishing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/mobile-application-branding/brand-and-publish-mobile-apps-built",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-branding-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/mobile-creatio-for-intune",
+      "text": "Mobile Creatio for Intune",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/debugging-mobile-app/overview",
+      "text": "Set up the emulator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/debugging-mobile-app/general-procedure",
+      "text": "General procedure",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:43:55.551438"
+}

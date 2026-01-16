@@ -1,0 +1,1 @@
+virtual bool Load(DataRow dataRow)virtual bool Load(DataRow dataRow, Dictionary<string,string> columnMap)virtual bool Load(IDataReader dataReader)virtual bool Load(IDataReader dataReader, IDictionary<string,string> columnMap)virtual bool Load(object dataSource)virtual bool Load(object dataSource, IDictionary<string,string> columnMap)

@@ -1,0 +1,1 @@
+[Path to WorkspaceConsole]\Terrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=[Workspace name] -destinationPath=[Path to a local directory] -webApplicationPath=[Path to a local directory] -confRuntimeParentDirectory=[Path to a local directory] -logPath=[Path to a local directory] -configurationPath=[Path to a local directory]

@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...    {        "operation": "insert",        "name": "Header",        "values": {            "type": "crt.Label",            "caption": "#ResourceString(Header)#",        },    ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/

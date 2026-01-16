@@ -1,0 +1,1 @@
+CustomQueryFunction(string functionName, QueryColumnExpression[] expressions)CustomQueryFunction(string functionName, IQueryColumnExpressionConvertible[] expressions)

@@ -1,0 +1,909 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/add-an-action-for-multiple-records",
+  "title": "Add an action for multiple records to the section",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Section",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: intermediate\nImportant\nThe example is relevant to Sales Creatio products.\nExample\nAdd an action for records of the **Orders** section list. The action must display the index of accounts for the selected orders in the message box.\n## Create a schema of the replacing section view model\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"OrderSectionV2\".\n* Set **Title** to \"Order section\".\n* Set **Parent object** to \"OrderSectionV2\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_OrderSectionV2_props.png)\n4. Add a **localizable string** that contains the menu item caption.\n1. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_button.png) button in the context menu of the **Localizable strings** node.\n2. Fill out the **localizable string properties**.\n* Set **Code** to \"AccountsSectionAction\".\n* Set **Value** to \"Accounts for the selected orders\".\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_localizable_string.png)\n3. Click **Add** to add a localizable string.\n5. Implement the **menu item behavior**. To do this, implement the following **methods** in the `methods` property:\n* `isCustomActionEnabled()`. Determines whether the menu item is available.\n* `showOrderInfo()`. The action handler method that displays the index of accounts for the selected orders in the message box.\n* `getSectionActions()`. The overloaded parent schema method that retrieves the section's action collection.\nThe primary column values of the selected records are stored in the `SelectedRows` property of the section view model. You can use these values to get the values uploaded to the field list of the selected objects. For example, from a regular list's data collection stored in the `GridData` view model property of the list.\nView the source code of the replacing view model schema of the section below.\nOrderSectionV2\ndefine(\"OrderSectionV2\", [\"OrderConfigurationConstants\"], function(OrderConfigurationConstants) {  \nreturn {  \n/* The name of the section object schema. */  \nentitySchemaName: \"Order\",  \n/* The methods of the section view model. */  \nmethods: {  \n/* Determine whether the menu item is available. */   \nisCustomActionEnabled: function() {  \n/* Attempt to retrieve the array of the selected record IDs. */  \nvar selectedRows = this.get(\"SelectedRows\");  \n/* Return true if the array contains items (at least one list record is selected), return false otherwise. */  \nreturn selectedRows ? (selectedRows.length > 0) : false;  \n},  \n/* The action handler method. Displays the index of accounts in the message box. */  \nshowOrdersInfo: function() {  \n/* Retrieve the array of the selected record IDs. */  \nvar selectedRows = this.get(\"SelectedRows\");  \n/* Retrieve the data collection of the list records. */  \nvar gridData = this.get(\"GridData\");  \n/* The variable that stores the object model of the selected order. */   \nvar selectedOrder = null;  \n/* The variable that stores the account name for the selected order. */  \nvar selectedOrderAccount = \"\";  \n/* The variable that generates the message box text. */  \nvar infoText = \"\";  \n/* Process the array of the selected record IDs. */  \nselectedRows.forEach(function(selectedRowId) {  \n/* Retrieve the object model of the selected order. */  \nselectedOrder = gridData.get(selectedRowId);  \n/* Retrieve the account name for the selected order. The column must be added to the list. */  \nselectedOrderAccount = selectedOrder.get(\"Account\").displayValue;  \n/* Add the account name to the message box text. */  \ninfoText += \"\\n\" + selectedOrderAccount;  \n});  \n/* Display the message box. */  \nthis.showInformationDialog(infoText);  \n},  \n/* Overload the base virtual method that returns the section action collection. */  \ngetSectionActions: function() {  \n/* Call the parent method implementation that retrieves the collection of the initialized section actions. */   \nvar actionMenuItems = this.callParent(arguments);  \n/* Add a separator line. */  \nactionMenuItems.addItem(this.getButtonMenuItem({  \nType: \"Terrasoft.MenuSeparator\",  \nCaption: \"\"  \n}));  \n/* Add a menu item to the section action index. */  \nactionMenuItems.addItem(this.getButtonMenuItem({  \n/* Bind the menu item caption to the localizable schema string. */  \n\"Caption\": {bindTo: \"Resources.Strings.AccountsSectionAction\"},  \n/* Bind the action handler method. */  \n\"Click\": {bindTo: \"showOrdersInfo\"},  \n/* Bind the property of the menu item availability to the value returned by the isCustomActionEnabled method. */  \n\"Enabled\": {bindTo: \"isCustomActionEnabled\"},  \n/* Support the multiple selection mode. */  \n\"IsEnabledForSelectedAll\": true   \n}));  \n/* Return the expanded section action collection. */  \nreturn actionMenuItems;  \n}  \n}  \n};  \n});  \n6. Click **Save** on the Designer's toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** :\n1. Clear the browser cache.\n2. Refresh the **Orders** section page.\nThe section single record mode is used by default. To select multiple list records, click **Select multiple records** in the menu of the **Actions** button. This changes the visual view of the list. You will see record selection elements appear.\nAs a result, Creatio will add the **Accounts for the selected orders** action to the order page.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_result.png)\nRun the **Accounts for the selected orders** action to bring up the message box that displays the account list for the selected orders.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_modal_window.png)\nTo cancel the multiple selection mode, click **Cancel multiple selection** in the menu of the **Actions** button.\nIf you do not select any records in the **Orders** section list, the **Accounts for the selected orders** action will be inactive.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_result_another.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddSectionActionForMultipleRowsPackage_2021-12-21_08.52.57.zip)\n[Tech Hour - How to use buttons and actions to empower Creatio pages](https://www.youtube.com/watch?v=a5zefAhN3fk)",
+  "code_examples": [
+    {
+      "code": "define(\"OrderSectionV2\", [\"OrderConfigurationConstants\"], function(OrderConfigurationConstants) {    return {        /* The name of the section object schema. */        entitySchemaName: \"Order\",        /* The methods of the section view model. */        methods: {            /* Determine whether the menu item is available. */             isCustomActionEnabled: function() {                /* Attempt to retrieve the array of the selected record IDs. */                var selectedRows = this.get(\"SelectedRows\");                /* Return true if the array contains items (at least one list record is selected), return false otherwise. */                return selectedRows ? (selectedRows.length > 0) : false;            },            /* The action handler method. Displays the index of accounts in the message box. */            showOrdersInfo: function() {                /* Retrieve the array of the selected record IDs. */                var selectedRows = this.get(\"SelectedRows\");                /* Retrieve the data collection of the list records. */                var gridData = this.get(\"GridData\");                /* The variable that stores the object model of the selected order. */                 var selectedOrder = null;                /* The variable that stores the account name for the selected order. */                var selectedOrderAccount = \"\";                /* The variable that generates the message box text. */                var infoText = \"\";                /* Process the array of the selected record IDs. */                selectedRows.forEach(function(selectedRowId) {                    /* Retrieve the object model of the selected order. */                    selectedOrder = gridData.get(selectedRowId);                    /* Retrieve the account name for the selected order. The column must be added to the list. */                    selectedOrderAccount = selectedOrder.get(\"Account\").displayValue;                    /* Add the account name to the message box text. */                    infoText += \"\\n\" + selectedOrderAccount;                });                /* Display the message box. */                this.showInformationDialog(infoText);            },            /* Overload the base virtual method that returns the section action collection. */            getSectionActions: function() {                /* Call the parent method implementation that retrieves the collection of the initialized section actions. */                 var actionMenuItems = this.callParent(arguments);                /* Add a separator line. */                actionMenuItems.addItem(this.getButtonMenuItem({                    Type: \"Terrasoft.MenuSeparator\",                    Caption: \"\"                }));                /* Add a menu item to the section action index. */                actionMenuItems.addItem(this.getButtonMenuItem({                    /* Bind the menu item caption to the localizable schema string. */                    \"Caption\": {bindTo: \"Resources.Strings.AccountsSectionAction\"},                    /* Bind the action handler method. */                    \"Click\": {bindTo: \"showOrdersInfo\"},                    /* Bind the property of the menu item availability to the value returned by the isCustomActionEnabled method. */                    \"Enabled\": {bindTo: \"isCustomActionEnabled\"},                    /* Support the multiple selection mode. */                    \"IsEnabledForSelectedAll\": true                 }));                /* Return the expanded section action collection. */                return actionMenuItems;            }        }    };});",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the section below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThe example is relevant to Sales Creatio products.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The example is relevant to Sales Creatio products.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The example is relevant to Sales Creatio products.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The example is relevant to Sales Creatio products.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Orders",
+      "content": "ExampleAdd an action for records of theOrderssection list. The action must display the index of accounts for the selected orders in the message box.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add an action for records of the <strong>Orders</strong> section list. The action must display the index of accounts for the selected orders in the message box.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Orders",
+      "content": "Add an action for records of theOrderssection list. The action must display the index of accounts for the selected orders in the message box.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add an action for records of the <strong>Orders</strong> section list. The action must display the index of accounts for the selected orders in the message box.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_OrderSectionV2_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_c6f08a226d02.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton in the context menu of theLocalizable stringsnode.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_2bc54520fe09.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_localizable_string.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out thelocalizable string properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_e46e670e75dd.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add theAccounts for the selected ordersaction to the order page.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_04441f036259.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_modal_window.png",
+      "alt": "",
+      "title": "",
+      "context": "Run theAccounts for the selected ordersaction to bring up the message box that displays the account ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_b8ce48e721f2.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddSectionActionForMultipleRows/7.18/scr_result_another.png",
+      "alt": "",
+      "title": "",
+      "context": "If you do not select any records in theOrderssection list, theAccounts for the selected ordersaction",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_02335ec68e3e.png"
+    }
+  ],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=a5zefAhN3fk",
+      "text": "Tech Hour - How to use buttons and actions to empower Creatio pages"
+    }
+  ],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddSectionActionForMultipleRowsPackage_2021-12-21_08.52.57.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAddSectionActionForMultipleRowsPackage_2021-12-21_08.52.57.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/0dc5e207e2e1aeb6_orm-customization_classic-ui_section_examples_add-an-action-for-multiple-records_sdkAddSectionActionForMultipleRowsPackage_2021-12-21_08.52.57.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add an action for multiple records to the section",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Create a schema of the replacing section view model\u200b",
+      "anchor": "title-3236-1"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-3236-2"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "FOREACH",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "SHOWINFORMATIONDIALOG",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETBUTTONMENUITEM",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETBUTTONMENUITEM",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/add-an-action-for-multiple-records",
+      "text": "Add an action for multiple records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/examples/add-an-action-for-multiple-records",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/add-an-action-for-a-single-record",
+      "text": "PreviousAdd an action for a single record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/set-up-handling-for-multiple-records",
+      "text": "NextSet up action handling for multiple records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/set-up-action-handling-lookup-for-multiple-records",
+      "text": "Set up action handling (lookup) for multiple records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/set-up-the-display-conditions-of-the-list",
+      "text": "Set up the display conditions of the list",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/examples/set-up-quick-filter-block",
+      "text": "Set up the quick filters block",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/references/basesectionv2",
+      "text": "BaseSectionV2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:39:14.142949"
+}

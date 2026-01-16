@@ -1,0 +1,1 @@
+/* Create a "CopilotIntentCall" instance. */var request = new CopilotIntentCall {    /* Code of the AI Skill to run. */    IntentName = "UsrCodeOfSomeAISkill",    /* Parameters of the AI Skill. */    Parameters = new Dictionary<string, object> {        { "somepromptparameter1", "some parameter value" },        { "somepromptparameter2", "some parameter value" }    }};

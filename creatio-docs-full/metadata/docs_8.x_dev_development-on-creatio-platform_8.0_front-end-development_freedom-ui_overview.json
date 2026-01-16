@@ -1,0 +1,510 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/overview",
+  "title": "Creatio front-end architecture",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: beginner\nThe **software platform** is an environment required for Creatio development (`DesignTime` mode) and runtime (`RunTime` mode).\nView the interaction pattern of structural items in the Creatio platform in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_CreatioLayers.png)\nStructural mode items of the Creatio platform interact via the `System` layer.\n## DesignTime mode\u200b\nThe **purpose** of the `DesignTime` mode is Creatio development, extension, and customization.\nThe `DesignTime` mode of the Creatio platform includes the following **structural items** :\n* `Schema` metadata layer. Contains a set of client schemas. Learn more about client schemas in a separate article: [Client schema](https://academy.creatio.com/documents?ver=8.0&id=15342).\n* Precompiled JavaScript code.\n## RunTime mode\u200b\nThe `RunTime` mode of the Creatio platform includes the following **structural items** :\n* The `View` layer for data visualization.\n* The `ViewModel` layer for interaction between the `View` and `Model` layers.\n* The `Model` data layer.\n### View layer\u200b\nThe `View` layer handles data visualization. Represented as a set of visual components of the `DesignTime` mode. Components of various types implement the `View` layer. For example, these can be components that store nested components (e. g., `GridContainerComponent`), components that display data (e. g., `LabelComponent`), components that interact with the user (e. g., `InputComponent`), etc.\nYou can use components in the `viewConfigDiff` section of the client schema. If you use components in client schemas, Creatio generates components based on the schema properties. This lets you customize the view using Creatio no-code tools.\n### ViewModel layer\u200b\n`ViewModel` layer handles the business logic of the `View` and `Model` layer interaction. Represented by the `ViewModel` type that encapsulates the attribute management logic: data initialization, binding to visual component sections, change tracking. Creatio does not support custom section `view model` types.\nThe `ViewModel` layer lets you implement the following business logic **types** :\n* validators\n* converters\n* query handlers\nLearn more in a separate article: [Client schema](https://academy.creatio.com/documents?ver=8.0&id=15342).\nThe following attribute **types** implement the `ViewModel` layer:\n* simple type attribute (`string`, `number`, `boolean`)\n* attribute that contains nested `view model` instances\n* resource attribute (`readonly`)\nCreatio `ViewModel` layer supports the following life cycle **stages** :\n* Instance initialization (`crt.HandleViewModelInitRequest` handler).\n* Addition of a `View` model to a container using the `attach` operation (`crt.HandleViewModelResumeRequest` handler). Creatio calls the handler when you open a module. Available in Creatio 8.0.6 Atlas and later.\n* Attribute value change (`crt.HandleViewModelAttributeChangeRequest` handler).\n* Removal of the `View` model of the current module from a container using the `detach` operation (`crt.HandleViewModelPauseRequest` handler). Creatio calls the handler when you switch to another module. Available in Creatio 8.0.6 Atlas and later.\n* Instance destruction (`crt.HandleViewModelDestroyRequest` handler). At this stage, execute only synchronous code that destroys resources accumulated as part of runtime.\nCreatio calls `HandleViewModelResumeRequest` and `HandleViewModelPauseRequest` handlers if the current module has the `viewModel` parameter. The handlers are called in the following order: `HandleViewModelResumeRequest` \u2192 `HandleViewModelPauseRequest`. Creatio does not call handlers if you open a Freedom UI page and switch to another module before executing the `attach` operation.\nTo ensure data visualization in Creatio UI and synchronization of this data operate as intended, bind the `View` layer to `ViewModel`.\nView the structure of `View` to `ViewModel` binding in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_CreatioLayers_Binding.png)\nCreatio provides the following binding **types** :\n* one way binding to attribute\n* binding to resource attribute\n* retrieval of the `CrtControl` instance\nView an example that uses various binding types below.\nExample that uses bindings\nviewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{  \n\"attributes\": {  \n\"FirstName\": {},  \n\"Visible\": {}  \n}  \n}/**SCHEMA_VIEW_MODEL_CONFIG*/,  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrSickDaysLeft\",  \ntype: \"crt.Input\",  \n/* Retrieve a CrtControl instance. */  \ncontrol: \"$FirstName\",  \n/* binding to resource attribute */  \ntitle: \"$Resources.Strings.Title\",  \n/* one way binding to attribute */  \nvisible: \"$Visible\"  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nYou can expand the binding mechanism with the needed macro mechanism. For example, use the macro mechanism to bind nested properties of the object to `ViewModel` resources. A **macro** is an item that replaces part of `view config` with `ViewModel` resources. Unlike a binding, a macro is only triggered once and not synchronized upon further `view model` changes. Creatio 8 Atlas implements only the `#ResourceString#` macro that implements resource string management.\nView an example that inserts the value from resources into the `caption` property of the `Header` element below.\nExample that uses the #ResourceString# macro\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n...  \n{  \n\"operation\": \"insert\",  \n\"name\": \"Header\",  \n\"values\": {  \n\"type\": \"crt.Label\",  \n\"caption\": \"#ResourceString(Header)#\",  \n},  \n...  \n},  \n...  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/  \nSince custom `ViewModel` instances are not supported, describe the business logic in Creatio 8 Atlas using individual query handlers. You can chain handlers and define the needed fetch time of the handler.\nView Creatio workflow in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_CreatioWork.png)\n### Model layer\u200b\nThe `Model` layer handles data management. The layer lets you manage data sources and schema of their data, as well as execute data operations (load, save, delete, sort, etc.). Creatio 8 Atlas includes the `EntityDataSource` data source type that lets you manage data of `Entity` objects. The set of data sources is closed for expansion in Creatio 8 Atlas. This feature will be available in the future. he `ViewModel` layer uses the `Model` layer functionality to supply the `View` layer with data.\nCreatio uses the **Data Access Object** (DAO) pattern to store data. Learn more about the DAO pattern in [Wikipedia](https://en.wikipedia.org/w/index.php?title=Data_access_object&oldid=1063130973).\nView the DAO workflow in Creatio in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_DAO.png)\nItems of the `Data Access Object` group solve the following **problems** :\n* Ensure the execution of CRUD operations.\n* Provide data operation (create, update, delete) permissions.\n* Provide the data structure (`DataSchema`).\nCreatio 8 Atlas implements `EntityDataSource` that manages the Creatio database.\nInitialize the `Model` with `viewModel` based on the workflow below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_Model_ViewModel.png)\n* * *\n## See also\u200b\n[Client schema](https://academy.creatio.com/documents?ver=8.0&id=15342)\n* * *\n## Resources\u200b\n[Wikipedia (description of the Data Access Object (DAO) pattern)](https://en.wikipedia.org/w/index.php?title=Data_access_object&oldid=1063130973)",
+  "code_examples": [
+    {
+      "code": "viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    \"attributes\": {        \"FirstName\": {},        \"Visible\": {}    }}/**SCHEMA_VIEW_MODEL_CONFIG*/,viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    {        \"operation\": \"insert\",        \"name\": \"UsrSickDaysLeft\",        type: \"crt.Input\",        /* Retrieve a CrtControl instance. */        control: \"$FirstName\",        /* binding to resource attribute */        title: \"$Resources.Strings.Title\",        /* one way binding to attribute */        visible: \"$Visible\"    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that uses various binding types below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...    {        \"operation\": \"insert\",        \"name\": \"Header\",        \"values\": {            \"type\": \"crt.Label\",            \"caption\": \"#ResourceString(Header)#\",        },    ...    },    ...]/**SCHEMA_VIEW_CONFIG_DIFF*/",
+      "language": "js",
+      "context": "View an example that inserts the value from resources into thecaptionproperty of theHeaderelement below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_CreatioLayers.png",
+      "alt": "",
+      "title": "",
+      "context": "View the interaction pattern of structural items in the Creatio platform in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_front-end-development_freedom-ui_overview_0661c115b899.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_CreatioLayers_Binding.png",
+      "alt": "",
+      "title": "",
+      "context": "View the structure ofViewtoViewModelbinding in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_front-end-development_freedom-ui_overview_a467245a71d7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_CreatioWork.png",
+      "alt": "",
+      "title": "",
+      "context": "View Creatio workflow in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_front-end-development_freedom-ui_overview_bdfa5ecf1b1f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_DAO.png",
+      "alt": "",
+      "title": "",
+      "context": "View the DAO workflow in Creatio in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_front-end-development_freedom-ui_overview_c8dcecd7284f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_Model_ViewModel.png",
+      "alt": "",
+      "title": "",
+      "context": "Initialize theModelwithviewModelbased on the workflow below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_front-end-development_freedom-ui_overview_e9381d2793b6.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Creatio front-end architecture",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "DesignTime mode\u200b",
+      "anchor": "title-3740-1"
+    },
+    {
+      "level": 2,
+      "text": "RunTime mode\u200b",
+      "anchor": "title-3740-2"
+    },
+    {
+      "level": 3,
+      "text": "View layer\u200b",
+      "anchor": "title-3740-3"
+    },
+    {
+      "level": 3,
+      "text": "ViewModel layer\u200b",
+      "anchor": "title-3740-4"
+    },
+    {
+      "level": 3,
+      "text": "Model layer\u200b",
+      "anchor": "title-3740-8"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "PreviousFreedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema",
+      "text": "NextClient schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/client-schema-freedomui/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/schema-freedomui-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-component",
+      "text": "Freedom UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/validator",
+      "text": "Validator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/converter",
+      "text": "Converter",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/request-handler",
+      "text": "Request handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/localize-remote-module",
+      "text": "Localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/overview",
+      "text": "Asserts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-component",
+      "text": "Classic UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/requirements-for-icons",
+      "text": "Requirements for icons",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "Data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/crud-operations",
+      "text": "CRUD operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/data-sources/data-processing",
+      "text": "Additional data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema-1",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:37:33.557501"
+}

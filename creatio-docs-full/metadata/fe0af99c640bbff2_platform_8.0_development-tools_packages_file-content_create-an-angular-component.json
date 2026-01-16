@@ -1,0 +1,972 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/create-an-angular-component",
+  "title": "Create an Angular component for Creatio",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools"
+    },
+    {
+      "text": "Packages",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages"
+    },
+    {
+      "text": "File content",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-content"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nInstall Angular components in Creatio using the Angular Elements functionality. **Angular Elements** is an `npm` package that enables packing Angular components to Custom Elements and defining new HTML elements with standard behavior. Custom Elements is a part of the Web-Components standard.\n## Create a custom Angular component\u200b\n### 1\\. Set up the Angular CLI development environment\u200b\nTo do this, install:\n1. [Node.js\u00ae and npm package manager](https://nodejs.org/en/).\n2. Angular CLI.\nTo install Angular CLI, run the following command at the command prompt:\n* Install Angular CLI\n* Angular CLI version 8 installation example\nnpm install -g @angular/cli  \nnpm install -g @angular/cli@8  \n### 2\\. Create an Angular application\u200b\nRun the `ng new` command at the command prompt and specify the application name. For example, `angular-element-test`.\nCreate an Angular application\nng new angular-element-test --style=scss  \n### 3\\. Install the Angular Elements package\u200b\nGo to the Creatio directory added on the previous step and run the following command at the command prompt.\nInstall the Angular Elements package\nng add @angular/elements  \n### 4\\. Create an Angular component\u200b\nTo create a component, run the following command at the command prompt.\nCreate an Angular component\nng g c angular-element  \n### 5\\. Register the component as a Custom Element\u200b\nTo transform the component into a custom HTML element, modify the `app.module.ts` file:\n1. Add the import of the `createCustomElement` module.\n2. Specify the component name in the `entryComponents` section of the module.\n3. Register the component under the HTML tag in the `ngDoBootstrap` method.\napp.module.ts\nimport { BrowserModule } from \"@angular/platform-browser\";  \nimport { NgModule, DoBootstrap, Injector, } from \"@angular/core\";  \nimport { createCustomElement } from \"@angular/elements\";  \nimport { AppComponent } from \"./app.component\";  \nimport { AngularElementComponent } from './angular-element/angular-element.component';  \n@NgModule({  \ndeclarations: [AppComponent, AngularElementComponent],  \nimports: [BrowserModule],  \nentryComponents: [AngularElementComponent]  \n})  \nexport class AppModule implements DoBootstrap {  \nconstructor(private _injector: Injector) {}  \nngDoBootstrap(appRef: ApplicationRef): void {  \nconst el = createCustomElement(AngularElementComponent, {  \ninjector: this._injector  \n});  \ncustomElements.define('angular-element-component', el);  \n}  \n}  \n### 6\\. Build the application\u200b\n1. Several *.js files will be generated as part of the project build. We recommend deploying the generated files as a single file to streamline the use of the web component. To do this, create the `build.js` script in the root of Angular project.\nbuild.js example\nconst fs = require('fs-extra');  \nconst concat = require('concat');  \nconst componentPath = './dist/angular-element-test/angular-element-component.js';  \n(async function build() {  \nconst files = [  \n'./dist/angular-element-test/runtime.js',  \n'./dist/angular-element-test/polyfills.js',  \n'./dist/angular-element-test/main.js',  \n'./tools/lodash-fix.js',  \n].filter((x) => fs.pathExistsSync(x));  \nawait fs.ensureFile(componentPath);  \nawait concat(files, componentPath);  \n})();  \nIf the web component uses the lodash library, merge `main.js` (as well as `styles.js`, if necessary) with the script that resolves lodash conflicts to ensure the library's compatibility with Creatio. To do this, create the `tools` directory and the `lodash-fix.js` file in the Angular project root.\nlodash-fix.js\nwindow._.noConflict();  \nImportant\nIf you are not using the lodash library, do not create the `lodash-fix.js` file, rather, delete the `'./tools/lodash-fix.js'` string from the `files` array.\nTo execute the `build.js` script, install the `concat` and `fs-extra` packages in the project as dev-dependency. To do this, run the following commands at the command prompt:\nInstall additional packages\nnpm i concat -D  \nnpm i fs-extra -D  \nBy default, you can set the settings of the `browserslist` file in the new application. These settings create several builds for browsers that support ES2015 and those that require ES5. For this example, build an Angular element for modern browsers.\nbrowserslist example\n\\# This file is used by the build system to adjust CSS and JS output to support the specified browsers below.  \n# For additional information regarding the format and rule options, please see:  \n# https://github.com/browserslist/browserslist#queries  \n# You can see what browsers were selected by your queries by running:  \n# npx browserslist  \nlast 1 Chrome version  \nlast 1 Firefox version  \nlast 2 Edge major versions  \nlast 2 Safari major versions  \nlast 2 iOS major versions  \nFirefox ESR  \nnot IE 11  \nImportant\nIf you must deploy the web component to browsers that do not support ES2015, either modify the file array in `build.js` or edit the `target` in `tsconfig.json` so that it reads `target: \"es5\"`. After you finish the build, review the filenames in the `dist` directory. If they do not match the names in the `build.js` array, modify them in the file.\n2. Add the element building commands to `package.json`. After the commands are executed, the business logic will be placed in a single `angular-element-component.js` file. Use this file going forward.\npackage.json\n...  \n\"build-ng-element\": \"ng build --output-hashing none && node build.js\",  \n\"build-ng-element:prod\": \"ng build --prod --output-hashing none && node build.js\",  \n...  \nImportant\nWe recommend building the application without the `--prod` parameter during the development.\n## Connect the Custom Element to Creatio\u200b\nInstall the `angular-element-component.js` file you built in a Creatio package as [file content](https://academy.creatio.com/documents?ver=8.0&id=15126).\n### 1\\. Place the file in the package static content\u200b\nTo do this, copy the file to the `User-made package name\\Files\\src\\js` directory. For example, `MyPackage\\Files\\src\\js`.\n### 2\\. Install the build in Creatio\u200b\nTo do this, configure the build path in the bootstrap.js file of the package to which to upload the component.\nConfigure the build path\n(function() {  \nrequire.config({  \npaths: {  \n\"angular-element-component\": Terrasoft.getFileContentUrl(  \n\"MyPackageName\",  \n\"src/js/angular-element-component.js\"  \n),  \n},  \n});  \n})();  \nTo upload `bootstrap`, specify the path to this file. To do this, create `descriptor.json` in `User-made package name\\Files`.\ndescriptor.json\n{  \n\"bootstraps\": [  \n\"src/js/bootstrap.js\"  \n]  \n}  \nUpload the file from the file system and compile Creatio.\n### 3\\. Load the component to the required schema/module\u200b\nCreate a schema or module in the package to which to load the custom element. Load the schema or module to the dependency load block of the module.\nLoad the component\ndefine(\"MyModuleName\", [\"angular-element-component\"], function() {  \n### 4\\. Create an HTML element and add it to DOM\u200b\nAdd the angular-element-component custom element to Creatio page DOM\n/** * @inheritDoc Terrasoft.BaseModule#render * @override */  \nrender: function(renderTo) {  \nthis.callParent(arguments);  \nconst component = document.createElement(\"angular-element-component\");  \ncomponent.setAttribute(\"id\", this.id);  \nrenderTo.appendChild(component);  \n}  \n## Work with data\u200b\nThe Angular component receives data using the public properties/fields marked with the `@Input` decorator.\nImportant\nThe properties described in camelCase without the explicit name specified in the decorator will be transformed into HTML attributes in kebab-case.\nCreate the app.component.ts component property\nprivate _value: string;  \n@Input('value')  \npublic set value(value: string) {  \nthis._value = value;  \n}  \nPass data to the component (CustomModule.js)\n/** * @inheritDoc Terrasoft.BaseModule#render * @override  \n*/  \nrender: function(renderTo) {  \nthis.callParent(arguments);  \nconst component = document.createElement(\"angular-element-component\");  \ncomponent.setAttribute(\"value\", 'Hello');  \nrenderTo.appendChild(component);  \n}  \nData retrieval is implemented via the event functionality. To do this, mark the public field of the `EventEmiter<T>` type with the `@Output` decorator. To initialize an event, call the `emit(T)` field method and pass the required data.\nImplement the event in the component (app.component.ts)\n/**  \n* Emits btn click.  \n*/  \n@Output() btnClicked = new EventEmitter<any>();  \n/**  \n* Handles btn click.  \n* @param eventData - Event data.  \n*/  \npublic onBtnClick(eventData: any) {  \nthis.btnClicked.emit(eventData);  \n}  \nAdd a button to `angular-element.component.html`.\nAdd a button to angular-element.component.html\n<button (click)=\"onBtnClick()\">Click me</button>  \nProcess the event in Creatio (CustomModule.js)\n/**  \n* @inheritDoc Terrasoft.Component#initDomEvents  \n* @override  \n*/  \ninitDomEvents: function() {  \nthis.callParent(arguments);  \nconst el = this.component;  \nif (el) {  \nel.on(\"itemClick\", this.onItemClickHandler, this);  \n}  \n}  \n## Use Shadow DOM\u200b\nUse Shadow DOM to block certain components created using Angular and installed in Creatio off the external environment.  \nThe Shadow DOM mechanism encapsulates components within DOM. This mechanism adds a \"shadow\" DOM tree to the component, which cannot be addressed from the main document via the standard options. The tree may have isolated CSS rules, etc.\nTo toggle on Shadow DOM, add the `encapsulation: ViewEncapsulation.ShadowDom` property to the component decorator.\nangular-element.component.ts\nimport { Component, OnInit, ViewEncapsulation } from \"@angular/core\";  \n@Component({  \nselector: \"angular-element-component\",  \ntemplateUrl: \"./angular-element-component.html\",  \nstyleUrls: [\"./angular-element-component.scss\"],  \nencapsulation: ViewEncapsulation.ShadowDom,  \n})  \nexport class AngularElementComponent implements OnInit {}  \n### Create Acceptance Tests for Shadow DOM\u200b\nShadow DOM creates test problems for application components using cucumber acceptance tests. It is not possible to address the components within Shadow DOM from the root document via the standard selectors. Instead, use `shadow root` as the root document and address the component elements through it.\nShadow root \u2013 the root component node within Shadow DOM. Shadow host \u2013 the component node that contains Shadow DOM.\nThe `BPMonline.BaseItem` class implements the base Shadow DOM operation methods.\nImportant\nYou must pass the selector of the component that contains Shadow DOM \u2014`shadow host` \u2013 in most methods.\nMethod| Description  \n---|---  \n`clickShadowItem()`| Click an element within the Shadow DOM component.  \n`getShadowRootElement()`| Returns the `shadow root` of the Angular component by the CSS selector. Use the shadow root to select other elements.  \n`getShadowWebElement()`| Returns the instance of the element within Shadow DOM by the CSS selector. Use the `waitForVisible` parameter to specify whether to wait for the instance to become visible.  \n`getShadowWebElements()`| Returns the instances of elements within Shadow DOM by the CSS selector.  \n`mouseOverShadowItem()`| Hover over the element within Shadow DOM.  \n`waitForShadowItem()`| Waits until the element within the Shadow DOM component becomes visible and returns its instance.  \n`waitForShadowItemExist()`| Waits until the element within the Shadow DOM component becomes visible.  \n`waitForShadowItemHide()`| Waits until the element within the Shadow DOM component becomes hidden.  \nnote\nReview the method use examples in the `BPMonline.pages.ForecastTabUIV2` class.\n* * *\n## Resources\u200b\n[Node.js\u00ae and npm package manager](https://nodejs.org/en/)\n[Shadow DOM](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_shadow_DOM)",
+  "code_examples": [
+    {
+      "code": "npm install -g @angular/cli",
+      "language": "js",
+      "context": "To install Angular CLI, run the following command at the command prompt:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "npm install -g @angular/cli@8",
+      "language": "js",
+      "context": "To install Angular CLI, run the following command at the command prompt:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ng new angular-element-test --style=scss",
+      "language": "js",
+      "context": "Run theng newcommand at the command prompt and specify the application name. For example,angular-element-test.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ng add @angular/elements",
+      "language": "js",
+      "context": "Go to the Creatio directory added on the previous step and run the following command at the command prompt.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "ng g c angular-element",
+      "language": "js",
+      "context": "To create a component, run the following command at the command prompt.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "import { BrowserModule } from \"@angular/platform-browser\";import { NgModule, DoBootstrap, Injector, } from \"@angular/core\";import { createCustomElement } from \"@angular/elements\";import { AppComponent } from \"./app.component\";import { AngularElementComponent } from './angular-element/angular-element.component';@NgModule({    declarations: [AppComponent, AngularElementComponent],    imports: [BrowserModule],    entryComponents: [AngularElementComponent]})export class AppModule implements DoBootstrap {    constructor(private _injector: Injector) {}    ngDoBootstrap(appRef: ApplicationRef): void {        const el = createCustomElement(AngularElementComponent, {            injector: this._injector        });        customElements.define('angular-element-component', el);    }}",
+      "language": "js",
+      "context": "Register the component under the HTML tag in thengDoBootstrapmethod.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "const fs = require('fs-extra');const concat = require('concat');const componentPath = './dist/angular-element-test/angular-element-component.js';(async function build() {    const files = [        './dist/angular-element-test/runtime.js',        './dist/angular-element-test/polyfills.js',        './dist/angular-element-test/main.js',        './tools/lodash-fix.js',    ].filter((x) => fs.pathExistsSync(x));    await fs.ensureFile(componentPath);    await concat(files, componentPath);})();",
+      "language": "js",
+      "context": "Several *.js files will be generated as part of the project build. We recommend deploying the generated files as a single file to streamline the use of the web component. To do this, create thebuild.j",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "window._.noConflict();",
+      "language": "js",
+      "context": "If the web component uses the lodash library, mergemain.js(as well asstyles.js, if necessary) with the script that resolves lodash conflicts to ensure the library's compatibility with Creatio. To do t",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "npm i concat -Dnpm i fs-extra -D",
+      "language": "js",
+      "context": "To execute thebuild.jsscript, install theconcatandfs-extrapackages in the project as dev-dependency. To do this, run the following commands at the command prompt:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\\# This file is used by the build system to adjust CSS and JS output to support the specified browsers below.# For additional information regarding the format and rule options, please see:# https://github.com/browserslist/browserslist#queries# You can see what browsers were selected by your queries by running:# npx browserslistlast 1 Chrome versionlast 1 Firefox versionlast 2 Edge major versionslast 2 Safari major versionslast 2 iOS major versionsFirefox ESRnot IE 11",
+      "language": "js",
+      "context": "By default, you can set the settings of thebrowserslistfile in the new application. These settings create several builds for browsers that support ES2015 and those that require ES5. For this example, ",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "...\"build-ng-element\": \"ng build --output-hashing none && node build.js\",\"build-ng-element:prod\": \"ng build --prod --output-hashing none && node build.js\",...",
+      "language": "js",
+      "context": "Add the element building commands topackage.json. After the commands are executed, the business logic will be placed in a singleangular-element-component.jsfile. Use this file going forward.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(function() {    require.config({        paths: {            \"angular-element-component\": Terrasoft.getFileContentUrl(                \"MyPackageName\",                \"src/js/angular-element-component.js\"            ),        },    });})();",
+      "language": "js",
+      "context": "To do this, configure the build path in the bootstrap.js file of the package to which to upload the component.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"bootstraps\": [        \"src/js/bootstrap.js\"    ]}",
+      "language": "js",
+      "context": "To uploadbootstrap, specify the path to this file. To do this, createdescriptor.jsoninUser-made package name\\Files.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"MyModuleName\", [\"angular-element-component\"], function() {",
+      "language": "js",
+      "context": "Create a schema or module in the package to which to load the custom element. Load the schema or module to the dependency load block of the module.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/** * @inheritDoc Terrasoft.BaseModule#render * @override */render: function(renderTo) {    this.callParent(arguments);    const component = document.createElement(\"angular-element-component\");    component.setAttribute(\"id\", this.id);    renderTo.appendChild(component);}",
+      "language": "js",
+      "context": "4. Create an HTML element and add it to DOM\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "private _value: string;@Input('value')public set value(value: string) {   this._value = value;}",
+      "language": "js",
+      "context": "The properties described in camelCase without the explicit name specified in the decorator will be transformed into HTML attributes in kebab-case.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/** * @inheritDoc Terrasoft.BaseModule#render * @override*/render: function(renderTo) {    this.callParent(arguments);    const component = document.createElement(\"angular-element-component\");    component.setAttribute(\"value\", 'Hello');    renderTo.appendChild(component);}",
+      "language": "js",
+      "context": "The properties described in camelCase without the explicit name specified in the decorator will be transformed into HTML attributes in kebab-case.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/** * Emits btn click. */@Output() btnClicked = new EventEmitter<any>();/** * Handles btn click. * @param eventData - Event data. */public onBtnClick(eventData: any) {   this.btnClicked.emit(eventData);}",
+      "language": "js",
+      "context": "Data retrieval is implemented via the event functionality. To do this, mark the public field of theEventEmiter<T>type with the@Outputdecorator. To initialize an event, call theemit(T)field method and ",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<button (click)=\"onBtnClick()\">Click me</button>",
+      "language": "js",
+      "context": "Add a button toangular-element.component.html.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/** * @inheritDoc Terrasoft.Component#initDomEvents * @override */initDomEvents: function() {    this.callParent(arguments);    const el = this.component;    if (el) {        el.on(\"itemClick\", this.onItemClickHandler, this);    }}",
+      "language": "js",
+      "context": "Add a button toangular-element.component.html.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "import { Component, OnInit, ViewEncapsulation } from \"@angular/core\";@Component({    selector: \"angular-element-component\",    templateUrl: \"./angular-element-component.html\",    styleUrls: [\"./angular-element-component.scss\"],    encapsulation: ViewEncapsulation.ShadowDom,})export class AngularElementComponent implements OnInit {}",
+      "language": "js",
+      "context": "To toggle on Shadow DOM, add theencapsulation: ViewEncapsulation.ShadowDomproperty to the component decorator.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Method",
+          "Description"
+        ],
+        [
+          "clickShadowItem()",
+          "Click an element within the Shadow DOM component."
+        ],
+        [
+          "getShadowRootElement()",
+          "Returns theshadow rootof the Angular component by the CSS selector. Use the shadow root to select other elements."
+        ],
+        [
+          "getShadowWebElement()",
+          "Returns the instance of the element within Shadow DOM by the CSS selector. Use thewaitForVisibleparameter to specify whether to wait for the instance to become visible."
+        ],
+        [
+          "getShadowWebElements()",
+          "Returns the instances of elements within Shadow DOM by the CSS selector."
+        ],
+        [
+          "mouseOverShadowItem()",
+          "Hover over the element within Shadow DOM."
+        ],
+        [
+          "waitForShadowItem()",
+          "Waits until the element within the Shadow DOM component becomes visible and returns its instance."
+        ],
+        [
+          "waitForShadowItemExist()",
+          "Waits until the element within the Shadow DOM component becomes visible."
+        ],
+        [
+          "waitForShadowItemHide()",
+          "Waits until the element within the Shadow DOM component becomes hidden."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Method</p></th><th><p>Description</p></th></tr><tr><td><p><code>clickShadowItem()</code></p></td><td><p>Click an element within the Shadow DOM component.</p></td></tr><tr><td><p><code>getShadowRootElement()</code></p></td><td><p>Returns the <code>shadow root</code> of the Angular component by the CSS selector. Use the shadow root to select other elements.</p></td></tr><tr><td><p><code>getShadowWebElement()</code></p></td><td><p>Returns the instance of the element within Shadow DOM by the CSS selector. Use the <code>waitForVisible</code> parameter to specify whether to wait for the instance to become visible.</p></td></tr><tr><td><p><code>getShadowWebElements()</code></p></td><td><p>Returns the instances of elements within Shadow DOM by the CSS selector.</p></td></tr><tr><td><p><code>mouseOverShadowItem()</code></p></td><td><p>Hover over the element within Shadow DOM.</p></td></tr><tr><td><p><code>waitForShadowItem()</code></p></td><td><p>Waits until the element within the Shadow DOM component becomes visible and returns its instance.</p></td></tr><tr><td><p><code>waitForShadowItemExist()</code></p></td><td><p>Waits until the element within the Shadow DOM component becomes visible.</p></td></tr><tr><td><p><code>waitForShadowItemHide()</code></p></td><td><p>Waits until the element within the Shadow DOM component becomes hidden.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf you are not using the lodash library, do not create thelodash-fix.jsfile, rather, delete the'./tools/lodash-fix.js'string from thefilesarray.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you are not using the lodash library, do not create the <code>lodash-fix.js</code> file, rather, delete the <code>'./tools/lodash-fix.js'</code> string from the <code>files</code> array.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you are not using the lodash library, do not create thelodash-fix.jsfile, rather, delete the'./tools/lodash-fix.js'string from thefilesarray.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you are not using the lodash library, do not create the <code>lodash-fix.js</code> file, rather, delete the <code>'./tools/lodash-fix.js'</code> string from the <code>files</code> array.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf you must deploy the web component to browsers that do not support ES2015, either modify the file array inbuild.jsor edit thetargetintsconfig.jsonso that it readstarget: \"es5\". After you finish the build, review the filenames in thedistdirectory. If they do not match the names in thebuild.jsarray, modify them in the file.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you must deploy the web component to browsers that do not support ES2015, either modify the file array in <code>build.js</code> or edit the <code>target</code> in <code>tsconfig.json</code> so that it reads <code>target: \"es5\"</code>. After you finish the build, review the filenames in the <code>dist</code> directory. If they do not match the names in the <code>build.js</code> array, modify them in the file.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you must deploy the web component to browsers that do not support ES2015, either modify the file array inbuild.jsor edit thetargetintsconfig.jsonso that it readstarget: \"es5\". After you finish the build, review the filenames in thedistdirectory. If they do not match the names in thebuild.jsarray, modify them in the file.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you must deploy the web component to browsers that do not support ES2015, either modify the file array in <code>build.js</code> or edit the <code>target</code> in <code>tsconfig.json</code> so that it reads <code>target: \"es5\"</code>. After you finish the build, review the filenames in the <code>dist</code> directory. If they do not match the names in the <code>build.js</code> array, modify them in the file.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWe recommend building the application without the--prodparameter during the development.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We recommend building the application without the <code>--prod</code> parameter during the development.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We recommend building the application without the--prodparameter during the development.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We recommend building the application without the <code>--prod</code> parameter during the development.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThe properties described in camelCase without the explicit name specified in the decorator will be transformed into HTML attributes in kebab-case.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The properties described in camelCase without the explicit name specified in the decorator will be transformed into HTML attributes in kebab-case.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The properties described in camelCase without the explicit name specified in the decorator will be transformed into HTML attributes in kebab-case.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The properties described in camelCase without the explicit name specified in the decorator will be transformed into HTML attributes in kebab-case.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantYou must pass the selector of the component that contains Shadow DOM \u2014shadow host\u2013 in most methods.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>You must pass the selector of the component that contains Shadow DOM \u2014<code>shadow host</code> \u2013 in most methods.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You must pass the selector of the component that contains Shadow DOM \u2014shadow host\u2013 in most methods.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You must pass the selector of the component that contains Shadow DOM \u2014<code>shadow host</code> \u2013 in most methods.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteReview the method use examples in theBPMonline.pages.ForecastTabUIV2class.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Review the method use examples in the <code>BPMonline.pages.ForecastTabUIV2</code> class.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Review the method use examples in theBPMonline.pages.ForecastTabUIV2class.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Review the method use examples in the <code>BPMonline.pages.ForecastTabUIV2</code> class.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Create an Angular component for Creatio",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Create a custom Angular component\u200b",
+      "anchor": "title-2150-1"
+    },
+    {
+      "level": 3,
+      "text": "1. Set up the Angular CLI development environment\u200b",
+      "anchor": "title-2150-2"
+    },
+    {
+      "level": 3,
+      "text": "2. Create an Angular application\u200b",
+      "anchor": "title-2150-3"
+    },
+    {
+      "level": 3,
+      "text": "3. Install the Angular Elements package\u200b",
+      "anchor": "title-2150-4"
+    },
+    {
+      "level": 3,
+      "text": "4. Create an Angular component\u200b",
+      "anchor": "title-2150-5"
+    },
+    {
+      "level": 3,
+      "text": "5. Register the component as a Custom Element\u200b",
+      "anchor": "title-2150-6"
+    },
+    {
+      "level": 3,
+      "text": "6. Build the application\u200b",
+      "anchor": "title-2150-7"
+    },
+    {
+      "level": 2,
+      "text": "Connect the Custom Element to Creatio\u200b",
+      "anchor": "title-2150-8"
+    },
+    {
+      "level": 3,
+      "text": "1. Place the file in the package static content\u200b",
+      "anchor": "title-2150-9"
+    },
+    {
+      "level": 3,
+      "text": "2. Install the build in Creatio\u200b",
+      "anchor": "title-2150-10"
+    },
+    {
+      "level": 3,
+      "text": "3. Load the component to the required schema/module\u200b",
+      "anchor": "title-2150-11"
+    },
+    {
+      "level": 3,
+      "text": "4. Create an HTML element and add it to DOM\u200b",
+      "anchor": "title-2150-12"
+    },
+    {
+      "level": 2,
+      "text": "Work with data\u200b",
+      "anchor": "title-2150-13"
+    },
+    {
+      "level": 2,
+      "text": "Use Shadow DOM\u200b",
+      "anchor": "title-2150-14"
+    },
+    {
+      "level": 3,
+      "text": "Create Acceptance Tests for Shadow DOM\u200b",
+      "anchor": "title-2150-15"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "FILTER",
+        "path": "("
+      },
+      {
+        "method": "PATHEXISTSSYNC",
+        "path": "("
+      },
+      {
+        "method": "ENSUREFILE",
+        "path": "("
+      },
+      {
+        "method": "NOCONFLICT",
+        "path": "("
+      },
+      {
+        "method": "CONFIG",
+        "path": "("
+      },
+      {
+        "method": "GETFILECONTENTURL",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "CREATEELEMENT",
+        "path": "("
+      },
+      {
+        "method": "SETATTRIBUTE",
+        "path": "("
+      },
+      {
+        "method": "APPENDCHILD",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "CREATEELEMENT",
+        "path": "("
+      },
+      {
+        "method": "SETATTRIBUTE",
+        "path": "("
+      },
+      {
+        "method": "APPENDCHILD",
+        "path": "("
+      },
+      {
+        "method": "EMIT",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "ON",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/create-an-angular-component",
+      "text": "Angular component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/file-content/create-an-angular-component",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/create-an-angular-component",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/create-an-angular-component",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/bind-data/bind-data-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/bind-data-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/file-content-basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/localize-the-file-content",
+      "text": "Localize the file content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/static-content",
+      "text": "Static content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/static-content/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/static-content-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/developing-custom-functions-typescript",
+      "text": "PreviousTypeScript development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "NextClio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_shadow_DOM",
+      "text": "Shadow DOM",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:58:31.713036"
+}

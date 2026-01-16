@@ -1,0 +1,1 @@
+const record = await model.copy(    'd4f93b6c-362c-4954-8bd6-1658e9206d4e',    {        'SomeColumn': 'SomeNewColumnValue'    });const result = await model.insert(record);

@@ -1,0 +1,1 @@
+EntitySchemaDateToCurrentYearQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression expression)

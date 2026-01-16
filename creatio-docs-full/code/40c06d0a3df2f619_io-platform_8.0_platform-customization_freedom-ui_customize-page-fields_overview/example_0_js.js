@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/[    "attributes": {        ...,        /* An attribute that stores data. */        "SomeAttribute": {}    }    ...]/**SCHEMA_VIEW_MODEL_CONFIG*/,

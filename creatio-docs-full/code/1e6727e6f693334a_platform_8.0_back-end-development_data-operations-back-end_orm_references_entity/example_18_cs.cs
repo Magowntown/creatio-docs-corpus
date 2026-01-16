@@ -1,0 +1,1 @@
+IsInLoading bool

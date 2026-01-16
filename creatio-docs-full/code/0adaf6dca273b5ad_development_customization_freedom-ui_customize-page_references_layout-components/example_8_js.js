@@ -1,0 +1,1 @@
+{    "type": "crt.Tabs",    "isScrollable": true,    "items": [        {            "position": 1,            "text": "Tab 1",            "body": {                ...            }        },        {            "position": 2,            "text": "Tab 2",            "body": {                ...            }        }    ]}

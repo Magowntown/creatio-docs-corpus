@@ -1,0 +1,1 @@
+EntitySchemaUpperQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression expression)

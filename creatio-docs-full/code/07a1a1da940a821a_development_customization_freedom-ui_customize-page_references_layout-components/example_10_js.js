@@ -1,0 +1,1 @@
+{    "type": "crt.Column",    "scrollable": true,    "items": [        ...    ],    "padding": {        "left": "medium"    }}

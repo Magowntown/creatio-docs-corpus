@@ -1,0 +1,964 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-domain-verification/domain-verification-for-the-sendgrid-provider",
+  "title": "Domain verification for the SendGrid provider",
+  "breadcrumbs": [
+    {
+      "text": "Products",
+      "href": "/docs/8.x/creatio-apps/8.1/category/products"
+    },
+    {
+      "text": "Marketing tools",
+      "href": "/docs/8.x/creatio-apps/8.1/category/marketing-tools"
+    },
+    {
+      "text": "Email marketing",
+      "href": "/docs/8.x/creatio-apps/8.1/category/email-marketing"
+    },
+    {
+      "text": "Email domain verification",
+      "href": "/docs/8.x/creatio-apps/8.1/category/email-domain-verification"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nIf you use SendGrid for sending marketing emails, you will need to verify your email address and your corporate domain to allow the provider to send emails on your behalf.\nIf your recipients use Microsoft Outlook, Hotmail, Gmail, and other common mailing services, they can see that an email was sent from your provider's server on your behalf (this information is available in the \"From\" field). For example, if you are sending emails via SendGrid, the \"From\" field of the emails may contain the following text: \"Your Manager `<info@creatio.com>` via sendgrid.net\".\nThe procedure for domain verification for SendGrid consists of several stages:\n1. Add your corporate domain on the **Bulk email settings** page. Read more >>>\n2. Obtain MX-, SPF-, and DKIM records. Read more >>>\n3. Create a DMARC record. Read more >>>\n4. Specify the needed records in the DNS area of your domain Read more >>>\nnote\nOnly custom email domains can be verified. Public domains (for example, gmail.com, yahoo.com, etc.) cannot be verified. We do not recommend using public domains for bulk emails. Such emails have a high risk of being marked as spam and ruining the reputation of the sender IP address.\n## Add your corporate domain on the Bulk email settings page\u200b\nSendGrid users need to add their corporate domain to Creatio before starting their emails. To do this:\n1. In the **Emails** section, select **Bulk email settings** in the **Actions** menu (Fig. 1)\nFig. 1 Opening the bulk email settings page\n![Fig.\u00a01 Opening the bulk email settings page](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/email_domain_verification/BPMonlineHelp/email_domain_verification_sendgrid/scr_section_email_bulk_settings_page.png)\n2. On the **Bulk email settings** page, specify the domain of the necessary email address in the **Sender domain** area, i.e., \"mycompany.com\" (Fig. 2).\nFig. 2 The Sender domains tab\n![Fig.\u00a02 The Sender domains tab](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/email_domain_verification/BPMonlineHelp/email_domain_verification_sendgrid/scr_section_email_sender_domains.png)\n## Get setup keys for your domain\u200b\nMX-, SPF- and DKIM records are generated automatically in the **Email** section once the domain is added to the email settings page. To obtain these records, in the **Email** section, select **Email settings** in the **Actions** menu.\nThe SPF and DKIM records will be generated automatically in the **DKIM/SPF setup instructions** area on the **Bulk email settings** page (Fig. 3) for your specified domain once your email is verified.\nFig. 3 MX/DKIM/SPF keys for the specified domain\n![Fig.\u00a03 MX/DKIM/SPF keys for the specified domain](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/email_domain_verification/BPMonlineHelp/email_domain_verification_sendgrid/scr_section_email_mx_spf_dkim_record_valies_sendgrid.png)\nImportant\nMX-, SPF- and DKIM records of the SendGrid provider are different for different domains.\n## Create a DMARC record\u200b\nSince February 2024, Google and Yahoo implemented new email authentication requirements for all email senders to improve deliverability and prevent spam. Besides SPF and DKIM records, DMARC record is also required.\nCreatio does not require a DMARC record to validate a domain. Analyze your marketing strategy and decide whether a DMARC record is required in your case, for example, if you have a lot of recipients that use Yahoo.\nA DMARC record follows this pattern:\nv=DMARC1; p=quarantine; rua=mailto:user@domain.com; ruf=mailto:user@domain.com;  \nConfigure the exact parameters based on your business goals. View them in the table below.\n**Parameter name**| **Parameter value**  \n---|---  \n**v**|  Indicates the DMARC version used. Required. Set it to `v=DMARC1`.  \n**p**|  Determines how to handle messages that fail DMARC authentication. Required. The following values are available:\n* `p=none` (Monitor Mode). Emails that do not pass authentication are still delivered to the recipient's inbox. This is useful if you only want to monitor and collect data on messages that fail DMARC checks.\n* `p=quarantine` (Quarantine Mode). Depending on the recipient server, emails that fail DMARC authentication are either sent to a separate spam/quarantine folder or rejected. This lets you review and analyze potentially fraudulent emails.\n* `p=reject` (Reject Mode): Emails that fail DMARC checks are outright rejected by the recipient. This means that these messages are not delivered to the recipient's inbox, providing a higher level of protection against phishing and spoofing attacks.\nThe exact mode to use depends on your business goals. However, if you want to use a stricter mode, we recommend using less strict modes first to ensure legitimate emails are not blocked inadvertently.  \n**rua**|  Specifies the email address to send aggregate reports that let you gain insights into the authentication status of your domain's emails. Optional.  \n**ruf**|  Specifies the email address to send forensic reports. Optional.  \n## Add records to the DNS area of your domain\u200b\nTo verify the mail domain using the SendGrid provider, you need to add the MX, SPF to the DNS area of the mail domain settings, otherwise, the domain reputation and the mail delivery quality are not guaranteed.\nnote\nWe recommend looking into the examples provided in the [Recommendations on setting up the popular DNS providers article](https://academy.creatio.com/documents?id=1977).\n### Specify MX record in the DNS area of your domain\u200b\n**MX record** is the primary record in the domain zone; it specifies mailing host names of the domain. The email server checks if MX records are available in the DNS zone and whether they match the sender\u2019s IP address. If the data is unavailable or the IP addresses do not match, the remote server is very likely to deny sending and receiving emails.\nUnlike SPF and DKIM records, the syntax of MS records includes priorities. **Priority** is specified as an integer; it indicates the order in which the availability of email servers is checked. The highest possible priority is \"0.\" You can add several MS records with equal priority.\nAn MX record looks like this:\nName| Priority| Type| Value  \n---|---|---|---  \nsubdomain.yourdomain.com| 0| mx| mx.sendgrid.net.  \nThe subdomain name is unique and is generated by the provider.\n### Specify SPF record in the DNS area of your domain\u200b\nCopy the generated SPF record from the **DKIM/SPF setup instructions** area on the **Bulk email settings** page, which will look as follows: The record will look as follows:\nName| Type| Value  \n---|---|---  \nsubdomain.yourdomain.com| TXT| v=spf1 a mx include:_spf.sendgrid.com ~all  \nThe subdomain name is unique and is generated by the provider. Add a separate record for each subdomain.\n### Specify DKIM record in the DNS area of your domain\u200b\nAfter the configuration of the SPF record, you need to add DKIM records. For the SendGrid provider, the record must look like this:\nName| Type| Value  \n---|---|---  \nm1._domainkey| TXT| k=rsa; t=s; p=XXXXXXXXXXXXX  \nIn the record above, \"XXXXXXXXXXXXX\" is an **individual key** for each domain. The key is generated automatically and is available on the **Sender domains** tab.\nCertain DNS settings may require entering the provided subdomain in the \"Host / Name\" field in the following format: \"m1._domainkey.yourdomain.com\"\nnote\nDetailed information about MX, SPF, and DKIM record setup is available in the [SendGrid online guide](https://sendgrid.com/docs/ui/account-and-settings/how-to-set-up-domain-authentication/).\n### Specify DMARC record in the DNS area of your domain\u200b\nIf your business goals require it, add the DMARC record you created. The record must look as follows:\nName| Type| Value  \n---|---|---  \n_dmarc| TXT| v=DMARC1; p=quarantine; rua=mailto:user@domain.com; ruf=mailto:user@domain.com;  \n* * *\n## See also\u200b\n[Domain verification for the Elastic Email provider](https://academy.creatio.com/documents?id=1714)\n[Recommendations on setting up the popular DNS providers](https://academy.creatio.com/documents?id=1977)",
+  "code_examples": [
+    {
+      "code": "v=DMARC1; p=quarantine; rua=mailto:user@domain.com; ruf=mailto:user@domain.com;",
+      "language": "text",
+      "context": "A DMARC record follows this pattern:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter name",
+          "Parameter value"
+        ],
+        [
+          "v",
+          "Indicates the DMARC version used. Required. Set it tov=DMARC1."
+        ],
+        [
+          "p",
+          "Determines how to handle messages that fail DMARC authentication. Required. The following values are available:p=none(Monitor Mode). Emails that do not pass authentication are still delivered to the recipient's inbox. This is useful if you only want to monitor and collect data on messages that fail DMARC checks.p=quarantine(Quarantine Mode). Depending on the recipient server, emails that fail DMARC authentication are either sent to a separate spam/quarantine folder or rejected. This lets you review and analyze potentially fraudulent emails.p=reject(Reject Mode): Emails that fail DMARC checks are outright rejected by the recipient. This means that these messages are not delivered to the recipient's inbox, providing a higher level of protection against phishing and spoofing attacks.The exact mode to use depends on your business goals. However, if you want to use a stricter mode, we recommend using less strict modes first to ensure legitimate emails are not blocked inadvertently."
+        ],
+        [
+          "rua",
+          "Specifies the email address to send aggregate reports that let you gain insights into the authentication status of your domain's emails. Optional."
+        ],
+        [
+          "ruf",
+          "Specifies the email address to send forensic reports. Optional."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p><strong>Parameter name</strong></p></td><td><p><strong>Parameter value</strong></p></td></tr><tr><td><p><strong>v</strong></p></td><td><p>Indicates the DMARC version used. Required. Set it to <code>v=DMARC1</code>.</p></td></tr><tr><td><p><strong>p</strong></p></td><td><p>Determines how to handle messages that fail DMARC authentication. Required. The following values are available:</p><ul>\n<li><code>p=none</code> (Monitor Mode). Emails that do not pass authentication are still delivered to the recipient's inbox. This is useful if you only want to monitor and collect data on messages that fail DMARC checks.</li>\n<li><code>p=quarantine</code> (Quarantine Mode). Depending on the recipient server, emails that fail DMARC authentication are either sent to a separate spam/quarantine folder or rejected. This lets you review and analyze potentially fraudulent emails.</li>\n<li><code>p=reject</code> (Reject Mode): Emails that fail DMARC checks are outright rejected by the recipient. This means that these messages are not delivered to the recipient's inbox, providing a higher level of protection against phishing and spoofing attacks.</li>\n</ul><p>The exact mode to use depends on your business goals. However, if you want to use a stricter mode, we recommend using less strict modes first to ensure legitimate emails are not blocked inadvertently.</p></td></tr><tr><td><p><strong>rua</strong></p></td><td><p>Specifies the email address to send aggregate reports that let you gain insights into the authentication status of your domain's emails. Optional.</p></td></tr><tr><td><p><strong>ruf</strong></p></td><td><p>Specifies the email address to send forensic reports. Optional.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Priority",
+          "Type",
+          "Value"
+        ],
+        [
+          "subdomain.yourdomain.com",
+          "0",
+          "mx",
+          "mx.sendgrid.net."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Priority</p></th><th><p>Type</p></th><th><p>Value</p></th></tr><tr><td><p>subdomain.yourdomain.com</p></td><td><p>0</p></td><td><p>mx</p></td><td><p>mx.sendgrid.net.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Value"
+        ],
+        [
+          "subdomain.yourdomain.com",
+          "TXT",
+          "v=spf1 a mx include:_spf.sendgrid.com ~all"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Value</p></th></tr><tr><td><p>subdomain.yourdomain.com</p></td><td><p>TXT</p></td><td><p>v=spf1 a mx include:_spf.sendgrid.com ~all</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Value"
+        ],
+        [
+          "m1._domainkey",
+          "TXT",
+          "k=rsa; t=s; p=XXXXXXXXXXXXX"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Value</p></th></tr><tr><td><p>m1._domainkey</p></td><td><p>TXT</p></td><td><p>k=rsa; t=s; p=XXXXXXXXXXXXX</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Value"
+        ],
+        [
+          "_dmarc",
+          "TXT",
+          "v=DMARC1; p=quarantine; rua=mailto:user@domain.com; ruf=mailto:user@domain.com;"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Value</p></th></tr><tr><td><p>_dmarc</p></td><td><p>TXT</p></td><td><p>v=DMARC1; p=quarantine; rua=mailto<!-- -->:user<!-- -->@domain.com; ruf=mailto<!-- -->:user<!-- -->@domain.com;</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteOnly custom email domains can be verified. Public domains (for example, gmail.com, yahoo.com, etc.) cannot be verified. We do not recommend using public domains for bulk emails. Such emails have a high risk of being marked as spam and ruining the reputation of the sender IP address.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Only custom email domains can be verified. Public domains (for example, gmail.com, yahoo.com, etc.) cannot be verified. We do not recommend using public domains for bulk emails. Such emails have a high risk of being marked as spam and ruining the reputation of the sender IP address.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Only custom email domains can be verified. Public domains (for example, gmail.com, yahoo.com, etc.) cannot be verified. We do not recommend using public domains for bulk emails. Such emails have a high risk of being marked as spam and ruining the reputation of the sender IP address.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Only custom email domains can be verified. Public domains (for example, gmail.com, yahoo.com, etc.) cannot be verified. We do not recommend using public domains for bulk emails. Such emails have a high risk of being marked as spam and ruining the reputation of the sender IP address.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantMX-, SPF- and DKIM records of the SendGrid provider are different for different domains.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>MX-, SPF- and DKIM records of the SendGrid provider are different for different domains.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "MX-, SPF- and DKIM records of the SendGrid provider are different for different domains.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>MX-, SPF- and DKIM records of the SendGrid provider are different for different domains.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteWe recommend looking into the examples provided in theRecommendations on setting up the popular DNS providers article.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>We recommend looking into the examples provided in the <a href=\"https://academy.creatio.com/documents?id=1977\" rel=\"noopener noreferrer\" target=\"_blank\">Recommendations on setting up the popular DNS providers article</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We recommend looking into the examples provided in theRecommendations on setting up the popular DNS providers article.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We recommend looking into the examples provided in the <a href=\"https://academy.creatio.com/documents?id=1977\" rel=\"noopener noreferrer\" target=\"_blank\">Recommendations on setting up the popular DNS providers article</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteDetailed information about MX, SPF, and DKIM record setup is available in theSendGrid online guide.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Detailed information about MX, SPF, and DKIM record setup is available in the <a href=\"https://sendgrid.com/docs/ui/account-and-settings/how-to-set-up-domain-authentication/\" rel=\"noopener noreferrer\" target=\"_blank\">SendGrid online guide</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Detailed information about MX, SPF, and DKIM record setup is available in theSendGrid online guide.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Detailed information about MX, SPF, and DKIM record setup is available in the <a href=\"https://sendgrid.com/docs/ui/account-and-settings/how-to-set-up-domain-authentication/\" rel=\"noopener noreferrer\" target=\"_blank\">SendGrid online guide</a>.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/email_domain_verification/BPMonlineHelp/email_domain_verification_sendgrid/scr_section_email_bulk_settings_page.png",
+      "alt": "Fig.\u00a01 Opening the bulk email settings page",
+      "title": "",
+      "context": "In theEmailssection, selectBulk email settingsin theActionsmenu (Fig.\u00a01)",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5ecff80dacf989c5_arketing_email-domain-verification_domain-verification-for-the-sendgrid-provider_c221dd87dd6f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/email_domain_verification/BPMonlineHelp/email_domain_verification_sendgrid/scr_section_email_sender_domains.png",
+      "alt": "Fig.\u00a02 The Sender domains tab",
+      "title": "",
+      "context": "On theBulk email settingspage, specify the domain of the necessary email address in theSender domain",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5ecff80dacf989c5_arketing_email-domain-verification_domain-verification-for-the-sendgrid-provider_9ff4abbf6ff3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/email_domain_verification/BPMonlineHelp/email_domain_verification_sendgrid/scr_section_email_mx_spf_dkim_record_valies_sendgrid.png",
+      "alt": "Fig.\u00a03 MX/DKIM/SPF keys for the specified domain",
+      "title": "",
+      "context": "The SPF and DKIM records will be generated automatically in theDKIM/SPF setup instructionsarea on th",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/5ecff80dacf989c5_arketing_email-domain-verification_domain-verification-for-the-sendgrid-provider_92b969c1578b.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Domain verification for the SendGrid provider",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Add your corporate domain on the Bulk email settings page\u200b",
+      "anchor": "title-221-1"
+    },
+    {
+      "level": 2,
+      "text": "Get setup keys for your domain\u200b",
+      "anchor": "title-221-2"
+    },
+    {
+      "level": 2,
+      "text": "Create a DMARC record\u200b",
+      "anchor": "title-221-6"
+    },
+    {
+      "level": 2,
+      "text": "Add records to the DNS area of your domain\u200b",
+      "anchor": "title-221-3"
+    },
+    {
+      "level": 3,
+      "text": "Specify MX record in the DNS area of your domain\u200b",
+      "anchor": "title-221-8"
+    },
+    {
+      "level": 3,
+      "text": "Specify SPF record in the DNS area of your domain\u200b",
+      "anchor": "title-221-4"
+    },
+    {
+      "level": 3,
+      "text": "Specify DKIM record in the DNS area of your domain\u200b",
+      "anchor": "title-221-5"
+    },
+    {
+      "level": 3,
+      "text": "Specify DMARC record in the DNS area of your domain\u200b",
+      "anchor": "title-221-9"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "subdomain.yourdomain.com",
+        "type": "0",
+        "description": "mx",
+        "required": false
+      },
+      {
+        "name": "subdomain.yourdomain.com",
+        "type": "TXT",
+        "description": "v=spf1 a mx include:_spf.sendgrid.com ~all",
+        "required": false
+      },
+      {
+        "name": "m1._domainkey",
+        "type": "TXT",
+        "description": "k=rsa; t=s; p=XXXXXXXXXXXXX",
+        "required": false
+      },
+      {
+        "name": "_dmarc",
+        "type": "TXT",
+        "description": "v=DMARC1; p=quarantine; rua=mailto:user@domain.com; ruf=mailto:user@domain.com;",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-domain-verification/domain-verification-for-the-sendgrid-provider",
+      "text": "SendGrid",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/overview/platform-overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.2/overview/platform-overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.0/platform-basics/user-interface/creatio-interface",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/overview/platform-overview",
+      "text": "Studio Creatio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/overview/sales-creatio-overview",
+      "text": "Sales",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/overview/marketing-creatio-overview",
+      "text": "Marketing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/overview/service-creatio-overview",
+      "text": "Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/overview/financial-services-creatio-overview",
+      "text": "Financial Services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/business-data",
+      "text": "Business data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/communications",
+      "text": "Communications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/mobile-app",
+      "text": "Mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/creatio-basics/view-analytics",
+      "text": "View analytics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/running-business-processes",
+      "text": "Running business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/creatio-basics/use-two-factor-authentication",
+      "text": "Use two-factor authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/products",
+      "text": "Products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/common-features",
+      "text": "Common features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/customer-360",
+      "text": "Customer 360",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/productivity",
+      "text": "Productivity",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/knowledge-management",
+      "text": "Knowledge Management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/marketing-tools",
+      "text": "Marketing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/digital-ads",
+      "text": "Digital Ads",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/digital-ads/overview-of-digital-ads-app",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/digital-ads/view-ad-campaign-data",
+      "text": "Ad campaign data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/digital-ads/integrate-facebook-ads-with-creatio",
+      "text": "Facebook Ads integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/digital-ads/integrate-google-ads-with-creatio",
+      "text": "Google Ads integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/digital-ads/faq-on-digital-ads-app",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/lead-generation",
+      "text": "Lead Generation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/lead-generation/lead-generation-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/lead-generation/landing-pages",
+      "text": "Landing pages lead generation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/lead-generation/set-up-lead-registration-from-socials",
+      "text": "Facebook lead generation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/lead-generation/facebook-field-mapping",
+      "text": "Facebook field mapping",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/lead-generation/set-up-automatic-lead-registration-from-linkedin",
+      "text": "LinkedIn lead generation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/website-tracking",
+      "text": "Website tracking",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/lead-generation/lead-generation-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/email-marketing",
+      "text": "Email marketing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/email-domain-verification",
+      "text": "Email domain verification",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-domain-verification/domain-verification-for-the-elastic-email-provider",
+      "text": "PreviousElastic Email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-domain-verification/recommendations-on-setting-up-the-popular-dns-providers",
+      "text": "NextRecommendations for DNS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/bulk-email",
+      "text": "Bulk email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/bulk-email/add-a-bulk-email",
+      "text": "Create an email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/bulk-email/start-a-bulk-email",
+      "text": "Start an email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/bulk-email/check-bulk-email-sending-status",
+      "text": "Check an email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/bulk-email/stop-an-email",
+      "text": "Stop an email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/trigger-email",
+      "text": "Trigger email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/trigger-email/create-a-trigger-email",
+      "text": "Create an email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/trigger-email/start-sending-trigger-emails",
+      "text": "Start an email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/trigger-email/check-email-sending-status",
+      "text": "Check an email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/email-templates",
+      "text": "Email templates",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/create-an-email-template",
+      "text": "Create a template",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/add-template-elements",
+      "text": "Template elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/set-up-a-content-block",
+      "text": "Content block",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/add-custom-html-code-to-an-email-template",
+      "text": "HTML code",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/personalize-email-content-with-macros",
+      "text": "Macros",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/save-a-content-block-for-using-in-other-emails",
+      "text": "Content block library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/configure-dynamic-content-for-emails",
+      "text": "Dynamic content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-templates/set-up-fonts-in-the-content-designer",
+      "text": "Fonts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/marketing-email-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/ab-testing",
+      "text": "A/B testing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/ab-testing/split-testing-guidelines",
+      "text": "Guidelines",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/ab-testing/run-ab-tests",
+      "text": "Testing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/email-analytics",
+      "text": "Email analytics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-analytics/email-progress",
+      "text": "Progress",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-analytics/email-delivery-rates",
+      "text": "Delivery rates",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-analytics/personal-responses",
+      "text": "Personal responses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-analytics/open-and-click-rates",
+      "text": "Open and click rates",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-analytics/marketing-email-metrics",
+      "text": "Email metrics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-analytics/analytics-gathering",
+      "text": "Analytics gathering",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/bulk-emails",
+      "text": "Onsite setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/set-up-an-unsubscribe-link-in-emails",
+      "text": "Set up unsubscription",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/send-a-test-email",
+      "text": "Test emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/send-a-system-email",
+      "text": "System emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/configure-restriction-of-the-number-of-emails-for-sending",
+      "text": "Limit the number of emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/permit-monitoring-email-status-by-creatio-support",
+      "text": "Monitoring for Creatio support",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/prevent-sending-duplicate-emails-to-the-same-email-address",
+      "text": "Prevent email duplicates",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/set-up-periods-for-processing-email-responses",
+      "text": "Stop response processing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/manage-subscriptions-for-various-email-types",
+      "text": "Subscription by email types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/set-up-objects-that-form-email-audience",
+      "text": "Email audience objects",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/email-expiration-date",
+      "text": "Email expiration date",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/set-up-email-priority",
+      "text": "Email priority",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/email-delivery-schedule",
+      "text": "Delivery schedule",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/additional-setup/email-throttling-queues",
+      "text": "Throttling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/email-guidelines",
+      "text": "Email guidelines",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/guidelines-for-increasing-deliverability",
+      "text": "Email deliverability",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/email-web-tools",
+      "text": "Web tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/guidelines-for-improving-the-senders-reputation",
+      "text": "Sender's reputation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/IP-and-domain-blacklists",
+      "text": "IP and domain blacklists",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/contact-base-collection-guidelines",
+      "text": "Audience guidelines",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/responsive-email-layout-guidelines",
+      "text": "Responsive layout",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/email-personalization-guidelines",
+      "text": "Email personalization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/how-to-engage-outreach-contacts",
+      "text": "Engage outreach contacts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/contact-base-email-examples",
+      "text": "Contact base examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/analyze-why-email-was-moved-to-spam",
+      "text": "Email moved to spam",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/email-marketing/email-guidelines/analyze-high-bounce-rates",
+      "text": "Analyze high bounce rates",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-campaings/add-campaign",
+      "text": "Create a campaign",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-campaings/set-up-campaign-diagram",
+      "text": "Campaign diagram",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-campaings/campaign-element-reference",
+      "text": "Campaign elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-campaings/transition-between-campaign-elements",
+      "text": "Campaign element transition",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-campaings/monitor-campaigns",
+      "text": "Monitor campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-campaings/campaign-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-campaings/marketing-campaign-hot-keys",
+      "text": "Hotkeys",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/marketing-events",
+      "text": "Marketing events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-events/plan-marketing-events",
+      "text": "Create an event",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/products/marketing-tools/marketing-events/manage-event-audience-and-responses",
+      "text": "Audience",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/sales-tools",
+      "text": "Sales tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/lead-and-opportunity-management",
+      "text": "Lead and Opportunity Management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/order-and-contract-management",
+      "text": "Order and Contract Management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/\u0441hannel-sales",
+      "text": "\u0421hannel sales",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/forecasting",
+      "text": "Forecasting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/products-and-prices",
+      "text": "Products and prices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/service-tools",
+      "text": "Service tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/case-management",
+      "text": "Case Management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/contact-center-tools",
+      "text": "Contact center tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/finance-and-banking",
+      "text": "Finance and banking",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/financial-products",
+      "text": "Financial products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/financial-services",
+      "text": "Financial services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/industry-cases",
+      "text": "Industry cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/field-sales",
+      "text": "Field sales",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/field-management",
+      "text": "Field Management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/pharma",
+      "text": "Pharma",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/creatio-apps/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "https://sendgrid.com/docs/ui/account-and-settings/how-to-set-up-domain-authentication/",
+      "text": "SendGrid online guide",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T05:28:43.681924"
+}

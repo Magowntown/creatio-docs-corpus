@@ -1,0 +1,1 @@
+var emailSender = ClassFactory.Get<IEmailSender>(     new ConstructorArgument("emailClientFactory", emailClientFactory),     new ConstructorArgument("userConnection", UserConnection));

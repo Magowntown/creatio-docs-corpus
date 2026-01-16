@@ -1,0 +1,1 @@
+define("MyModuleName", ["angular-element-component"], function() {

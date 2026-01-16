@@ -1,0 +1,1 @@
+EntitySchemaCastQueryFunction CreateCastFunction(string columnPath, DBDataValueType castType)

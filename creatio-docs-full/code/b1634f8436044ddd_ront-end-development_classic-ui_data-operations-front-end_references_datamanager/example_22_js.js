@@ -1,0 +1,1 @@
+/* Define the configuration object. */var config = {    /* The entity schema name. */         entitySchemaName: "Contact",    /* The primary column value. */    primaryColumnValue: "00000000-0000-0000-0000-000000000001"};/* Select the isDeleted flag for the item record. */Terrasoft.DataManager.remove(config, function () {}, this);

@@ -1,0 +1,1 @@
+Terrasoft.Router.add("record", {  handlers: {     load: "loadPage",     reload: "reloadPage",     unload: "unloadLastPage"  }});

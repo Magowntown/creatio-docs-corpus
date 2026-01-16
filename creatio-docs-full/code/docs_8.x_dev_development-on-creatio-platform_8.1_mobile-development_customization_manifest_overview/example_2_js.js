@@ -1,0 +1,1 @@
+Terrasoft.sdk.Module.setChangeModes("UsrCodeOfSomeCustomSection", [Terrasoft.ChangeModes.Create, Terrasoft.ChangeModes.Update]);

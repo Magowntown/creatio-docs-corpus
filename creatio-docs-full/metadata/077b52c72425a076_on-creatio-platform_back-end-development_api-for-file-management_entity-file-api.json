@@ -1,0 +1,650 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/back-end-development/api-for-file-management/entity-file-api",
+  "title": "Manage files using Entity class",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development"
+    },
+    {
+      "text": "Manage files",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\nnote\nThis functionality is available for Creatio 8.3.2 and later.\nSince version 8.3.2, Creatio lets you manage files using the File API through the `Entity` class. The API supports CRUD operations for files stored either in the Creatio database or in external file storage, such as AWS S3 or Azure Blob storage. Learn more: [File API](http://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/file-api).\nTo use the File API through the `Entity` class, make sure the `UseEntityFileApi` additional feature is enabled. Instructions: [Manage the status of an additional feature](https://academy.creatio.com/documents?ver=8.3&id=15631&anchor=title-3459-1). When the feature is enabled, Creatio uses the File API for all operations with file objects. For non-file objects, behavior remains unchanged.\nWe recommend storing files in external file storage instead of the database, regardless of the access method used (either the File API directly or via the `Entity` class). This can improve solution reliability, cost efficiency, and maintainability. Learn more: [File storage](https://academy.creatio.com/docs/8.x/setup-and-administration/category/file-storage) (user documentation).\nWhen managing file records using the File API through the `Entity` class, avoid specifying the `SysFileStorageId`, `Size`, and `TotalSize` properties explicitly. These values are managed by Creatio automatically for all CRUD operations.\n## Objects that store files\u200b\nCreatio stores files in dedicated objects. Each object corresponds either to a specific parent object or to a generic file storage model that can be used across multiple objects. The choice of an object determines how the file is linked to its parent object and which request parameters are required when working with the API.\nView examples of objects used for file storage in the table below. The complete list of objects is available in the Creatio. Objects that store files have the \"File\" suffix.\nObject| Description| Parent object  \n---|---|---  \n\"Uploaded file\" (`SysFile` code)| Generic file storage.| Any object  \n\"File and link of activity\" (`ActivityFile` code)| Files attached to activities.| \"Activity\" (`Activity` code)  \n\"Contact attachment\" (`ContactFile` code)| Files attached to contacts.| \"Contact\" (`Contact` code)  \n\"File and link of account\" (`AccountFile` code)| Files attached to accounts.| \"Account\" (`Account` code)  \n\"Attachments and notes detail object in Cases section\" (`CaseFile` code)| Files attached to support cases.| \"Case\" (`Case` code)  \n\"Order files\" (`OrderFile` code)| Files attached to orders.| \"Order\" (`Order` code)  \n\"File and link of opportunity\" (`OpportunityFile` code)| Files attached to opportunities.| \"Opportunity\" (`Opportunity` code)  \nIn most cases, you can store files using the generic \"Uploaded file\" (`SysFile` code) object, which is used automatically for custom apps. We recommend creating a dedicated file object for custom apps that are expected to store a large number of files or require separate file management for a specific business scenario. This approach helps organize file storage better, improves scalability, and aligns with how Creatio implements file storage in some out-of-the-box apps.\n## Identify file objects\u200b\nTo check whether an \"Object\" type schema is a file object, use the following code:\nCheck whether an \"Object\" type schema represents a file object\nEntitySchema schema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \nbool isFile = schema.IsFile;  \nIf `schema.IsFile == true`, the \"Object\" type schema represents a file object, and Creatio lets you manage files using the File API through the `Entity` class.\n## Usage examples\u200b\n### Create a file\u200b\nView the examples that demonstrate different ways to create a file below.\n#### Create a file with immediate data saving\u200b\nView the example that creates a file record using the \"Uploaded file\" (`SysFile` code) object and saves the file content to the storage immediately below.\nCreate a file with immediate data saving\n/* Create a file record using the \"SysFile\" object and save the file content to  \nthe storage immediately. */  \npublic bool CreateFileWithData(UserConnection userConnection)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Populate the record using default column values. */  \nfileEntity.SetDefColumnValues();  \n/* Set the file name. */  \nfileEntity.SetColumnValue(\"Name\", \"some-file-name.txt\");  \n/* Convert the file content to a byte array. */  \nbyte[] fileContent = System.Text.Encoding.UTF8.GetBytes(\"Some file content\");  \n/* Assign the binary file content to the \"Data\" column. */  \nfileEntity.SetBytesValue(\"Data\", fileContent);  \n/* Save the file record and persist the content to the storage. */  \nbool result = fileEntity.Save();  \n/* Return the result of the save operation. */  \nreturn result;  \n}  \n#### Create a file with deferred data saving\u200b\nIf you call the `Save()` method without calling `SetBytesValue()` first, only file metadata is created. The actual file content is saved to storage only after calling `SetBytesValue()` followed by `Save()`.\nView the example that creates a file record using the \"Uploaded file\" (`SysFile` code) object and saves only the file metadata below. The binary file content is added and persisted to the storage in a separate operation.\nCreate a file with deferred data saving\n/* Create a file record using the \"SysFile\" object without saving file content. */  \npublic Guid CreateFileMetadataOnly(UserConnection userConnection)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Populate the record using default column values. */  \nfileEntity.SetDefColumnValues();  \n/* Set the file name. */  \nfileEntity.SetColumnValue(\"Name\", \"SomeFileName.pdf\");  \n/* Save the file record metadata without file content. */  \nfileEntity.Save();  \n/* Return the ID of the created file record. */  \nreturn fileEntity.PrimaryColumnValue;  \n}  \n/* Add binary file content to an existing file record and save it to the storage. */  \npublic bool AddFileContent(UserConnection userConnection, Guid fileId)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Load the existing file record by its ID. */  \nif (!fileEntity.FetchFromDB(fileId))  \n{  \nreturn false;  \n}  \n/* Retrieve the file content as a byte array.  \n\"GetPdfContent()\" is a custom method that returns file content. */  \nbyte[] fileContent = GetPdfContent();  \n/* Assign the binary file content to the \"Data\" column. */  \nfileEntity.SetBytesValue(\"Data\", fileContent);  \n/* Save the file record and persist the content to the storage. */  \nreturn fileEntity.Save();  \n}  \n#### Create a file linked to a contact\u200b\nWhen working with file objects that have a master-detail relationship, for example, `ContactFile`, `ActivityFile`, the file record must be linked to its parent record explicitly. To do this, set the reference column value using the `SetPropertyValue()` method before saving the file record.\nView the example that creates a file record using the \"Contact attachment\" (`ContactFile` code) object, binds it to a contact record, and saves the file content to the storage below.\nCreate a file linked to a contact\n/* Create a file record using the \"ContactFile\" object and bind it to a contact. */  \npublic bool CreateContactFile(UserConnection userConnection, Guid contactId)  \n{  \n/* Retrieve the \"ContactFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"ContactFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Populate the record using default column values. */  \nfileEntity.SetDefColumnValues();  \n/* Set the file name. */  \nfileEntity.SetColumnValue(\"Name\", \"SomeContactPhoto.jpg\");  \n/* Bind the file record to the contact record. */  \nfileEntity.SetPropertyValue(\"ContactId\", contactId);  \n/* Retrieve the file content as a byte array.  \n\"GetImageBytes()\" is a custom method that returns image data. */  \nbyte[] imageData = GetImageBytes();  \n/* Assign the binary file content to the \"Data\" column. */  \nfileEntity.SetBytesValue(\"Data\", imageData);  \n/* Save the file record and persist the content to the storage. */  \nreturn fileEntity.Save();  \n}  \n#### Create a file using the generic SysFile object\u200b\nWhen working with the generic \"Uploaded file\" (`SysFile` code) file object, files are linked to parent records using a polymorphic relationship. Unlike object-specific file objects, `SysFile` can be linked to records of any object dynamically. In this case, the file record is associated with a parent object by specifying the following parameters before saving the file:\n* `RecordSchemaName` is the code of the parent \"Object\" type schema.\n* `RecordId` is the ID of the parent record to which the file is attached. Used together with `RecordSchemaName` to establish the link between the file and the target object.\nView the example that creates a file record using the \"Uploaded file\" (`SysFile` code) object, binds it to a parent record dynamically, and saves the file content to the storage below.\nCreate a file using the generic SysFile object\n/* Create a file record using the \"SysFile\" object and bind it to a parent record  \nusing a polymorphic relationship. */  \npublic bool CreateSysFile(UserConnection userConnection, Guid recordId, string schemaName)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Populate the record using default column values. */  \nfileEntity.SetDefColumnValues();  \n/* Set the file name. */  \nfileEntity.SetColumnValue(\"Name\", \"SomeFileName.pdf\");  \n/* Bind the file record to the parent record by specifying the code of the  \nparent \"Object\" type schema and the ID of the parent record to which the file  \nis attached. */  \nfileEntity.SetColumnValue(\"RecordSchemaName\", schemaName);  \nfileEntity.SetColumnValue(\"RecordId\", recordId);  \n/* Retrieve the file content as a byte array.  \n\"GetPdfContent()\" is a custom method that returns file content. */  \nbyte[] fileContent = GetPdfContent();  \n/* Assign the binary file content to the \"Data\" column. */  \nfileEntity.SetBytesValue(\"Data\", fileContent);  \n/* Save the file record and persist the content to the storage. */  \nreturn fileEntity.Save();  \n}  \n### Read a file\u200b\nThe `Entity` class provides several methods for reading binary file content from the \"Data\" column. Choose the appropriate method based on the business goals listed in the table below.\nBusiness goal| Method  \n---|---  \nRead file content as a byte array| byte[] GetBytesValue(string valueName)Parameters| valueName| The name of the object column that stores binary file content.  \n---|---  \nRead file content as a stream, for example, to write it to a response or pass it to another API| MemoryStream GetStreamValue(string valueName)Parameters| valueName| The name of the object column that stores binary file content.  \n---|---  \n#### Read file content as a byte array\u200b\nView the example that retrieves the binary content of an existing file record from the \"Uploaded file\" (`SysFile` code) object as a byte array below.\nRead file content as a byte array\n/* Retrieve the binary content of a file record as a byte array. */  \npublic byte[] ReadFileContent(UserConnection userConnection, Guid fileId)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Load the existing file record by its ID. */  \nif (!fileEntity.FetchFromDB(fileId))  \n{  \nreturn null;  \n}  \n/* Retrieve the binary file content from the \"Data\" column as a byte array. */  \nbyte[] fileContent = fileEntity.GetBytesValue(\"Data\");  \n/* Return the file content. */  \nreturn fileContent;  \n}  \n#### Read file content as a stream\u200b\nView the example that retrieves the binary content of an existing file record from the \"Uploaded file\" (`SysFile` code) object as a stream below.\nRead file content as a stream\n/* Retrieve the binary content of a file record as a stream. */  \npublic MemoryStream ReadFileAsStream(UserConnection userConnection, Guid fileId)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Load the existing file record by its ID. */  \nif (!fileEntity.FetchFromDB(fileId))  \n{  \nreturn null;  \n}  \n/* Retrieve the binary file content from the \"Data\" column as a stream. */  \nMemoryStream fileStream = fileEntity.GetStreamValue(\"Data\");  \n/* Return the file stream. */  \nreturn fileStream;  \n}  \n### Update a file\u200b\nView the example that updates the binary content of an existing file record using the \"Uploaded file\" (`SysFile` code) object below.\nUpdate a file\n/* Update the binary content of an existing file record. */  \npublic bool UpdateFileContent(UserConnection userConnection, Guid fileId, byte[] newContent)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Load the existing file record by its ID. */  \nif (!fileEntity.FetchFromDB(fileId))  \n{  \nreturn false;  \n}  \n/* Assign the new binary file content to the \"Data\" column. */  \nfileEntity.SetBytesValue(\"Data\", newContent);  \n/* Update the file name (optional). */  \nfileEntity.SetColumnValue(\"Name\", \"NewFileName.txt\");  \n/* Save the file record and persist the updated content to the storage. */  \nreturn fileEntity.Save();  \n}  \n### Delete a file\u200b\nWhen deleting a file record, both the file metadata and the corresponding binary content are removed automatically. This behavior ensures that no unreferenced files remain in the storage.\nView the example that deletes an existing file record created using the \"Uploaded file\" (`SysFile` code) object below.\nDelete a file\n/* Delete an existing file record along with its binary content. */  \npublic bool DeleteFile(UserConnection userConnection, Guid fileId)  \n{  \n/* Retrieve the \"SysFile\" object. */  \nEntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");  \n/* Create a file record using the \"Entity\" class. */  \nEntity fileEntity = fileSchema.CreateEntity(userConnection);  \n/* Load the existing file record by its ID. */  \nif (!fileEntity.FetchFromDB(fileId))  \n{  \nreturn false;  \n}  \n/* Delete the file record. Both the metadata and the file content are removed from the storage. */  \nbool result = fileEntity.Delete();  \n/* Return the result of the delete operation. */  \nreturn result;  \n}  \n* * *\n## See also\u200b\n[File API](http://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/file-api)\n[Manage the database records](https://academy.creatio.com/documents?ver=8.3&id=15247)\n[Data access through ORM](https://academy.creatio.com/documents?ver=8.3&id=15246)\n[File storage](https://academy.creatio.com/docs/8.x/setup-and-administration/category/file-storage) (user documentation)\n[Manage an existing additional feature](https://academy.creatio.com/documents?ver=8.3&id=15631)",
+  "code_examples": [
+    {
+      "code": "EntitySchema schema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");bool isFile = schema.IsFile;",
+      "language": "cs",
+      "context": "To check whether an \"Object\" type schema is a file object, use the following code:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a file record using the \"SysFile\" object and save the file content tothe storage immediately. */public bool CreateFileWithData(UserConnection userConnection){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Populate the record using default column values. */    fileEntity.SetDefColumnValues();    /* Set the file name. */    fileEntity.SetColumnValue(\"Name\", \"some-file-name.txt\");    /* Convert the file content to a byte array. */    byte[] fileContent = System.Text.Encoding.UTF8.GetBytes(\"Some file content\");    /* Assign the binary file content to the \"Data\" column. */    fileEntity.SetBytesValue(\"Data\", fileContent);    /* Save the file record and persist the content to the storage. */    bool result = fileEntity.Save();    /* Return the result of the save operation. */    return result;}",
+      "language": "cs",
+      "context": "View the example that creates a file record using the \"Uploaded file\" (SysFilecode) object and saves the file content to the storage immediately below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a file record using the \"SysFile\" object without saving file content. */public Guid CreateFileMetadataOnly(UserConnection userConnection){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Populate the record using default column values. */    fileEntity.SetDefColumnValues();    /* Set the file name. */    fileEntity.SetColumnValue(\"Name\", \"SomeFileName.pdf\");    /* Save the file record metadata without file content. */    fileEntity.Save();    /* Return the ID of the created file record. */    return fileEntity.PrimaryColumnValue;}/* Add binary file content to an existing file record and save it to the storage. */public bool AddFileContent(UserConnection userConnection, Guid fileId){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Load the existing file record by its ID. */    if (!fileEntity.FetchFromDB(fileId))    {        return false;    }    /* Retrieve the file content as a byte array.    \"GetPdfContent()\" is a custom method that returns file content. */    byte[] fileContent = GetPdfContent();    /* Assign the binary file content to the \"Data\" column. */    fileEntity.SetBytesValue(\"Data\", fileContent);    /* Save the file record and persist the content to the storage. */    return fileEntity.Save();}",
+      "language": "cs",
+      "context": "View the example that creates a file record using the \"Uploaded file\" (SysFilecode) object and saves only the file metadata below. The binary file content is added and persisted to the storage in a se",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a file record using the \"ContactFile\" object and bind it to a contact. */public bool CreateContactFile(UserConnection userConnection, Guid contactId){    /* Retrieve the \"ContactFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"ContactFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Populate the record using default column values. */    fileEntity.SetDefColumnValues();    /* Set the file name. */    fileEntity.SetColumnValue(\"Name\", \"SomeContactPhoto.jpg\");    /* Bind the file record to the contact record. */    fileEntity.SetPropertyValue(\"ContactId\", contactId);    /* Retrieve the file content as a byte array.    \"GetImageBytes()\" is a custom method that returns image data. */    byte[] imageData = GetImageBytes();    /* Assign the binary file content to the \"Data\" column. */    fileEntity.SetBytesValue(\"Data\", imageData);    /* Save the file record and persist the content to the storage. */    return fileEntity.Save();}",
+      "language": "cs",
+      "context": "View the example that creates a file record using the \"Contact attachment\" (ContactFilecode) object, binds it to a contact record, and saves the file content to the storage below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a file record using the \"SysFile\" object and bind it to a parent recordusing a polymorphic relationship. */public bool CreateSysFile(UserConnection userConnection, Guid recordId, string schemaName){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Populate the record using default column values. */    fileEntity.SetDefColumnValues();    /* Set the file name. */    fileEntity.SetColumnValue(\"Name\", \"SomeFileName.pdf\");    /* Bind the file record to the parent record by specifying the code of the    parent \"Object\" type schema and the ID of the parent record to which the file    is attached. */    fileEntity.SetColumnValue(\"RecordSchemaName\", schemaName);    fileEntity.SetColumnValue(\"RecordId\", recordId);    /* Retrieve the file content as a byte array.    \"GetPdfContent()\" is a custom method that returns file content. */    byte[] fileContent = GetPdfContent();    /* Assign the binary file content to the \"Data\" column. */    fileEntity.SetBytesValue(\"Data\", fileContent);    /* Save the file record and persist the content to the storage. */    return fileEntity.Save();}",
+      "language": "cs",
+      "context": "View the example that creates a file record using the \"Uploaded file\" (SysFilecode) object, binds it to a parent record dynamically, and saves the file content to the storage below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Retrieve the binary content of a file record as a byte array. */public byte[] ReadFileContent(UserConnection userConnection, Guid fileId){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Load the existing file record by its ID. */    if (!fileEntity.FetchFromDB(fileId))    {        return null;    }    /* Retrieve the binary file content from the \"Data\" column as a byte array. */    byte[] fileContent = fileEntity.GetBytesValue(\"Data\");    /* Return the file content. */    return fileContent;}",
+      "language": "cs",
+      "context": "View the example that retrieves the binary content of an existing file record from the \"Uploaded file\" (SysFilecode) object as a byte array below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Retrieve the binary content of a file record as a stream. */public MemoryStream ReadFileAsStream(UserConnection userConnection, Guid fileId){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Load the existing file record by its ID. */    if (!fileEntity.FetchFromDB(fileId))    {        return null;    }    /* Retrieve the binary file content from the \"Data\" column as a stream. */    MemoryStream fileStream = fileEntity.GetStreamValue(\"Data\");    /* Return the file stream. */    return fileStream;}",
+      "language": "cs",
+      "context": "View the example that retrieves the binary content of an existing file record from the \"Uploaded file\" (SysFilecode) object as a stream below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Update the binary content of an existing file record. */public bool UpdateFileContent(UserConnection userConnection, Guid fileId, byte[] newContent){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Load the existing file record by its ID. */    if (!fileEntity.FetchFromDB(fileId))    {        return false;    }    /* Assign the new binary file content to the \"Data\" column. */    fileEntity.SetBytesValue(\"Data\", newContent);    /* Update the file name (optional). */    fileEntity.SetColumnValue(\"Name\", \"NewFileName.txt\");    /* Save the file record and persist the updated content to the storage. */    return fileEntity.Save();}",
+      "language": "cs",
+      "context": "View the example that updates the binary content of an existing file record using the \"Uploaded file\" (SysFilecode) object below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Delete an existing file record along with its binary content. */public bool DeleteFile(UserConnection userConnection, Guid fileId){    /* Retrieve the \"SysFile\" object. */    EntitySchema fileSchema = userConnection.EntitySchemaManager.GetInstanceByName(\"SysFile\");    /* Create a file record using the \"Entity\" class. */    Entity fileEntity = fileSchema.CreateEntity(userConnection);    /* Load the existing file record by its ID. */    if (!fileEntity.FetchFromDB(fileId))    {        return false;    }    /* Delete the file record. Both the metadata and the file content are removed from the storage. */    bool result = fileEntity.Delete();    /* Return the result of the delete operation. */    return result;}",
+      "language": "cs",
+      "context": "View the example that deletes an existing file record created using the \"Uploaded file\" (SysFilecode) object below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Object",
+          "Description",
+          "Parent object"
+        ],
+        [
+          "\"Uploaded file\" (SysFilecode)",
+          "Generic file storage.",
+          "Any object"
+        ],
+        [
+          "\"File and link of activity\" (ActivityFilecode)",
+          "Files attached to activities.",
+          "\"Activity\" (Activitycode)"
+        ],
+        [
+          "\"Contact attachment\" (ContactFilecode)",
+          "Files attached to contacts.",
+          "\"Contact\" (Contactcode)"
+        ],
+        [
+          "\"File and link of account\" (AccountFilecode)",
+          "Files attached to accounts.",
+          "\"Account\" (Accountcode)"
+        ],
+        [
+          "\"Attachments and notes detail object in Cases section\" (CaseFilecode)",
+          "Files attached to support cases.",
+          "\"Case\" (Casecode)"
+        ],
+        [
+          "\"Order files\" (OrderFilecode)",
+          "Files attached to orders.",
+          "\"Order\" (Ordercode)"
+        ],
+        [
+          "\"File and link of opportunity\" (OpportunityFilecode)",
+          "Files attached to opportunities.",
+          "\"Opportunity\" (Opportunitycode)"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Object</p></th><th><p>Description</p></th><th><p>Parent object</p></th></tr><tr><td><center><p>\"Uploaded file\" (<code>SysFile</code> code)</p></center></td><td><p>Generic file storage.</p></td><td><center><p>Any object</p></center></td></tr><tr><td><center><p>\"File and link of activity\" (<code>ActivityFile</code> code)</p></center></td><td><p>Files attached to activities.</p></td><td><center><p>\"Activity\" (<code>Activity</code> code)</p></center></td></tr><tr><td><center><p>\"Contact attachment\" (<code>ContactFile</code> code)</p></center></td><td><p>Files attached to contacts.</p></td><td><center><p>\"Contact\" (<code>Contact</code> code)</p></center></td></tr><tr><td><center><p>\"File and link of account\" (<code>AccountFile</code> code)</p></center></td><td><p>Files attached to accounts.</p></td><td><center><p>\"Account\" (<code>Account</code> code)</p></center></td></tr><tr><td><center><p>\"Attachments and notes detail object in Cases section\" (<code>CaseFile</code> code)</p></center></td><td><p>Files attached to support cases.</p></td><td><center><p>\"Case\" (<code>Case</code> code)</p></center></td></tr><tr><td><center><p>\"Order files\" (<code>OrderFile</code> code)</p></center></td><td><p>Files attached to orders.</p></td><td><center><p>\"Order\" (<code>Order</code> code)</p></center></td></tr><tr><td><center><p>\"File and link of opportunity\" (<code>OpportunityFile</code> code)</p></center></td><td><p>Files attached to opportunities.</p></td><td><center><p>\"Opportunity\" (<code>Opportunity</code> code)</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Business goal",
+          "Method"
+        ],
+        [
+          "Read file content as a byte array",
+          "byte[] GetBytesValue(string valueName)ParametersvalueNameThe name of the object column that stores binary file content.",
+          "valueName",
+          "The name of the object column that stores binary file content."
+        ],
+        [
+          "valueName",
+          "The name of the object column that stores binary file content."
+        ],
+        [
+          "Read file content as a stream, for example, to write it to a response or pass it to another API",
+          "MemoryStream GetStreamValue(string valueName)ParametersvalueNameThe name of the object column that stores binary file content.",
+          "valueName",
+          "The name of the object column that stores binary file content."
+        ],
+        [
+          "valueName",
+          "The name of the object column that stores binary file content."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Business goal</p></th><th><p>Method</p></th></tr><tr><td><p>Read file content as a byte array</p></td><td><p>byte[] GetBytesValue(string valueName)</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 242ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>valueName</p></td><td><p>The name of the object column that stores binary file content.</p></td></tr></tbody></table></div></div></div></details></td></tr><tr><td><p>Read file content as a stream, for example, to write it to a response or pass it to another API</p></td><td><p>MemoryStream GetStreamValue(string valueName)</p><details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 242ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>valueName</p></td><td><p>The name of the object column that stores binary file content.</p></td></tr></tbody></table></div></div></div></details></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "valueName",
+          "The name of the object column that stores binary file content."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>valueName</p></td><td><p>The name of the object column that stores binary file content.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "valueName",
+          "The name of the object column that stores binary file content."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>valueName</p></td><td><p>The name of the object column that stores binary file content.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThis functionality is available for Creatio 8.3.2 and later.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>This functionality is available for Creatio 8.3.2 and later.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This functionality is available for Creatio 8.3.2 and later.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This functionality is available for Creatio 8.3.2 and later.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParametersvalueNameThe name of the object column that stores binary file content.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 242ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>valueName</p></td><td><p>The name of the object column that stores binary file content.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParametersvalueNameThe name of the object column that stores binary file content.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 242ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>valueName</p></td><td><p>The name of the object column that stores binary file content.</p></td></tr></tbody></table></div></div></div></details>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Manage files using Entity class",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Objects that store files\u200b",
+      "anchor": "title-15393-1"
+    },
+    {
+      "level": 2,
+      "text": "Identify file objects\u200b",
+      "anchor": "title-15393-2"
+    },
+    {
+      "level": 2,
+      "text": "Usage examples\u200b",
+      "anchor": "title-15393-3"
+    },
+    {
+      "level": 3,
+      "text": "Create a file\u200b",
+      "anchor": "title-15393-4"
+    },
+    {
+      "level": 4,
+      "text": "Create a file with immediate data saving\u200b",
+      "anchor": "title-15393-5"
+    },
+    {
+      "level": 4,
+      "text": "Create a file with deferred data saving\u200b",
+      "anchor": "title-15393-6"
+    },
+    {
+      "level": 4,
+      "text": "Create a file linked to a contact\u200b",
+      "anchor": "title-15393-7"
+    },
+    {
+      "level": 4,
+      "text": "Create a file using the generic SysFile object\u200b",
+      "anchor": "title-15393-8"
+    },
+    {
+      "level": 3,
+      "text": "Read a file\u200b",
+      "anchor": "title-15393-9"
+    },
+    {
+      "level": 4,
+      "text": "Read file content as a byte array\u200b",
+      "anchor": "title-15393-10"
+    },
+    {
+      "level": 4,
+      "text": "Read file content as a stream\u200b",
+      "anchor": "title-15393-11"
+    },
+    {
+      "level": 3,
+      "text": "Update a file\u200b",
+      "anchor": "title-15393-12"
+    },
+    {
+      "level": 3,
+      "text": "Delete a file\u200b",
+      "anchor": "title-15393-13"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/api-for-file-management/entity-file-api",
+      "text": "Manage files using Entity class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/file-api",
+      "text": "File API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/api-for-file-management/file-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": "Next.NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "http://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/file-api",
+      "text": "File API",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/setup-and-administration/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/api-for-file-management/file-api/references/endpoints",
+      "text": "PreviousEndpoints",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:14:15.089431"
+}

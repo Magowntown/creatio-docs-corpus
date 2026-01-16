@@ -1,0 +1,1 @@
+<div class="wrapper">    <label class="label">{{label}}</label>    <input        ...        [class.invalid]="        valueValidationInfo &&        !valueValidationInfo.valid && valueValidationInfo.touched        "        ...    /></div>

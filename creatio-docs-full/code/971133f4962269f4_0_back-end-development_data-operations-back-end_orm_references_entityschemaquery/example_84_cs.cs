@@ -1,0 +1,1 @@
+T GetTypedColumnValue(Entity entity, string columnName)

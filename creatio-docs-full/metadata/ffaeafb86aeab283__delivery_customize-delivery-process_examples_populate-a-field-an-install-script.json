@@ -1,0 +1,748 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/customize-delivery-process/examples/populate-a-field-an-install-script",
+  "title": "Populate a field using an install script",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools"
+    },
+    {
+      "text": "Delivery tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools"
+    },
+    {
+      "text": "Delivery process customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-process-customization"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/delivery-process-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: intermediate\nnote\nThe example is relevant to **Sales Creatio** products.\nTo implement the example:\n1. Implement an install script. Read more >>>\n2. Add the install script to the installation steps. Read more >>>\nExample\nImplement the install script that populates the **Delivery type** field on the order page as follows:\n* Set the field to \"Customer pickup\" for products whose **Product.Category** column has the \"Hardware\" or \"Services\" value.\n* Set the field to \"Courier\" for products whose **Product.Category** column has other values.\nPopulate the **Delivery type** field for orders that contain a single product.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.0/scr_result.gif)\n## 1\\. Implement an install script\u200b\n1. **Open the Configuration section**. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2).\n2. **Create a user-made package** to add the schema. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SectionConfigurationGeneralInfo/scr_Add_Package.png) \u2192 fill out the package properties \u2192 **Save**.\nFor this example, create the `sdkPopulateDeliveryType` user-made package.\n3. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n4. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrPopulateDeliveryType  \nTitle| PopulateDeliveryType  \n5. **Apply the changes**.\n6. **Implement the business logic** of the delivery type population.\n1. Find the ID of the \"Courier\" and \"Customer pickup\" value in the **Delivery type** lookup. For this example, the \"Courier\" ID is \"50df77d0-7b1f-4dbc-a02d-7b6ebb95dfd0,\" the \"Customer pickup\" ID is \"ab31305f-7c6d-4158-bd0a-760ac7897755.\"\n2. Set \"Customer pickup\" for products that have the \"Hardware\" and \"Services\" category.\n3. Set \"Courier\" for products that have other categories.\n4. Populate the delivery type based on the product category.\nUsrPopulateDeliveryType\nnamespace Terrasoft.Configuration {  \nusing System;  \nusing System.Collections.Generic;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Entities;  \npublic class UsrPopulateDeliveryType: IInstallScriptExecutor {  \nprivate static object GetDeliveryIdByName(string deliveryName) {  \n/* The unique ID of the delivery type. */  \nswitch (deliveryName) {  \ncase \"Courier\":  \nreturn new Guid(\"50df77d0-7b1f-4dbc-a02d-7b6ebb95dfd0\");  \ncase \"Customer pickup\":  \nreturn new Guid(\"ab31305f-7c6d-4158-bd0a-760ac7897755\");  \ndefault:  \nreturn Guid.Empty;  \n}  \n}  \nprivate static object GetDeliveryTypeByProductCategory(string category) {  \n/* The category of the product. */  \nswitch (category) {  \ncase \"Hardware\":  \nreturn GetDeliveryIdByName(\"Customer pickup\");  \ncase \"Services\":  \nreturn GetDeliveryIdByName(\"Customer pickup\");  \ndefault:  \nreturn GetDeliveryIdByName(\"Courier\");  \n}  \n}  \npublic void Execute(UserConnection userConnection) {  \n/* Create an ESQ that contains the \"Id\" column of the product and \"Name\" column from the \"OrderProduct\" database table. The \"Name\" column is the name of the product category. */  \nEntitySchemaQuery esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"OrderProduct\");  \nEntitySchemaQueryColumn orderIdColumn = esqResult.AddColumn(\"Order.Id\");  \nEntitySchemaQueryColumn productCategoryColumn = esqResult.AddColumn(\"Product.Category.Name\");  \n/* Retrieve the collection of products in the order. */  \nEntityCollection productsInOrder = esqResult.GetEntityCollection(userConnection);  \nEntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;  \nEntity orderEntity = entitySchemaManager.GetEntityByName(\"Order\", userConnection);  \nforeach(Entity entity in productsInOrder) {  \n/* Retrieve the order object using the ID. */  \nGuid id = entity.GetTypedColumnValue <Guid> (orderIdColumn.Name);  \nstring category = entity.GetTypedColumnValue <string> (productCategoryColumn.Name);  \nvar conditions = new Dictionary <string,  \nobject> {  \n{  \n\"Id\",  \nid  \n}  \n};  \norderEntity.FetchFromDB(conditions);  \n/* Populate the delivery type based on the product category. */  \norderEntity.SetColumnValue(\"DeliveryTypeId\", GetDeliveryTypeByProductCategory(category));  \n/* Save the order. */  \norderEntity.Save();  \n}  \n}  \n}  \n}  \n7. **Publish the schema**.\n## 2\\. Add the install script to the installation steps\u200b\n1. **Open the package properties**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png) \u2192 **Properties**. This opens the **Package properties** page.\n2. **Open the Installation steps tab**.\n3. **Click Add** in the **After package installation** block. This opens the **Select schemas** window.\n4. **Select the checkbox** for the `UsrPopulateDeliveryType` source code schema.\n5. **Click Select**.\n6. **Apply the changes**.\n## View the result\u200b\nTo view the result of the example for the **current Creatio instance** :\n1. **Open the** `UsrPopulateDeliveryType` **source code schema**.\n2. **Execute the install script**. To do this, click **Actions** \u2192 **Run as install script**.\n3. **Open the Orders section**.\n4. **Open an order** that has an arbitrary name.\n5. **Check the category of the product**. To do this, open the **Products** tab \u2192 **Product.Category** column.\n6. **Check the delivery type**. To do this, open the **Delivery** tab \u2192 **Delivery type** field.\n**As a result** :\n* Creatio will populate the **Delivery type** field using the \"Customer pickup\" value for products whose **Product.Category** column has the \"Hardware\" or \"Services\" value.\n* Creatio will populate the **Delivery type** field using the \"Courier\" value for products whose **Product.Category** column has other values. [View the result >>>](https://academy.creatio.com/documents?ver=8.0&id=15020&anchor=view-result)\nTo view the result of the example for **other Creatio instances** :\n1. **Open the Configuration section**. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2).\n2. **Export the package**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png) \u2192 **Export**.\n3. **Install the package** into the needed Creatio instance. Instructions: [Install an app from a file](https://academy.creatio.com/documents?ver=8.0&id=1835&anchor=title-2304-2) (user documentation).\n4. **Open the Orders section**.\n5. **Open an order** that has an arbitrary name.\n6. **Check the category of the product**. To do this, open the **Products** tab \u2192 **Product.Category** column.\n7. **Check the delivery type**. To do this, open the **Delivery** tab \u2192 **Delivery type** field.\n## Source code\u200b\nUsrPopulateDeliveryType\nnamespace Terrasoft.Configuration {  \nusing System;  \nusing System.Collections.Generic;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.Entities;  \npublic class UsrPopulateDeliveryType: IInstallScriptExecutor {  \nprivate static object GetDeliveryIdByName(string deliveryName) {  \n/* The unique ID of the delivery type. */  \nswitch (deliveryName) {  \ncase \"Courier\":  \nreturn new Guid(\"50df77d0-7b1f-4dbc-a02d-7b6ebb95dfd0\");  \ncase \"Customer pickup\":  \nreturn new Guid(\"ab31305f-7c6d-4158-bd0a-760ac7897755\");  \ndefault:  \nreturn Guid.Empty;  \n}  \n}  \nprivate static object GetDeliveryTypeByProductCategory(string category) {  \n/* The category of the product. */  \nswitch (category) {  \ncase \"Hardware\":  \nreturn GetDeliveryIdByName(\"Customer pickup\");  \ncase \"Services\":  \nreturn GetDeliveryIdByName(\"Customer pickup\");  \ndefault:  \nreturn GetDeliveryIdByName(\"Courier\");  \n}  \n}  \npublic void Execute(UserConnection userConnection) {  \n/* Create an ESQ that contains the \"Id\" column of the product and \"Name\" column from the \"OrderProduct\" database table. The \"Name\" column is the name of the product category. */  \nEntitySchemaQuery esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"OrderProduct\");  \nEntitySchemaQueryColumn orderIdColumn = esqResult.AddColumn(\"Order.Id\");  \nEntitySchemaQueryColumn productCategoryColumn = esqResult.AddColumn(\"Product.Category.Name\");  \n/* Retrieve the collection of products in the order. */  \nEntityCollection productsInOrder = esqResult.GetEntityCollection(userConnection);  \nEntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;  \nEntity orderEntity = entitySchemaManager.GetEntityByName(\"Order\", userConnection);  \nforeach(Entity entity in productsInOrder) {  \n/* Retrieve the order object using the ID. */  \nGuid id = entity.GetTypedColumnValue <Guid> (orderIdColumn.Name);  \nstring category = entity.GetTypedColumnValue <string> (productCategoryColumn.Name);  \nvar conditions = new Dictionary <string,  \nobject> {  \n{  \n\"Id\",  \nid  \n}  \n};  \norderEntity.FetchFromDB(conditions);  \n/* Populate the delivery type based on the product category. */  \norderEntity.SetColumnValue(\"DeliveryTypeId\", GetDeliveryTypeByProductCategory(category));  \n/* Save the order. */  \norderEntity.Save();  \n}  \n}  \n}  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/PopulateDeliveryType/8.0/sdkPopulateDeliveryType_2024-09-11_13.16.11.zip)",
+  "code_examples": [
+    {
+      "code": "namespace Terrasoft.Configuration {    using System;    using System.Collections.Generic;    using Terrasoft.Core;    using Terrasoft.Core.Entities;    public class UsrPopulateDeliveryType: IInstallScriptExecutor {        private static object GetDeliveryIdByName(string deliveryName) {            /* The unique ID of the delivery type. */            switch (deliveryName) {                case \"Courier\":                    return new Guid(\"50df77d0-7b1f-4dbc-a02d-7b6ebb95dfd0\");                case \"Customer pickup\":                    return new Guid(\"ab31305f-7c6d-4158-bd0a-760ac7897755\");                default:                    return Guid.Empty;            }        }        private static object GetDeliveryTypeByProductCategory(string category) {            /* The category of the product. */            switch (category) {                case \"Hardware\":                    return GetDeliveryIdByName(\"Customer pickup\");                case \"Services\":                    return GetDeliveryIdByName(\"Customer pickup\");                default:                    return GetDeliveryIdByName(\"Courier\");            }        }        public void Execute(UserConnection userConnection) {            /* Create an ESQ that contains the \"Id\" column of the product and \"Name\" column from the \"OrderProduct\" database table. The \"Name\" column is the name of the product category. */            EntitySchemaQuery esqResult = new EntitySchemaQuery(userConnection.EntitySchemaManager, \"OrderProduct\");            EntitySchemaQueryColumn orderIdColumn = esqResult.AddColumn(\"Order.Id\");            EntitySchemaQueryColumn productCategoryColumn = esqResult.AddColumn(\"Product.Category.Name\");            /* Retrieve the collection of products in the order. */            EntityCollection productsInOrder = esqResult.GetEntityCollection(userConnection);            EntitySchemaManager entitySchemaManager = userConnection.EntitySchemaManager;            Entity orderEntity = entitySchemaManager.GetEntityByName(\"Order\", userConnection);            foreach(Entity entity in productsInOrder) {                /* Retrieve the order object using the ID. */                Guid id = entity.GetTypedColumnValue <Guid> (orderIdColumn.Name);                string category = entity.GetTypedColumnValue <string> (productCategoryColumn.Name);                var conditions = new Dictionary <string,                    object> {                        {                            \"Id\",                            id                        }                    };                orderEntity.FetchFromDB(conditions);                /* Populate the delivery type based on the product category. */                orderEntity.SetColumnValue(\"DeliveryTypeId\", GetDeliveryTypeByProductCategory(category));                /* Save the order. */                orderEntity.Save();            }        }    }}",
+      "language": "cs",
+      "context": "Implement the business logicof the delivery type population.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrPopulateDeliveryType"
+        ],
+        [
+          "Title",
+          "PopulateDeliveryType"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrPopulateDeliveryType</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>PopulateDeliveryType</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Sales Creatio",
+      "content": "noteThe example is relevant toSales Creatioproducts.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The example is relevant to <strong>Sales Creatio</strong> products.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Sales Creatio",
+      "content": "The example is relevant toSales Creatioproducts.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The example is relevant to <strong>Sales Creatio</strong> products.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Delivery type",
+      "content": "ExampleImplement the install script that populates theDelivery typefield on the order page as follows:Set the field to \"Customer pickup\" for products whoseProduct.Categorycolumn has the \"Hardware\" or \"Services\" value.Set the field to \"Courier\" for products whoseProduct.Categorycolumn has other values.Populate theDelivery typefield for orders that contain a single product.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Implement the install script that populates the <strong>Delivery type</strong> field on the order page as follows:</p><ul>\n<li>Set the field to \"Customer pickup\" for products whose <strong>Product.Category</strong> column has the \"Hardware\" or \"Services\" value.</li>\n<li>Set the field to \"Courier\" for products whose <strong>Product.Category</strong> column has other values.</li>\n</ul><p>Populate the <strong>Delivery type</strong> field for orders that contain a single product.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.0/scr_result.gif\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Delivery type",
+      "content": "Implement the install script that populates theDelivery typefield on the order page as follows:Set the field to \"Customer pickup\" for products whoseProduct.Categorycolumn has the \"Hardware\" or \"Services\" value.Set the field to \"Courier\" for products whoseProduct.Categorycolumn has other values.Populate theDelivery typefield for orders that contain a single product.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Implement the install script that populates the <strong>Delivery type</strong> field on the order page as follows:</p><ul>\n<li>Set the field to \"Customer pickup\" for products whose <strong>Product.Category</strong> column has the \"Hardware\" or \"Services\" value.</li>\n<li>Set the field to \"Courier\" for products whose <strong>Product.Category</strong> column has other values.</li>\n</ul><p>Populate the <strong>Delivery type</strong> field for orders that contain a single product.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.0/scr_result.gif\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.0/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Populate theDelivery typefield for orders that contain a single product.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ffaeafb86aeab283__delivery_customize-delivery-process_examples_populate-a-field-an-install-script_f7a39c1e6fe7.gif"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SectionConfigurationGeneralInfo/scr_Add_Package.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a user-made packageto add the schema. To do this, click\u2192 fill out the package properties \u2192Sav",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ffaeafb86aeab283__delivery_customize-delivery-process_examples_populate-a-field-an-install-script_e47876195f69.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ffaeafb86aeab283__delivery_customize-delivery-process_examples_populate-a-field-an-install-script_ed23817c05b1.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ffaeafb86aeab283__delivery_customize-delivery-process_examples_populate-a-field-an-install-script_ed23817c05b1.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/PopulateDeliveryType/8.0/sdkPopulateDeliveryType_2024-09-11_13.16.11.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkPopulateDeliveryType_2024-09-11_13.16.11.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/ffaeafb86aeab283__delivery_customize-delivery-process_examples_populate-a-field-an-install-script_sdkPopulateDeliveryType_2024-09-11_13.16.11.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Populate a field using an install script",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement an install script\u200b",
+      "anchor": "title-2455-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Add the install script to the installation steps\u200b",
+      "anchor": "title-2455-2"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-2455-2"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15020-1"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/customize-delivery-process/examples/populate-a-field-an-install-script",
+      "text": "Populate a field (an install script)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/delivery/customize-delivery-process/examples/populate-a-field-an-install-script",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/customize-delivery-process/examples/populate-a-field-an-install-script",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/delivery/customize-delivery-process/examples/populate-a-field-an-install-script",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/creatio-ide/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/creatio-ide/transfer-packages",
+      "text": "Transfer packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/creatio-ide/transfer-configuration-element-schemas",
+      "text": "Transfer configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/workspaceconsole/overview1",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/workspaceconsole-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/workspaceconsole-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/customize-delivery-process/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/delivery-process-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/customize-delivery-process/examples/examples-of-package-install-scripts",
+      "text": "PreviousExamples of package install scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/delivery-process-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/customize-delivery-process/references/c-sharp-classes-to-avoid-in-install-scripts",
+      "text": "C# classes to avoid in install scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:22:41.518396"
+}

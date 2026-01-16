@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentWeekQueryFunction(EntitySchemaQuery parentQuery, int offset = 0) : this(parentQuery, null, offset)EntitySchemaStartOfCurrentWeekQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression expression, int offset = 0) : base(parentQuery, expression, offset)

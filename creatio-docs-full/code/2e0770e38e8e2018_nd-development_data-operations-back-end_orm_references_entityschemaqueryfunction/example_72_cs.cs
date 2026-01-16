@@ -1,0 +1,1 @@
+EntitySchemaCurrentUserContactQueryFunction(EntitySchemaQuery parentQuery) : base(parentQuery)

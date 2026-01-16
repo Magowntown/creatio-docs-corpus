@@ -1,0 +1,1 @@
+UPDATE SysPackageSET    [SysRepositoryId] =    (        select top 1 Id from SysRepository        where Name = 'SDKPackages'-- Repository name.    )where [Name]='sdkUnboundPackage'-- Name of the user-made package.

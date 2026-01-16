@@ -1,0 +1,1 @@
+Filter = {[AggregationType] {<LeftExpression> | <LeftExpressionColumnPath>}    <ComparisonType>    {{<RightExpression> | {<RightExpressionColumnPath>,...}} | {<Macros>, [MacrosValue]}}}

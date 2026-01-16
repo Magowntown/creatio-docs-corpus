@@ -1,0 +1,1 @@
+{    "items": [        {            "name": "Indicator1",            "caption": "Average time for activity",            "widgetType": "Indicator",            "style": "widget-green",            "data": 2        }    ]}

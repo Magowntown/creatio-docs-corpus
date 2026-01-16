@@ -1,0 +1,1 @@
+<connectionStrings>    <add name="db" connectionString="Server=YourDBServerName;Port=YourDBServerPort;Database=YourDBName;User ID=YourPostgreUser;password=YourPostgreUserPassword;Timeout=500; CommandTimeout=400;MaxPoolSize=1024;" /></connectionStrings>

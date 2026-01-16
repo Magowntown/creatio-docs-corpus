@@ -1,0 +1,1 @@
+EntitySchemaAggregationQueryFunction(AggregationTypeStrict aggregationType, EntitySchemaQuery parentQuery)

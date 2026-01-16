@@ -1,0 +1,1 @@
+EntitySchema entitySchema = UserConnection.EntitySchemaManager.GetInstanceByName("Contact");Entity entity = entitySchema.CreateEntity(UserConnection);if(!entity.FetchFromDB(some_id)) {    return false;}entity.SetColumnValue("Name", "User02");return entity.Save();

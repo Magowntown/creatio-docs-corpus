@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction CreateYearFunction(string columnPath)

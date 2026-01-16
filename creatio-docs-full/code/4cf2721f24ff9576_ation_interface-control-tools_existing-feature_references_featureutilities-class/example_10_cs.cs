@@ -1,0 +1,1 @@
+static bool GetIsFeatureEnabled(this UserConnection source, string code, Guid sysAdminUnitId)

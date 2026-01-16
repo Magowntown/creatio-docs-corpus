@@ -1,0 +1,779 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+  "title": "Application server web farm",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/8.1/category/on-site-deployment"
+    },
+    {
+      "text": "Additional setup",
+      "href": "/docs/8.x/setup-and-administration/8.1/category/additional-setup"
+    }
+  ],
+  "content_markdown": "Version: 8.1All Creatio products\nOn this page\nYou can enhance the performance of large-scale Creatio projects (up to several thousand users) through horizontal scaling, i. e., by increasing the number of servers with deployed Creatio applications and setting up workload distribution between them.\nThe load balancer may be either hardware or software. To work in fault-tolerant mode, use an HTTP/HTTPS traffic balancer that supports the WebSocket protocol. Creatio has been tested on the HAProxy software load balancer. There are cases of successful implementation of other balancers, e. g., Citrix, Cisco, NginX, FortiGate, Microsoft ARR.\nnote\nThe installation procedure of Marketplace add-ons and custom improvements for an environment that uses a balancer differs from the standard deployment process. Learn more in a separate article: [Install applications from the Marketplace](https://academy.creatio.com/documents?id=1835).\nThis guide covers horizontal scaling of Creatio using a free open-source load balancer (HAProxy), designed for distributing the load between several application servers.\nnote\nSynchronize the server time of the nodes (servers and computers) that run deployed application instances to ensure smooth operation of Creatio.\n## General deployment procedure\u200b\n### Creatio .NET Framework\u200b\nTo deploy Creatio using the horizontal scaling of **.NET Framework** application servers:\n1. Deploy the required number of Creatio application instances in a web farm.\nnote\nWe recommend specifying identical names in IIS and the Application pool setting for all Creatio instances.\n2. Specify identical SQL and Redis databases in the ConnectionStrings.config file for all instances.\n<add name=\"redis\" connectionString=\"host=DOMAIN.COM;db=0;port=6379;maxReadPoolSize=10;maxWritePoolSize=500\"/>  \n<add name=\"db\" connectionString=\"Data Source=DOMAIN.COM;Initial Catalog=DatabaseName;Integrated Security=SSPI; MultipleActiveResultSets=True;Pooling-true;Max Pool Size=100\"/>  \n3. Add the following key in the `<appSettings>` block of the application\u2019s Web.config file:\n<add key=\"TenantId\" value=\"1\" />  \nThe \u201cvalue\u201d number must be identical for all Creatio instances of the web farm.\nImportant\nStarting with Creatio version 7.14.1, the `<add key=\"TenantId\" value=\"...\"/>` key can only be added to the internal Web.config file (Terrasoft.WebApp\\Web.config). Adding the key to an external Web.config file may lead to application failures.\n4. Generate a unique machineKey value for one of Creatio instances. Learn more in a separate article: [Modify Web.config](https://academy.creatio.com/documents?id=2141). Copy the resulting value and specify it in the Web.config files of each Creatio instance. You can locate the files in the root Creatio folder and the Terrasoft.WebApp folder.\n5. Turn on clustering for all schedulers in the `<quartzConfig>` block of every node's external configuration file (Web.config):\n<add key=\"quartz.jobStore.clustered\" value=\"true\" />  \n<add key=\"quartz.jobStore.acquireTriggersWithinLock\" value=\"true\" />  \n6. If the instanceId settings collide, specify unique values for each scheduler node.\nThe **ways to specify** unique instanceId values are as follows:\n* Add the following string to all schedulers in the `<quartzConfig>` block of every node\u2019s external configuration file (Web.config):\n<add key=\"quartz.scheduler.instanceId\" value=\"AUTO\" />  \nImportant\nThe \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.\nAs a result, the scheduler will generate the unique node name based on the `<node name>+timestamp` template.\n* Add unique quartz.scheduler.instanceId values manually.\n7. Set the \u201cvalue\u201d attribute of the quartz.jobStore.clustered setting to \u201ctrue.\u201d\n<add key=\"quartz.jobStore.clustered\" value=\"true\" />  \n8. Grant access permissions to created application directories for the IUSR user and the user who launches the Application pool in IIS.\n9. Set up a load balancer (e. g., HAProxy) to distribute the workload between the deployed application servers.\n10. If necessary, set up load balancing for database and session servers.\nnote\nLearn more about setting up clustering in the [Microsoft SQL](https://docs.microsoft.com/en-us/sql/sql-server/failover-clusters/install/create-a-new-sql-server-failover-cluster-setup?view=sql-server-2017) and [Oracle](https://docs.oracle.com/cd/B28359_01/rac.111/b28254/admcon.htm#i1058057) documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article: [Redis Cluster](https://academy.creatio.com/documents?id=2349).\n### Creatio .NET Core\u200b\nTo deploy Creatio using the horizontal scaling of **.NET Core** application servers:\n1. Deploy the required number of [Creatio application instances](https://academy.creatio.com/documents?id=2124).\n2. Specify identical SQL and Redis databases in the [ConnectionStrings.config file](https://academy.creatio.com/documents?id=2120) for all instances.\n3. Go to the root directory of any Creatio instance and locate the Terrasoft.WebHost.dll file.\n4. Run the following command:\ndotnet Terrasoft.WebHost.dll configureWebFarmMode  \nAs a result, configuration files of the current application instance will be updated.\n5. Enable clustering for all schedulers in the `<quartzConfig>` block of every node's external configuration file (Terrasoft.WebHost.dll):\n<add key=\"quartz.jobStore.clustered\" value=\"true\" />  \n<add key=\"quartz.jobStore.acquireTriggersWithinLock\" value=\"true\" />  \n6. If the instanceId settings collide, specify unique values for each scheduler node.\nThe **ways to specify** unique instanceId values are as follows:\n* Add the following string to all schedulers in the `<quartzConfig>` block of every node\u2019s external configuration file (Terrasoft.WebHost.dll):\n<add key=\"quartz.scheduler.instanceId\" value=\"AUTO\" />  \nImportant\nThe \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.\nAs a result, the scheduler will generate the unique node name based on the `<node name>+timestamp` template.\n* Add unique quartz.scheduler.instanceId values manually.\n7. Set the \u201cvalue\u201d attribute of the quartz.jobStore.clustered setting to \u201ctrue.\u201d\n<add key=\"quartz.jobStore.clustered\" value=\"true\" />  \n8. If necessary, set up load balancing for the database and session servers.\n9. Copy all configuration files of the current application instance to the root folders of other application instances.\n10. Set up a load balancer (e. g., HAProxy) to distribute the workload between the deployed application servers.\nnote\nLearn more about setting up clustering in the DBMS vendor documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article: [Redis Cluster](https://academy.creatio.com/documents?id=2349).\n## Install the HAProxy balancer\u200b\nThe HAProxy load balancer supports a range of free open-source OS. This guide covers one of the simpler methods of deploying HAProxy on the Debian OS via the haproxy.debian.net service.\n1. Open the installation service page by clicking <https://haproxy.debian.net/>.\n2. Select the OS and its version, as well as the HAProxy version.\nnote\nUse the cat /etc/issue command to check the currently installed Debian version.\nAs a result, the service will generate a set of HAProxy installation commands to run in the Debian OS.\nFig. 1 HAProxy installation commands generated by the haproxy.debian.net service\n![Fig.\u00a01 HAProxy installation commands generated by the haproxy.debian.net service](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/app_server_webfarm/haproxy_settings_commands.png)\n3. Run the generated commands one after another.\n## Set up the HAProxy balancer\u200b\nTo set up HAProxy, modify the haproxy.cfg file. Follow this path to locate the file:\n.../etc/haproxy/haproxy.cfg  \n### Primary setup (required)\u200b\nAdd the sections required for HAProxy operation: **frontend** and **backend**.\n#### The frontend section\u200b\nAdd the following settings to the frontend section: **bind** and **default_backend**.\n* Specify the address and the port that will receive requests distributed by HAProxy in the **bind** setting.\n* Specify the name that will match the name of the backend section in the **default_backend** option.\nAs a result, the setting will look as follows:\nfrontend front  \nmaxconn 10000  \n#Using these ports for binding  \nbind *:80  \nbind *:443  \n#Convert cookies to be secure  \nrspirep ^(set-cookie:.*)  \\1;\\ Secure  \ndefault_backend creatio  \n#### The backend section\u200b\nAdd the following required settings to the backend section:\n* Specify the type of balancing, e. g., **roundrobin** , in the **balance** parameter. Learn more about the different types of balancing in the [HAProxy documentation](https://cbonte.github.io/haproxy-dconv/configuration-1.5.html#4.2-balance).\n* Use the **server** parameter to specify all servers (or nodes) that distribute the load.\nAdd a unique \u201cserver\u201d parameter that contains the server address, port address, and weight for each server (i. e. the deployed Creatio instance). The server weight enables the balancer to distribute the load based on the physical capabilities of the servers. The higher weight you specify for the server, the more requests it will receive. For example, if you need to distribute the load between 2 Creatio application servers, add 2 \u201cserver\u201d parameters to backend:\nserver node_1 [server address]:[port] weight  \nserver node_2 [server address]:[port] weight  \nAs a result, the setting will look as follows:\nbackend creatio  \n#set balance type  \nbalance roundrobin  \nserver node_1 nodeserver1:80 check inter 10000 weight 2  \nserver node_2 nodeserver2:80/sitename check inter 10000 weight 1  \nThe new settings will be applied as soon as you restart HAProxy. Use the following command to restart HAProxy:\nservice haproxy restart  \n### Check the server status\u200b\nThe HAProxy balancer works with the following server statuses:\nStatus| Description  \n---|---  \nUP| The server is operational.  \nUP - transitionally DOWN| The server is considered operational at the moment, but the last health check has failed. As a result, the server is currently switching to the DOWN status.  \nDOWN - transitionally UP| The server is not considered operational at the moment, but the last health check has succeeded. As a result, the server is currently switching to the UP status.  \nDOWN| The server is not operational.  \nHealth checks initiate changes in a server\u2019s operational status. The simplest health check requires adding the \u201ccheck\u201d keyword to the server setup string. Running the health check requires the server\u2019s IP and TCP port. Health check example:\nserver node1 ... check  \noption httpchk GET /Login/NuiLogin.aspx  \noption httpchk GET /0/ping  \n### Set up web stats (optional)\u200b\nTo turn on web stats, add a new listen section that contains the following parameters: **bind** , **mode http** , **stats enable** , **stats uri**. The section will look as follows:\nlisten stats # Define a listen section called \"stats\"  \nbind :9000 # Listen on localhost:9000  \nmode http  \nstats enable # Enable stats page  \nstats uri /haproxy_stats # Stats URI  \nAs a result, you will be able to view the web stats of Creatio load balancing in the browser.\nFig. 2 The web stats of the load balancer\n![Fig.\u00a02 The web stats of the load balancer](https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/app_server_webfarm/load_balancer_stats.png)\nTo view the stats, follow the path: **balancer address** :9000/haproxy_stats.\n### Set up the IP addresses in the audit log for .NET Core (optional)\u200b\nWith a web farm, user requests reach the servers through a load balancer and/or a proxy server. As such, by default, the [audit log](https://academy.creatio.com/documents?id=2320) displays the IP address of the proxy that forwarded the request last, not the actual IP address of the user.  \nYou can configure the audit log so that it displays the actual IP address of the user. To do this:\n1. Configure the balancer so that each request it forwards to one of the Creatio application instances has a header with \u201cForwardedForHeaderName\u201d name and the user\u2019s IP address value.\n2. Modify the configuration files of Creatio application instances accordingly.\n1. Go to Creatio root directory and open appsettings.json.\n2. Edit the \u201cForwardedHeaders\u201d section so that it reads:\n{  \n...  \n\"ForwardedHeaders\": {  \n\"Enable\": true,  \n\"ForwardedForHeaderName\": \"X-Forwarded-For\",  \n\"KnownProxiesIP\": [trusted IP addresses],  \n\"ForwardLimit\": 3  \n}  \n...  \n}  \nWhere:\n\u201c**Enable** \u201d turns on the Forwarded headers processing function in the web application.\n\u201c**ForwardedForHeaderName** \u201d is the name of the header that contains the IP address.\n\u201c**KnownProxiesIP** \u201d is the trusted IP address list. Creatio processes the \u201c**ForwardedHeader** \u201d value only if it receives a request from these IP addresses. They can belong to the load balancer, reverse proxy, etc. If you leave this value empty, Creatio processes the \u201cForwardedHeader\u201d value received from any IP address.\nExample\n\"KnownProxiesIP\": [\"127.0.0.1\", \"12.34.56.78\", \"2001:0db8:85a3:0000:0000:8a2e:0370:7334\"]  \n\u201c**ForwardLimit** \u201d is the limit of IP addresses in the \u201cX-Forwarded-For\u201d processed header. The parameter adds more protection from incorrectly setup proxy servers and malicious requests received from third-party network channels. Proxy servers write their IP addresses to the end of the \u201cX-Forwarded-For\u201d header when forwarding requests. For example, the \u201cX-Forwarded-For\u201d header can have the following IP address chain: ip1, ip2, ip3, ip4. In this case:\n* ip1 is the client (browser) address.\n* ip2 and ip3 are proxy server addresses.\n* ip4 is the balancer address.\nIf you set \u201cForwardLimit\u201d to 4, the web server receives all 4 addresses. If you set it to 3, the web server receives only the last 3 IP addresses, i. e., ip2, ip3, and ip4.\nThe default value is 3. If you have the \u201c**KnownProxiesIP** \u201d parameter set up, you can set the \u201c**ForwardLimit** \u201d parameter to null.\n3. Repeat steps a-b for all Creatio application instances in your web farm.\n## Host static content separately\u200b\nYou can host static content of the application on a separate server. While this is usually unnecessary, it can be beneficial in certain scenarios to reduce the loading time of static content. To do this, use NginX as a reverse proxy. All requests for static content are redirected to NginX, which then serves the files from the application directory. From the client perspective, static content is delivered from a separate server located in a more optimal geographic location.\nTo install NginX, deploy it in Kubernetes. We recommend using the Helm chart from Bitnami [charts/bitnami/nginx at main \u00b7 bitnami/charts](https://github.com/bitnami/charts/tree/main/bitnami/nginx) with two replicas. Each replica utilizes 100 Mb of CPU and 128 Mb of memory.\nConfigure the load balancer using the rules below. Redirect requests for static content to the NginX server(s).\n* application.creatio.com/*/terrasoft.axd* \u2192 IIS, Creatio nodes\n* application.creatio.com/0/conf/content/* \u2192 NginX server(s)\n* application.creatio.com/0/Shell/* \u2192 NginX server(s)\n* application.creatio.com/0/core/* \u2192 NginX server(s)\n* application.creatio.com/* \u2192 IIS, Creatio nodes\nFig. 3 NginX configuration\n![Fig.\u00a03 NginX configuration](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/On-site_deployment/application_server_web_farm/scr_load_balancer.png)\nView an example configuration file (nginx.conf) for the NginX server below.\nworker_processes auto;  \nevents {  \nworker_connections 10000;  \n}  \nhttp {  \ninclude       mime.types;  \ndefault_type  application/octet-stream;  \ngzip on;  \ngzip_vary on;  \ngzip_min_length 10240;  \ngzip_proxied expired no-cache no-store private auth;  \ngzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml application/javascript application/json;  \ngzip_disable \"MSIE [1-6]\\.\";  \nserver_tokens off;  \nserver {  \nlisten 0.0.0.0:8080;  \nlocation /0/conf/content/ {  \nalias /var/www/creatio/content/; # LOCAL PATH TO STATIC CONTANT  \ntry_files $uri $uri/ =404;  \n}  \nlocation /0/Shell/ {  \nalias /var/www/creatio/Shell/; # LOCAL PATH TO Shell content  \ntry_files $uri $uri/ =404;  \n}  \nlocation /0/ClientApp/ {  \nalias /var/www/creatio/ClientApp/; # LOCAL PATH TO ClientApp content  \ntry_files $uri $uri/ =404;  \n}  \n}  \n}  \nnote\nSystem design modifications affect static content. As such, clear the NginX cache after making changes to the application design.\n* * *\n## See also\u200b\n[Server-side system requirements](https://academy.creatio.com/documents?id=1456)\n[Secure access to the portal](https://academy.creatio.com/documents?id=2033)\n[Quartz task scheduler](https://academy.creatio.com/documents?id=15801)\n[Redis Cluster](https://academy.creatio.com/documents?id=2349)",
+  "code_examples": [
+    {
+      "code": "<add name=\"redis\" connectionString=\"host=DOMAIN.COM;db=0;port=6379;maxReadPoolSize=10;maxWritePoolSize=500\"/><add name=\"db\" connectionString=\"Data Source=DOMAIN.COM;Initial Catalog=DatabaseName;Integrated Security=SSPI; MultipleActiveResultSets=True;Pooling-true;Max Pool Size=100\"/>",
+      "language": "xml",
+      "context": "Specify identical SQL and Redis databases in the ConnectionStrings.config file for all instances.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add key=\"TenantId\" value=\"1\" />",
+      "language": "xml",
+      "context": "Add the following key in the<appSettings>block of the application\u2019s Web.config file:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add key=\"quartz.jobStore.clustered\" value=\"true\" /><add key=\"quartz.jobStore.acquireTriggersWithinLock\" value=\"true\" />",
+      "language": "xml",
+      "context": "Turn on clustering for all schedulers in the<quartzConfig>block of every node's external configuration file (Web.config):",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add key=\"quartz.scheduler.instanceId\" value=\"AUTO\" />",
+      "language": "xml",
+      "context": "Add the following string to all schedulers in the<quartzConfig>block of every node\u2019s external configuration file (Web.config):",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add key=\"quartz.jobStore.clustered\" value=\"true\" />",
+      "language": "xml",
+      "context": "Set the \u201cvalue\u201d attribute of the quartz.jobStore.clustered setting to \u201ctrue.\u201d",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "dotnet Terrasoft.WebHost.dll configureWebFarmMode",
+      "language": "cs",
+      "context": "Run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": ".../etc/haproxy/haproxy.cfg",
+      "language": "cli",
+      "context": "To set up HAProxy, modify the haproxy.cfg file. Follow this path to locate the file:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "frontend frontmaxconn 10000#Using these ports for bindingbind *:80bind *:443#Convert cookies to be securerspirep ^(set-cookie:.*)  \\1;\\ Securedefault_backend creatio",
+      "language": "cli",
+      "context": "As a result, the setting will look as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "server node_1 [server address]:[port] weightserver node_2 [server address]:[port] weight",
+      "language": "cs",
+      "context": "Add a unique \u201cserver\u201d parameter that contains the server address, port address, and weight for each server (i.\u00a0e. the deployed Creatio instance). The server weight enables the balancer to distribute t",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "backend creatio#set balance typebalance roundrobin\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0server node_1 nodeserver1:80 check inter 10000 weight 2server node_2 nodeserver2:80/sitename check inter 10000 weight 1",
+      "language": "cli",
+      "context": "As a result, the setting will look as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "service haproxy restart",
+      "language": "js",
+      "context": "The new settings will be applied as soon as you restart HAProxy. Use the following command to restart HAProxy:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "server node1 ... checkoption httpchk GET /Login/NuiLogin.aspxoption httpchk GET /0/ping",
+      "language": "cli",
+      "context": "Health checks initiate changes in a server\u2019s operational status. The simplest health check requires adding the \u201ccheck\u201d keyword to the server setup string. Running the health check requires the server\u2019",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "listen stats # Define a listen section called \"stats\"    bind :9000 # Listen on localhost:9000    mode http    stats enable # Enable stats page    stats uri /haproxy_stats # Stats URI",
+      "language": "cli",
+      "context": "To turn on web stats, add a new listen section that contains the following parameters:bind,mode http,stats enable,stats uri. The section will look as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    ...    \"ForwardedHeaders\": {        \"Enable\": true,        \"ForwardedForHeaderName\": \"X-Forwarded-For\",        \"KnownProxiesIP\": [trusted IP addresses],        \"ForwardLimit\": 3    }    ...}",
+      "language": "js",
+      "context": "Edit the \u201cForwardedHeaders\u201d section so that it reads:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"KnownProxiesIP\": [\"127.0.0.1\", \"12.34.56.78\", \"2001:0db8:85a3:0000:0000:8a2e:0370:7334\"]",
+      "language": "xml",
+      "context": "\u201cKnownProxiesIP\u201d is the trusted IP address list. Creatio processes the \u201cForwardedHeader\u201d value only if it receives a request from these IP addresses. They can belong to the load balancer, reverse prox",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "worker_processes auto;events {    worker_connections 10000;}http {    include       mime.types;    default_type  application/octet-stream;    gzip on;    gzip_vary on;    gzip_min_length 10240;    gzip_proxied expired no-cache no-store private auth;    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml application/javascript application/json;    gzip_disable \"MSIE [1-6]\\.\";    server_tokens off;    server {        listen 0.0.0.0:8080;        location /0/conf/content/ {            alias /var/www/creatio/content/; # LOCAL PATH TO STATIC CONTANT            try_files $uri $uri/ =404;        }        location /0/Shell/ {            alias /var/www/creatio/Shell/; # LOCAL PATH TO Shell content            try_files $uri $uri/ =404;        }        location /0/ClientApp/ {            alias /var/www/creatio/ClientApp/; # LOCAL PATH TO ClientApp content            try_files $uri $uri/ =404;        }    }}",
+      "language": "cli",
+      "context": "View an example configuration file (nginx.conf) for the NginX server below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Status",
+          "Description"
+        ],
+        [
+          "UP",
+          "The server is operational."
+        ],
+        [
+          "UP - transitionally DOWN",
+          "The server is considered operational at the moment, but the last health check has failed. As a result, the server is currently switching to the DOWN status."
+        ],
+        [
+          "DOWN - transitionally UP",
+          "The server is not considered operational at the moment, but the last health check has succeeded. As a result, the server is currently switching to the UP status."
+        ],
+        [
+          "DOWN",
+          "The server is not operational."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Status</p></th><th><p>Description</p></th></tr><tr><td><p>UP</p></td><td><p>The server is operational.</p></td></tr><tr><td><p>UP - transitionally DOWN</p></td><td><p>The server is considered operational at the moment, but the last health check has failed. As a result, the server is currently switching to the DOWN status.</p></td></tr><tr><td><p>DOWN - transitionally UP</p></td><td><p>The server is not considered operational at the moment, but the last health check has succeeded. As a result, the server is currently switching to the UP status.</p></td></tr><tr><td><p>DOWN</p></td><td><p>The server is not operational.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe installation procedure of Marketplace add-ons and custom improvements for an environment that uses a balancer differs from the standard deployment process. Learn more in a separate article:Install applications from the Marketplace.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The installation procedure of Marketplace add-ons and custom improvements for an environment that uses a balancer differs from the standard deployment process. Learn more in a separate article: <a href=\"https://academy.creatio.com/documents?id=1835\" rel=\"noopener noreferrer\" target=\"_blank\">Install applications from the Marketplace</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The installation procedure of Marketplace add-ons and custom improvements for an environment that uses a balancer differs from the standard deployment process. Learn more in a separate article:Install applications from the Marketplace.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The installation procedure of Marketplace add-ons and custom improvements for an environment that uses a balancer differs from the standard deployment process. Learn more in a separate article: <a href=\"https://academy.creatio.com/documents?id=1835\" rel=\"noopener noreferrer\" target=\"_blank\">Install applications from the Marketplace</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteSynchronize the server time of the nodes (servers and computers) that run deployed application instances to ensure smooth operation of Creatio.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Synchronize the server time of the nodes (servers and computers) that run deployed application instances to ensure smooth operation of Creatio.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Synchronize the server time of the nodes (servers and computers) that run deployed application instances to ensure smooth operation of Creatio.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Synchronize the server time of the nodes (servers and computers) that run deployed application instances to ensure smooth operation of Creatio.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteWe recommend specifying identical names in IIS and the Application pool setting for all Creatio instances.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>We recommend specifying identical names in IIS and the Application pool setting for all Creatio instances.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We recommend specifying identical names in IIS and the Application pool setting for all Creatio instances.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We recommend specifying identical names in IIS and the Application pool setting for all Creatio instances.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantStarting with Creatio version 7.14.1, the<add key=\"TenantId\" value=\"...\"/>key can only be added to the internal Web.config file (Terrasoft.WebApp\\Web.config). Adding the key to an external Web.config file may lead to application failures.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Starting with Creatio version 7.14.1, the  <code>&lt;add key=\"TenantId\" value=\"...\"/&gt;</code> key can only be added to the internal Web.config file (Terrasoft.WebApp\\Web.config). Adding the key to an external Web.config file may lead to application failures.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Starting with Creatio version 7.14.1, the<add key=\"TenantId\" value=\"...\"/>key can only be added to the internal Web.config file (Terrasoft.WebApp\\Web.config). Adding the key to an external Web.config file may lead to application failures.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Starting with Creatio version 7.14.1, the  <code>&lt;add key=\"TenantId\" value=\"...\"/&gt;</code> key can only be added to the internal Web.config file (Terrasoft.WebApp\\Web.config). Adding the key to an external Web.config file may lead to application failures.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThe \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteLearn more about setting up clustering in theMicrosoft SQLandOracledocumentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article:Redis Cluster.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Learn more about setting up clustering in the <a href=\"https://docs.microsoft.com/en-us/sql/sql-server/failover-clusters/install/create-a-new-sql-server-failover-cluster-setup?view=sql-server-2017\" rel=\"noopener noreferrer\" target=\"_blank\">Microsoft SQL</a> and <a href=\"https://docs.oracle.com/cd/B28359_01/rac.111/b28254/admcon.htm#i1058057\" rel=\"noopener noreferrer\" target=\"_blank\">Oracle</a> documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article: <a href=\"https://academy.creatio.com/documents?id=2349\" rel=\"noopener noreferrer\" target=\"_blank\">Redis Cluster</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Learn more about setting up clustering in theMicrosoft SQLandOracledocumentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article:Redis Cluster.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Learn more about setting up clustering in the <a href=\"https://docs.microsoft.com/en-us/sql/sql-server/failover-clusters/install/create-a-new-sql-server-failover-cluster-setup?view=sql-server-2017\" rel=\"noopener noreferrer\" target=\"_blank\">Microsoft SQL</a> and <a href=\"https://docs.oracle.com/cd/B28359_01/rac.111/b28254/admcon.htm#i1058057\" rel=\"noopener noreferrer\" target=\"_blank\">Oracle</a> documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article: <a href=\"https://academy.creatio.com/documents?id=2349\" rel=\"noopener noreferrer\" target=\"_blank\">Redis Cluster</a>.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThe \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The \u201cAUTO\u201d value of the \u201cvalue\u201d attribute must be uppercase. Otherwise, Creatio will treat the value as the node name, which may lead to errors in the scheduler\u2019s operation.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteLearn more about setting up clustering in the DBMS vendor documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article:Redis Cluster.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Learn more about setting up clustering in the DBMS vendor documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article: <a href=\"https://academy.creatio.com/documents?id=2349\" rel=\"noopener noreferrer\" target=\"_blank\">Redis Cluster</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Learn more about setting up clustering in the DBMS vendor documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article:Redis Cluster.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Learn more about setting up clustering in the DBMS vendor documentation. Learn more about setting up fault tolerance using Redis Cluster in a separate article: <a href=\"https://academy.creatio.com/documents?id=2349\" rel=\"noopener noreferrer\" target=\"_blank\">Redis Cluster</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteUse the cat /etc/issue command to check the currently installed Debian version.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Use the cat /etc/issue command to check the currently installed Debian version.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Use the cat /etc/issue command to check the currently installed Debian version.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Use the cat /etc/issue command to check the currently installed Debian version.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteSystem design modifications affect static content. As such, clear the NginX cache after making changes to the application design.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>System design modifications affect static content. As such, clear the NginX cache after making changes to the application design.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "System design modifications affect static content. As such, clear the NginX cache after making changes to the application design.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>System design modifications affect static content. As such, clear the NginX cache after making changes to the application design.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/app_server_webfarm/haproxy_settings_commands.png",
+      "alt": "Fig.\u00a01 HAProxy installation commands generated by the haproxy.debian.net service",
+      "title": "",
+      "context": "As a result, the service will generate a set of HAProxy installation commands to run in the Debian O",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/5b1fab8efd102983_n_8.1_on-site-deployment_deployment-additional-setup_application-server-web-farm_83304edb98bc.png"
+    },
+    {
+      "src": "https://academy.creatio.com/guides/sites/en/files/documentation/user/en/on_site_deployment/BPMonlineHelp/app_server_webfarm/load_balancer_stats.png",
+      "alt": "Fig.\u00a02 The web stats of the load balancer",
+      "title": "",
+      "context": "As a result, you will be able to view the web stats of Creatio load balancing in the browser.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/5b1fab8efd102983_n_8.1_on-site-deployment_deployment-additional-setup_application-server-web-farm_8edfd3518d91.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/images/On-site_deployment/application_server_web_farm/scr_load_balancer.png",
+      "alt": "Fig.\u00a03 NginX configuration",
+      "title": "",
+      "context": "Configure the load balancer using the rules below. Redirect requests for static content to the NginX",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/5b1fab8efd102983_n_8.1_on-site-deployment_deployment-additional-setup_application-server-web-farm_96cd19fe2b3a.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Application server web farm",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "General deployment procedure\u200b",
+      "anchor": "title-241-1"
+    },
+    {
+      "level": 3,
+      "text": "Creatio .NET Framework\u200b",
+      "anchor": "title-241-10"
+    },
+    {
+      "level": 3,
+      "text": "Creatio .NET Core\u200b",
+      "anchor": "title-241-11"
+    },
+    {
+      "level": 2,
+      "text": "Install the HAProxy balancer\u200b",
+      "anchor": "title-241-2"
+    },
+    {
+      "level": 2,
+      "text": "Set up the HAProxy balancer\u200b",
+      "anchor": "title-241-3"
+    },
+    {
+      "level": 3,
+      "text": "Primary setup (required)\u200b",
+      "anchor": "title-241-4"
+    },
+    {
+      "level": 4,
+      "text": "The frontend section\u200b",
+      "anchor": "title-241-5"
+    },
+    {
+      "level": 4,
+      "text": "The backend section\u200b",
+      "anchor": "title-241-6"
+    },
+    {
+      "level": 3,
+      "text": "Check the server status\u200b",
+      "anchor": "title-241-7"
+    },
+    {
+      "level": 3,
+      "text": "Set up web stats (optional)\u200b",
+      "anchor": "title-241-8"
+    },
+    {
+      "level": 3,
+      "text": "Set up the IP addresses in the audit log for .NET Core (optional)\u200b",
+      "anchor": "title-241-19"
+    },
+    {
+      "level": 2,
+      "text": "Host static content separately\u200b",
+      "anchor": "title-241-20"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-oracle-database-for-creatio",
+      "text": "Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-linux/prepare-creatio-net6-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-linux/deploy-the-creatio-net6-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-linux/move-creatio-net-core-3-1-to-net-6",
+      "text": "Move Creatio to .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-oracle-database",
+      "text": "ConnectionStrings.config for Oracle",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/additional-setup",
+      "text": "PreviousAdditional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "NextGoogle integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/file-storage/use-external-file-storages",
+      "text": "External file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/file-storage/set-up-s3-file-storage-integration",
+      "text": "S3 file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/file-storage/set-up-azure-blob-file-storage-integration",
+      "text": "Azure Blob file storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/file-storage/file-migration",
+      "text": "File migration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/identity-service/set-up-the-identity-service-instruction",
+      "text": "Deploy the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/identity-service/connect-the-identity-service",
+      "text": "Connect the Identity Service to Creatio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/identity-service/oauth-health-monitoring",
+      "text": "OAuth health monitoring",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-additional-setup/identity-service/update-the-identity-service-using-iis-instruction",
+      "text": "Update the Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "Global search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:48:18.281493"
+}

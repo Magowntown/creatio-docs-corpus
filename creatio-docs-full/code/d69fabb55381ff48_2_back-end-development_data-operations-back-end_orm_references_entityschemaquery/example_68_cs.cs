@@ -1,0 +1,1 @@
+EntitySchemaCurrentUserQueryFunction CreateCurrentUserFunction()

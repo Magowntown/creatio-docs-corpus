@@ -1,0 +1,1 @@
+modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "dataSources"        ],        "values": {            "ContactDS": {                "type": "crt.EntityDataSource",                "config": {                    "entitySchemaName": "Contact",                }            }        }    }]/**SCHEMA_MODEL_CONFIG_DIFF*/,

@@ -1,0 +1,1 @@
+EntitySchemaCaseNotNullQueryFunctionWhenItem(EntitySchemaCaseNotNullQueryFunctionWhenItem source)

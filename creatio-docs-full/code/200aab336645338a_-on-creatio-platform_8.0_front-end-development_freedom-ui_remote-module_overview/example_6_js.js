@@ -1,0 +1,1 @@
+"type": "usr.viewElement","fontConfig": {    "fontFamily": "FontFamily Style Bitter",    "fontSrc": "data:application/octet-stream;base64, ..."}

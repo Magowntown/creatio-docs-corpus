@@ -1,0 +1,706 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/implement-message-exchange",
+  "title": "Implement message exchange between modules",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui"
+    },
+    {
+      "text": "Sandbox",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sandbox"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: intermediate\nExample\nCreate the `UsrSomeModule` module. Implement the following **messages** in the module:\n* `MessageToSubscribe` address message that has **Subscribe** direction\n* `MessageToPublish` broadcast message that has **Publish** direction\nSubscribe to the `MessageToSubscribe` message sent by another module. Cancel the message registration.\n## 1\\. Create a module\u200b\n1. [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Module** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_module.png)\n3. Fill out the schema properties in the Module Designer.\n* Set **Code** to \"UsrSomeModule.\"\n* Set **Title** to \"SomeModule.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MessageExchangeBetweenModules/8.0/scr_UsrSomeModule_Props.png)\nClick **Apply** to apply the changes.\n4. Add the source code in the Module Designer.\nUsrSomeModule\n/* Declare a module called UsrSomeModule. The module has no dependencies.   \nTherefore, an empty array is passed as the second module parameter. */  \ndefine(\"UsrSomeModule\", [], function() {  \nExt.define(\"Terrasoft.configuration.UsrSomeModule\", {  \nalternateClassName: \"Terrasoft.UsrSomeModule\",  \nextend: \"Terrasoft.BaseModule\",  \nExt: null,  \nsandbox: null,  \nTerrasoft: null,  \ninit: function() {  \nthis.callParent(arguments);  \n},  \ndestroy: function() {  \nthis.callParent(arguments);  \n}  \n});  \nreturn Terrasoft.UsrSomeModule;  \n});  \n5. Click **Save** on the Module Designer\u2019s toolbar.\n## 2\\. Register a message\u200b\n1. Declare message configuration objects in the `messages` schema property.\n2. Add to the `init()` method the `sandbox.registerMessages()` method call that registers messages.\nRegister a module message\n...  \n/* Collection of the configuration message objects. */  \nmessages: {  \n\"MessageToSubscribe\": {  \nmode: Terrasoft.MessageMode.PTP,  \ndirection: Terrasoft.MessageDirectionType.SUBSCRIBE  \n},  \n\"MessageToPublish\": {  \nmode: Terrasoft.MessageMode.BROADCAST,  \ndirection: Terrasoft.MessageDirectionType.PUBLISH  \n}  \n},  \n...  \ninit: function() {  \nthis.callParent(arguments);  \n/* Register a message collection. */  \nthis.sandbox.registerMessages(this.messages);  \n},  \n...  \n## 3\\. Publish a message\u200b\n1. Implement the `processMessages()` method in the module schema.\n2. In the `processMessages()` method, call the `sandbox.publish()` method that publishes the `MessageToPublish` message.\n3. Add the `processMessages()` method call to the `init()` method.\nPublish a module message\n...  \ninit: function() {  \n...  \nthis.processMessages();  \n},  \n...  \nprocessMessages: function() {  \nthis.sandbox.publish(\"MessageToPublish\", null, [this.sandbox.id]);  \n},  \n...  \n## 4\\. Subscribe to a message\u200b\n1. Add the `sandbox.subscribe()` method call to the `processMessages()` method. The `sandbox.subscribe()` method subscribes to the `MessageToSubscribe` message sent by another module.\n2. Specify the `onMessageSubscribe()` handler method in the method parameters and add it to the module source code.\nSubscribe to a message from another module\n...  \nprocessMessages: function() {  \nthis.sandbox.subscribe(\"MessageToSubscribe\", this.onMessageSubscribe, this, [\"resultTag\"]);  \nthis.sandbox.publish(\"MessageToPublish\", null, [this.sandbox.id]);  \n},  \nonMessageSubscribe: function(args) {  \nconsole.log(\"'MessageToSubscribe' received\");  \n/* Modify the parameter. */  \nargs.arg1 = 15;  \nargs.arg2 = \"new arg2\";  \n/* Return the result. */  \nreturn args;  \n},  \n...  \n## 5\\. Cancel the message registration\u200b\nCancel the message registration\n...  \ndestroy: function() {  \nif (this.messages) {  \nvar messages = this.Terrasoft.keys(this.messages);  \n/* Cancel the message array registration. */  \nthis.sandbox.unRegisterMessages(messages);  \n}  \nthis.callParent(arguments);  \n}  \n...  \n## Source code\u200b\nUsrSomeModule\n/* Declare a module called UsrSomeModule. The module has no dependencies.   \nTherefore, an empty array is passed as the second module parameter. */  \ndefine(\"UsrSomeModule\", [], function() {  \nExt.define(\"Terrasoft.configuration.UsrSomeModule\", {  \nalternateClassName: \"Terrasoft.UsrSomeModule\",  \nextend: \"Terrasoft.BaseModule\",  \nExt: null,  \nsandbox: null,  \nTerrasoft: null,  \n/* Collection of the configuration message objects. */  \nmessages: {  \n\"MessageToSubscribe\": {  \nmode: Terrasoft.MessageMode.PTP,  \ndirection: Terrasoft.MessageDirectionType.SUBSCRIBE  \n},  \n\"MessageToPublish\": {  \nmode: Terrasoft.MessageMode.BROADCAST,  \ndirection: Terrasoft.MessageDirectionType.PUBLISH  \n}  \n},  \ninit: function() {  \nthis.callParent(arguments);  \n/* Register a message collection. */  \nthis.sandbox.registerMessages(this.messages);  \nthis.processMessages();  \n},  \nprocessMessages: function() {  \nthis.sandbox.subscribe(\"MessageToSubscribe\", this.onMessageSubscribe, this, [\"resultTag\"]);  \nthis.sandbox.publish(\"MessageToPublish\", null, [this.sandbox.id]);  \n},  \nonMessageSubscribe: function(args) {  \nconsole.log(\"'MessageToSubscribe' received\");  \n/* Modify the parameter. */  \nargs.arg1 = 15;  \nargs.arg2 = \"new arg2\";  \n/* Return the result. */  \nreturn args;  \n},  \ndestroy: function() {  \nif (this.messages) {  \nvar messages = this.Terrasoft.keys(this.messages);  \n/* Cancel the message array registration. */  \nthis.sandbox.unRegisterMessages(messages);  \n}  \nthis.callParent(arguments);  \n}  \n});  \nreturn Terrasoft.UsrSomeModule;  \n});",
+  "code_examples": [
+    {
+      "code": "/* Declare a module called UsrSomeModule. The module has no dependencies. Therefore, an empty array is passed as the second module parameter. */define(\"UsrSomeModule\", [], function() {    Ext.define(\"Terrasoft.configuration.UsrSomeModule\", {        alternateClassName: \"Terrasoft.UsrSomeModule\",        extend: \"Terrasoft.BaseModule\",        Ext: null,        sandbox: null,        Terrasoft: null,                init: function() {            this.callParent(arguments);        },        destroy: function() {            this.callParent(arguments);        }    });    return Terrasoft.UsrSomeModule;});",
+      "language": "js",
+      "context": "Add the source code in the Module Designer.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": ".../* Collection of the configuration message objects. */messages: {    \"MessageToSubscribe\": {        mode: Terrasoft.MessageMode.PTP,        direction: Terrasoft.MessageDirectionType.SUBSCRIBE    },    \"MessageToPublish\": {        mode: Terrasoft.MessageMode.BROADCAST,        direction: Terrasoft.MessageDirectionType.PUBLISH    }},...init: function() {    this.callParent(arguments);    /* Register a message collection. */    this.sandbox.registerMessages(this.messages);},...",
+      "language": "js",
+      "context": "2. Register a message\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "...init: function() {    ...    this.processMessages();},...processMessages: function() {    this.sandbox.publish(\"MessageToPublish\", null, [this.sandbox.id]);},...",
+      "language": "js",
+      "context": "3. Publish a message\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "...processMessages: function() {    this.sandbox.subscribe(\"MessageToSubscribe\", this.onMessageSubscribe, this, [\"resultTag\"]);    this.sandbox.publish(\"MessageToPublish\", null, [this.sandbox.id]);},onMessageSubscribe: function(args) {    console.log(\"'MessageToSubscribe' received\");    /* Modify the parameter. */    args.arg1 = 15;    args.arg2 = \"new arg2\";    /* Return the result. */    return args;},...",
+      "language": "js",
+      "context": "4. Subscribe to a message\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "...destroy: function() {    if (this.messages) {        var messages = this.Terrasoft.keys(this.messages);        /* Cancel the message array registration. */        this.sandbox.unRegisterMessages(messages);    }    this.callParent(arguments);}...",
+      "language": "js",
+      "context": "5. Cancel the message registration\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare a module called UsrSomeModule. The module has no dependencies. Therefore, an empty array is passed as the second module parameter. */define(\"UsrSomeModule\", [], function() {    Ext.define(\"Terrasoft.configuration.UsrSomeModule\", {        alternateClassName: \"Terrasoft.UsrSomeModule\",        extend: \"Terrasoft.BaseModule\",        Ext: null,        sandbox: null,        Terrasoft: null,                /* Collection of the configuration message objects. */        messages: {            \"MessageToSubscribe\": {                mode: Terrasoft.MessageMode.PTP,                direction: Terrasoft.MessageDirectionType.SUBSCRIBE            },            \"MessageToPublish\": {                mode: Terrasoft.MessageMode.BROADCAST,                direction: Terrasoft.MessageDirectionType.PUBLISH            }        },        init: function() {            this.callParent(arguments);            /* Register a message collection. */            this.sandbox.registerMessages(this.messages);            this.processMessages();        },        processMessages: function() {            this.sandbox.subscribe(\"MessageToSubscribe\", this.onMessageSubscribe, this, [\"resultTag\"]);            this.sandbox.publish(\"MessageToPublish\", null, [this.sandbox.id]);        },        onMessageSubscribe: function(args) {            console.log(\"'MessageToSubscribe' received\");            /* Modify the parameter. */            args.arg1 = 15;            args.arg2 = \"new arg2\";            /* Return the result. */            return args;        },        destroy: function() {            if (this.messages) {                var messages = this.Terrasoft.keys(this.messages);                /* Cancel the message array registration. */                this.sandbox.unRegisterMessages(messages);            }            this.callParent(arguments);        }    });    return Terrasoft.UsrSomeModule;});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "messages",
+      "content": "ExampleCreate theUsrSomeModulemodule. Implement the followingmessagesin the module:MessageToSubscribeaddress message that hasSubscribedirectionMessageToPublishbroadcast message that hasPublishdirectionSubscribe to theMessageToSubscribemessage sent by another module. Cancel the message registration.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create the <code>UsrSomeModule</code> module. Implement the following <strong>messages</strong> in the module:</p><ul>\n<li><code>MessageToSubscribe</code> address message that has <strong>Subscribe</strong> direction</li>\n<li><code>MessageToPublish</code> broadcast message that has <strong>Publish</strong> direction</li>\n</ul><p>Subscribe to the <code>MessageToSubscribe</code> message sent by another module. Cancel the message registration.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "messages",
+      "content": "Create theUsrSomeModulemodule. Implement the followingmessagesin the module:MessageToSubscribeaddress message that hasSubscribedirectionMessageToPublishbroadcast message that hasPublishdirectionSubscribe to theMessageToSubscribemessage sent by another module. Cancel the message registration.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create the <code>UsrSomeModule</code> module. Implement the following <strong>messages</strong> in the module:</p><ul>\n<li><code>MessageToSubscribe</code> address message that has <strong>Subscribe</strong> direction</li>\n<li><code>MessageToPublish</code> broadcast message that has <strong>Publish</strong> direction</li>\n</ul><p>Subscribe to the <code>MessageToSubscribe</code> message sent by another module. Cancel the message registration.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Moduleon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dc8c909d5841c253_8.0_front-end-development_classic-ui_sandbox_examples_implement-message-exchange_b3a1a8a90b83.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MessageExchangeBetweenModules/8.0/scr_UsrSomeModule_Props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Module Designer.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dc8c909d5841c253_8.0_front-end-development_classic-ui_sandbox_examples_implement-message-exchange_6ad845ff77d0.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement message exchange between modules",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a module\u200b",
+      "anchor": "title-3094-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Register a message\u200b",
+      "anchor": "title-3094-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Publish a message\u200b",
+      "anchor": "title-3094-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Subscribe to a message\u200b",
+      "anchor": "title-3094-4"
+    },
+    {
+      "level": 2,
+      "text": "5. Cancel the message registration\u200b",
+      "anchor": "title-3094-5"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-3094-6"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "INIT",
+        "path": ":"
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "REGISTERMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "INIT",
+        "path": ":"
+      },
+      {
+        "method": "PROCESSMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "PROCESSMESSAGES",
+        "path": ":"
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "PROCESSMESSAGES",
+        "path": ":"
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "LOG",
+        "path": "("
+      },
+      {
+        "method": "DESTROY",
+        "path": ":"
+      },
+      {
+        "method": "KEYS",
+        "path": "("
+      },
+      {
+        "method": "UNREGISTERMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "REGISTERMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "PROCESSMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "LOG",
+        "path": "("
+      },
+      {
+        "method": "KEYS",
+        "path": "("
+      },
+      {
+        "method": "UNREGISTERMESSAGES",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/implement-message-exchange",
+      "text": "Implement message exchange",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/examples/implement-message-exchange",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/module-basics",
+      "text": "Module basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/types",
+      "text": "Types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/modules/overview",
+      "text": "Class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema-1",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/client-schema/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/classic-client-schema-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/classic-client-schema-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/controls/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/controls-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/accept-the-result-from-a-subscriber-module-address-message",
+      "text": "NextAccept the result from a subscriber module (address message)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/accept-the-result-from-a-subscriber-module-broadcast-message",
+      "text": "Accept the result from a subscriber module (broadcast message)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/implement-asynchronous-message-exchange",
+      "text": "Implement asynchronous message exchange",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/example-that-uses-bidirectional-messages",
+      "text": "Example that uses bidirectional messages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/examples/set-up-module-loading",
+      "text": "Set up module loading",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/sandbox-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/sandbox/references/sandbox",
+      "text": "sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/websocket-messages/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/websocket-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/websocket-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/data-operations-front-end/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:22:50.982014"
+}

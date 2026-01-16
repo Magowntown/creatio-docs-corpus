@@ -1,0 +1,1 @@
+Cache Terrasoft.Core.Store.ICacheStore

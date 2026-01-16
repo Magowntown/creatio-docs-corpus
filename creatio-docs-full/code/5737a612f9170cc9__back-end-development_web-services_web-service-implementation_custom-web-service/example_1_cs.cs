@@ -1,0 +1,1 @@
+<% @ServiceHost    Service = "Service, ServiceNamespace"    Factory = "Factory, FactoryNamespace"    Debug = "Debug"    Language = "Language"    CodeBehind = "CodeBehind"%>

@@ -1,0 +1,1 @@
+EntitySchemaCurrentUserQueryFunction(EntitySchemaCurrentUserQueryFunction source) : base(source)

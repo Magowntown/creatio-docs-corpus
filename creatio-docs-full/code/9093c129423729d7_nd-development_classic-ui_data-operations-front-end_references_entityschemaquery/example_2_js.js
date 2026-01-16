@@ -1,0 +1,1 @@
+addColumn(column, [columnAlias], [config])

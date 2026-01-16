@@ -1,0 +1,1 @@
+// URL format of the batch POST query to DataService.http(s)://[Creatio application address]/[Configuration number]/dataservice/[Data fromat]/reply/BatchQuery

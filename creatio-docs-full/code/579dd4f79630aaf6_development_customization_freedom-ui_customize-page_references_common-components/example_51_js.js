@@ -1,0 +1,1 @@
+"modelConfig": {    "primaryDataSourceName": "PDS",    "dataSources": {        "PDS": {            "config": {                "entitySchemaName": "Activity",                "attributes": {                    "Status.Color": {"path": "Status.Color"}                }            }        }    }}

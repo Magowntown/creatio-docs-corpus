@@ -1,0 +1,1 @@
+/* Request string. */ GET Creatio_application_address/0/ServiceModel/ProcessEngineService.svc/[processSchemaName/]methodName[?ResultParameterName=resultParameterName&inputParameter=inputParameterValue][/processElementUID] /* Request headers. */ ForceUseSession: true BPMCSRF: authentication_cookie_value

@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    {        "values": {            /* Bind the "usr.SomeConverter" converter to the "$SomeAttribute" attribute. */            "caption": "$SomeAttribute | usr.SomeConverter",        }    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,

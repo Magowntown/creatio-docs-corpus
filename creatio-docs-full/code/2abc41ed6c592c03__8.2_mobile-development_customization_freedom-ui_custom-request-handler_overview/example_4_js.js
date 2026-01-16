@@ -1,0 +1,1 @@
+const baseConfig = {    ...,    output: {        path: '../Terrasoft.WebApp/Terrasoft.Configuration/Pkg/SomePackage/Files/src/mobile/SomeMainAppClass',        ...    },    ...};

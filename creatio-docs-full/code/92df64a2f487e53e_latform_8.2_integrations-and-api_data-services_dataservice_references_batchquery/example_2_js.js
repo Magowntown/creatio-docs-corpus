@@ -1,0 +1,1 @@
+{    "items": [        {            "__type": "[Full qualified name of the query type]",            //One-time query contents.            ...        },        // Other one-time queries.        ...    ]}

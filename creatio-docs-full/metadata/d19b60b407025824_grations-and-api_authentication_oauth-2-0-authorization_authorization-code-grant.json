@@ -1,0 +1,728 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/oauth-2-0-authorization/authorization-code-grant",
+  "title": "Authorize external requests using authorization code grant",
+  "breadcrumbs": [
+    {
+      "text": "Integrations tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools"
+    },
+    {
+      "text": "Authentication",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication"
+    },
+    {
+      "text": "OAuth 2.0",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/oauth-20"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\n**OAuth 2.0** is one of the supported authorization types in Creatio. This technology does not pass Creatio logins and passwords to external apps. Identity Service implements OAuth 2.0 in Creatio and authorizes external apps and web services you integrate with Creatio using OAuth 2.0. OAuth 2.0 also lets you restrict Creatio permissions for the integrated apps. For example, you can use OAuth 2.0 authorization to integrate webhook service, Power BI Connector, Clio, Creatio.ai add-in for Outlook with Creatio. Learn more: [official vendor documentation](https://oauth.net/2/) (OAuth 2.0).\nBefore you authorize external requests to Creatio, set up OAuth authorization of authorization code grant. Instructions: [Set up authorization code grant](https://academy.creatio.com/documents?ver=8.3&id=2576) (user documentation).\nThis article covers setup procedure to authorize external requests using authorization code grant. Creatio also supports client credentials grant. Learn more: [Authorize external requests using client credentials grant](https://academy.creatio.com/documents?ver=8.3&id=15058).\n## General procedure\u200b\n1. Retrieve an authorization code. Read more >>>\n2. Retrieve access and refresh OAuth tokens. Read more >>>\n### 1\\. Retrieve an authorization code\u200b\nLearn more about authorization code: [Authorization Code](https://datatracker.ietf.org/doc/html/rfc6749#section-1.3.1) (OAuth 2.0 Authorization Framework).\nTo retrieve an authorization code:\n1. **Find the endpoint** to retrieve an authorization code. To do this, access the `CreatioURL/0/.well-known/openid-configuration` URL from the browser. This discovery endpoint displays a list of all OAuth endpoints available for your Creatio instance. The `authorization_endpoint` parameter includes endpoint to retrieve an authorization code.\nIf external app to integrate with Creatio supports discovery endpoint or you develop custom external app, you can use discovery endpoint to receive OAuth endpoints dynamically without storing this value in your external app.\n2. **Create a request**.\n1. Access the `/connect/authorize` endpoint.\n2. Fill out the parameters of the request string.\nParameter| Parameter description  \n---|---  \nclient_id*| The `ClientId` parameter value retrieved while configuring authorization code grant. Find the parameter value in the **Client Id** field on the integration page. Learn more: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?ver=8.3&id=2576&anchor=title-2576-3) (user documentation).  \nredirect_uri*| Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in the **Authorized redirect URIs** expanded list on the integration page.  \nresponse_type*| Requires the `code` parameter value.  \nscope*| The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:\n* **offline access** to work with OAuth refresh token\n* **application access** to access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in the **Name** column of the **OAuth resource** lookup.\nUse percent-encoded space (`%20`) as a delimiter of scope list.  \nstate*| \n* If you use **an existing external app** , the external app must populate the `state` parameter value.\n* If you use **custom external app** , implement business logic that generates arbitrary sequence of characters every time you use the `state` parameter to ensure CSRF protection. Ensure that Creatio returns the same value of the `state` parameter to custom external app after user confirm access to Creatio from integrated app. If returned and sent parameter values are different, recognize it as potential attack.  \nView the example that requests an authorization code below.\nRequest string\nGET CreatioURL/0/connect/authorize?client_id=7******3&redirect_uri=https://SomeRedirectURL&response_type=code&scope=offline_access%20ApplicationAccess_2******e&state=xyz  \n3. **Execute the request**.\n* For an **browser external app** , execute the request in a new browser tab or perform redirect in the current tab.\n* For a **desktop external app** , open a separate browser window whose size is no smaller than 730x560 pixels to display the consent page.\n**As a result** :\n1. User will be redirected to Creatio login page.\n2. When user logs in to Creatio instance, Creatio will confirm the validity of user credentials and redirect user to consent page.\n3. When user confirms access to Creatio from integrated app, Creatio will pass the authorization code to the external app using specified redirect URI.\nYou can now retrieve access and refresh OAuth tokens. Learn more: [Access Token](https://datatracker.ietf.org/doc/html/rfc6749#section-1.4), [Refresh Token](https://datatracker.ietf.org/doc/html/rfc6749#section-1.5) (OAuth 2.0 Authorization Framework).\n### 2\\. Retrieve access and refresh OAuth tokens\u200b\n1. **Find the endpoint** to retrieve access and refresh OAuth tokens. To do this, access the `CreatioURL/0/.well-known/openid-configuration` URL from the browser. This discovery endpoint displays a list of all OAuth endpoints available for your Creatio instance. The `token_endpoint` parameter includes endpoint to retrieve access and refresh OAuth token.\n2. **Create a request**.\n1. Access the `/connect/token` endpoint.\n2. Fill out the parameters of the request string.\nParameter| Parameter description  \n---|---  \nclient_id*| The `ClientId` parameter value retrieved while configuring authorization code grant. Find the parameter value in the **Client Id** field on the integration page. Learn more: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?ver=8.3&id=2576&anchor=title-2576-3) (user documentation).  \nclient_secret*| The `Client secret` parameter value retrieved while configuring authorization code grant. Find the parameter value in the **Client secret** field on the integration page. Learn more: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?ver=8.3&id=2576&anchor=title-2576-3) (user documentation).  \ngrant_type*| OAuth 2.0 authorization type. Find the parameter value in the **Grant type** column on the **OAuth integrated applications** page. Requires the `authorization_code` value of the `grantType` parameter to retrieve access and refresh OAuth tokens for authorization code grant.  \nscope*| The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:\n* **offline access** to work with OAuth refresh token\n* **application access** to access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in the **Name** column of the **OAuth resource** lookup.\nUse percent-encoded space (`%20`) as a delimiter of scope list.  \nredirect_uri*| Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in the **Authorized redirect URIs** expanded list on the integration page.  \ncode*| The authorization code retrieved on the previous step.  \ncontent-type*| Requires the `application/x-www-form-urlencoded` parameter value.  \nView the example that requests access and refresh OAuth tokens below.\nRequest string\nPOST CreatioURL/0/connect/token?client_id=7******3&client_secret=2******6&grant_type=authorization_code&scope=offline_access%20ApplicationAccess_2******e&state=xyz&redirect_uri=https://SomeRedirectURL&code=0******F  \nContent-Type: application/x-www-form-urlencoded  \n3. **Execute the request**.\n**As a result** , Creatio will confirm the validity of authorization code and OAuth 2.0 client credentials and return the access and refresh OAuth tokens to authorize external requests using authorization code grant.\nEach access and refresh OAuth tokens used by authorization code grant has a finite **lifetime** out of the box:\n* 3 minutes for **access token**\n* 48 hours for **refresh token**\n## Update access and refresh OAuth tokens\u200b\nUpdate access and refresh OAuth tokens to maintain the connection between external app and Creatio. When the refresh token expires, retrieve it again. Read more >>>\nTo update access and refresh OAuth tokens:\n1. **Find the endpoint** to update access and refresh OAuth tokens. To do this, access the `CreatioURL/0/.well-known/openid-configuration` URL from the browser. This discovery endpoint displays a list of all OAuth endpoints available for your Creatio instance. The `token_endpoint` parameter includes endpoint to update access and refresh OAuth tokens.\n2. **Create a request**.\n1. Access the `/connect/token` endpoint.\n2. Fill out the parameters of the request string.\nParameter| Parameter description  \n---|---  \nclient_id*| The `ClientId` parameter value retrieved while configuring authorization code grant. Find the parameter value in the **Client Id** field on the integration page. Learn more: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?ver=8.3&id=2576&anchor=title-2576-3) (user documentation).  \nclient_secret*| The `Client secret` parameter value retrieved while configuring authorization code grant. Find the parameter value in the **Client secret** field on the integration page. Learn more: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?ver=8.3&id=2576&anchor=title-2576-3) (user documentation).  \ngrant_type*| Requires the `refresh_token` parameter value.  \nscope*| The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:\n* **offline access** to work with OAuth refresh token\n* **application access** to access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in the **Name** column of the **OAuth resource** lookup.\nUse percent-encoded space (`%20`) as a delimiter of scope list.  \nredirect_uri*| Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in the **Authorized redirect URIs** expanded list on the integration page.  \nrefresh_token*| The OAuth refresh token retrieved on the previous step.  \ncontent-type*| Requires the `application/x-www-form-urlencoded` parameter value.  \nView the example that updates an OAuth refresh token below.\nRequest string\nPOST CreatioURL/0/connect/token?client_id=7******3&client_secret=2******6&grant_type=refresh_token&scope=offline_access%20ApplicationAccess_2******e&state=xyz&redirect_uri=https://SomeRedirectURL&refresh_token=D******5  \nContent-Type: application/x-www-form-urlencoded  \n3. **Execute the request**.\n**As a result** , Creatio will return updated access and refresh OAuth tokens to authorize external requests using authorization code grant.\n## Revoke an OAuth refresh token\u200b\nRevoke an OAuth refresh token to implement logout feature in custom external app that disconnects external app from Creatio account. To establish connection, retrieve an authorization code. Read more >>>\nTo revoke an OAuth refresh token:\n1. **Find the endpoint** to revoke an OAuth refresh token. To do this, access the `CreatioURL/0/.well-known/openid-configuration` URL from the browser. This discovery endpoint displays a list of all OAuth endpoints available for your Creatio instance. The `revocation_endpoint` parameter includes endpoint to revoke an OAuth refresh token.\n2. **Create a request**.\n1. Access the `/connect/revocation` endpoint.\n2. Fill out the parameters of the request string.\nParameter| Parameter description  \n---|---  \nclient_id*| The `ClientId` parameter value retrieved while configuring authorization code grant. Find the parameter value in the **Client Id** field on the integration page. Learn more: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?ver=8.3&id=2576&anchor=title-2576-3) (user documentation).  \nclient_secret*| The `Client secret` parameter value retrieved while configuring authorization code grant. Find the parameter value in the **Client secret** field on the integration page. Learn more: [Generate OAuth 2.0 client credentials](https://academy.creatio.com/documents?ver=8.3&id=2576&anchor=title-2576-3) (user documentation).  \ntoken*| The OAuth refresh token to revoke.  \ntoken_type_hint| Requires the `refresh_token` parameter value.  \ncontent-type*| Requires the `application/x-www-form-urlencoded` parameter value.  \nView the example that updates an OAuth refresh token below.\nRequest string\nPOST CreatioURL/0/connect/revocation?client_id=7******3&client_secret=2******6&token=2******1&token_type_hint=refresh_token  \nContent-Type: application/x-www-form-urlencoded  \n3. **Execute the request**.\n**As a result** , Creatio will return the following:\n* **200 OK** status code if the OAuth refresh token is revoked or non-existent.\n* **4xx client error** status code if an error occurs while processing the request.\n* * *\n## See also\u200b\n[Set up authorization code grant](https://academy.creatio.com/documents?ver=8.3&id=2576) (user documentation)\n* * *\n## Resources\u200b\n[Official vendor documentation](https://datatracker.ietf.org/doc/html/rfc6749) (OAuth 2.0 Authorization Framework)",
+  "code_examples": [
+    {
+      "code": "GET CreatioURL/0/connect/authorize?client_id=7******3&redirect_uri=https://SomeRedirectURL&response_type=code&scope=offline_access%20ApplicationAccess_2******e&state=xyz",
+      "language": "cli",
+      "context": "View the example that requests an authorization code below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "POST CreatioURL/0/connect/token?client_id=7******3&client_secret=2******6&grant_type=authorization_code&scope=offline_access%20ApplicationAccess_2******e&state=xyz&redirect_uri=https://SomeRedirectURL&code=0******FContent-Type: application/x-www-form-urlencoded",
+      "language": "cli",
+      "context": "View the example that requests access and refresh OAuth tokens below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "POST CreatioURL/0/connect/token?client_id=7******3&client_secret=2******6&grant_type=refresh_token&scope=offline_access%20ApplicationAccess_2******e&state=xyz&redirect_uri=https://SomeRedirectURL&refresh_token=D******5Content-Type: application/x-www-form-urlencoded",
+      "language": "cli",
+      "context": "View the example that updates an OAuth refresh token below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "POST CreatioURL/0/connect/revocation?client_id=7******3&client_secret=2******6&token=2******1&token_type_hint=refresh_tokenContent-Type: application/x-www-form-urlencoded",
+      "language": "cli",
+      "context": "View the example that updates an OAuth refresh token below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description"
+        ],
+        [
+          "client_id*",
+          "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation)."
+        ],
+        [
+          "redirect_uri*",
+          "Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in theAuthorized redirect URIsexpanded list on the integration page."
+        ],
+        [
+          "response_type*",
+          "Requires thecodeparameter value."
+        ],
+        [
+          "scope*",
+          "The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:offline accessto work with OAuth refresh tokenapplication accessto access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in theNamecolumn of theOAuth resourcelookup.Use percent-encoded space (%20) as a delimiter of scope list."
+        ],
+        [
+          "state*",
+          "If you usean existing external app, the external app must populate thestateparameter value.If you usecustom external app, implement business logic that generates arbitrary sequence of characters every time you use thestateparameter to ensure CSRF protection. Ensure that Creatio returns the same value of thestateparameter to custom external app after user confirm access to Creatio from integrated app. If returned and sent parameter values are different, recognize it as potential attack."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Parameter description</p></th></tr><tr><td><p>client_id<font color=\"#FF0000\">*</font></p></td><td><p>The <code>ClientId</code> parameter value retrieved while configuring authorization code grant. Find the parameter value in the <strong>Client Id</strong> field on the integration page. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2576&amp;anchor=title-2576-3\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a> (user documentation).</p></td></tr><tr><td><p>redirect_uri<font color=\"#FF0000\">*</font></p></td><td><p>Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in the <strong>Authorized redirect URIs</strong> expanded list on the integration page.</p></td></tr><tr><td><p>response_type<font color=\"#FF0000\">*</font></p></td><td><p>Requires the <code>code</code> parameter value.</p></td></tr><tr><td><p>scope<font color=\"#FF0000\">*</font></p></td><td><p>The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:</p><ul>\n<li><strong>offline access</strong> to work with OAuth refresh token</li>\n<li><strong>application access</strong> to access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in the <strong>Name</strong> column of the <strong>OAuth resource</strong> lookup.</li>\n</ul><p>Use percent-encoded space (<code>%20</code>) as a delimiter of scope list.</p></td></tr><tr><td><p>state<font color=\"#FF0000\">*</font></p></td><td><ul>\n<li>If you use <strong>an existing external app</strong>, the external app must populate the <code>state</code> parameter value.</li>\n<li>If you use <strong>custom external app</strong>, implement business logic that generates arbitrary sequence of characters every time you use the <code>state</code> parameter to ensure CSRF protection. Ensure that Creatio returns the same value of the <code>state</code> parameter to custom external app after user confirm access to Creatio from integrated app. If returned and sent parameter values are different, recognize it as potential attack.</li>\n</ul></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description"
+        ],
+        [
+          "client_id*",
+          "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation)."
+        ],
+        [
+          "client_secret*",
+          "TheClient secretparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient secretfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation)."
+        ],
+        [
+          "grant_type*",
+          "OAuth 2.0 authorization type. Find the parameter value in theGrant typecolumn on theOAuth integrated applicationspage. Requires theauthorization_codevalue of thegrantTypeparameter to retrieve access and refresh OAuth tokens for authorization code grant."
+        ],
+        [
+          "scope*",
+          "The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:offline accessto work with OAuth refresh tokenapplication accessto access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in theNamecolumn of theOAuth resourcelookup.Use percent-encoded space (%20) as a delimiter of scope list."
+        ],
+        [
+          "redirect_uri*",
+          "Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in theAuthorized redirect URIsexpanded list on the integration page."
+        ],
+        [
+          "code*",
+          "The authorization code retrieved on the previous step."
+        ],
+        [
+          "content-type*",
+          "Requires theapplication/x-www-form-urlencodedparameter value."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Parameter description</p></th></tr><tr><td><p>client_id<font color=\"#FF0000\">*</font></p></td><td><p>The <code>ClientId</code> parameter value retrieved while configuring authorization code grant. Find the parameter value in the <strong>Client Id</strong> field on the integration page. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2576&amp;anchor=title-2576-3\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a> (user documentation).</p></td></tr><tr><td><p>client_secret<font color=\"#FF0000\">*</font></p></td><td><p>The <code>Client secret</code> parameter value retrieved while configuring authorization code grant. Find the parameter value in the <strong>Client secret</strong> field on the integration page. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2576&amp;anchor=title-2576-3\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a> (user documentation).</p></td></tr><tr><td><p>grant_type<font color=\"#FF0000\">*</font></p></td><td><p>OAuth 2.0 authorization type. Find the parameter value in the <strong>Grant type</strong> column on the <strong>OAuth integrated applications</strong> page. Requires the <code>authorization_code</code> value of the <code>grantType</code> parameter to retrieve access and refresh OAuth tokens for authorization code grant.</p></td></tr><tr><td><p>scope<font color=\"#FF0000\">*</font></p></td><td><p>The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:</p><ul>\n<li><strong>offline access</strong> to work with OAuth refresh token</li>\n<li><strong>application access</strong> to access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in the <strong>Name</strong> column of the <strong>OAuth resource</strong> lookup.</li>\n</ul><p>Use percent-encoded space (<code>%20</code>) as a delimiter of scope list.</p></td></tr><tr><td><p>redirect_uri<font color=\"#FF0000\">*</font></p></td><td><p>Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in the <strong>Authorized redirect URIs</strong> expanded list on the integration page.</p></td></tr><tr><td><p>code<font color=\"#FF0000\">*</font></p></td><td><p>The authorization code retrieved on the previous step.</p></td></tr><tr><td><p>content-type<font color=\"#FF0000\">*</font></p></td><td><p>Requires the <code>application/x-www-form-urlencoded</code> parameter value.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description"
+        ],
+        [
+          "client_id*",
+          "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation)."
+        ],
+        [
+          "client_secret*",
+          "TheClient secretparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient secretfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation)."
+        ],
+        [
+          "grant_type*",
+          "Requires therefresh_tokenparameter value."
+        ],
+        [
+          "scope*",
+          "The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:offline accessto work with OAuth refresh tokenapplication accessto access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in theNamecolumn of theOAuth resourcelookup.Use percent-encoded space (%20) as a delimiter of scope list."
+        ],
+        [
+          "redirect_uri*",
+          "Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in theAuthorized redirect URIsexpanded list on the integration page."
+        ],
+        [
+          "refresh_token*",
+          "The OAuth refresh token retrieved on the previous step."
+        ],
+        [
+          "content-type*",
+          "Requires theapplication/x-www-form-urlencodedparameter value."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Parameter description</p></th></tr><tr><td><p>client_id<font color=\"#FF0000\">*</font></p></td><td><p>The <code>ClientId</code> parameter value retrieved while configuring authorization code grant. Find the parameter value in the <strong>Client Id</strong> field on the integration page. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2576&amp;anchor=title-2576-3\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a> (user documentation).</p></td></tr><tr><td><p>client_secret<font color=\"#FF0000\">*</font></p></td><td><p>The <code>Client secret</code> parameter value retrieved while configuring authorization code grant. Find the parameter value in the <strong>Client secret</strong> field on the integration page. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2576&amp;anchor=title-2576-3\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a> (user documentation).</p></td></tr><tr><td><p>grant_type<font color=\"#FF0000\">*</font></p></td><td><p>Requires the <code>refresh_token</code> parameter value.</p></td></tr><tr><td><p>scope<font color=\"#FF0000\">*</font></p></td><td><p>The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:</p><ul>\n<li><strong>offline access</strong> to work with OAuth refresh token</li>\n<li><strong>application access</strong> to access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in the <strong>Name</strong> column of the <strong>OAuth resource</strong> lookup.</li>\n</ul><p>Use percent-encoded space (<code>%20</code>) as a delimiter of scope list.</p></td></tr><tr><td><p>redirect_uri<font color=\"#FF0000\">*</font></p></td><td><p>Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in the <strong>Authorized redirect URIs</strong> expanded list on the integration page.</p></td></tr><tr><td><p>refresh_token<font color=\"#FF0000\">*</font></p></td><td><p>The OAuth refresh token retrieved on the previous step.</p></td></tr><tr><td><p>content-type<font color=\"#FF0000\">*</font></p></td><td><p>Requires the <code>application/x-www-form-urlencoded</code> parameter value.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description"
+        ],
+        [
+          "client_id*",
+          "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation)."
+        ],
+        [
+          "client_secret*",
+          "TheClient secretparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient secretfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation)."
+        ],
+        [
+          "token*",
+          "The OAuth refresh token to revoke."
+        ],
+        [
+          "token_type_hint",
+          "Requires therefresh_tokenparameter value."
+        ],
+        [
+          "content-type*",
+          "Requires theapplication/x-www-form-urlencodedparameter value."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Parameter description</p></th></tr><tr><td><p>client_id<font color=\"#FF0000\">*</font></p></td><td><p>The <code>ClientId</code> parameter value retrieved while configuring authorization code grant. Find the parameter value in the <strong>Client Id</strong> field on the integration page. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2576&amp;anchor=title-2576-3\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a> (user documentation).</p></td></tr><tr><td><p>client_secret<font color=\"#FF0000\">*</font></p></td><td><p>The <code>Client secret</code> parameter value retrieved while configuring authorization code grant. Find the parameter value in the <strong>Client secret</strong> field on the integration page. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2576&amp;anchor=title-2576-3\" rel=\"noopener noreferrer\" target=\"_blank\">Generate OAuth 2.0 client credentials</a> (user documentation).</p></td></tr><tr><td><p>token<font color=\"#FF0000\">*</font></p></td><td><p>The OAuth refresh token to revoke.</p></td></tr><tr><td><p>token_type_hint</p></td><td><p>Requires the <code>refresh_token</code> parameter value.</p></td></tr><tr><td><p>content-type<font color=\"#FF0000\">*</font></p></td><td><p>Requires the <code>application/x-www-form-urlencoded</code> parameter value.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Authorize external requests using authorization code grant",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "General procedure\u200b",
+      "anchor": "title-15188-1"
+    },
+    {
+      "level": 3,
+      "text": "1. Retrieve an authorization code\u200b",
+      "anchor": "title-15188-2"
+    },
+    {
+      "level": 3,
+      "text": "2. Retrieve access and refresh OAuth tokens\u200b",
+      "anchor": "title-15188-3"
+    },
+    {
+      "level": 2,
+      "text": "Update access and refresh OAuth tokens\u200b",
+      "anchor": "title-15188-4"
+    },
+    {
+      "level": 2,
+      "text": "Revoke an OAuth refresh token\u200b",
+      "anchor": "title-15188-5"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "client_id*",
+        "type": "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation).",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "redirect_uri*",
+        "type": "Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in theAuthorized redirect URIsexpanded list on the integration page.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "response_type*",
+        "type": "Requires thecodeparameter value.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "scope*",
+        "type": "The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:offline accessto work with OAuth refresh tokenapplication accessto access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in theNamecolumn of theOAuth resourcelookup.Use percent-encoded space (%20) as a delimiter of scope list.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "state*",
+        "type": "If you usean existing external app, the external app must populate thestateparameter value.If you usecustom external app, implement business logic that generates arbitrary sequence of characters every time you use thestateparameter to ensure CSRF protection. Ensure that Creatio returns the same value of thestateparameter to custom external app after user confirm access to Creatio from integrated app. If returned and sent parameter values are different, recognize it as potential attack.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "client_id*",
+        "type": "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation).",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "client_secret*",
+        "type": "TheClient secretparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient secretfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation).",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "grant_type*",
+        "type": "OAuth 2.0 authorization type. Find the parameter value in theGrant typecolumn on theOAuth integrated applicationspage. Requires theauthorization_codevalue of thegrantTypeparameter to retrieve access and refresh OAuth tokens for authorization code grant.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "scope*",
+        "type": "The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:offline accessto work with OAuth refresh tokenapplication accessto access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in theNamecolumn of theOAuth resourcelookup.Use percent-encoded space (%20) as a delimiter of scope list.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "redirect_uri*",
+        "type": "Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in theAuthorized redirect URIsexpanded list on the integration page.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "code*",
+        "type": "The authorization code retrieved on the previous step.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "content-type*",
+        "type": "Requires theapplication/x-www-form-urlencodedparameter value.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "client_id*",
+        "type": "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation).",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "client_secret*",
+        "type": "TheClient secretparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient secretfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation).",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "grant_type*",
+        "type": "Requires therefresh_tokenparameter value.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "scope*",
+        "type": "The scope of the request execution. Represents the list of permissions that external app receives after granting the consent. Creatio supports the following scopes:offline accessto work with OAuth refresh tokenapplication accessto access Creatio instance inside context of user who grants consent. Application access value is unique for each Creatio instance. Find the parameter value in theNamecolumn of theOAuth resourcelookup.Use percent-encoded space (%20) as a delimiter of scope list.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "redirect_uri*",
+        "type": "Redirect URIs to receive authorization codes when authorizing integrated app. Find the parameter value in theAuthorized redirect URIsexpanded list on the integration page.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "refresh_token*",
+        "type": "The OAuth refresh token retrieved on the previous step.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "content-type*",
+        "type": "Requires theapplication/x-www-form-urlencodedparameter value.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "client_id*",
+        "type": "TheClientIdparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient Idfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation).",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "client_secret*",
+        "type": "TheClient secretparameter value retrieved while configuring authorization code grant. Find the parameter value in theClient secretfield on the integration page. Learn more:Generate OAuth 2.0 client credentials(user documentation).",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "token*",
+        "type": "The OAuth refresh token to revoke.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "token_type_hint",
+        "type": "Requires therefresh_tokenparameter value.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "content-type*",
+        "type": "Requires theapplication/x-www-form-urlencodedparameter value.",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/oauth-2-0-authorization/authorization-code-grant",
+      "text": "Authorize external requests (authorization code grant)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication-basics",
+      "text": "Authentication basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/authentication-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/authentication-basics-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/authentication-basics-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/oauth-2-0-authorization/identity-service-overview",
+      "text": "PreviousAuthorize external requests (client credentials grant)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/oauth-2-0-authorization/oauth-token-lifetime",
+      "text": "NextOAuth access token lifetime",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/oauth-2-0-authorization/manage-oauth-integrations",
+      "text": "Manage OAuth integrations using API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/cell-connection-provider-2fa",
+      "text": "Integrate the cell connection provider (2FA via SMS)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dataservice",
+      "text": "DataService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/odata",
+      "text": "OData",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/business-process-service/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/process-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/process-service-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/using-postman/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/using-postman/working-with-requests",
+      "text": "Requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/using-postman/working-with-request-collections",
+      "text": "Request collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:26:59.123146"
+}

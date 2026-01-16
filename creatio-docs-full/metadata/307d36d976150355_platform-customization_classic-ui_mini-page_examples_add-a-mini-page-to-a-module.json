@@ -1,0 +1,876 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/add-a-mini-page-to-a-module",
+  "title": "Add a mini page to a module",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Mini page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nExample\nDisplay the current user in the top right of Creatio next to the profile icon. Hover over the link to the current user to open the mini page.\n## 1\\. Create a module schema\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Module** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardCreating\\(7.17\\)/scr_minicard_creating_6.png)\n3. Fill out the schema properties in the Schema Designer:\n* Set **Code** to \"UsrCurrentUserModule.\"\n* Set **Title** to \"Current user module.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniPageAnyModule\\(7.17\\)/scr_minipage_anymodule_module_props.png)\nClick **Apply** to apply the properties.\n## 2\\. Create a view and view model of the module\u200b\nAdd the source code to the `UsrCurrentUserModule` module in the Schema Designer.\n1. Implement the class inherited from `Terrasoft.BaseViewModel` to create a view model.\n2. Enable the `Terrasoft.MiniPageUtilities` utility class in the `mixins` property of the view model. The class lets you use the mini page call methods.\n3. Implement the class inherited from `Terrasoft.BaseModule` to create a view.\n4. Override the following methods of the `Terrasoft.BaseModule` class in the new class:\n* `init()` initializes the view model of the module.\n* `render()` binds the view model to the container view display passed in the `renderTo` parameter.\n* `getViewModel()` creates the view model.\n* `getView()` retrieves the view to display it. The view must contain the full name of the current user and a hyperlink to the contact page. Define the hover event handler when creating the hyperlink.\n5. Define the `viewModel` property that stores the link to the retrieved view model.\nView the source code of the module below.\nUsrCurrentUserModule.js\n/* Define the module. */  \ndefine(\"UsrCurrentUserModule\", [\"MiniPageUtilities\"], function() {  \n/* Define the CurrentUserViewModel class. */  \nExt.define(\"Terrasoft.configuration.CurrentUserViewModel\", {  \n/* The parent class name. */  \nextend: \"Terrasoft.BaseViewModel\",  \n/* The shortened class name. */  \nalternateClassName: \"Terrasoft.CurrentUserViewModel\",  \n/* The mixins used. */  \nmixins: {  \nMiniPageUtilitiesMixin: \"Terrasoft.MiniPageUtilities\"  \n}  \n});  \n/* Define the UsrCurrentUserModule class. */  \nExt.define(\"Terrasoft.configuration.UsrCurrentUserModule\", {  \n/* The shortened class name. */  \nalternateClassName: \"Terrasoft.UsrCurrentUserModule\",  \n/* The parent class name. */  \nextend: \"Terrasoft.BaseModule\",  \n/* The Ext object. */  \nExt: null,  \n/* The sandbox object. */  \nsandbox: null,  \n/* The Terrasoft object. */  \nTerrasoft: null,  \n/* The view model. */  \nviewModel: null,   \n/* Create the module views. */  \ngetView: function() {  \n/* Retrieve the current user contact. */  \nvar currentUser = Terrasoft.SysValue.CURRENT_USER_CONTACT;  \n/* The view that represents the Terrasoft.Hyperlink class instance. */  \nreturn Ext.create(\"Terrasoft.Hyperlink\", {  \n/* Populate the link anchor text using the contact name. */  \n\"caption\": currentUser.displayValue,  \n/* The link hover event handler. */  \n\"linkMouseOver\": {\"bindTo\": \"linkMouseOver\"},  \n/* The property that contains the additional object parameters. */  \n\"tag\": {  \n/* The ID of the current user. */  \n\"recordId\": currentUser.value,  \n/* The object schema name. */  \n\"referenceSchemaName\": \"Contact\"  \n}  \n});  \n},  \n/* Create the view model of the module. */  \ngetViewModel: function() {  \nreturn Ext.create(\"Terrasoft.CurrentUserViewModel\");  \n},  \n/* Initialize the module. */  \ninit: function() {  \nthis.viewModel = this.getViewModel();  \n},  \n/* Display the module view. */  \nrender: function(renderTo) {  \n/* Retrieve the view object. */  \nvar view = this.getView();  \n/* Bind the view to the view model. */  \nview.bind(this.viewModel);  \n/* Display the view in the renderTo element. */  \nview.render(renderTo);  \n}  \n});  \nreturn Terrasoft.UsrCurrentUserModule;  \n});  \n## 3\\. Add the module styles\u200b\nAdd styles to the module to customize the appearance of the hyperlink.\nTo **add the module styles** :\n1. Select the **LESS** node in the Schema Designer.\n2. Add the following source code.\nModule styles\n.current-user-class a {  \nfont-weight: bold;  \nfont-size: 2.0em;  \nmargin: 6px 20px;  \n}  \n.current-user-class a:hover {  \ntext-decoration: none;  \n}  \nSave the module.\n## 4\\. Create the view display container\u200b\nTo display a link to the user profile in the top right of Creatio, place the container and upload the view of the module to the container.\nTo do this, create the schema of the replacing view model that expands the functionality of the `MainHeaderSchema` schema.\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Select the `MainHeaderSchema` parent object in the Module Designer.\nAfter you confirm the parent object, Creatio will populate the other properties.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniPageAnyModule\\(7.17\\)/scr_minipage_anymodule_page_props.png)\nClick **Apply** to apply the properties.\n4. Add the source code in the Module Designer.\nUse the `diff` property to display the view in the source code of the replacing view model schema. Set the `RightHeaderContainer` element as a parent element of the container to display the container in the top right of the page. Then, override the `onRender()` method and implement the upload of the created module in the method.\nView the source code of the replacing view model schema below.\nMainHeaderSchema.js\n/* Define the module. */  \ndefine(\"MainHeaderSchema\", [], function() {  \nreturn {  \nmethods: {  \n/* Execute the actions after displaying the view. */  \nonRender: function() {  \n/* Call the parent method. */  \nthis.callParent(arguments);  \n/* Load the module of the current user. */  \nthis.loadCurrentUserModule();  \n},  \n/* Load the module of the current user. */  \nloadCurrentUserModule: function() {  \n/* Retrieve the container to upload the module. */  \nvar currentUserContainer = this.Ext.getCmp(\"current-user-container\");  \n/* Check if the container exists. */  \nif (currentUserContainer && currentUserContainer.rendered) {  \n/* Upload the module to the container. */  \nthis.sandbox.loadModule(\"UsrCurrentUserModule\", {  \n/* The container name. */  \nrenderTo: \"current-user-container\"  \n});  \n}  \n}  \n},  \ndiff: [  \n{  \n/* The element insert operation. */  \n\"operation\": \"insert\",  \n/* The element name. */  \n\"name\": \"CurrentUserContainer\",  \n/* The parent container name. */  \n\"parentName\": \"RightHeaderContainer\",  \n/* The property name. */  \n\"propertyName\": \"items\",  \n/* The element values. */  \n\"values\": {  \n/* The container ID. */  \n\"id\": \"current-user-container\",  \n/* The element type. */  \n\"itemType\": Terrasoft.ViewItemType.CONTAINER,  \n/* The container classes. */  \n\"wrapClass\": [\"current-user-class\"],  \n/* The container items. */  \n\"items\": []  \n}  \n}  \n]  \n};  \n});  \n5. Click **Save** on the Module Designer's toolbar.\n## Outcome of the example\u200b\nAfter you refresh the web page, Creatio will display the full name of the current user and a hyperlink to their contact page. Hover over the link to bring up the mini page that contains the data of the current user.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniPageAnyModule/scr_minipage_anymodule_result.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkMiniPageAnyModule_18.06.22_02.30.14.zip)",
+  "code_examples": [
+    {
+      "code": "/* Define the module. */define(\"UsrCurrentUserModule\", [\"MiniPageUtilities\"], function() {    /* Define the CurrentUserViewModel class. */    Ext.define(\"Terrasoft.configuration.CurrentUserViewModel\", {        /* The parent class name. */        extend: \"Terrasoft.BaseViewModel\",        /* The shortened class name. */        alternateClassName: \"Terrasoft.CurrentUserViewModel\",        /* The mixins used. */        mixins: {            MiniPageUtilitiesMixin: \"Terrasoft.MiniPageUtilities\"        }    });    /* Define the UsrCurrentUserModule class. */    Ext.define(\"Terrasoft.configuration.UsrCurrentUserModule\", {        /* The shortened class name. */        alternateClassName: \"Terrasoft.UsrCurrentUserModule\",        /* The parent class name. */        extend: \"Terrasoft.BaseModule\",        /* The Ext object. */        Ext: null,        /* The sandbox object. */        sandbox: null,        /* The Terrasoft object. */        Terrasoft: null,        /* The view model. */        viewModel: null,         /* Create the module views. */        getView: function() {            /* Retrieve the current user contact. */            var currentUser = Terrasoft.SysValue.CURRENT_USER_CONTACT;            /* The view that represents the Terrasoft.Hyperlink class instance. */            return Ext.create(\"Terrasoft.Hyperlink\", {                /* Populate the link anchor text using the contact name. */                \"caption\": currentUser.displayValue,                /* The link hover event handler. */                \"linkMouseOver\": {\"bindTo\": \"linkMouseOver\"},                /* The property that contains the additional object parameters. */                \"tag\": {                    /* The ID of the current user. */                    \"recordId\": currentUser.value,                    /* The object schema name. */                    \"referenceSchemaName\": \"Contact\"                }            });        },        /* Create the view model of the module. */        getViewModel: function() {            return Ext.create(\"Terrasoft.CurrentUserViewModel\");        },        /* Initialize the module. */        init: function() {            this.viewModel = this.getViewModel();        },        /* Display the module view. */        render: function(renderTo) {            /* Retrieve the view object. */            var view = this.getView();            /* Bind the view to the view model. */            view.bind(this.viewModel);            /* Display the view in the renderTo element. */            view.render(renderTo);        }    });    return Terrasoft.UsrCurrentUserModule;});",
+      "language": "js",
+      "context": "View the source code of the module below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": ".current-user-class a {    font-weight: bold;    font-size: 2.0em;    margin: 6px 20px;}.current-user-class a:hover {    text-decoration: none;}",
+      "language": "js",
+      "context": "Add the following source code.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Define the module. */define(\"MainHeaderSchema\", [], function() {    return {        methods: {            /* Execute the actions after displaying the view. */            onRender: function() {                /* Call the parent method. */                this.callParent(arguments);                /* Load the module of the current user. */                this.loadCurrentUserModule();            },            /* Load the module of the current user. */            loadCurrentUserModule: function() {                /* Retrieve the container to upload the module. */                var currentUserContainer = this.Ext.getCmp(\"current-user-container\");                /* Check if the container exists. */                if (currentUserContainer && currentUserContainer.rendered) {                    /* Upload the module to the container. */                    this.sandbox.loadModule(\"UsrCurrentUserModule\", {                        /* The container name. */                        renderTo: \"current-user-container\"                    });                }            }        },        diff: [            {                /* The element insert operation. */                \"operation\": \"insert\",                /* The element name. */                \"name\": \"CurrentUserContainer\",                /* The parent container name. */                \"parentName\": \"RightHeaderContainer\",                /* The property name. */                \"propertyName\": \"items\",                /* The element values. */                \"values\": {                    /* The container ID. */                    \"id\": \"current-user-container\",                    /* The element type. */                    \"itemType\": Terrasoft.ViewItemType.CONTAINER,                    /* The container classes. */                    \"wrapClass\": [\"current-user-class\"],                    /* The container items. */                    \"items\": []                }            }        ]    };});",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleDisplay the current user in the top right of Creatio next to the profile icon. Hover over the link to the current user to open the mini page.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Display the current user in the top right of Creatio next to the profile icon. Hover over the link to the current user to open the mini page.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Display the current user in the top right of Creatio next to the profile icon. Hover over the link to the current user to open the mini page.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Display the current user in the top right of Creatio next to the profile icon. Hover over the link to the current user to open the mini page.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardCreating(7.17)/scr_minicard_creating_6.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Moduleon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/307d36d976150355_platform-customization_classic-ui_mini-page_examples_add-a-mini-page-to-a-module_a317a29f0b7d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniPageAnyModule(7.17)/scr_minipage_anymodule_module_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Schema Designer:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/307d36d976150355_platform-customization_classic-ui_mini-page_examples_add-a-mini-page-to-a-module_47029178459b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/307d36d976150355_platform-customization_classic-ui_mini-page_examples_add-a-mini-page-to-a-module_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniPageAnyModule(7.17)/scr_minipage_anymodule_page_props.png",
+      "alt": "",
+      "title": "",
+      "context": "After you confirm the parent object, Creatio will populate the other properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/307d36d976150355_platform-customization_classic-ui_mini-page_examples_add-a-mini-page-to-a-module_3046c5530822.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniPageAnyModule/scr_minipage_anymodule_result.png",
+      "alt": "",
+      "title": "",
+      "context": "After you refresh the web page, Creatio will display the full name of the current user and a hyperli",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/307d36d976150355_platform-customization_classic-ui_mini-page_examples_add-a-mini-page-to-a-module_eb3741440de0.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkMiniPageAnyModule_18.06.22_02.30.14.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkMiniPageAnyModule_18.06.22_02.30.14.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/307d36d976150355_platform-customization_classic-ui_mini-page_examples_add-a-mini-page-to-a-module_sdkMiniPageAnyModule_18.06.22_02.30.14.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add a mini page to a module",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a module schema\u200b",
+      "anchor": "title-1940-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a view and view model of the module\u200b",
+      "anchor": "title-1940-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Add the module styles\u200b",
+      "anchor": "title-1940-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Create the view display container\u200b",
+      "anchor": "title-1940-4"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-1940-5"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "GETVIEWMODEL",
+        "path": "("
+      },
+      {
+        "method": "GETVIEW",
+        "path": "("
+      },
+      {
+        "method": "BIND",
+        "path": "("
+      },
+      {
+        "method": "RENDER",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "LOADCURRENTUSERMODULE",
+        "path": "("
+      },
+      {
+        "method": "GETCMP",
+        "path": "("
+      },
+      {
+        "method": "LOADMODULE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/add-a-mini-page-to-a-module",
+      "text": "Add a mini page to a module",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/examples/add-a-mini-page-to-a-module",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/create-a-mini-page",
+      "text": "Create a mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/create-a-mini-page-that-adds-records",
+      "text": "PreviousCreate a mini page that adds records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "NextModal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:53:50.049498"
+}

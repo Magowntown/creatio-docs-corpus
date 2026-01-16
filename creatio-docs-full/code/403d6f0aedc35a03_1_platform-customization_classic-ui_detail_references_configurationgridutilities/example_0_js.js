@@ -1,0 +1,1 @@
+currentActiveColumnName String

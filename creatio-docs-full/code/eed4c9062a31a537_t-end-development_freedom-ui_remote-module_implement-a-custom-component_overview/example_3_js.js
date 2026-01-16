@@ -1,0 +1,1 @@
+/* AMD module declaration. */define("UsrAppClientSchemaName", ["@creatio-devkit/common"], (sdk) {    ...    /* Register the web component as a view element. */    sdk.registerViewElement({        type: 'usr.CustomViewElement',        selector: 'usr-custom-view-element'    });});

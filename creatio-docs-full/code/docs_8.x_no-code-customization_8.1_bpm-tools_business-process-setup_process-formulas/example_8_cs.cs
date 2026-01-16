@@ -1,0 +1,1 @@
+[#Read opportunity data.First element of the resulting collection.Stage#]==[#Lookup.Opportunity stage.Proposal.423774cb-5ae6-df11-971b-001d60e938c6#]

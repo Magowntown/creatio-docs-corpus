@@ -1,0 +1,827 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+  "title": "QueryExtensions class",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1"
+    },
+    {
+      "text": "Machine learning",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning"
+    },
+    {
+      "text": "References",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-references"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\nnote\nThe functionality is relevant to Classic UI.\nThe `Terrasoft.Configuration.QueryExtensions` utility class provides extending methods for the `Terrasoft.Core.DB.Select` class to build compact queries.\nEach class method includes the `sourceColumn` parameter that can have the object types listed in the table below.\nType| Description  \n---|---  \nSystem.String| A column name in the `TableAlias.ColumnName AS ColumnAlias` format. Both `TableAlias` and `ColumnAlias` are optional. You can also pass \"*\" to select all columns.  \nTerrasoft.Core.DB.QueryColumnExpression| A query column expression that is added to the query without modification.  \nTerrasoft.Core.DB.IQueryColumnExpressionConvertible| An object that can be automatically converted to a `QueryColumnExpression`.  \nTerrasoft.Core.DB.Select| A subquery whose result can be used as a column in the main query.  \nIf you pass an unsupported object type, Creatio throws an exception.\n## Methods\u200b\nstatic Select Cols(  \nthis Select select,  \nparams object[] sourceColumns  \n)  \nAdd specified columns or subexpressions to the query.\nParameters\nselect| The current `Select` instance to extend using additional columns.  \n---|---  \nsourceColumns| One or more columns or expressions to add to the query.  \n* Recommended way\n* Not recommended way\nnew Select(userConnection)  \n.Cols(  \n\"L.Id\",  \n\"L.QualifyStatusId\",  \n\"L.LeadTypeId\",  \n\"L.LeadSourceId\",  \n\"L.LeadMediumId AS LeadChannel\",  \n\"L.BusinessPhone AS KnownBusinessPhone\")  \n.From(\"Lead\").As(\"L\");  \nnew Select(userConnection)  \n.Column(\"L\", \"Id\")  \n.Column(\"L\", \"QualifyStatusId\")  \n.Column(\"L\", \"LeadTypeId\")  \n.Column(\"L\", \"LeadSourceId\")  \n.Column(\"L\", \"LeadMediumId\")  \n.As(\"LeadChannel\")  \n.Column(\"L\", \"BusinessPhone\")  \n.As(\"KnownBusinessPhone\")  \n.From(\"Lead\").As(\"L\");  \n* * *\nstatic Select Count(  \nthis Select select,  \nobject sourceColumn  \n)  \nAdd an aggregation column to calculate the number of non-empty values in the query.\nParameters\nselect| The current `Select` instance to extend using the aggregation column.  \n---|---  \nsourceColumn| The column or expression for which non-empty values are calculated.  \n* Recommended way\n* Not recommended way\nvar activitiesCount = new Select(userConnection)  \n/* Specify the column name if needed. */  \n.Count(\"*\")  \n.From(\"Activity\")  \nvar activitiesCount = new Select(userConnection)  \n.Column(  \nFunc.Count(  \nColumn.Asterisk()  \n)  \n)  \n.From(\"Activity\")  \n* * *\nstatic Select Coalesce(  \nthis Select select,  \nparams object[] sourceColumns  \n)  \nAdd a column that determines the first non-NULL value in the query.\nParameters\nselect| The current `Select` instance to extend using a `COALESCE` column.  \n---|---  \nsourceColumns| One or more columns or expressions to evaluate in order.  \n* Recommended way\n* Not recommended way\nnew Select(userConnection)  \n.Cols(\"L.Id\")  \n.Coalesce(\"L.CountryId\", \"C.CountryId\", \"A.CountryId\")  \n.As(\"CountryId\")  \n.From(\"Lead\")  \n.As(\"L\")  \n.LeftOuterJoin(\"Contact\")  \n.As(\"C\")  \n.On(\"L\", \"QualifiedContactId\").IsEqual(\"C\", \"Id\")  \n.LeftOuterJoin(\"Account\")  \n.As(\"A\")  \n.On(\"L\", \"QualifiedAccountId\").IsEqual(\"A\", \"Id\");  \nnew Select(userConnection)  \n.Cols(\"L.Id\")  \n.Column(  \nFunc.Coalesce(  \nColumn.SourceColumn(\"L\", \"CountryId\"),  \nColumn.SourceColumn(\"L\", \"CountryId\"),  \nColumn.SourceColumn(\"L\", \"CountryId\")  \n)  \n).As(\"CountryId\")  \n.From(\"Lead\").As(\"L\")  \n.LeftOuterJoin(\"Contact\").As(\"C\")  \n.On(\"L\", \"QualifiedContactId\").IsEqual(\"C\", \"Id\")  \n.LeftOuterJoin(\"Account\").As(\"A\")  \n.On(\"L\", \"QualifiedAccountId\").IsEqual(\"A\", \"Id\");  \n* * *\nstatic Select DateDiff(  \nthis Select select,  \nDateDiffQueryFunctionInterval interval,  \nobject startDateExpression,  \nobject endDateExpression  \n)  \nAdd a column that specifies the date difference in the query.\nParameters\nselect| The current `Select` instance to extend using a `DATEDIFF` column.  \n---|---  \ninterval| The unit of time to measure the difference, e. g., day, month, year.  \nstartDateExpression| The column or expression that represents the starting date of the calculation.  \nendDateExpression| The column or expression that represents the ending date of the calculation.  \n* Recommended way\n* Not recommended way\nvar day = DateDiffQueryFunctionInterval.Day;  \nnew Select(userConnection)  \n.Cols(\"L.Id\")  \n.DateDiff(  \nday,  \n\"L.CreatedOn\",  \nFunc.CurrentDateTime()  \n).As(\"LeadAge\")  \n.From(\"Lead\").As(\"L\");  \nnew Select(_userConnection)  \n.Cols(\"Id\")  \n.Column(  \nFunc.DateDiff(  \nDateDiffQueryFunctionInterval.Day,  \nColumn.SourceColumn(\"L\", \"CreatedOn\"),  \nFunc.CurrentDateTime()  \n)  \n).As(\"LeadAge\")  \n.From(\"Lead\").As(\"L\");  \n* * *\nstatic Select IsNull(  \nthis Select select,  \nobject checkExpression,  \nobject replacementValue  \n)  \nAdd a column that replaces a NULL value with a replacement expression.\nParameters\nselect| The current `Select` instance to extend using an `ISNULL` column.  \n---|---  \ncheckExpression| The column or expression to evaluate.  \nreplacementValue| The value or expression used as a replacement when `checkExpression` is \"NULL.\"  \n* Recommended way\n* Not recommended way\nnew Select(userConnection)  \n.Cols(\"L.Id\")  \n.IsNull(  \n\"L.CreatedOn\",  \n\"L.ModifiedOn\"  \n)  \n.From(\"Lead\").As(\"L\");  \nnew Select(userConnection)  \n.Cols(\"Id\")  \n.Column(  \nFunc.IsNull(  \nColumn.SourceColumn(\"L\", \"CreatedOn\"),  \nColumn.SourceColumn(\"L\", \"ModifiedOn\")  \n)  \n)  \n.From(\"Lead\").As(\"L\");",
+  "code_examples": [
+    {
+      "code": "static Select Cols(    this Select select,    params object[] sourceColumns)",
+      "language": "cs",
+      "context": "Methods\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Cols(        \"L.Id\",        \"L.QualifyStatusId\",        \"L.LeadTypeId\",        \"L.LeadSourceId\",        \"L.LeadMediumId AS LeadChannel\",        \"L.BusinessPhone AS KnownBusinessPhone\")    .From(\"Lead\").As(\"L\");",
+      "language": "cs",
+      "context": "One or more columns or expressions to add to the query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Column(\"L\", \"Id\")    .Column(\"L\", \"QualifyStatusId\")    .Column(\"L\", \"LeadTypeId\")    .Column(\"L\", \"LeadSourceId\")    .Column(\"L\", \"LeadMediumId\")        .As(\"LeadChannel\")    .Column(\"L\", \"BusinessPhone\")        .As(\"KnownBusinessPhone\")    .From(\"Lead\").As(\"L\");",
+      "language": "cs",
+      "context": "One or more columns or expressions to add to the query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "static Select Count(    this Select select,    object sourceColumn)",
+      "language": "cs",
+      "context": "One or more columns or expressions to add to the query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var activitiesCount = new Select(userConnection)    /* Specify the column name if needed. */    .Count(\"*\")    .From(\"Activity\")",
+      "language": "cs",
+      "context": "The column or expression for which non-empty values are calculated.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var activitiesCount = new Select(userConnection)    .Column(        Func.Count(            Column.Asterisk()        )    )    .From(\"Activity\")",
+      "language": "cs",
+      "context": "The column or expression for which non-empty values are calculated.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "static Select Coalesce(    this Select select,    params object[] sourceColumns)",
+      "language": "cs",
+      "context": "The column or expression for which non-empty values are calculated.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Cols(\"L.Id\")    .Coalesce(\"L.CountryId\", \"C.CountryId\", \"A.CountryId\")        .As(\"CountryId\")    .From(\"Lead\")        .As(\"L\")    .LeftOuterJoin(\"Contact\")        .As(\"C\")        .On(\"L\", \"QualifiedContactId\").IsEqual(\"C\", \"Id\")    .LeftOuterJoin(\"Account\")        .As(\"A\")        .On(\"L\", \"QualifiedAccountId\").IsEqual(\"A\", \"Id\");",
+      "language": "cs",
+      "context": "One or more columns or expressions to evaluate in order.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Cols(\"L.Id\")    .Column(        Func.Coalesce(            Column.SourceColumn(\"L\", \"CountryId\"),            Column.SourceColumn(\"L\", \"CountryId\"),            Column.SourceColumn(\"L\", \"CountryId\")        )    ).As(\"CountryId\")    .From(\"Lead\").As(\"L\")    .LeftOuterJoin(\"Contact\").As(\"C\")        .On(\"L\", \"QualifiedContactId\").IsEqual(\"C\", \"Id\")    .LeftOuterJoin(\"Account\").As(\"A\")        .On(\"L\", \"QualifiedAccountId\").IsEqual(\"A\", \"Id\");",
+      "language": "cs",
+      "context": "One or more columns or expressions to evaluate in order.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "static Select DateDiff(    this Select select,    DateDiffQueryFunctionInterval interval,    object startDateExpression,    object endDateExpression)",
+      "language": "cs",
+      "context": "One or more columns or expressions to evaluate in order.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var day = DateDiffQueryFunctionInterval.Day;new Select(userConnection)    .Cols(\"L.Id\")    .DateDiff(        day,        \"L.CreatedOn\",        Func.CurrentDateTime()    ).As(\"LeadAge\")    .From(\"Lead\").As(\"L\");",
+      "language": "cs",
+      "context": "The column or expression that represents the ending date of the calculation.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(_userConnection)    .Cols(\"Id\")    .Column(        Func.DateDiff(            DateDiffQueryFunctionInterval.Day,            Column.SourceColumn(\"L\", \"CreatedOn\"),            Func.CurrentDateTime()        )    ).As(\"LeadAge\")    .From(\"Lead\").As(\"L\");",
+      "language": "cs",
+      "context": "The column or expression that represents the ending date of the calculation.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "static Select IsNull(    this Select select,    object checkExpression,    object replacementValue)",
+      "language": "cs",
+      "context": "The column or expression that represents the ending date of the calculation.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Cols(\"L.Id\")    .IsNull(        \"L.CreatedOn\",        \"L.ModifiedOn\"    )    .From(\"Lead\").As(\"L\");",
+      "language": "cs",
+      "context": "The value or expression used as a replacement whencheckExpressionis \"NULL.\"",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new Select(userConnection)    .Cols(\"Id\")    .Column(        Func.IsNull(            Column.SourceColumn(\"L\", \"CreatedOn\"),            Column.SourceColumn(\"L\", \"ModifiedOn\")        )    )    .From(\"Lead\").As(\"L\");",
+      "language": "cs",
+      "context": "The value or expression used as a replacement whencheckExpressionis \"NULL.\"",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Type",
+          "Description"
+        ],
+        [
+          "System.String",
+          "A column name in theTableAlias.ColumnName AS ColumnAliasformat. BothTableAliasandColumnAliasare optional. You can also pass \"*\" to select all columns."
+        ],
+        [
+          "Terrasoft.Core.DB.QueryColumnExpression",
+          "A query column expression that is added to the query without modification."
+        ],
+        [
+          "Terrasoft.Core.DB.IQueryColumnExpressionConvertible",
+          "An object that can be automatically converted to aQueryColumnExpression."
+        ],
+        [
+          "Terrasoft.Core.DB.Select",
+          "A subquery whose result can be used as a column in the main query."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Type</p></th><th><p>Description</p></th></tr><tr><td><p>System.String</p></td><td><p>A column name in the <code>TableAlias.ColumnName AS ColumnAlias</code> format. Both <code>TableAlias</code> and <code>ColumnAlias</code> are optional. You can also pass \"*\" to select all columns.</p></td></tr><tr><td><p>Terrasoft.Core.DB.QueryColumnExpression</p></td><td><p>A query column expression that is added to the query without modification.</p></td></tr><tr><td><p>Terrasoft.Core.DB.IQueryColumnExpressionConvertible</p></td><td><p>An object that can be automatically converted to a <code>QueryColumnExpression</code>.</p></td></tr><tr><td><p>Terrasoft.Core.DB.Select</p></td><td><p>A subquery whose result can be used as a column in the main query.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "select",
+          "The currentSelectinstance to extend using additional columns."
+        ],
+        [
+          "sourceColumns",
+          "One or more columns or expressions to add to the query."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using additional columns.</p></td></tr><tr><td><p>sourceColumns</p></td><td><p>One or more columns or expressions to add to the query.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "select",
+          "The currentSelectinstance to extend using the aggregation column."
+        ],
+        [
+          "sourceColumn",
+          "The column or expression for which non-empty values are calculated."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using the aggregation column.</p></td></tr><tr><td><p>sourceColumn</p></td><td><p>The column or expression for which non-empty values are calculated.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "select",
+          "The currentSelectinstance to extend using aCOALESCEcolumn."
+        ],
+        [
+          "sourceColumns",
+          "One or more columns or expressions to evaluate in order."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using a <code>COALESCE</code> column.</p></td></tr><tr><td><p>sourceColumns</p></td><td><p>One or more columns or expressions to evaluate in order.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "select",
+          "The currentSelectinstance to extend using aDATEDIFFcolumn."
+        ],
+        [
+          "interval",
+          "The unit of time to measure the difference, e.\u00a0g., day, month, year."
+        ],
+        [
+          "startDateExpression",
+          "The column or expression that represents the starting date of the calculation."
+        ],
+        [
+          "endDateExpression",
+          "The column or expression that represents the ending date of the calculation."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using a <code>DATEDIFF</code> column.</p></td></tr><tr><td><p>interval</p></td><td><p>The unit of time to measure the difference, e.\u00a0g., day, month, year.</p></td></tr><tr><td><p>startDateExpression</p></td><td><p>The column or expression that represents the starting date of the calculation.</p></td></tr><tr><td><p>endDateExpression</p></td><td><p>The column or expression that represents the ending date of the calculation.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "select",
+          "The currentSelectinstance to extend using anISNULLcolumn."
+        ],
+        [
+          "checkExpression",
+          "The column or expression to evaluate."
+        ],
+        [
+          "replacementValue",
+          "The value or expression used as a replacement whencheckExpressionis \"NULL.\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using an <code>ISNULL</code> column.</p></td></tr><tr><td><p>checkExpression</p></td><td><p>The column or expression to evaluate.</p></td></tr><tr><td><p>replacementValue</p></td><td><p>The value or expression used as a replacement when <code>checkExpression</code> is \"NULL.\"</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe functionality is relevant to Classic UI.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The functionality is relevant to Classic UI.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParametersselectThe currentSelectinstance to extend using additional columns.sourceColumnsOne or more columns or expressions to add to the query.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 255ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using additional columns.</p></td></tr><tr><td><p>sourceColumns</p></td><td><p>One or more columns or expressions to add to the query.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParametersselectThe currentSelectinstance to extend using the aggregation column.sourceColumnThe column or expression for which non-empty values are calculated.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 255ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using the aggregation column.</p></td></tr><tr><td><p>sourceColumn</p></td><td><p>The column or expression for which non-empty values are calculated.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParametersselectThe currentSelectinstance to extend using aCOALESCEcolumn.sourceColumnsOne or more columns or expressions to evaluate in order.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 255ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using a <code>COALESCE</code> column.</p></td></tr><tr><td><p>sourceColumns</p></td><td><p>One or more columns or expressions to evaluate in order.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParametersselectThe currentSelectinstance to extend using aDATEDIFFcolumn.intervalThe unit of time to measure the difference, e.\u00a0g., day, month, year.startDateExpressionThe column or expression that represents the starting date of the calculation.endDateExpressionThe column or expression that represents the ending date of the calculation.",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 291ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using a <code>DATEDIFF</code> column.</p></td></tr><tr><td><p>interval</p></td><td><p>The unit of time to measure the difference, e.\u00a0g., day, month, year.</p></td></tr><tr><td><p>startDateExpression</p></td><td><p>The column or expression that represents the starting date of the calculation.</p></td></tr><tr><td><p>endDateExpression</p></td><td><p>The column or expression that represents the ending date of the calculation.</p></td></tr></tbody></table></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ParametersselectThe currentSelectinstance to extend using anISNULLcolumn.checkExpressionThe column or expression to evaluate.replacementValueThe value or expression used as a replacement whencheckExpressionis \"NULL.\"",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Parameters</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 275ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><table><tbody><tr><td><p>select</p></td><td><p>The current <code>Select</code> instance to extend using an <code>ISNULL</code> column.</p></td></tr><tr><td><p>checkExpression</p></td><td><p>The column or expression to evaluate.</p></td></tr><tr><td><p>replacementValue</p></td><td><p>The value or expression used as a replacement when <code>checkExpression</code> is \"NULL.\"</p></td></tr></tbody></table></div></div></div></details>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "QueryExtensions class",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Methods\u200b",
+      "anchor": "title-1463-3"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+      "text": "QueryExtensions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+      "text": "Implement prediction model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlmodeltrainerjob",
+      "text": "IMLModelTrainerJob",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlmodeltrainer",
+      "text": "IMLModelTrainer",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlserviceproxy",
+      "text": "IMLServiceProxy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlentitypredictor",
+      "text": "IMLEntityPredictor",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlpredictionsaver",
+      "text": "PreviousIMLPredictionSaver",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "NextEmails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:17:05.441268"
+}

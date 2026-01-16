@@ -1,0 +1,1 @@
+static Select Coalesce(    this Select select,    params object[] sourceColumns)

@@ -1,0 +1,1 @@
+RedistributeLicencesForRole(    bool redistributeManuallyAssignedLicences,    Guid roleId)

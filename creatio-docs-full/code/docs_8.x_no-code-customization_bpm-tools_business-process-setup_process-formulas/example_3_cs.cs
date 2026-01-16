@@ -1,0 +1,1 @@
+[#Read Lead data after Qualification.First element of the resulting collection.Decision date#]!=DateTime.MinValue

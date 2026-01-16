@@ -1,0 +1,1 @@
+public svgImage: string = this._domSanitizer.bypassSecurityTrustResourceUrl(    'data:image/svg+xml;base64,...') as string;

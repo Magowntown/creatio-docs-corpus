@@ -1,0 +1,1 @@
+new Select(userConnection)    .Cols("Id")    .Column(        Func.IsNull(            Column.SourceColumn("L", "CreatedOn"),            Column.SourceColumn("L", "ModifiedOn")        )    )    .From("Lead").As("L");

@@ -1,0 +1,1 @@
+/* Write an object from the storage to an intermediate variable. */object value = UserConnection.SessionData["SomeKey"];/* Check the value of the intermediate variable. */if (value != null) {    /* Return the value. */    return (string)value;}

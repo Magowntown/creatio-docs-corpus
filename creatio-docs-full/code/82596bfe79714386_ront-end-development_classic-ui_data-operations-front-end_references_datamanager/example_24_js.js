@@ -1,0 +1,1 @@
+/* Define the configuration object. */var config = {    /* The name of the "Object" type schema. */    entitySchemaNames: ["Contact"]};/* Save the changes in the database. */Terrasoft.DataManager.save(config, function () {}, this);

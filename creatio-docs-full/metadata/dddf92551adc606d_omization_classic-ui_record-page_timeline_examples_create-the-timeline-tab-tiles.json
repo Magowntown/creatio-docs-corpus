@@ -1,0 +1,1148 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/timeline/examples/create-the-timeline-tab-tiles",
+  "title": "Create the Timeline tab tiles bound to custom section",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Record page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page"
+    },
+    {
+      "text": "Timeline",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/timeline-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nStarting from version 7.12.0 you can use the **Timeline** tab for quick analysis of customer cooperation, opportunity, case, etc. history in Creatio. This tab is available by default in the **Contacts** , **Accounts** , **Leads** , **Opportunities** and **Cases** sections. \n## Tile setup\u200b\nYou can set up a tile using the `[TimelinePageSetting]` table settings as shown in the [example with the base tile](https://academy.creatio.com/documents?ver=8.0&id=15558). In such a case you will use the following for your tile:\n* the default icon;\n* the `BaseTimelineItemView` and `BaseTimelineItemViewModel` base view and view model modules;\n* author field;\n* tile caption field;\n* message field.\nYou can use one and the same tile for different sections if needed. However, we recommend to use the `[TimelineTileSetting]` table and set up your tiles for different sections.\nThe `[TimelineTileSetting]` table contains tile configurations that already exist in Creatio. The section, however, will only display the tiles indicated in the `[TimelinePageSetting]` table for this particular section.\nFor example, the `[TimelinePageSetting]` contains three pre-configured tiles: `Tasks`, `Leads` and `Calls`. The `[TimelinePageSetting]` table contains the `Tasks` and `Calls` tiles that are pre-configured for usage in the **Accounts** section, and only the `Calls` tile that is pre-configured for usage in the **Contacts** section. The `Leads` tile in this case will not be displayed in any section.\nExample\nIt is considered a good practice to differentiate the tile settings. We recommend to use the `[TimelineTileSetting]`> table for setting up tiles, and the `TimelinePageSetting` \u2013 for adding the tiles to section timeline.\nImportant\nIf you need to add the existing `Files` tile to a section, the \"`entitySchemaName`\" property of the `[TimelinePageSetting]` table should contain the entity schema name for files in the corresponding section configuration (for example, `AccountFile`, `ContactFile`, etc.). The object schema name (the \"entitySchemaName\" property) of the `[TimelineTileSetting]` table should always look as follows: \"##ReferenceSchemaName##File\".\n## The algorithm for creating a pre-configured tile\u200b\n1. Add a new section (if needed).\n2. Add a module schema to your user-made package and determine the tile view class, bound to the new section. The class should be the inheritor of `BaseTimelineItemView`.\n3. Add a module schema to your user-made package and determine the tile view model class, bound to the new section. The class should be the inheritor of `BaseTimelineItemView`.\n4. Add a record with the tile view settings bound to the new section into the `[TimelineTileSetting]` database table.\n5. In the `[TimelinePageSetting]` table add or edit the record enabling the tile display on the **Timeline** tab in the necessary section.\nnote\nDisplay the tiles bound to the Books custom section on the Timeline tab of the Accounts section. The tiles should contain:\n* icon;\n* name;\n* author;\n* book record date;\n* price;\n* ISBN number.\nA short book description should also be displayed when you deploy the tile.\nImportant\nYou should also edit the database tables to implement the case (see steps 4 and 5).\n## Example implementation algorithm\u200b\n### 1\\. Adding a new Books section\u200b\nUse the archive containing the needed function package to add the new **Books** section. [Install the package](https://academy.creatio.com/documents?ver=8.0&id=15204) via the marketplace application installation function from the *.zip-archive.\nnote\nYou can also add the section via [section wizard](https://academy.creatio.com/documents?ver=8.0&id=1245).\nThe **Books** section will be available in the **General** workplace after you install the package.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_SectionBooks.png)\nYou will also see a detail displaying the linked records from the **Books** section on the **Books** tab of the **Accounts** section record edit page.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_SectionAccount_detail.png)\n### 2\\. Adding a tile view module\u200b\n[Client module](https://academy.creatio.com/documents?ver=8.0&id=15106) containing dependencies from the `Timeline` package to the user-made package.\nFor the created module schema specify:\n* **Name** \u2013 \"UsrBookTimelineItemView\";\n* **Title** \u2013 \"UsrBook Timeline Item View.\"\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_view_props.png)\nAdd the following module source code to the **Source Code** tab of the schema:\nUsrBookTimelineItemView\n// Defining the module and its dependencies.  \ndefine(\"UsrBookTimelineItemView\", [\"UsrBookTimelineItemViewResources\", \"BaseTimelineItemView\"], function() {  \n// Defining the tile view class.  \nExt.define(\"Terrasoft.configuration.UsrBookTimelineItemView\", {  \nextend: \"Terrasoft.BaseTimelineItemView\",  \nalternateClassName: \"Terrasoft.UsrBookTimelineItemView\",  \n// Method returning the [UsrISBN] additional tile field configuration.  \ngetUsrISBNViewConfig: function() {  \nreturn {  \n// Field name.  \n\"name\": \"UsrISBN\",  \n// Field type \u2013 label.  \n\"itemType\": Terrasoft.ViewItemType.LABEL,  \n// Caption.  \n\"caption\": {  \n\"bindTo\": \"UsrISBN\"  \n},  \n// Visibility.  \n\"visible\": {  \n// Binding to the tile linked entity column.  \n\"bindTo\": \"UsrISBN\",  \n// Visibility setup.  \n\"bindConfig\": {  \n// A field is visible if its value is populated.  \n\"converter\": \"checkIsNotEmpty\"  \n}  \n},  \n// CSS field styles.  \n\"classes\": {  \n\"labelClass\": [\"timeline-text-light\"]  \n}  \n};  \n},  \n// Method returning the [UsrPrice] additional tile field configuration.  \ngetUsrPriceViewConfig: function() {  \nreturn {  \n\"name\": \"UsrPrice\",  \n\"itemType\": Terrasoft.ViewItemType.LABEL,  \n\"caption\": {  \n\"bindTo\": \"UsrPrice\"  \n},  \n\"visible\": {  \n\"bindTo\": \"UsrPrice\",  \n\"bindConfig\": {  \n\"converter\": \"checkIsNotEmpty\"  \n}  \n},  \n\"classes\": {  \n\"labelClass\": [\"timeline-item-subject-label\"]  \n}  \n};  \n},  \n// Redefined method returning the [Message] tile field configuration.   \ngetMessageViewConfig: function() {  \n// Receiving standard settings.  \nvar config = this.callParent(arguments);  \n// Visibility setup. Visible if the tile is deployed.  \nconfig.visible = {  \n\"bindTo\": \"IsExpanded\"  \n};  \nreturn config;  \n},  \n// Redefined method returning general tile configuration.  \ngetBodyViewConfig: function() {  \n// Receiving standard settings.  \nvar bodyConfig = this.callParent(arguments);  \n// Adding additional field configurations.  \nbodyConfig.items.unshift(this.getUsrISBNViewConfig());  \nbodyConfig.items.unshift(this.getUsrPriceViewConfig());  \nreturn bodyConfig;  \n}  \n});  \n});  \nHere you can define the configuration of the **UsrISBN** and **UsrPrice** fields that are additionally displayed on the tab. The standard configuration is defined in the `BaseTimelineItemView` module.\n### 3\\. Adding a tile view model module\u200b\nAdd a client module schema containing dependencies from the Timeline package to the user-made package.\nFor the created module schema specify:\n* **Name** \u2013 \"UsrBookTimelineItemViewModel\";\n* **Title** \u2013 \"UsrBook timeline item view model.\"\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_viewmodel_props.png)\nAdd the following module source code to the **Source Code** tab of the schema:\nUsrBookTimelineItemViewModel\ndefine(\"UsrBookTimelineItemViewModel\", [\"UsrBookTimelineItemViewModelResources\", \"BaseTimelineItemViewModel\"], function() {  \nExt.define(\"Terrasoft.configuration.UsrBookTimelineItemViewModel\", {  \nalternateClassName: \"Terrasoft.UsrBookTimelineItemViewModel\",  \nextend: \"Terrasoft.BaseTimelineItemViewModel\"  \n});  \n});  \nYou define the `Terrasoft.configuration.UsrBookTimelineItemViewModel` class here. Since this class is defined as the inheritor of `Terrasoft.BaseTimelineItemViewModel`, it enables using all functions of the base class.\n### 4\\. Adding the record with tile view settings to the [TimelineTileSetting] table\u200b\nThe `[TimelineTileSetting]` table is used to [set up the timeline tile properties](https://academy.creatio.com/documents?ver=8.0&id=15557).\nAdd a new record to the `[TimelineTileSetting]` table. You can add a new record via the following SQL query:\nSQL query\nINSERT INTO TimelineTileSetting (CreatedOn, CreatedById, ModifiedOn, ModifiedById, Name, Data, Image)  \nVALUES (GETUTCDATE(), NULL, GETUTCDATE(), NULL, 'UsrBooks', NULL, NULL);  \nSince data in the `Data` and `Image` columns are stored in the `varbinary(max)` format, use specific editors (such as dbForge Studio Express for SQL Server) to modify them. To do this:\n1. Select a table.\n2. Select the necessary record column and click the edit button.\n3. Enter the text data display mode in the data editor.\n4. Add necessary data.\n5. Save the changes in the data editor.\n6. Click the data update button.\n7. Click OK in the popped up checkout window to apply the modifications.\nImportant\nThis method is only good for the development environments deployed on-site. Since the modifications are implemented directly in the database, they are not bound to any package. That is why the modifications will not be implemented in the database if the package with the view models and the tile view models is installed into another application. For correct transfer of the developed functions you need to bind the SQL-scripts that implement the corresponding modifications in the database when installing the package.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_dbForge_01.png)\nAdd the following configuration object to the `Data` column using the above mentioned algorithm:\nUsrBook\n{  \n\"entitySchemaName\": \"UsrBook\",  \n\"viewModelClassName\": \"Terrasoft.UsrBookTimelineItemViewModel\",  \n\"viewClassName\": \"Terrasoft.UsrBookTimelineItemView\",  \n\"orderColumnName\": \"CreatedOn\",  \n\"authorColumnName\": \"UsrAuthor\",  \n\"captionColumnName\": \"UsrName\",  \n\"messageColumnName\": \"UsrDEscription\",  \n\"columns\": [  \n{  \n\"columnName\": \"UsrISBN\",  \n\"columnAlias\": \"UsrISBN\"  \n},  \n{  \n\"columnName\": \"UsrPrice\",  \n\"columnAlias\": \"UsrPrice\"  \n}  \n]  \n}  \nYou need to indicate the additional field array whose display is configured in the `UsrBookTimelineItemView` view model in addition to the primary fields inherited from the base tile (see step 2).\nAdd SVG-format data to the `Image` column to display the icon that corresponds to the section icon.\nSVG-format data\n<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 52 52\" enable-background=\"new 0 0 52 52\">  \n<path d=\"M46.072,31.384c-0.011-0.026-0.025-0.048-0.039-0.073c-0.036-0.064-0.077-0.125-0.123-0.182  \nc-0.018-0.022-0.034-0.044-0.053-0.064c-0.034-0.036-0.068-0.07-0.105-0.104c-0.062-0.055-0.431-0.3-0.819-0.559  \nc-1.958-1.307-7.465-4.978-9.424-6.284c-0.388-0.258-0.703-0.845-0.703-1.312V3.938c0-0.401-0.19-0.777-0.512-1.017  \nc-0.322-0.239-0.739-0.311-1.122-0.193L15.015,8.254c-0.446,0.136-1.154,0.097-1.583-0.086l-1.094-0.467  \nc-0.428-0.184-0.414-0.442,0.031-0.578l15.213-4.646c0.668-0.204,1.045-0.911,0.841-1.58s-0.912-1.047-1.58-0.841L7.507,5.961  \nC7.454,5.982,7.429,5.994,7.403,6.005C7.338,6.031,7.276,6.062,7.217,6.097C7.205,6.104,7.191,6.108,7.178,6.116  \nc-0.015,0.01-0.026,0.025-0.041,0.035C7.081,6.191,7.03,6.236,6.982,6.284c-0.02,0.021-0.041,0.039-0.06,0.062  \nC6.864,6.412,6.813,6.485,6.77,6.562C6.716,6.659,6.683,6.748,6.658,6.838C6.651,6.864,6.648,6.89,6.642,6.916  \nC6.628,6.985,6.619,7.054,6.616,7.125C6.615,7.142,6.61,7.156,6.61,7.173V29.85c0,0.466-0.036,0.86-0.081,0.88l-0.081,0.036  \nc-0.109,0.058-0.18,0.101-0.246,0.15c-0.025,0.018-0.046,0.037-0.069,0.058c-0.056,0.049-0.107,0.103-0.154,0.161  \nc-0.015,0.019-0.032,0.035-0.046,0.056c-0.057,0.079-0.105,0.164-0.142,0.257c-0.006,0.015-0.008,0.03-0.014,0.045  \nc-0.029,0.077-0.049,0.158-0.062,0.241c-0.002,0.015-0.009,0.027-0.01,0.042c-0.002,0.018,0.002,0.036,0.001,0.054  \nc-0.003,0.031-0.009,0.062-0.009,0.094v7.312c0,0.393,0.182,0.762,0.493,1.002l14.766,11.391c0.226,0.175,0.499,0.264,0.773,0.264  \nc0.212,0,0.424-0.053,0.616-0.16l23.203-12.938c0.401-0.224,0.649-0.646,0.649-1.105v-5.766c0-0.09-0.01-0.177-0.027-0.261  \nC46.145,31.555,46.113,31.468,46.072,31.384z M15.4,11.625c0-0.466,0.361-0.953,0.807-1.089l15.261-4.645  \nc0.446-0.136,0.807,0.132,0.807,0.598v14.63c0,0.467-0.314,0.635-0.702,0.376l-1.127-0.752c-0.361-0.24-0.819-0.278-1.216-0.104  \nl-13.059,5.805c-0.426,0.189-0.771-0.034-0.771-0.501C15.4,25.943,15.4,11.625,15.4,11.625z M28.851,23.579  \nc0.425-0.189,1.085-0.134,1.473,0.125l11.43,7.62c0.388,0.259,0.368,0.644-0.045,0.86l-18.404,9.662  \nc-0.412,0.216-1.047,0.163-1.418-0.121l-11.789-9.001c-0.371-0.283-0.326-0.665,0.1-0.854L28.851,23.579z M9.142,9.932  \nc0-0.466,0.348-0.695,0.776-0.512l2.174,0.929c0.429,0.183,0.776,0.708,0.776,1.175v2.158c-1.57-0.068-2.894-0.916-3.727-1.61  \nL9.142,9.932L9.142,9.932z M9.142,13.152c0.931,0.671,2.22,1.323,3.727,1.372v7.633c-1.57-0.066-2.894-0.915-3.727-1.609  \nC9.142,20.548,9.142,13.152,9.142,13.152z M9.142,21.627c0.931,0.671,2.22,1.323,3.727,1.372v3.992c0,0.466-0.35,0.985-0.782,1.16  \nl-2.163,0.876c-0.432,0.175-0.782-0.061-0.782-0.527V21.627z M43.666,36.101c0,0.467-0.33,1.027-0.737,1.255L22.578,48.702  \nc-0.407,0.228-1.036,0.18-1.405-0.104L8.897,39.127c-0.369-0.284-0.668-0.893-0.668-1.358v-2.444c0-0.466,0.3-0.614,0.671-0.332  \nl12.764,9.748c0.225,0.171,0.496,0.26,0.768,0.26c0.201,0,0.403-0.048,0.588-0.146l19.899-10.447  \nc0.413-0.217,0.747-0.015,0.747,0.452V36.101z\" style=\"fill:#6c91de;\"/>  \n<path d=\"M33.81,34.064c0.072,0.049,0.155,0.073,0.239,0.073c0.072,0,0.145-0.018,0.209-0.055l4.505-2.575  \nc0.126-0.072,0.207-0.204,0.212-0.349c0.006-0.146-0.063-0.283-0.183-0.365l-9.011-6.192c-0.118-0.08-0.268-0.097-0.399-0.042  \nl-5.157,2.123c-0.143,0.059-0.243,0.191-0.259,0.346c-0.017,0.154,0.053,0.304,0.181,0.392L33.81,34.064z M29.492,25.426  \nl8.269,5.682l-3.692,2.11l-8.803-6.052L29.492,25.426z\" style=\"fill:#6c91de;\"/>  \n</svg>  \nEditing the Image column data via the dbForge Studio Express for SQL Server\n![Editing the Image column data via the dbForge Studio Express for SQL Server](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_dbForge_02.png)\n### 5\\. Editing the record that enables the tile display on the Timeline tab of the account page in the [TimelinePageSetting] table\u200b\nFor the **Accounts** section there already exists a record in the `[TimelinePageSetting]` table with settings of tiles bound to other sections. This is the record containing the \"AccountPageV2\" value in the `Key` column.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_dbForge_03.png)\nImportant\nSince there are several tiles used on the **Accounts** section page timeline, the array of configuration objects enabling the corresponding tile is stored in the **Data** column.\nUsing the algorithm mentioned in step 4, change the configuration object array by adding a new record to it.\nRecord for configuration object array\n[  \n{  \n\"entityConfigKey\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",  \n\"referenceColumnName\": \"UsrPublisher\",  \n\"entitySchemaName\": \"UsrBook\",  \n\"masterRecordColumnName\": \"Id\"  \n},  \n...  \n]  \nHere the \"`entityConfigKey`\" property: \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\" should contain the `[TimelineTileSetting]` table record identifier created on step 4. In our case it is the \"c57d375e-4ffa-4d65-a59e-d88e53f25803\" value.\nImportant\nThe \"`entityConfigKey`\" should be obligatory indicated. It should match the **Id** column value of the record containing settings of the necessary tile in the `[TimelineTileSetting]` table.\nSince the identifiers of the added records are generated at random, the generated identifier in your database will be different from the one we have in our case, when you repeat step 4.\nImportant\nBe careful when modifying the **Data** column value. Incorrect modifications can disrupt the operation of all existing timeline tiles in a section.\nAs a result of case implementation you will have the tiles bound to the **Books** custom section displayed on the **Timeline** tab of the **Accounts** section page. These tiles contain all the fields we described in our case conditions. The short book description will only be displayed when you deploy the tile.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_result.png)\n* * *\n## Resources\u200b\n[Package with the Book section implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CreateTheTimelineTabTiles/8.2/sdkBookExample_18.04.25_10.55.21.zip)\n[Package with the tile module schema implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkTimelineExample_18.04.25_10.55.37.zip)",
+  "code_examples": [
+    {
+      "code": "// Defining the module and its dependencies.define(\"UsrBookTimelineItemView\", [\"UsrBookTimelineItemViewResources\", \"BaseTimelineItemView\"], function() {    // Defining the tile view class.    Ext.define(\"Terrasoft.configuration.UsrBookTimelineItemView\", {        extend: \"Terrasoft.BaseTimelineItemView\",        alternateClassName: \"Terrasoft.UsrBookTimelineItemView\",        // Method returning the [UsrISBN] additional tile field configuration.        getUsrISBNViewConfig: function() {            return {                // Field name.                \"name\": \"UsrISBN\",                // Field type \u2013 label.                \"itemType\": Terrasoft.ViewItemType.LABEL,                // Caption.                \"caption\": {                    \"bindTo\": \"UsrISBN\"                },                // Visibility.                \"visible\": {                    // Binding to the tile linked entity column.                    \"bindTo\": \"UsrISBN\",                    // Visibility setup.                    \"bindConfig\": {                        // A field is visible if its value is populated.                        \"converter\": \"checkIsNotEmpty\"                    }                },                // CSS field styles.                \"classes\": {                    \"labelClass\": [\"timeline-text-light\"]                }            };        },        // Method returning the [UsrPrice] additional tile field configuration.        getUsrPriceViewConfig: function() {            return {                \"name\": \"UsrPrice\",                \"itemType\": Terrasoft.ViewItemType.LABEL,                \"caption\": {                    \"bindTo\": \"UsrPrice\"                },                \"visible\": {                    \"bindTo\": \"UsrPrice\",                    \"bindConfig\": {                        \"converter\": \"checkIsNotEmpty\"                    }                },                \"classes\": {                    \"labelClass\": [\"timeline-item-subject-label\"]                }            };        },        // Redefined method returning the [Message] tile field configuration.         getMessageViewConfig: function() {            // Receiving standard settings.            var config = this.callParent(arguments);            // Visibility setup. Visible if the tile is deployed.            config.visible = {                \"bindTo\": \"IsExpanded\"            };            return config;        },        // Redefined method returning general tile configuration.        getBodyViewConfig: function() {            // Receiving standard settings.            var bodyConfig = this.callParent(arguments);            // Adding additional field configurations.            bodyConfig.items.unshift(this.getUsrISBNViewConfig());            bodyConfig.items.unshift(this.getUsrPriceViewConfig());            return bodyConfig;        }    });});",
+      "language": "js",
+      "context": "Add the following module source code to theSource Codetab of the schema:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"UsrBookTimelineItemViewModel\", [\"UsrBookTimelineItemViewModelResources\", \"BaseTimelineItemViewModel\"], function() {    Ext.define(\"Terrasoft.configuration.UsrBookTimelineItemViewModel\", {        alternateClassName: \"Terrasoft.UsrBookTimelineItemViewModel\",        extend: \"Terrasoft.BaseTimelineItemViewModel\"    });});",
+      "language": "js",
+      "context": "Add the following module source code to theSource Codetab of the schema:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "INSERT INTO TimelineTileSetting (CreatedOn, CreatedById, ModifiedOn, ModifiedById, Name, Data, Image)  VALUES (GETUTCDATE(), NULL, GETUTCDATE(), NULL, 'UsrBooks', NULL, NULL);",
+      "language": "sql",
+      "context": "Add a new record to the[TimelineTileSetting]table. You can add a new record via the following SQL query:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"entitySchemaName\": \"UsrBook\",    \"viewModelClassName\": \"Terrasoft.UsrBookTimelineItemViewModel\",    \"viewClassName\": \"Terrasoft.UsrBookTimelineItemView\",    \"orderColumnName\": \"CreatedOn\",    \"authorColumnName\": \"UsrAuthor\",    \"captionColumnName\": \"UsrName\",    \"messageColumnName\": \"UsrDEscription\",    \"columns\": [        {            \"columnName\": \"UsrISBN\",            \"columnAlias\": \"UsrISBN\"        },        {            \"columnName\": \"UsrPrice\",            \"columnAlias\": \"UsrPrice\"        }    ]}",
+      "language": "js",
+      "context": "Add the following configuration object to theDatacolumn using the above mentioned algorithm:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 52 52\" enable-background=\"new 0 0 52 52\"><path d=\"M46.072,31.384c-0.011-0.026-0.025-0.048-0.039-0.073c-0.036-0.064-0.077-0.125-0.123-0.182    c-0.018-0.022-0.034-0.044-0.053-0.064c-0.034-0.036-0.068-0.07-0.105-0.104c-0.062-0.055-0.431-0.3-0.819-0.559    c-1.958-1.307-7.465-4.978-9.424-6.284c-0.388-0.258-0.703-0.845-0.703-1.312V3.938c0-0.401-0.19-0.777-0.512-1.017    c-0.322-0.239-0.739-0.311-1.122-0.193L15.015,8.254c-0.446,0.136-1.154,0.097-1.583-0.086l-1.094-0.467    c-0.428-0.184-0.414-0.442,0.031-0.578l15.213-4.646c0.668-0.204,1.045-0.911,0.841-1.58s-0.912-1.047-1.58-0.841L7.507,5.961    C7.454,5.982,7.429,5.994,7.403,6.005C7.338,6.031,7.276,6.062,7.217,6.097C7.205,6.104,7.191,6.108,7.178,6.116    c-0.015,0.01-0.026,0.025-0.041,0.035C7.081,6.191,7.03,6.236,6.982,6.284c-0.02,0.021-0.041,0.039-0.06,0.062    C6.864,6.412,6.813,6.485,6.77,6.562C6.716,6.659,6.683,6.748,6.658,6.838C6.651,6.864,6.648,6.89,6.642,6.916    C6.628,6.985,6.619,7.054,6.616,7.125C6.615,7.142,6.61,7.156,6.61,7.173V29.85c0,0.466-0.036,0.86-0.081,0.88l-0.081,0.036    c-0.109,0.058-0.18,0.101-0.246,0.15c-0.025,0.018-0.046,0.037-0.069,0.058c-0.056,0.049-0.107,0.103-0.154,0.161    c-0.015,0.019-0.032,0.035-0.046,0.056c-0.057,0.079-0.105,0.164-0.142,0.257c-0.006,0.015-0.008,0.03-0.014,0.045    c-0.029,0.077-0.049,0.158-0.062,0.241c-0.002,0.015-0.009,0.027-0.01,0.042c-0.002,0.018,0.002,0.036,0.001,0.054    c-0.003,0.031-0.009,0.062-0.009,0.094v7.312c0,0.393,0.182,0.762,0.493,1.002l14.766,11.391c0.226,0.175,0.499,0.264,0.773,0.264    c0.212,0,0.424-0.053,0.616-0.16l23.203-12.938c0.401-0.224,0.649-0.646,0.649-1.105v-5.766c0-0.09-0.01-0.177-0.027-0.261    C46.145,31.555,46.113,31.468,46.072,31.384z M15.4,11.625c0-0.466,0.361-0.953,0.807-1.089l15.261-4.645    c0.446-0.136,0.807,0.132,0.807,0.598v14.63c0,0.467-0.314,0.635-0.702,0.376l-1.127-0.752c-0.361-0.24-0.819-0.278-1.216-0.104    l-13.059,5.805c-0.426,0.189-0.771-0.034-0.771-0.501C15.4,25.943,15.4,11.625,15.4,11.625z M28.851,23.579    c0.425-0.189,1.085-0.134,1.473,0.125l11.43,7.62c0.388,0.259,0.368,0.644-0.045,0.86l-18.404,9.662    c-0.412,0.216-1.047,0.163-1.418-0.121l-11.789-9.001c-0.371-0.283-0.326-0.665,0.1-0.854L28.851,23.579z M9.142,9.932    c0-0.466,0.348-0.695,0.776-0.512l2.174,0.929c0.429,0.183,0.776,0.708,0.776,1.175v2.158c-1.57-0.068-2.894-0.916-3.727-1.61    L9.142,9.932L9.142,9.932z M9.142,13.152c0.931,0.671,2.22,1.323,3.727,1.372v7.633c-1.57-0.066-2.894-0.915-3.727-1.609    C9.142,20.548,9.142,13.152,9.142,13.152z M9.142,21.627c0.931,0.671,2.22,1.323,3.727,1.372v3.992c0,0.466-0.35,0.985-0.782,1.16    l-2.163,0.876c-0.432,0.175-0.782-0.061-0.782-0.527V21.627z M43.666,36.101c0,0.467-0.33,1.027-0.737,1.255L22.578,48.702    c-0.407,0.228-1.036,0.18-1.405-0.104L8.897,39.127c-0.369-0.284-0.668-0.893-0.668-1.358v-2.444c0-0.466,0.3-0.614,0.671-0.332    l12.764,9.748c0.225,0.171,0.496,0.26,0.768,0.26c0.201,0,0.403-0.048,0.588-0.146l19.899-10.447    c0.413-0.217,0.747-0.015,0.747,0.452V36.101z\" style=\"fill:#6c91de;\"/><path d=\"M33.81,34.064c0.072,0.049,0.155,0.073,0.239,0.073c0.072,0,0.145-0.018,0.209-0.055l4.505-2.575    c0.126-0.072,0.207-0.204,0.212-0.349c0.006-0.146-0.063-0.283-0.183-0.365l-9.011-6.192c-0.118-0.08-0.268-0.097-0.399-0.042    l-5.157,2.123c-0.143,0.059-0.243,0.191-0.259,0.346c-0.017,0.154,0.053,0.304,0.181,0.392L33.81,34.064z M29.492,25.426    l8.269,5.682l-3.692,2.11l-8.803-6.052L29.492,25.426z\" style=\"fill:#6c91de;\"/></svg>",
+      "language": "js",
+      "context": "Add SVG-format data to theImagecolumn to display the icon that corresponds to the section icon.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[  {    \"entityConfigKey\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",    \"referenceColumnName\": \"UsrPublisher\",    \"entitySchemaName\": \"UsrBook\",    \"masterRecordColumnName\": \"Id\"  },  ...]",
+      "language": "js",
+      "context": "Using the algorithm mentioned in step 4, change the configuration object array by adding a new record to it.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleIt is considered a good practice to differentiate the tile settings. We recommend to use the[TimelineTileSetting]> table for setting up tiles, and theTimelinePageSetting\u2013 for adding the tiles to section timeline.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>It is considered a good practice to differentiate the tile settings. We recommend to use the <code>[TimelineTileSetting]</code>&gt; table for setting up tiles, and the <code>TimelinePageSetting</code> \u2013 for adding the tiles to section timeline.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "It is considered a good practice to differentiate the tile settings. We recommend to use the[TimelineTileSetting]> table for setting up tiles, and theTimelinePageSetting\u2013 for adding the tiles to section timeline.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>It is considered a good practice to differentiate the tile settings. We recommend to use the <code>[TimelineTileSetting]</code>&gt; table for setting up tiles, and the <code>TimelinePageSetting</code> \u2013 for adding the tiles to section timeline.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf you need to add the existingFilestile to a section, the \"entitySchemaName\" property of the[TimelinePageSetting]table should contain the entity schema name for files in the corresponding section configuration (for example,AccountFile,ContactFile, etc.). The object schema name (the \"entitySchemaName\" property) of the[TimelineTileSetting]table should always look as follows: \"##ReferenceSchemaName##File\".",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you need to add the existing <code>Files</code> tile to a section, the \"<code>entitySchemaName</code>\" property of the <code>[TimelinePageSetting]</code> table should contain the entity schema name for files in the corresponding section configuration (for example, <code>AccountFile</code>, <code>ContactFile</code>, etc.). The object schema name (the \"entitySchemaName\" property) of the <code>[TimelineTileSetting]</code> table should always look as follows: \"##ReferenceSchemaName##File\".</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you need to add the existingFilestile to a section, the \"entitySchemaName\" property of the[TimelinePageSetting]table should contain the entity schema name for files in the corresponding section configuration (for example,AccountFile,ContactFile, etc.). The object schema name (the \"entitySchemaName\" property) of the[TimelineTileSetting]table should always look as follows: \"##ReferenceSchemaName##File\".",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you need to add the existing <code>Files</code> tile to a section, the \"<code>entitySchemaName</code>\" property of the <code>[TimelinePageSetting]</code> table should contain the entity schema name for files in the corresponding section configuration (for example, <code>AccountFile</code>, <code>ContactFile</code>, etc.). The object schema name (the \"entitySchemaName\" property) of the <code>[TimelineTileSetting]</code> table should always look as follows: \"##ReferenceSchemaName##File\".</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteDisplay the tiles bound to the Books custom section on the Timeline tab of the Accounts section. The tiles should contain:icon;name;author;book record date;price;ISBN number.A short book description should also be displayed when you deploy the tile.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Display the tiles bound to the Books custom section on the Timeline tab of the Accounts section. The tiles should contain:</p><ul>\n<li>icon;</li>\n<li>name;</li>\n<li>author;</li>\n<li>book record date;</li>\n<li>price;</li>\n<li>ISBN number.</li>\n</ul><p>A short book description should also be displayed when you deploy the tile.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Display the tiles bound to the Books custom section on the Timeline tab of the Accounts section. The tiles should contain:icon;name;author;book record date;price;ISBN number.A short book description should also be displayed when you deploy the tile.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Display the tiles bound to the Books custom section on the Timeline tab of the Accounts section. The tiles should contain:</p><ul>\n<li>icon;</li>\n<li>name;</li>\n<li>author;</li>\n<li>book record date;</li>\n<li>price;</li>\n<li>ISBN number.</li>\n</ul><p>A short book description should also be displayed when you deploy the tile.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantYou should also edit the database tables to implement the case (see steps 4 and 5).",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>You should also edit the database tables to implement the case (see steps 4 and 5).</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You should also edit the database tables to implement the case (see steps 4 and 5).",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You should also edit the database tables to implement the case (see steps 4 and 5).</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteYou can also add the section viasection wizard.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can also add the section via <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=1245\" rel=\"noopener noreferrer\" target=\"_blank\">section wizard</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You can also add the section viasection wizard.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can also add the section via <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=1245\" rel=\"noopener noreferrer\" target=\"_blank\">section wizard</a>.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThis method is only good for the development environments deployed on-site. Since the modifications are implemented directly in the database, they are not bound to any package. That is why the modifications will not be implemented in the database if the package with the view models and the tile view models is installed into another application. For correct transfer of the developed functions you need to bind the SQL-scripts that implement the corresponding modifications in the database when installing the package.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>This method is only good for the development environments deployed on-site. Since the modifications are implemented directly in the database, they are not bound to any package. That is why the modifications will not be implemented in the database if the package with the view models and the tile view models is installed into another application. For correct transfer of the developed functions you need to bind the SQL-scripts that implement the corresponding modifications in the database when installing the package.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This method is only good for the development environments deployed on-site. Since the modifications are implemented directly in the database, they are not bound to any package. That is why the modifications will not be implemented in the database if the package with the view models and the tile view models is installed into another application. For correct transfer of the developed functions you need to bind the SQL-scripts that implement the corresponding modifications in the database when installing the package.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This method is only good for the development environments deployed on-site. Since the modifications are implemented directly in the database, they are not bound to any package. That is why the modifications will not be implemented in the database if the package with the view models and the tile view models is installed into another application. For correct transfer of the developed functions you need to bind the SQL-scripts that implement the corresponding modifications in the database when installing the package.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Accounts",
+      "content": "ImportantSince there are several tiles used on theAccountssection page timeline, the array of configuration objects enabling the corresponding tile is stored in theDatacolumn.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Since there are several tiles used on the <strong>Accounts</strong> section page timeline, the array of configuration objects enabling the corresponding tile is stored in the <strong>Data</strong> column.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Accounts",
+      "content": "Since there are several tiles used on theAccountssection page timeline, the array of configuration objects enabling the corresponding tile is stored in theDatacolumn.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Since there are several tiles used on the <strong>Accounts</strong> section page timeline, the array of configuration objects enabling the corresponding tile is stored in the <strong>Data</strong> column.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Id",
+      "content": "ImportantThe \"entityConfigKey\" should be obligatory indicated. It should match theIdcolumn value of the record containing settings of the necessary tile in the[TimelineTileSetting]table.Since the identifiers of the added records are generated at random, the generated identifier in your database will be different from the one we have in our case, when you repeat step 4.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The \"<code>entityConfigKey</code>\" should be obligatory indicated. It should match the <strong>Id</strong> column value of the record containing settings of the necessary tile in the <code>[TimelineTileSetting]</code> table.</p><p>Since the identifiers of the added records are generated at random, the generated identifier in your database will be different from the one we have in our case, when you repeat step 4.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Id",
+      "content": "The \"entityConfigKey\" should be obligatory indicated. It should match theIdcolumn value of the record containing settings of the necessary tile in the[TimelineTileSetting]table.Since the identifiers of the added records are generated at random, the generated identifier in your database will be different from the one we have in our case, when you repeat step 4.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The \"<code>entityConfigKey</code>\" should be obligatory indicated. It should match the <strong>Id</strong> column value of the record containing settings of the necessary tile in the <code>[TimelineTileSetting]</code> table.</p><p>Since the identifiers of the added records are generated at random, the generated identifier in your database will be different from the one we have in our case, when you repeat step 4.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Data",
+      "content": "ImportantBe careful when modifying theDatacolumn value. Incorrect modifications can disrupt the operation of all existing timeline tiles in a section.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Be careful when modifying the <strong>Data</strong> column value. Incorrect modifications can disrupt the operation of all existing timeline tiles in a section.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Data",
+      "content": "Be careful when modifying theDatacolumn value. Incorrect modifications can disrupt the operation of all existing timeline tiles in a section.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Be careful when modifying the <strong>Data</strong> column value. Incorrect modifications can disrupt the operation of all existing timeline tiles in a section.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_SectionBooks.png",
+      "alt": "",
+      "title": "",
+      "context": "TheBookssection will be available in theGeneralworkplace after you install the package.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_14953b52e225.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_SectionAccount_detail.png",
+      "alt": "",
+      "title": "",
+      "context": "You will also see a detail displaying the linked records from theBookssection on theBookstab of theA",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_5ef38c177ba2.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_view_props.png",
+      "alt": "",
+      "title": "",
+      "context": "For the created module schema specify:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_69c14833d513.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_viewmodel_props.png",
+      "alt": "",
+      "title": "",
+      "context": "For the created module schema specify:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_4a05dcc7ec16.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_dbForge_01.png",
+      "alt": "",
+      "title": "",
+      "context": "This method is only good for the development environments deployed on-site. Since the modifications ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_b5b0cba7de78.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_dbForge_02.png",
+      "alt": "Editing the Image column data via the dbForge Studio Express for SQL Server",
+      "title": "",
+      "context": "Add SVG-format data to theImagecolumn to display the icon that corresponds to the section icon.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_289d59e54803.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_dbForge_03.png",
+      "alt": "",
+      "title": "",
+      "context": "For theAccountssection there already exists a record in the[TimelinePageSetting]table with settings ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_5302d4bdaa8f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TimelineExample/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result of case implementation you will have the tiles bound to theBookscustom section displayed",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_0caa532ee302.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CreateTheTimelineTabTiles/8.2/sdkBookExample_18.04.25_10.55.21.zip",
+      "text": "Package with the Book section implementation",
+      "filename": "sdkBookExample_18.04.25_10.55.21.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_sdkBookExample_18.04.25_10.55.21.zip"
+    },
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkTimelineExample_18.04.25_10.55.37.zip",
+      "text": "Package with the tile module schema implementation",
+      "filename": "sdkTimelineExample_18.04.25_10.55.37.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/dddf92551adc606d_omization_classic-ui_record-page_timeline_examples_create-the-timeline-tab-tiles_sdkTimelineExample_18.04.25_10.55.37.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Create the Timeline tab tiles bound to custom section",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Tile setup\u200b",
+      "anchor": "title-1440-1"
+    },
+    {
+      "level": 2,
+      "text": "The algorithm for creating a pre-configured tile\u200b",
+      "anchor": "title-1440-2"
+    },
+    {
+      "level": 2,
+      "text": "Example implementation algorithm\u200b",
+      "anchor": "title-1440-5"
+    },
+    {
+      "level": 3,
+      "text": "1. Adding a new Books section\u200b",
+      "anchor": "title-1440-6"
+    },
+    {
+      "level": 3,
+      "text": "2. Adding a tile view module\u200b",
+      "anchor": "title-1440-7"
+    },
+    {
+      "level": 3,
+      "text": "3. Adding a tile view model module\u200b",
+      "anchor": "title-1440-8"
+    },
+    {
+      "level": 3,
+      "text": "4. Adding the record with tile view settings to the [TimelineTileSetting] table\u200b",
+      "anchor": "title-1440-9"
+    },
+    {
+      "level": 3,
+      "text": "5. Editing the record that enables the tile display on the Timeline tab of the account page in the [TimelinePageSetting] table\u200b",
+      "anchor": "title-1440-10"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "UNSHIFT",
+        "path": "("
+      },
+      {
+        "method": "GETUSRISBNVIEWCONFIG",
+        "path": "("
+      },
+      {
+        "method": "UNSHIFT",
+        "path": "("
+      },
+      {
+        "method": "GETUSRPRICEVIEWCONFIG",
+        "path": "("
+      },
+      {
+        "method": "DEFINE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/timeline/examples/create-the-timeline-tab-tiles",
+      "text": "Create the Timeline tab tiles",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/timeline/examples/create-the-timeline-tab-tiles",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/record-page-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/record-page-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/field-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/button/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/button-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/action-dashboard/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/action-dashboard-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/timeline/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/timeline-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/timeline/examples/example-of-using-base-tile",
+      "text": "NextExample of using base tile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/connected-entity-profile/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/connected-profile-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:59:53.896981"
+}

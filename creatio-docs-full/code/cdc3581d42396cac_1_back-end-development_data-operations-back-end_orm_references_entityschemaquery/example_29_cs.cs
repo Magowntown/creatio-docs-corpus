@@ -1,0 +1,1 @@
+UseLocalization bool

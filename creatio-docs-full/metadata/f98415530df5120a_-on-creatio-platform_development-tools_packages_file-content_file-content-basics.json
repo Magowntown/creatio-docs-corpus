@@ -1,0 +1,829 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/file-content/file-content-basics",
+  "title": "Packages file content basics",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools"
+    },
+    {
+      "text": "Packages",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages"
+    },
+    {
+      "text": "File content",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/file-content"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: advanced\nThe **package file content** comprises files (*.js, *.css, images, etc.) added to custom Creatio packages. Since the file content is static, the webserver does not process it. This helps to improve Creatio performance.\nThe **types** of file content:\n* Client content generated in real time.\n* Pre-generated client content.\n**Special aspects** of client content generated in real time:\n* The pre-generation of client content is not needed.\n* The calculation of package and schema hierarchy, as well as the generation of content, put a load on the CPU.\n* The retrieval of package and schema hierarchy, as well as the generation of content, put a load on the database.\n* The caching of client content takes up memory.\n**Special aspects** of pre-generated client content:\n* The load on the CPU is minimal.\n* The pre-generation of client content is required.\n* The database queries are not needed.\n* The IIS tools cache the client content.\n## Storage structure of package file content\u200b\nFile content is an integral part of the package. You can pre-generate the file content in the dedicated `..\\Terrasoft.WebApp\\Terrasoft.Configuration\\Pkg\\<PackageName>\\Files` Creatio directory to improve Creatio performance and reduce the load on the database. If the IIS server receives a request, it will search for requested content in this directory and send the content to Creatio immediately. You can add any files to the package, however, Creatio will use only the files required for its client part.\nWe recommend **structuring** the `Files` directory as below.\nRecommended Files directory structure\n-PackageName  \n...  \n-Files  \n-src  \n-js  \nbootstrap.js  \n[other *.js files]  \n-css  \n[*.css files]  \n-less  \n[*.less files]  \n-img  \n[image files]  \n-res  \n[resource files]  \ndescriptor.json  \n...  \ndescriptor.json  \n`js` \u2013 the directory with JavaScript *.js source code files\n`css` \u2013 the directory with *.css style files\n`less` \u2013 the directory with *.less style files\n`Img` \u2013 the directory with images\n`res` \u2013 the directory with resource files\n`descriptor.json` \u2013 the file content descriptor that stores the information about package bootstrap files\nView the `descriptor.json` file structure below.\n* descriptor.json file structure\n* descriptor.json file example\n{  \n\"bootstraps\": [  \n... // The string array that contains relative paths to bootstrap files.  \n]  \n}  \n{  \n\"bootstraps\": [  \n\"src/js/bootstrap.js\",  \n\"src/js/anotherBootstrap.js\"  \n]  \n}  \nTo add file content to a package, place the file in the corresponding subdirectory of the `Files` package directory.\n## Package bootstrap files\u200b\nPackage **bootstrap files** are *.js files that handle the loading of client configuration logic. The file structure may vary.\n* bootstrap.js file structure\n* bootstrap.js file example\n(function() {  \nrequire.config({  \npaths: {  \n\"Module name\": \"Link to the file content\",  \n...  \n}  \n});  \n})();  \n(function() {  \nrequire.config({  \npaths: {  \n\"MyPackage1-ContactSectionV2\": Terrasoft.getFileContentUrl(\"MyPackage1\", \"src/js/ContactSectionV2.js\"),  \n\"MyPackage1-Utilities\": Terrasoft.getFileContentUrl(\"MyPackage1\", \"src/js/Utilities.js\")  \n}  \n});  \n})();  \nCreatio loads bootstrap files asynchronously after loading the core, but before loading the configuration. Creatio generates `_FileContentBootstraps.js` auxiliary file in the static content directory to ensure the bootstrap files are loaded correctly. The auxiliary file contains information about bootstrap files of all packages.\n_FileContentBootstraps.js file content example\nvar Terrasoft = Terrasoft || {};  \nTerrasoft.configuration = Terrasoft.configuration || {};  \nTerrasoft.configuration.FileContentBootstraps = {  \nMyPackage1: [\"src/js/bootstrap.js\"],  \n};  \n## File content versioning\u200b\nCreatio generates `_FileContentDescriptors.js` auxiliary file in the static file content directory to ensure the file content versioning works correctly. The auxiliary file contains information about files in the file content of all packages, displayed as a \"key-value\" collection. Each key (filename) corresponds to a unique hash code. This ensures the browser will receive the up-to-date file version.\n_FileContentDescriptors.js file content example\nvar Terrasoft = Terrasoft || {};  \nTerrasoft.configuration = Terrasoft.configuration || {};  \nTerrasoft.configuration.FileContentDescriptors = {  \n\"MyPackage1/descriptor.json\": {  \nHash: \"5d4e779e7ff24396a132a0e39cca25cc\",  \n},  \n\"MyPackage1/Files/src/js/Utilities.js\": {  \nHash: \"6d5e776e7ff24596a135a0e39cc525gc\",  \n},  \n};  \n## Auxiliary file generation\u200b\nTo **generate auxiliary files** (`_FileContentBootstraps.js` and `FileContentDescriptors.js`), execute the `BuildConfiguration` operation using the [WorkspaceConsole utility](https://academy.creatio.com/documents?ver=8.3&id=15207).\nView the `BuildConfiguration` operation parameters in the table below.\nParameter| Description  \n---|---  \n-operation| The name of the operation. Set the value to `BuildConfiguration` \u2013 the operation that compiles the configuration.  \n-useStaticFileContent| Enables the static content. Set the value to `false`.  \n-usePackageFileContent| Enables the package file content. Set the value to `true`.  \nAuxiliary files generation\nTerrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -destinationPath=Terrasoft.WebApp\\ -configurationPath=Terrasoft.WebApp\\Terrasoft.Configuration\\ -useStaticFileContent=false -usePackageFileContent=true -autoExit=true  \nAs a result, Creatio will generate `_FileContentBootstraps.js` and `_FileContentDescriptors.js` auxiliary files in the `..\\Terrasoft.WebApp\\conf\\content` static content directory.\nLearn more about the parameters of the utility: [WorkspaceConsole parameters](https://academy.creatio.com/documents?ver=8.3&id=15211).\n## Static file content pre-generation\u200b\nCreatio generates the file content in the `.\\Terrasoft.WebApp\\conf` special directory. The directory contains *.js files with schema source code, *.css style files, *.js resource files of all Creatio cultures, as well as images.\nImportant\nThe user of the IIS pool that runs Creatio must have modification permissions for static content generation in the `.\\Terrasoft.WebApp\\conf` directory to work properly. Set up permissions in the Handler Mappings section on the server level. Learn more: [Set up Creatio application server on IIS](https://academy.creatio.com/documents?ver=8.3&id=2142&anchor=title-269-2) (user documentation).\nSet the name of the IIS pool user in the **Identity** property. Click **Advanced Settings** on the **Application Pools** tab of the IIS manager to open this property.\nThe following **events** trigger static file content generation or re-generation:\n* Saving a schema in the Client Schema Designer and Client Objects Designer.\n* Installing and deleting applications via Marketplace and *.zip archive.\n* Applying translations.\n* Running **Compile** and **Compile all** actions in the **Configuration** section.\nRun these actions after you **delete schemas or packages** from the **Configuration** section.\nRun the **Compile all** action after you **install or update a package** from [SVN](https://academy.creatio.com/documents?ver=8.3&id=15142) version control system.\nnote\nThe **Compile all** action fully re-generates the static file content. Other Creatio actions re-generate only the modified schemas.\n## File content generation\u200b\nTo **generate the file content** , execute the `BuildConfiguration` operation using the [WorkspaceConsole utility](https://academy.creatio.com/documents?ver=8.3&id=15211).\nView the `BuildConfiguration` operation parameters in the table below.\nParameter| Description  \n---|---  \n-workspaceName| The workspace name. Set to `Default` by default.  \n-destinationPath| The directory to which to generate the static content.  \n-webApplicationPath| Path to the web application from which to read the information about the connection to the database. Optional. If you do not specify a value, Creatio will establish a connection to the database specified in the connection string of the `Terrasoft.Tools.WorkspaceConsole.config` file. If you specify a value, Creatio will establish the connection to the database from the `ConnectionStrings.config` file of the web application.  \n-force| Optional. Set to `false` by default. If you leave the value as is, Creatio will generate the file contents only for modified schemas. If you set the value to `true`, Creatio will generate the content for all schemas.  \n* Generate the file content (option 1)\n* Generate the file content (option 2)\nTerrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -destinationPath=\"C:\\WebApplication\\Creatio\\Terrasoft.WebApp\" -force=true -logPath=C:\\wc\\log  \nTerrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -webApplicationPath=\"C:\\WebApplication\\Creatio\" -destinationPath=\"C:\\WebApplication\\Creatio\\Terrasoft.WebApp\" -force=true -logPath=C:\\wc\\log  \n### Client content generation when adding a new culture\u200b\nAfter you **add new cultures** in the Creatio UI, run the **Compile all** action in the **Configuration** section.\nImportant\nIf you cannot log in to Creatio after adding a new culture, open the **Configuration** section via the `http://[Creatio path]/0/dev` URL.\n### Retrieve the image URL\u200b\nThe browser requests images in the client part of Creatio with the URL specified in the `src` attribute of the `img` HTML element. Creatio generates this URL using the `Terrasoft.ImagesUrlBuilder (imagurlbuilder.js)` module with the `getUrl(config)` public method for retrieving the image URL. This method expects the `config` JavaScript configuration object that contains the parameters object in the `params` property. Creatio generates the image URL to add to the page based on this property.\nparams object structure\nconfig: {  \nparams: {  \nschemaName: \"\",  \nresourceItemName: \"\",  \nhash: \"\",  \nresourceItemExtension: \"\"  \n}  \n}  \n`schemaName` \u2013 the schema name (string)\n`resourceItemName` \u2013 the image name in Creatio (string)\n`Hash` \u2013 the image hash (string)\n`resourceItemExtension` \u2013 the image file extension. For example, \".png.\"\nView the example that generates the parameters configuration object needed to retrieve the static image URL below.\nGenerate the parameters configuration object\nvar localizableImages = {  \nAddButtonImage: {  \nsource: 3,  \nparams: {  \nschemaName: \"ActivityMiniPage\",  \nresourceItemName: \"AddButtonImage\",  \nhash: \"c15d635407f524f3bbe4f1810b82d315\",  \nresourceItemExtension: \".png\",  \n},  \n},  \n};  \n## Compatibility with the file system development mode\u200b\nIt is not possible to retrieve client content from pre-generated files in the file system development mode. To ensure the correct operation of the file system development mode, **disable the retrieval of static client content** from the file system. To disable this feature, set the `UseStaticFileContent` flag in the `Web.config` file to `false`.\nDisable the retrieval of static file content from the file system\n<fileDesignMode enabled=\"true\" />  \n...  \n<add key=\"UseStaticFileContent\" value=\"false\" />  \n## Transfer changes between environments\u200b\nFile content is an integral part of the package. The content is stored in the version control system repository along with other package content. You can **transfer the file content to another environment** :\n* We recommend using the SVN version control system to transfer changes to the [development environment](https://academy.creatio.com/documents?ver=8.3&id=15201&anchor=title-2124-1).\n* We recommend using the [export and import](https://academy.creatio.com/documents?ver=8.3&id=15204) mechanism in Creatio IDE to transfer changes to [pre-production](https://academy.creatio.com/documents?ver=8.3&id=15201&anchor=title-2124-2) and [production](https://academy.creatio.com/documents?ver=8.3&id=15201&anchor=title-2124-3) environments.\nImportant\nCreatio will add the `Files` directory when installing packages only if there are files to place in it. If there is no such directory, create it manually to begin development.\n* * *\n## See also\u200b\n[Delivery in WorkspaceConsole](https://academy.creatio.com/documents?ver=8.3&id=15207)\n[Set up Creatio application server on IIS](https://academy.creatio.com/documents?ver=8.3&id=2142) (user documentation)\n[Version control in Subversion](https://academy.creatio.com/documents?ver=8.3&id=15142)\n[Environment overview](https://academy.creatio.com/documents?ver=8.3&id=15201)\n[Delivery in Creatio IDE](https://academy.creatio.com/documents?ver=8.3&id=15203)",
+  "code_examples": [
+    {
+      "code": "-PackageName    ...    -Files        -src            -js                bootstrap.js                [other *.js files]            -css                [*.css files]            -less                [*.less files]            -img                [image files]            -res                [resource files]        descriptor.json    ...descriptor.json",
+      "language": "cli",
+      "context": "We recommendstructuringtheFilesdirectory as below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"bootstraps\": [        ... // The string array that contains relative paths to bootstrap files.    ]}",
+      "language": "js",
+      "context": "View thedescriptor.jsonfile structure below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"bootstraps\": [        \"src/js/bootstrap.js\",        \"src/js/anotherBootstrap.js\"    ]}",
+      "language": "js",
+      "context": "View thedescriptor.jsonfile structure below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(function() {    require.config({        paths: {            \"Module name\": \"Link to the file content\",            ...        }    });})();",
+      "language": "js",
+      "context": "Packagebootstrap filesare *.js files that handle the loading of client configuration logic. The file structure may vary.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(function() {    require.config({        paths: {            \"MyPackage1-ContactSectionV2\": Terrasoft.getFileContentUrl(\"MyPackage1\", \"src/js/ContactSectionV2.js\"),            \"MyPackage1-Utilities\": Terrasoft.getFileContentUrl(\"MyPackage1\", \"src/js/Utilities.js\")        }    });})();",
+      "language": "js",
+      "context": "Packagebootstrap filesare *.js files that handle the loading of client configuration logic. The file structure may vary.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var Terrasoft = Terrasoft || {};Terrasoft.configuration = Terrasoft.configuration || {};Terrasoft.configuration.FileContentBootstraps = {    MyPackage1: [\"src/js/bootstrap.js\"],};",
+      "language": "js",
+      "context": "Creatio loads bootstrap files asynchronously after loading the core, but before loading the configuration. Creatio generates_FileContentBootstraps.jsauxiliary file in the static content directory to e",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var Terrasoft = Terrasoft || {};Terrasoft.configuration = Terrasoft.configuration || {};Terrasoft.configuration.FileContentDescriptors = {    \"MyPackage1/descriptor.json\": {        Hash: \"5d4e779e7ff24396a132a0e39cca25cc\",    },    \"MyPackage1/Files/src/js/Utilities.js\": {        Hash: \"6d5e776e7ff24596a135a0e39cc525gc\",    },};",
+      "language": "js",
+      "context": "Creatio generates_FileContentDescriptors.jsauxiliary file in the static file content directory to ensure the file content versioning works correctly. The auxiliary file contains information about file",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -destinationPath=Terrasoft.WebApp\\ -configurationPath=Terrasoft.WebApp\\Terrasoft.Configuration\\ -useStaticFileContent=false -usePackageFileContent=true -autoExit=true",
+      "language": "cli",
+      "context": "Enables the package file content. Set the value totrue.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -destinationPath=\"C:\\WebApplication\\Creatio\\Terrasoft.WebApp\" -force=true -logPath=C:\\wc\\log",
+      "language": "cli",
+      "context": "Optional. Set tofalseby default. If you leave the value as is, Creatio will generate the file contents only for modified schemas. If you set the value totrue, Creatio will generate the content for all",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -webApplicationPath=\"C:\\WebApplication\\Creatio\" -destinationPath=\"C:\\WebApplication\\Creatio\\Terrasoft.WebApp\" -force=true -logPath=C:\\wc\\log",
+      "language": "cli",
+      "context": "Optional. Set tofalseby default. If you leave the value as is, Creatio will generate the file contents only for modified schemas. If you set the value totrue, Creatio will generate the content for all",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "config: {    params: {        schemaName: \"\",        resourceItemName: \"\",        hash: \"\",        resourceItemExtension: \"\"    }}",
+      "language": "js",
+      "context": "The browser requests images in the client part of Creatio with the URL specified in thesrcattribute of theimgHTML element. Creatio generates this URL using theTerrasoft.ImagesUrlBuilder (imagurlbuilde",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "var localizableImages = {    AddButtonImage: {        source: 3,        params: {            schemaName: \"ActivityMiniPage\",            resourceItemName: \"AddButtonImage\",            hash: \"c15d635407f524f3bbe4f1810b82d315\",            resourceItemExtension: \".png\",        },    },};",
+      "language": "js",
+      "context": "View the example that generates the parameters configuration object needed to retrieve the static image URL below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<fileDesignMode enabled=\"true\" />...<add key=\"UseStaticFileContent\" value=\"false\" />",
+      "language": "xml",
+      "context": "It is not possible to retrieve client content from pre-generated files in the file system development mode. To ensure the correct operation of the file system development mode,disable the retrieval of",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "-operation",
+          "The name of the operation. Set the value toBuildConfiguration\u2013 the operation that compiles the configuration."
+        ],
+        [
+          "-useStaticFileContent",
+          "Enables the static content. Set the value tofalse."
+        ],
+        [
+          "-usePackageFileContent",
+          "Enables the package file content. Set the value totrue."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><p>-operation</p></td><td><p>The name of the operation. Set the value to <code>BuildConfiguration</code> \u2013 the operation that compiles the configuration.</p></td></tr><tr><td><p>-useStaticFileContent</p></td><td><p>Enables the static content. Set the value to <code>false</code>.</p></td></tr><tr><td><p>-usePackageFileContent</p></td><td><p>Enables the package file content. Set the value to <code>true</code>.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "-workspaceName",
+          "The workspace name. Set toDefaultby default."
+        ],
+        [
+          "-destinationPath",
+          "The directory to which to generate the static content."
+        ],
+        [
+          "-webApplicationPath",
+          "Path to the web application from which to read the information about the connection to the database. Optional. If you do not specify a value, Creatio will establish a connection to the database specified in the connection string of theTerrasoft.Tools.WorkspaceConsole.configfile. If you specify a value, Creatio will establish the connection to the database from theConnectionStrings.configfile of the web application."
+        ],
+        [
+          "-force",
+          "Optional. Set tofalseby default. If you leave the value as is, Creatio will generate the file contents only for modified schemas. If you set the value totrue, Creatio will generate the content for all schemas."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><p>-workspaceName</p></td><td><p>The workspace name. Set to <code>Default</code> by default.</p></td></tr><tr><td><p>-destinationPath</p></td><td><p>The directory to which to generate the static content.</p></td></tr><tr><td><p>-webApplicationPath</p></td><td><p>Path to the web application from which to read the information about the connection to the database. Optional. If you do not specify a value, Creatio will establish a connection to the database specified in the connection string of the <code>Terrasoft.Tools.WorkspaceConsole.config</code> file. If you specify a value, Creatio will establish the connection to the database from the <code>ConnectionStrings.config</code> file of the web application.</p></td></tr><tr><td><p>-force</p></td><td><p>Optional. Set to <code>false</code> by default. If you leave the value as is, Creatio will generate the file contents only for modified schemas. If you set the value to <code>true</code>, Creatio will generate the content for all schemas.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Identity",
+      "content": "ImportantThe user of the IIS pool that runs Creatio must have modification permissions for static content generation in the.\\Terrasoft.WebApp\\confdirectory to work properly. Set up permissions in the Handler Mappings section on the server level. Learn more:Set up Creatio application server on IIS(user documentation).Set the name of the IIS pool user in theIdentityproperty. ClickAdvanced Settingson theApplication Poolstab of the IIS manager to open this property.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The user of the IIS pool that runs Creatio must have modification permissions for static content generation in the <code>.\\Terrasoft.WebApp\\conf</code> directory to work properly. Set up permissions in the Handler Mappings section on the server level. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2142&amp;anchor=title-269-2\" rel=\"noopener noreferrer\" target=\"_blank\">Set up Creatio application server on IIS</a> (user documentation).</p><p>Set the name of the IIS pool user in the <strong>Identity</strong> property. Click <strong>Advanced Settings</strong> on the <strong>Application Pools</strong> tab of the IIS manager to open this property.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Identity",
+      "content": "The user of the IIS pool that runs Creatio must have modification permissions for static content generation in the.\\Terrasoft.WebApp\\confdirectory to work properly. Set up permissions in the Handler Mappings section on the server level. Learn more:Set up Creatio application server on IIS(user documentation).Set the name of the IIS pool user in theIdentityproperty. ClickAdvanced Settingson theApplication Poolstab of the IIS manager to open this property.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The user of the IIS pool that runs Creatio must have modification permissions for static content generation in the <code>.\\Terrasoft.WebApp\\conf</code> directory to work properly. Set up permissions in the Handler Mappings section on the server level. Learn more: <a href=\"https://academy.creatio.com/documents?ver=8.3&amp;id=2142&amp;anchor=title-269-2\" rel=\"noopener noreferrer\" target=\"_blank\">Set up Creatio application server on IIS</a> (user documentation).</p><p>Set the name of the IIS pool user in the <strong>Identity</strong> property. Click <strong>Advanced Settings</strong> on the <strong>Application Pools</strong> tab of the IIS manager to open this property.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Compile all",
+      "content": "noteTheCompile allaction fully re-generates the static file content. Other Creatio actions re-generate only the modified schemas.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The <strong>Compile all</strong> action fully re-generates the static file content. Other Creatio actions re-generate only the modified schemas.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Compile all",
+      "content": "TheCompile allaction fully re-generates the static file content. Other Creatio actions re-generate only the modified schemas.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The <strong>Compile all</strong> action fully re-generates the static file content. Other Creatio actions re-generate only the modified schemas.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Configuration",
+      "content": "ImportantIf you cannot log in to Creatio after adding a new culture, open theConfigurationsection via thehttp://[Creatio path]/0/devURL.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you cannot log in to Creatio after adding a new culture, open the <strong>Configuration</strong> section via the <code>http://[Creatio path]/0/dev</code> URL.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Configuration",
+      "content": "If you cannot log in to Creatio after adding a new culture, open theConfigurationsection via thehttp://[Creatio path]/0/devURL.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you cannot log in to Creatio after adding a new culture, open the <strong>Configuration</strong> section via the <code>http://[Creatio path]/0/dev</code> URL.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantCreatio will add theFilesdirectory when installing packages only if there are files to place in it. If there is no such directory, create it manually to begin development.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Creatio will add the <code>Files</code> directory when installing packages only if there are files to place in it. If there is no such directory, create it manually to begin development.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio will add theFilesdirectory when installing packages only if there are files to place in it. If there is no such directory, create it manually to begin development.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio will add the <code>Files</code> directory when installing packages only if there are files to place in it. If there is no such directory, create it manually to begin development.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Packages file content basics",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Storage structure of package file content\u200b",
+      "anchor": "title-1197-2"
+    },
+    {
+      "level": 2,
+      "text": "Package bootstrap files\u200b",
+      "anchor": "title-1197-4"
+    },
+    {
+      "level": 2,
+      "text": "File content versioning\u200b",
+      "anchor": "title-1197-6"
+    },
+    {
+      "level": 2,
+      "text": "Auxiliary file generation\u200b",
+      "anchor": "title-1197-7"
+    },
+    {
+      "level": 2,
+      "text": "Static file content pre-generation\u200b",
+      "anchor": "title-1197-8"
+    },
+    {
+      "level": 2,
+      "text": "File content generation\u200b",
+      "anchor": "title-1197-10"
+    },
+    {
+      "level": 3,
+      "text": "Client content generation when adding a new culture\u200b",
+      "anchor": "title-1197-13"
+    },
+    {
+      "level": 3,
+      "text": "Retrieve the image URL\u200b",
+      "anchor": "title-1197-14"
+    },
+    {
+      "level": 2,
+      "text": "Compatibility with the file system development mode\u200b",
+      "anchor": "title-1197-12"
+    },
+    {
+      "level": 2,
+      "text": "Transfer changes between environments\u200b",
+      "anchor": "title-1197-11"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "CONFIG",
+        "path": "("
+      },
+      {
+        "method": "CONFIG",
+        "path": "("
+      },
+      {
+        "method": "GETFILECONTENTURL",
+        "path": "("
+      },
+      {
+        "method": "GETFILECONTENTURL",
+        "path": "("
+      }
+    ],
+    "parameters": [
+      {
+        "name": "-operation",
+        "type": "The name of the operation. Set the value toBuildConfiguration\u2013 the operation that compiles the configuration.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-useStaticFileContent",
+        "type": "Enables the static content. Set the value tofalse.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-usePackageFileContent",
+        "type": "Enables the package file content. Set the value totrue.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-workspaceName",
+        "type": "The workspace name. Set toDefaultby default.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-destinationPath",
+        "type": "The directory to which to generate the static content.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-webApplicationPath",
+        "type": "Path to the web application from which to read the information about the connection to the database. Optional. If you do not specify a value, Creatio will establish a connection to the database specified in the connection string of theTerrasoft.Tools.WorkspaceConsole.configfile. If you specify a value, Creatio will establish the connection to the database from theConnectionStrings.configfile of the web application.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "-force",
+        "type": "Optional. Set tofalseby default. If you leave the value as is, Creatio will generate the file contents only for modified schemas. If you set the value totrue, Creatio will generate the content for all schemas.",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/file-content/file-content-basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/file-content-basics",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/file-content-basics",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/file-content-basics",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/creatio-ide/operations-with-packages",
+      "text": "Operations with packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/creatio-ide/operations-with-schemas",
+      "text": "Operations with schemas",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/schemas",
+      "text": "Schemas",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/package-conversion",
+      "text": "Conversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/file-content",
+      "text": "PreviousFile content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/file-content/localize-the-file-content",
+      "text": "NextLocalize the file content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/static-content",
+      "text": "Static content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/file-content/static-content/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/static-content-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/file-content/create-an-angular-component",
+      "text": "Angular component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/delivery/hotfix-mode",
+      "text": "Hotfix mode",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:21:45.174238"
+}

@@ -1,0 +1,1 @@
+{    "viewModelConfig": {        "attributes": {            "SomeAttribute": {                "modelConfig": {"path": "PDS.Title"},                "name": "SomeAttribute"            }        }    }}

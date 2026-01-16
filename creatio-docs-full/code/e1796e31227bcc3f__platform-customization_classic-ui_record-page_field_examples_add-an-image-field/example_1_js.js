@@ -1,0 +1,1 @@
+ /* The name of the record page object's schema. */entitySchemaName: "KnowledgeBase",

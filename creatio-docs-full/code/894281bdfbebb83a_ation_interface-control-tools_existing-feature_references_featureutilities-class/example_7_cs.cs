@@ -1,0 +1,1 @@
+static void SafeSetFeatureState(this UserConnection source, string code, int state, bool forAllUsers = false)

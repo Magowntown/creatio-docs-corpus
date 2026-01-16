@@ -1,0 +1,1 @@
+subscribe(messageName, messageHandler, scope, tags)

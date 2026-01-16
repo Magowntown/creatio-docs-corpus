@@ -1,0 +1,1 @@
+"viewModelConfig": {    "attributes": {        "Items": {            "viewModelConfig": {                "cacheConfig": {                    "syncRuleName": "InvoiceModule"                },            },            "name": "Attribute_Items"        },        "name": "Attributes"    },    "name": "ViewModelConfig"}

@@ -1,0 +1,1 @@
+EntitySchemaCurrenddateQueryFunction CreateCurrenddateFunction()

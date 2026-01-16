@@ -1,0 +1,694 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/asterisk",
+  "title": "Asterisk integration basics",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1"
+    },
+    {
+      "text": "Telephony",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: advanced\nnote\nThe functionality is relevant to Classic UI.\nUse AMI ([Asterisk Manager Interface](https://wiki.asterisk.org/wiki/pages/viewpage.action?pageId=4817239)) to interact with the [Asterisk](http://www.asterisk.org/) server. The API enables client programs to connect to Asterisk server by using TCP/IP protocol. The [Application Programming Interface](https://en.wikipedia.org/wiki/Application_programming_interface) enables you to process events in the digital multiplex system (DMS), and send commands to control calls.\nnote\nCurrently the integration of Creatio with Asterisk is supported up to version 13.\nA client uses a simple text protocol for communication between the Asterisk and the connected Manager API: \"parameter: value\". The end of a string is determined by the sequence of Carriage Return and Line Feed. Learn more: [Carriage return](https://en.wikipedia.org/wiki/Carriage_return) (Wikipedia).\nnote\nIn the future, for a set of strings like \"parameter: value\", followed by a blank line containing only a CRLF, for simplicity the term \"package\" will be used.\n## Set up the configuration file of the Messaging Service to integrate Asterisk to Creatio\u200b\nFor integration to work with Creatio, you need to install Terrasoft Messaging Service (TMS) on a dedicated computer that will be used as the integration server. You must set the following parameters for Asterisk in the `Terrasoft.Messaging.Service.exe.config` configuration file:\nParameters for Asterisk\n<asterisk filePath=\"\" url=\"Name_or_address_of_Asterisk_server\" port=\"Asterisk_server_port\"  \nuserName=\"Asterisk login\" secret=\"Asterisk password\" originateContext=\"Originate context\" parkingLotContext=\"Parking lot context\"  \nautoPauseOnCommutationStart=\"true\" queueExtensionFormat=\"Local/{0}@from-queue/n\" asyncOriginate=\"true\" sendRingStartedOnRingingState=\"true\"  \ntraceQueuesState=\"false\" packetInfoConfig=\"Additional package parameters to be processed in configuration\" />  \n## Ports for Asterisk integration with Creatio\u200b\n* TMS accepts WebSocket connection to the 2013 port via TCP.\n* TMS connects to the Asterisk server by default via the 5038 port.\n## The Terrasoft Messaging Service for Asterisk integration with Creatio\u200b\nThe integration part of the Messaging Service is implemented in the main Creatio solution kernel in the `Terrasoft.Messaging.Asterisk` library.\nLibrary main classes:\n* `AsteriskAdapter` \u2013 an Asterisk class that transforms events to the top-level call model events used in Creatio integration.\n* `AsteriskManager` \u2013 a class that creates and deletes user connections to the Asterisk server.\n* `AsteriskConnection` \u2013 a class that represents the user connection for integration with Asterisk.\n* `AsteriskClient` \u2013 a class used to send commands to the Asterisk server.\n## Example of CtiModel, Terrasoft Messaging Service and Asterisk Manager API interaction\u200b\nOperator outgoing call to a subscriber: putting a call on hold, putting off hold by a subscriber and finishing the call by the operator.\nThe order of events during a call for the current example:\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Telephony/scr_asterisk_events.png)\nThe table shows an example of event processing including how the event data is interpreted by TMS and which values from the listed events are used when processing an incoming call.\nAsterisk log| TMS| Action| Client  \n---|---|---|---  \n{  \nEvent: newchannel  \nChannel: <channel_name>  \nUniqueID: <unique_id>  \n}  \n| A channel is created and added to a collection\nnew AsteriskChannel({  \nName: <channel_name>,  \nUniqueId: <unique_id>  \n});  \n| |   \n{  \nEvent: Hold  \nUniqueID: <unique_id>  \nStatus: \"Off\"  \n}  \n| Search for the channel by `<unique_id>` and generate an event by using the `fireEvent` method.| PutHoldAction| Processing the PutHoldAction and displaying the call on hold.  \n{  \nEvent: Hangup  \nUniqueID: <unique_id>  \n}  \n| Search for the channel by `<unique_id>` and generate an event by using the `fireEvent` method.| EndHoldAction| Processing the EndHoldAction and displaying the call on hold.  \n{  \nEvent: Dial  \nSubEvent: Begin  \nUniqueID: <unique_id>  \n}  \n| Search for the channel by `<unique_id>` and generate an event by using the `fireEvent` method.| RingFinished| Processing event and displaying the call end.  \n{  \nEvent: Dial  \nSubEvent: Begin  \nUniqueID: <unique_id>  \n}  \n| Search for the channel by `<unique_id>`, fill in the data and generate an event by using the _fireEvent_ method.| RingStarted| Processing the `RingStarted` event and displaying it on the outgoing call panel.  \n{  \nEvent: Bridge  \nUniqueID: <unique_id>  \n}  \n| Search for the channel by `<unique_id>` and generate an event by using the `fireEvent` method.| CommutationStarted| Processing the CommunicationStarted event and displaying the communication.  \n| | | Clicking the \"Answer\" button initiates a new event in Asterisk.  \n## Asterisk events\u200b\nA detail list of events and information about their parameters is described in the [Asterisk documentation](https://docs.asterisk.org/Asterisk_16_Documentation/API_Documentation/AMI_Events/).",
+  "code_examples": [
+    {
+      "code": "<asterisk filePath=\"\" url=\"Name_or_address_of_Asterisk_server\" port=\"Asterisk_server_port\"    userName=\"Asterisk login\" secret=\"Asterisk password\" originateContext=\"Originate context\" parkingLotContext=\"Parking lot context\"    autoPauseOnCommutationStart=\"true\" queueExtensionFormat=\"Local/{0}@from-queue/n\" asyncOriginate=\"true\" sendRingStartedOnRingingState=\"true\"    traceQueuesState=\"false\" packetInfoConfig=\"Additional package parameters to be processed in configuration\" />",
+      "language": "xml",
+      "context": "For integration to work with Creatio, you need to install Terrasoft Messaging Service (TMS) on a dedicated computer that will be used as the integration server. You must set the following parameters f",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    Event: newchannel    Channel: <channel_name>    UniqueID: <unique_id>}",
+      "language": "js",
+      "context": "Client",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "new AsteriskChannel({    Name: <channel_name>,    UniqueId: <unique_id>});",
+      "language": "js",
+      "context": "A channel is created and added to a collection",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    Event: Hold    UniqueID: <unique_id>    Status: \"Off\"}",
+      "language": "js",
+      "context": "A channel is created and added to a collection",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    Event: Hangup    UniqueID: <unique_id>}",
+      "language": "js",
+      "context": "Processing the PutHoldAction and displaying the call on hold.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    Event: Dial    SubEvent: Begin    UniqueID: <unique_id>}",
+      "language": "js",
+      "context": "Processing the EndHoldAction and displaying the call on hold.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    Event: Bridge    UniqueID: <unique_id>}",
+      "language": "js",
+      "context": "Processing theRingStartedevent and displaying it on the outgoing call panel.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Asterisk log",
+          "TMS",
+          "Action",
+          "Client"
+        ],
+        [
+          "{Event:newchannelChannel:<channel_name>UniqueID:<unique_id>}",
+          "A channel is created and added to a collectionnewAsteriskChannel({Name:<channel_name>,UniqueId:<unique_id>});",
+          "",
+          ""
+        ],
+        [
+          "{Event:HoldUniqueID:<unique_id>Status:\"Off\"}",
+          "Search for the channel by<unique_id>and generate an event by using thefireEventmethod.",
+          "PutHoldAction",
+          "Processing the PutHoldAction and displaying the call on hold."
+        ],
+        [
+          "{Event:HangupUniqueID:<unique_id>}",
+          "Search for the channel by<unique_id>and generate an event by using thefireEventmethod.",
+          "EndHoldAction",
+          "Processing the EndHoldAction and displaying the call on hold."
+        ],
+        [
+          "{Event:DialSubEvent:BeginUniqueID:<unique_id>}",
+          "Search for the channel by<unique_id>and generate an event by using thefireEventmethod.",
+          "RingFinished",
+          "Processing event and displaying the call end."
+        ],
+        [
+          "{Event:DialSubEvent:BeginUniqueID:<unique_id>}",
+          "Search for the channel by<unique_id>, fill in the data and generate an event by using thefireEventmethod.",
+          "RingStarted",
+          "Processing theRingStartedevent and displaying it on the outgoing call panel."
+        ],
+        [
+          "{Event:BridgeUniqueID:<unique_id>}",
+          "Search for the channel by<unique_id>and generate an event by using thefireEventmethod.",
+          "CommutationStarted",
+          "Processing the CommunicationStarted event and displaying the communication."
+        ],
+        [
+          "",
+          "",
+          "",
+          "Clicking the \"Answer\" button initiates a new event in Asterisk."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Asterisk log</p></th><th><p>TMS</p></th><th><p>Action</p></th><th><p>Client</p></th></tr><tr><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Event</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> newchannel</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Channel</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">channel_name</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">UniqueID</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">unique_id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td><td><p>A channel is created and added to a collection</p><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token class-name\">AsteriskChannel</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Name</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">channel_name</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">UniqueId</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">unique_id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td><td></td><td></td></tr><tr><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Event</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">Hold</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">UniqueID</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">unique_id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Status</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Off\"</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td><td><p>Search for the channel by <code>&lt;unique_id&gt;</code> and generate an event by using the <code>fireEvent</code> method.</p></td><td><p>PutHoldAction</p></td><td><p>Processing the PutHoldAction and displaying the call on hold.</p></td></tr><tr><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Event</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">Hangup</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">UniqueID</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">unique_id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td><td><p>Search for the channel by <code>&lt;unique_id&gt;</code> and generate an event by using the <code>fireEvent</code> method.</p></td><td><p>EndHoldAction</p></td><td><p>Processing the EndHoldAction and displaying the call on hold.</p></td></tr><tr><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Event</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">Dial</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">SubEvent</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">Begin</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">UniqueID</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">unique_id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td><td><p>Search for the channel by <code>&lt;unique_id&gt;</code> and generate an event by using the <code>fireEvent</code> method.</p></td><td><p>RingFinished</p></td><td><p>Processing event and displaying the call end.</p></td></tr><tr><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Event</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">Dial</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">SubEvent</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">Begin</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">UniqueID</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">unique_id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td><td><p>Search for the channel by <code>&lt;unique_id&gt;</code>, fill in the data and generate an event by using the <em>fireEvent</em> method.</p></td><td><p>RingStarted</p></td><td><p>Processing the <code>RingStarted</code> event and displaying it on the outgoing call panel.</p></td></tr><tr><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">Event</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token maybe-class-name\">Bridge</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">UniqueID</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&lt;</span><span class=\"token plain\">unique_id</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">&gt;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td><td><p>Search for the channel by <code>&lt;unique_id&gt;</code> and generate an event by using the <code>fireEvent</code> method.</p></td><td><p>CommutationStarted</p></td><td><p>Processing the CommunicationStarted event and displaying the communication.</p></td></tr><tr><td></td><td></td><td></td><td><p>Clicking the \"Answer\" button initiates a new event in Asterisk.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe functionality is relevant to Classic UI.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The functionality is relevant to Classic UI.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteCurrently the integration of Creatio with Asterisk is supported up to version 13.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Currently the integration of Creatio with Asterisk is supported up to version 13.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Currently the integration of Creatio with Asterisk is supported up to version 13.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Currently the integration of Creatio with Asterisk is supported up to version 13.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIn the future, for a set of strings like \"parameter: value\", followed by a blank line containing only a CRLF, for simplicity the term \"package\" will be used.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>In the future, for a set of strings like \"parameter: value\", followed by a blank line containing only a CRLF, for simplicity the term \"package\" will be used.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "In the future, for a set of strings like \"parameter: value\", followed by a blank line containing only a CRLF, for simplicity the term \"package\" will be used.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>In the future, for a set of strings like \"parameter: value\", followed by a blank line containing only a CRLF, for simplicity the term \"package\" will be used.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Telephony/scr_asterisk_events.png",
+      "alt": "",
+      "title": "",
+      "context": "The order of events during a call for the current example:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/c3cbbe1cf7f2d0af_reatio-platform_platform-customization_classic-ui_telephony-integration_asterisk_5968ff07b6c4.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Asterisk integration basics",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up the configuration file of the Messaging Service to integrate Asterisk to Creatio\u200b",
+      "anchor": "title-1454-1"
+    },
+    {
+      "level": 2,
+      "text": "Ports for Asterisk integration with Creatio\u200b",
+      "anchor": "title-1454-2"
+    },
+    {
+      "level": 2,
+      "text": "The Terrasoft Messaging Service for Asterisk integration with Creatio\u200b",
+      "anchor": "title-1454-3"
+    },
+    {
+      "level": 2,
+      "text": "Example of CtiModel, Terrasoft Messaging Service and Asterisk Manager API interaction\u200b",
+      "anchor": "title-1454-4"
+    },
+    {
+      "level": 2,
+      "text": "Asterisk events\u200b",
+      "anchor": "title-1454-5"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/opening-the-page",
+      "text": "Opening the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "PreviousWebitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/machine-learning",
+      "text": "NextMachine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/emails-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/anonymous-access",
+      "text": "Retrieve allowed features before login",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:29:27.028932"
+}

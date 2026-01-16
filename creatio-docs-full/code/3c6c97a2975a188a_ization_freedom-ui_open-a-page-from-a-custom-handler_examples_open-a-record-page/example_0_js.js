@@ -1,0 +1,1 @@
+/* Declare the AMD module. */define("UsrAppRequests_FormPage", /**SCHEMA_DEPS*/["@creatio-devkit/common"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        ...    }});

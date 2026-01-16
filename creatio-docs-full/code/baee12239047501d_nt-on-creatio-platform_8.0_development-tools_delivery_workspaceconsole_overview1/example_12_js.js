@@ -1,0 +1,1 @@
+[Path to WorkspaceConsole]\Terrasoft.Tools.WorkspaceConsole.exe -operation=DeletePackages -workspaceName=[Workspace name] -packagesToDelete=[Packages to be deleted] -continueIfError=true -webApplicationPath=[Path to a local directory] -confRuntimeParentDirectory=[Path to a local directory] -logPath=[Path to a local directory]

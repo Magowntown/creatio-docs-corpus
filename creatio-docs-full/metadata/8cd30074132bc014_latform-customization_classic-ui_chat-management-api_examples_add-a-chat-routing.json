@@ -1,0 +1,857 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/examples/add-a-chat-routing",
+  "title": "Add a chat routing mechanism",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Chats",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nTo [set up chat routing](https://academy.creatio.com/documents?ver=8.0&id=2382), select a routing rule from the drop-down list in the queue settings. This determines the mechanism that distributes chats to agents.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_queueRules.png)\nView an example that adds a custom distribution mechanism below.\nExample\nAdd a custom chat distribution mechanism. Grant the system user (Supervisor) access to new chats. Grant agents access to distributed chats.\n## 1\\. Add a new chat routing rule\u200b\n1. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/TryIt/scr_system_designer.png) button to open the System Designer.\n2. Go to the **System setup** block \u2192 **Lookups**.\n3. Use the filter at the top to find the \"Rules for routing chat queue operators\" lookup.\n4. Open the lookup content and add a **new rule** :\n* Set **Name** to \"Test rule.\"\n* Set **Code** to \"TestRule.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_lookup.png)\n## 2\\. Create a class that implements the IOperatorRoutingRule interface\u200b\nOn this step, you can create a class that inherits from the `BaseOperatorRoutingRule` class or new class that implements the `IOperatorRoutingRule` interface.\nThe `BaseOperatorRoutingRule` class contains abstract `PickUpFreeQueueOperators` and `GetChatOperator` methods you must implement.\nAbstract methods of the BaseOperatorRoutingRule class\n/// <summary>  \n/// Pick up and return queue agent IDs.  \n/// </summary>  \n/// <param name=\"chatId\"><see cref=\"OmniChat\"/> The agent ID.</param>  \n/// <param name=\"queueId\"><see cref=\"ChatQueue\"/> The instance ID.</param>  \n/// <returns>The queue agent IDs.</returns>  \nprotected abstract List<Guid> PickUpFreeQueueOperators(Guid chatId, Guid queueId);  \n/// <summary>  \n/// Returns the <see cref=\"OmniChat\"/> agent ID.  \n/// </summary>  \n/// <param name=\"chatId\"><see cref=\"OmniChat\"/> The agent ID.</param>  \n/// <returns>The chat agent.</returns>  \nprotected abstract Guid GetChatOperator(Guid chatId);  \nMoreover, the `BaseOperatorRoutingRule` already contains the implementation of the `IOperatorRoutingRule` interface. View the implementation logic below.\nImplementation of the IOperatorRoutingRule interface\npublic List <Guid> GetOperatorIds(string chatId, Guid queueId) {  \nvar parsedChatId = Guid.Parse(chatId);  \nvar chatOperator = GetChatOperator(parsedChatId);  \nreturn chatOperator.IsNotEmpty() ? new List <Guid> {  \nchatOperator  \n}: PickUpFreeQueueOperators(parsedChatId, queueId);  \n}  \nIf the chat is already **assigned to an agent** (the user ID is specified in the `[OperatorId]` column), select the agent. If the chat is **not assigned to an agent** , retrieve the agent or agents as `List<Guid>` using the `PickUpFreeQueueOperators` method. In this case, `Guid` are agent IDs in the `[SysAdminUnit]` table. The agents that have the corresponding IDs receive new chat notifications and can access the chat in the communication panel.\nCreate a `TestOperatorRoutingRule` class that implements the basic logic that routes the chat to the system user (Supervisor).\nTo **create a class** :\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n3. Go to the Schema Designer and fill out the **schema properties** :\n* Set **Code** to \"UsrTestOperatorRoutingRule.\"\n* Set **Title** to \"TestOperatorRoutingRule.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_routingRule.png)\nClick **Apply** to apply the properties.\n4. Add the source code in the Schema Designer.\nTestOperatorRoutingRule\nnamespace Terrasoft.Configuration.Omnichannel.Messaging {  \nusing System;  \nusing System.Collections.Generic;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \n#region Class: ForEveryoneOperatorRoutingRule  \n/// <summary>  \n/// Retrieve chat agents.  \n/// </summary>  \npublic class TestOperatorRoutingRule: BaseOperatorRoutingRule {  \n#region Constructors: Public  \n/// <summary>  \n/// Initialize a new instance of <see cref=\"TestOperatorRoutingRule\"/>.  \n/// </summary>  \n/// <param name=\"userConnection\"><see cref=\"UserConnection\"/> the instance.</param>  \npublic TestOperatorRoutingRule(UserConnection userConnection) : base(userConnection) {}  \n#endregion  \n#region Methods: Private  \n#endregion  \n#region Methods: Protected  \n/// <inheritdoc cref=\"BaseOperatorRoutingRule.PickUpFreeQueueOperators(Guid, Guid)\"/>  \nprotected override List < Guid > PickUpFreeQueueOperators(Guid chatId, Guid queueId) {  \nreturn new List < Guid > {  \nGuid.Parse(\"7F3B869F-34F3-4F20-AB4D-7480A5FDF647\")  \n};  \n}  \n/// <inheritdoc cref=\"BaseOperatorRoutingRule.GetChatOperator(Guid)\"/>  \nprotected override Guid GetChatOperator(Guid chatId) {  \nGuid operatorId = (new Select(UserConnection).Column(\"OperatorId\").From(\"OmniChat\", \"oc\").Where(\"oc\", \"Id\").IsEqual(Column.Parameter(chatId))  \nas Select).ExecuteScalar < Guid > ();  \nreturn operatorId;  \n}  \n#endregion  \n}  \n#endregion  \n}  \n## 3\\. Link the interface and lookup rule code\u200b\nTo link the interface implementation and alphabetic code of the rule you specified in the lookup on step 1, create a `TestAppEventListener` class (inherit the class from the `AppEventListenerBase` class) and link the interfaces in it.\nTo **create a class** :\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Source code** on the section list toolbar.\n3. Go to the Schema Designer and fill out the **schema properties** :\n* Set **Code** to \"UsrTestAppEventListener.\"\n* Set **Title** to \"TestAppEventListener.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_appEventListener.png)\n4. Add the source code in the Schema Designer.\nTestAppEventListener\nnamespace Terrasoft.Configuration.Omnichannel.Messaging {  \nusing Common;  \nusing Core;  \nusing Terrasoft.Core.Factories;  \nusing Web.Common;  \n#region Class: TestAppEventListener  \n/// <summary>  \n/// The class that runs prerequisites for OmnichannelMessaging on the application start.  \n/// </summary>  \npublic class TestAppEventListener: AppEventListenerBase {  \n#region Fields: Protected  \nprotected UserConnection UserConnection {  \nget;  \nprivate set;  \n}  \n#endregion  \n#region Methods: Protected  \n/// <summary>  \n/// Retrieve the user connection from the application event scope.  \n/// </summary>  \n/// <param name=\"context\">The application event scope.</param>  \n/// <returns>User connection.</returns>  \nprotected UserConnection GetUserConnection(AppEventContext context) {  \nvar appConnection = context.Application[\"AppConnection\"] as AppConnection;  \nif (appConnection == null) {  \nthrow new ArgumentNullOrEmptyException(\"AppConnection\");  \n}  \nreturn appConnection.SystemUserConnection;  \n}  \nprotected void BindInterfaces() {  \nClassFactory.Bind < IOperatorRoutingRule,  \nTestOperatorRoutingRule > (\"TestRule\");  \n}  \n#endregion  \n#region Methods: Public  \n/// <summary>  \n/// Handle the application start.  \n/// </summary>  \n/// <param name=\"context\">The application event scope.</param>  \npublic override void OnAppStart(AppEventContext context) {  \nbase.OnAppStart(context);  \nUserConnection = GetUserConnection(context);  \nBindInterfaces();  \n}  \n#endregion  \n}  \n#endregion  \n}  \n## 4\\. Restart Creatio in IIS\u200b\nRestart Creatio in IIS to apply the changes. After you restart Creatio and select \"Test rule\" in the queue settings, Creatio will distribute chats based on the specified conditions.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_result.png)",
+  "code_examples": [
+    {
+      "code": "/// <summary>/// Pick up and return queue agent IDs./// </summary>/// <param name=\"chatId\"><see cref=\"OmniChat\"/> The agent ID.</param>/// <param name=\"queueId\"><see cref=\"ChatQueue\"/> The instance ID.</param>/// <returns>The queue agent IDs.</returns>protected abstract List<Guid> PickUpFreeQueueOperators(Guid chatId, Guid queueId);/// <summary>/// Returns the <see cref=\"OmniChat\"/> agent ID./// </summary>/// <param name=\"chatId\"><see cref=\"OmniChat\"/> The agent ID.</param>/// <returns>The chat agent.</returns>protected abstract Guid GetChatOperator(Guid chatId);",
+      "language": "js",
+      "context": "TheBaseOperatorRoutingRuleclass contains abstractPickUpFreeQueueOperatorsandGetChatOperatormethods you must implement.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public List <Guid> GetOperatorIds(string chatId, Guid queueId) {    var parsedChatId = Guid.Parse(chatId);    var chatOperator = GetChatOperator(parsedChatId);    return chatOperator.IsNotEmpty() ? new List <Guid> {        chatOperator    }: PickUpFreeQueueOperators(parsedChatId, queueId);}",
+      "language": "js",
+      "context": "Moreover, theBaseOperatorRoutingRulealready contains the implementation of theIOperatorRoutingRuleinterface. View the implementation logic below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging {    using System;    using System.Collections.Generic;    using Terrasoft.Core;    using Terrasoft.Core.DB;    #region Class: ForEveryoneOperatorRoutingRule    /// <summary>    /// Retrieve chat agents.    /// </summary>    public class TestOperatorRoutingRule: BaseOperatorRoutingRule {        #region Constructors: Public        /// <summary>        /// Initialize a new instance of <see cref=\"TestOperatorRoutingRule\"/>.        /// </summary>        /// <param name=\"userConnection\"><see cref=\"UserConnection\"/> the instance.</param>        public TestOperatorRoutingRule(UserConnection userConnection) : base(userConnection) {}        #endregion        #region Methods: Private        #endregion        #region Methods: Protected        /// <inheritdoc cref=\"BaseOperatorRoutingRule.PickUpFreeQueueOperators(Guid, Guid)\"/>        protected override List < Guid > PickUpFreeQueueOperators(Guid chatId, Guid queueId) {            return new List < Guid > {                Guid.Parse(\"7F3B869F-34F3-4F20-AB4D-7480A5FDF647\")            };        }        /// <inheritdoc cref=\"BaseOperatorRoutingRule.GetChatOperator(Guid)\"/>        protected override Guid GetChatOperator(Guid chatId) {            Guid operatorId = (new Select(UserConnection).Column(\"OperatorId\").From(\"OmniChat\", \"oc\").Where(\"oc\", \"Id\").IsEqual(Column.Parameter(chatId))            as Select).ExecuteScalar < Guid > ();            return operatorId;        }        #endregion    }    #endregion}",
+      "language": "js",
+      "context": "Add the source code in the Schema Designer.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging {    using Common;    using Core;    using Terrasoft.Core.Factories;    using Web.Common;    #region Class: TestAppEventListener    /// <summary>    /// The class that runs prerequisites for OmnichannelMessaging on the application start.    /// </summary>    public class TestAppEventListener: AppEventListenerBase {        #region Fields: Protected        protected UserConnection UserConnection {            get;            private set;        }        #endregion        #region Methods: Protected        /// <summary>        /// Retrieve the user connection from the application event scope.        /// </summary>        /// <param name=\"context\">The application event scope.</param>        /// <returns>User connection.</returns>        protected UserConnection GetUserConnection(AppEventContext context) {            var appConnection = context.Application[\"AppConnection\"] as AppConnection;            if (appConnection == null) {                throw new ArgumentNullOrEmptyException(\"AppConnection\");            }            return appConnection.SystemUserConnection;        }        protected void BindInterfaces() {            ClassFactory.Bind < IOperatorRoutingRule,            TestOperatorRoutingRule > (\"TestRule\");        }        #endregion        #region Methods: Public        /// <summary>        /// Handle the application start.        /// </summary>        /// <param name=\"context\">The application event scope.</param>        public override void OnAppStart(AppEventContext context) {            base.OnAppStart(context);            UserConnection = GetUserConnection(context);            BindInterfaces();        }        #endregion    }    #endregion}",
+      "language": "js",
+      "context": "Add the source code in the Schema Designer.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd a custom chat distribution mechanism. Grant the system user (Supervisor) access to new chats. Grant agents access to distributed chats.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add a custom chat distribution mechanism. Grant the system user (Supervisor) access to new chats. Grant agents access to distributed chats.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add a custom chat distribution mechanism. Grant the system user (Supervisor) access to new chats. Grant agents access to distributed chats.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add a custom chat distribution mechanism. Grant the system user (Supervisor) access to new chats. Grant agents access to distributed chats.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_queueRules.png",
+      "alt": "",
+      "title": "",
+      "context": "Toset up chat routing, select a routing rule from the drop-down list in the queue settings. This det",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8cd30074132bc014_latform-customization_classic-ui_chat-management-api_examples_add-a-chat-routing_ffaa668fa6b3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/TryIt/scr_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton to open the System Designer.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8cd30074132bc014_latform-customization_classic-ui_chat-management-api_examples_add-a-chat-routing_f22473057c86.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_lookup.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the lookup content and add anew rule:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8cd30074132bc014_latform-customization_classic-ui_chat-management-api_examples_add-a-chat-routing_21bce9eaa6a5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_routingRule.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the Schema Designer and fill out theschema properties:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8cd30074132bc014_latform-customization_classic-ui_chat-management-api_examples_add-a-chat-routing_9d9b7285033e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_appEventListener.png",
+      "alt": "",
+      "title": "",
+      "context": "Go to the Schema Designer and fill out theschema properties:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8cd30074132bc014_latform-customization_classic-ui_chat-management-api_examples_add-a-chat-routing_37cda77ce70a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Omnichannel/scr_omnichannel_result.png",
+      "alt": "",
+      "title": "",
+      "context": "Restart Creatio in IIS to apply the changes. After you restart Creatio and select \"Test rule\" in the",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/8cd30074132bc014_latform-customization_classic-ui_chat-management-api_examples_add-a-chat-routing_e3117af8519f.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add a chat routing mechanism",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Add a new chat routing rule\u200b",
+      "anchor": "title-3500-4"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a class that implements the IOperatorRoutingRule interface\u200b",
+      "anchor": "title-3500-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Link the interface and lookup rule code\u200b",
+      "anchor": "title-3500-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Restart Creatio in IIS\u200b",
+      "anchor": "title-3500-7"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "PARSE",
+        "path": "("
+      },
+      {
+        "method": "ISNOTEMPTY",
+        "path": "("
+      },
+      {
+        "method": "PARSE",
+        "path": "("
+      },
+      {
+        "method": "COLUMN",
+        "path": "("
+      },
+      {
+        "method": "FROM",
+        "path": "("
+      },
+      {
+        "method": "WHERE",
+        "path": "("
+      },
+      {
+        "method": "ISEQUAL",
+        "path": "("
+      },
+      {
+        "method": "PARAMETER",
+        "path": "("
+      },
+      {
+        "method": "ONAPPSTART",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/examples/add-a-chat-routing",
+      "text": "Add a chat routing mechanism",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/examples/add-a-chat-routing",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/references/chat-api",
+      "text": "Chat API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:00:19.067567"
+}

@@ -1,0 +1,1 @@
+{    "type": "crt.EditField",    "value": "$SomeAttribute",    "minLines": 2,    "maxLines": 5,    "hint": "Enter title",    "readOnly": false,    "label": {        "visible": true,        "value": "Title",        "position": "left"    }}

@@ -1,0 +1,1 @@
+<add key="SspUserRegistrationLicPackage" value ="Creatio Customer Portal On-Site" />

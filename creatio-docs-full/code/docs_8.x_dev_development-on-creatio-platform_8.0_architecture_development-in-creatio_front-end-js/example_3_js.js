@@ -1,0 +1,1 @@
+define("SchemaName", "dependencies", function(dependencies) {    return {        entitySchemaName: "ExampleEntity",        mixins: {},        attributes: {},        messages: {},        methods: {},        rules: {},        businessRules: {},        modules: {},        diff:    };});

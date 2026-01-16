@@ -1,0 +1,1 @@
+var myArray = new Array();/* Activate the counter with Initialize myArray tag. */console.time("Initialize myArray");myArray[0] = myArray[1] = 1;for (i = 2; i < 10; i++) {    myArray[i] = myArray[i - 1] + myArray[i - 2];}/* Deactivate the counter with Initialize myArray tag. */console.timeEnd("Initialize myArray");

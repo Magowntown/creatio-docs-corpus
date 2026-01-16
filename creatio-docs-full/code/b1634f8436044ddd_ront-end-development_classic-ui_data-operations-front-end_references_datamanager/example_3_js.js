@@ -1,0 +1,1 @@
+{Terrasoft.Collection} select(config, callback, scope)

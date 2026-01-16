@@ -1,0 +1,1 @@
+"type": "usr.viewElement","svgImage": "https://www.svgrepo.com/show/303233/icon.svg"

@@ -1,0 +1,1 @@
+define("ClientSchemaName", [], function () {    return {        /* Object schema (model). */        entitySchemaName: "EntityName",        /* ... */    };});

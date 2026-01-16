@@ -1,0 +1,1 @@
+IsPageHeaderVisible BOOLEAN

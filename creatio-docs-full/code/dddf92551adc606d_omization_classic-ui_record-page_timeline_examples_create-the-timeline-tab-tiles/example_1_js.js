@@ -1,0 +1,1 @@
+define("UsrBookTimelineItemViewModel", ["UsrBookTimelineItemViewModelResources", "BaseTimelineItemViewModel"], function() {    Ext.define("Terrasoft.configuration.UsrBookTimelineItemViewModel", {        alternateClassName: "Terrasoft.UsrBookTimelineItemViewModel",        extend: "Terrasoft.BaseTimelineItemViewModel"    });});

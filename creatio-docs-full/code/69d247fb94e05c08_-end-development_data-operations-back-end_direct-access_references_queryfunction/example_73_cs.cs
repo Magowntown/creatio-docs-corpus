@@ -1,0 +1,1 @@
+TrimQueryFunction(QueryColumnExpression expression)TrimQueryFunction(IQueryColumnExpressionConvertible expression)

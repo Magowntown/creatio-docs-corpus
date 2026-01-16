@@ -1,0 +1,1 @@
+Terrasoft.sdk.GridPage.setGroupColumns("Case", [{    name: "Symptoms",    isMultiline: true,    label: "CaseGridSymptomsColumnLabel",    convertFunction: function(values) {        return values.Symptoms;    }}]);

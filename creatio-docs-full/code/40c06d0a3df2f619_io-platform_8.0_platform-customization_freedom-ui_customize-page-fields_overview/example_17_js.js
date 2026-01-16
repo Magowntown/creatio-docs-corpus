@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/[    "attributes": {        ...,        "PDS_UsrColumn1_b7xlx2a": {            "modelConfig": {                "path": "PDS.UsrColumn1"            }        },        "PDS_UsrColumn1_b7xlx2a_List": {}    }    ...]/**SCHEMA_VIEW_MODEL_CONFIG*/,

@@ -1,0 +1,1 @@
+(function() {    require.config({        ...,        config: {            i18n: {                locale: Terrasoft.currentUserCultureName,            },        },    });})();

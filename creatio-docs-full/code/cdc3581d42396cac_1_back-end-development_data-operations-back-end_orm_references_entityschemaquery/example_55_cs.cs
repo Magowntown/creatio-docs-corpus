@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction CreateMonthFunction(string columnPath)

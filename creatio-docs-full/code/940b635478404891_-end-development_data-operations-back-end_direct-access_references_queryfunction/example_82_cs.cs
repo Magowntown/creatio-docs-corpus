@@ -1,0 +1,1 @@
+ConcatQueryFunction(QueryColumnExpressionCollection expressions)

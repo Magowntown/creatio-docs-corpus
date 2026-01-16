@@ -1,0 +1,1 @@
+update "CommunicationType"    set "ImageLinkId" = '4e462f54-eb43-8a32-869b-b46e6f4293c4'where "Name" = 'WhatsApp'

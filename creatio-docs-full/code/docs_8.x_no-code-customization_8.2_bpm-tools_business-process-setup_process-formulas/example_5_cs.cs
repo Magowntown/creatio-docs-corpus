@@ -1,0 +1,1 @@
+(decimal)RoundOff(([#Read opportunity data.First element of the resulting collection.Closing date#]-[#Read opportunity data.First element of the resulting collection.Creation date#]).TotalMinutes)

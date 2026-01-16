@@ -1,0 +1,1 @@
+HasGroupByItems bool

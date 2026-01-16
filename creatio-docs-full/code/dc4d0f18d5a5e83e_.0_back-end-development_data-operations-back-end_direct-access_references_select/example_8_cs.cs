@@ -1,0 +1,1 @@
+Joins Terrasoft.Core.DB.JoinCollection

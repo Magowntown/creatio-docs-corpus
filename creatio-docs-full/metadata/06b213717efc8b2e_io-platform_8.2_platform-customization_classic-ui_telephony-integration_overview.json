@@ -1,0 +1,676 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/overview",
+  "title": "Telephony integration basics",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1"
+    },
+    {
+      "text": "Telephony",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\nnote\nThe functionality is relevant to Classic UI.\nCreatio can be integrated with a number of [automatic telephone exchanges](https://en.wikipedia.org/wiki/Telephone_exchange#Early_automatic_exchanges) ([Private Branch Exchange](https://en.wikipedia.org/wiki/Business_telephone_system#Private_branch_exchange), PBX), which enables users to manage calls directly in Creatio UI. Phone integration functions are available in the form of a CTI ([Computer Telephony Integration](https://en.wikipedia.org/wiki/Computer_telephony_integration)) panel, as well as the **Calls** section. Standard CTI panel functions:\n* Displaying incoming calls with contact/account identification by the subscriber's phone number.\n* One-click calls initiated from Creatio UI.\n* Call management (reply, place on hold, end or transfer call).\n* Displaying call history for managing connections of calls to various system records and call follow-up.\nAll calls made or received are stored in the **Calls** section. In this section, you can view when a call was started, when it ended and how long the call was; as well as the list of system records connected to the call.\nBy default, Creatio cloud has a function for making calls between system users without using any additional software.\nDepending on the integrated phone system and specifics of its API ([Application Programming Interface](https://en.wikipedia.org/wiki/Application_programming_interface)), different architectural mechanisms are used. The API also affects available phone integration functions. For example, the call playback function is not available for all phone systems, the web phone is available when integrating with Webitel, etc. Regardless of the phone integration mechanism being used, the CTI panel interface remains the same for all Creatio users.\n## Phone integration methods in Creatio\u200b\nThere are two types of integration methods: `first party` and `third party` integrations.\nIn a `first party` integration each user has a separate integration connection. Phone system events are handled as part of that connection.\nFor a `third party` integration, a single connection to the prone system server is used for handling phone system events for all users. In a third party integration an intermediate `Messaging Service` link is used for distributing information streams for all users.\n### JavaScript adapter on the client side\u200b\nWhen integrating with JavaScript adapter on the client side, the work with the prone system is done directly from a web browser. Interactions with the phone system and JavaScript-library, usually supplied by the prone system manufacturer, is done through the phone system API. The library broadcasts events and accepts execution commands using JavaScript. In the context of this integration, the Creatio page interacts with the application server for authentication using the HTTP(S) protocol.\n![](https://academy.creatio.com/sites/default/files/documents/docs_en/technic/SDK/7.16.0/Screenshots.en/Telephony/scr_telephony_js_adapter.png)\nThis integration method can be used with a first party phone system API, such as Webitel, Finesse. Webitel connector use [WebSocket](https://en.wikipedia.org/wiki/WebSocket) as connection protocol, while the Finesse connector uses [long-polling](https://www.pubnub.com/blog/2014-12-01-http-long-polling/) http queries.\nThe advantage of the `first party` integration method is that it does not require any additional nodes, such as Messaging Service. Using an integration library, the CTI panel connects directly to the phone system server API from a browser on the user's PC.\nFor incoming calls the phone server passes the new call start event and call parameters through WebSocket to the client integration library. When receiving a new call command, the library generates the `RingStarted` event that is passed to the application page.\nFor incoming calls, client part generates the call start command that is passed through WebSocket to the phone integration server.\n### Terrasoft Messaging Service on the server side\u200b\nIf integrating with Terrasoft Messaging Service (TMS) on the server side, all phone integration events pass through TMS, which interacts with the phone system through the manufacturer's library. The library interacts with the phone system through the API. TMS also interacts with the Creatio application server for executing query for saving call information in the database using HTTP(S). Interaction with a client application, such as passing events and receiving commands, is done via WebSocket. In case of integration with JavaScript adapter on the client side, Creatio page interacts with the application server for authentication, using HTTP(S).\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Telephony/scr_telephony_tms.png)\nThis integration method applies to third party phone system API (TAPI, TSAPI). This integration type requires `Messaging Service` \u2013 a Windows proxy service that works with the phone system adapter library. The `Messaging Service` is a universal phone system library hoster, such as Asterisk, Avaya, Callway, Ctios, Infra, Tapi. When receiving client messages, the `Messaging Service` automatically connects used Creatio library and initiates connection to phone system. The Messaging Service is essentially a functional wrapper for those phone integration connectors that do not support client integration for interacting with phone functions in browsers (event generation and handling, data transfer). A user's PC conducts two types of communication:\n* HTTP connection with Creatio application server for authentication with host on which the _Messaging Service_ is installed;\n* WebSocket connection for working directly with phone integration.\nFor incoming calls the phone system passes the new call start event and call parameters through the adapter library. When receiving a new call command, the Messaging Service generates the `RingStarted` event that is passed to the client.\nFor an outgoing calls, the client generates a call start command, which is passed via WebSocket to the Messaging Service, which generates an outgoing call message for the phone system.\n## Interaction between the phone connectors and Creatio\u200b\nAll connectors interact with configuration through the CtiModel class. It handles the events received from the connector.\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Telephony/scr_telephony_comp_interaction.png)\nView the list of supported class events is provided in the table below.\nEvent| Description  \n---|---  \ninitialized| Triggered on completion of provider initialization.  \ndisconnected| Triggered on provider disconnection.  \ncallStarted| Triggered at the start of a new call.  \ncallFinished| Triggered after call completion.  \ncommutationStarted| Triggered after establishing call connection.  \ncallBusy| Triggered on changing call status to \"busy\" (TAPI only).  \nhold| Triggered after placing call on hold.  \nunhold| Triggered after resuming a call.  \nerror| is triggered on errors.  \nlineStateChanged| Triggered after changing available operations for a line or a call.  \nagentStateChanged| Triggered on changing the agent status.  \nactiveCallSnapshot| Triggered on updating the list of active calls.  \ncallSaved| Triggered after creating or updating a call in the database.  \nrawMessage| Generic provider event. Triggered on any provider event.  \ncurrentCallChanged| Triggered on changing the main call. For example, primary call ends during a consultation.  \ncallCentreStateChanged| Triggered if an agent enters or exits Call center mode.  \ncallInfoChanged| Triggered on modifying a call data by database Id.  \ndtmfEntered| Triggered if Dtmf signals were sent to the phone line.  \nwebRtcStarted| Triggered on a webRtc session start.  \nwebRtcVideoStarted| Triggered on a webRtc video stream session start.  \nwebRtcDestroyed| Triggered on a webRtc session end.",
+  "code_examples": [],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Event",
+          "Description"
+        ],
+        [
+          "initialized",
+          "Triggered on completion of provider initialization."
+        ],
+        [
+          "disconnected",
+          "Triggered on provider disconnection."
+        ],
+        [
+          "callStarted",
+          "Triggered at the start of a new call."
+        ],
+        [
+          "callFinished",
+          "Triggered after call completion."
+        ],
+        [
+          "commutationStarted",
+          "Triggered after establishing call connection."
+        ],
+        [
+          "callBusy",
+          "Triggered on changing call status to \"busy\" (TAPI only)."
+        ],
+        [
+          "hold",
+          "Triggered after placing call on hold."
+        ],
+        [
+          "unhold",
+          "Triggered after resuming a call."
+        ],
+        [
+          "error",
+          "is triggered on errors."
+        ],
+        [
+          "lineStateChanged",
+          "Triggered after changing available operations for a line or a call."
+        ],
+        [
+          "agentStateChanged",
+          "Triggered on changing the agent status."
+        ],
+        [
+          "activeCallSnapshot",
+          "Triggered on updating the list of active calls."
+        ],
+        [
+          "callSaved",
+          "Triggered after creating or updating a call in the database."
+        ],
+        [
+          "rawMessage",
+          "Generic provider event. Triggered on any provider event."
+        ],
+        [
+          "currentCallChanged",
+          "Triggered on changing the main call. For example, primary call ends during a consultation."
+        ],
+        [
+          "callCentreStateChanged",
+          "Triggered if an agent enters or exits Call center mode."
+        ],
+        [
+          "callInfoChanged",
+          "Triggered on modifying a call data by database Id."
+        ],
+        [
+          "dtmfEntered",
+          "Triggered if Dtmf signals were sent to the phone line."
+        ],
+        [
+          "webRtcStarted",
+          "Triggered on a webRtc session start."
+        ],
+        [
+          "webRtcVideoStarted",
+          "Triggered on a webRtc video stream session start."
+        ],
+        [
+          "webRtcDestroyed",
+          "Triggered on a webRtc session end."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Event</p></th><th><p>Description</p></th></tr><tr><td><p>initialized</p></td><td><p>Triggered on completion of provider initialization.</p></td></tr><tr><td><p>disconnected</p></td><td><p>Triggered on provider disconnection.</p></td></tr><tr><td><p>callStarted</p></td><td><p>Triggered at the start of a new call.</p></td></tr><tr><td><p>callFinished</p></td><td><p>Triggered after call completion.</p></td></tr><tr><td><p>commutationStarted</p></td><td><p>Triggered after establishing call connection.</p></td></tr><tr><td><p>callBusy</p></td><td><p>Triggered on changing call status to \"busy\" (TAPI only).</p></td></tr><tr><td><p>hold</p></td><td><p>Triggered after placing call on hold.</p></td></tr><tr><td><p>unhold</p></td><td><p>Triggered after resuming a call.</p></td></tr><tr><td><p>error</p></td><td><p>is triggered on errors.</p></td></tr><tr><td><p>lineStateChanged</p></td><td><p>Triggered after changing available operations for a line or a call.</p></td></tr><tr><td><p>agentStateChanged</p></td><td><p>Triggered on changing the agent status.</p></td></tr><tr><td><p>activeCallSnapshot</p></td><td><p>Triggered on updating the list of active calls.</p></td></tr><tr><td><p>callSaved</p></td><td><p>Triggered after creating or updating a call in the database.</p></td></tr><tr><td><p>rawMessage</p></td><td><p>Generic provider event. Triggered on any provider event.</p></td></tr><tr><td><p>currentCallChanged</p></td><td><p>Triggered on changing the main call. For example, primary call ends during a consultation.</p></td></tr><tr><td><p>callCentreStateChanged</p></td><td><p>Triggered if an agent enters or exits Call center mode.</p></td></tr><tr><td><p>callInfoChanged</p></td><td><p>Triggered on modifying a call data by database Id.</p></td></tr><tr><td><p>dtmfEntered</p></td><td><p>Triggered if Dtmf signals were sent to the phone line.</p></td></tr><tr><td><p>webRtcStarted</p></td><td><p>Triggered on a webRtc session start.</p></td></tr><tr><td><p>webRtcVideoStarted</p></td><td><p>Triggered on a webRtc video stream session start.</p></td></tr><tr><td><p>webRtcDestroyed</p></td><td><p>Triggered on a webRtc session end.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe functionality is relevant to Classic UI.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The functionality is relevant to Classic UI.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documents/docs_en/technic/SDK/7.16.0/Screenshots.en/Telephony/scr_telephony_js_adapter.png",
+      "alt": "",
+      "title": "",
+      "context": "When integrating with JavaScript adapter on the client side, the work with the prone system is done ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/06b213717efc8b2e_io-platform_8.2_platform-customization_classic-ui_telephony-integration_overview_74922c0e7201.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Telephony/scr_telephony_tms.png",
+      "alt": "",
+      "title": "",
+      "context": "If integrating with Terrasoft Messaging Service (TMS) on the server side, all phone integration even",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/06b213717efc8b2e_io-platform_8.2_platform-customization_classic-ui_telephony-integration_overview_f5d3b9d7d469.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/Telephony/scr_telephony_comp_interaction.png",
+      "alt": "",
+      "title": "",
+      "context": "All connectors interact with configuration through the CtiModel class. It handles the events receive",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/06b213717efc8b2e_io-platform_8.2_platform-customization_classic-ui_telephony-integration_overview_804677ccb41c.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Telephony integration basics",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Phone integration methods in Creatio\u200b",
+      "anchor": "title-1451-1"
+    },
+    {
+      "level": 3,
+      "text": "JavaScript adapter on the client side\u200b",
+      "anchor": "title-1451-2"
+    },
+    {
+      "level": 3,
+      "text": "Terrasoft Messaging Service on the server side\u200b",
+      "anchor": "title-1451-3"
+    },
+    {
+      "level": 2,
+      "text": "Interaction between the phone connectors and Creatio\u200b",
+      "anchor": "title-1451-4"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "PreviousTelephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "NextWebitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:26:20.915334"
+}

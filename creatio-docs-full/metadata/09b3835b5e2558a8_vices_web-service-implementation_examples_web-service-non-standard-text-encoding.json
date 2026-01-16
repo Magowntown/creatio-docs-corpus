@@ -1,0 +1,581 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-implementation/examples/web-service-non-standard-text-encoding",
+  "title": "Implement a custom web service that uses anonymous authentication and non-standard text encoding",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    },
+    {
+      "text": "Web services",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services"
+    },
+    {
+      "text": "Implementation",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/web-service-implementation-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: intermediate\nnote\nThis functionality is available for Creatio deployed on .NET Framework only since version 8.0.2 and later.\nTo implement the example:\n1. Implement a custom web service. Read more >>>\n2. Register the web service. Read more >>>\n3. Register a non-standard text encoding. Read more >>>\n4. Enable both HTTP and HTTPS support for the web service. Read more >>>\n5. Enable access to the web service for all users. Read more >>>\nExample\nImplement the `UsrEncodingService` custom web service that uses anonymous authentication and receives an arbitrary text in the ISO-8859-1 encoding. Creatio must return identical text that uses the same encoding.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ImplementWebServiceAnonymousAuthenticationAndNonStandardTextEncoding/scr_result.png)\n## 1\\. Implement a custom web service\u200b\n1. **Open the Configuration section**. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2).\n2. **Create a user-made package**. Instructions: [Create a user-made package using **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15122).\nFor this example, create the `sdkEncodingService` package.\n3. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.0&id=15072&anchor=change-the-current-package).\nFor this example, change the current package to `sdkEncodingService` user-made package.\n4. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n5. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrEncodingService  \nTitle| Service that has custom encoding  \n6. **Apply the changes**.\n7. **Create a service class**.\n1. Add the `Terrasoft.Configuration` namespace in the Schema Designer.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (the **Code** property).\n4. Specify the `Terrasoft.Nui.ServiceModel.WebService.BaseService` class as a parent class.\n5. Add the `[ServiceContract]` and `[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]` attributes to the class.\n6. Use `SystemUserConnection` to access the database in the custom anonymous web service. Out of the box, database operations in an anonymous web service are executed on behalf of a system-level user. If your integration requires a specific user context, implement a custom web service that uses cookie-based authentication instead. Learn more: [Implement a custom web service that uses cookie-based authentication](https://academy.creatio.com/documents?ver=8.0&id=15262&anchor=title-2148-2).\n8. **Implement a class method**.\nFor this example, add the `public string ReceiveEncodedText(string EncodedText)` method that implements the endpoint of the custom web service. Depending on the `EncodedText` parameter value specified in the ISO-8859-1 encoding, the response body returns the same parameter value in the same encoding.\n9. **Specify the user on whose behalf to process the current HTTP request**. To do this, call the `SessionHelper.SpecifyWebOperationIdentity` method of the `Terrasoft.Web.Common` namespace after retrieving `SystemUserConnection`. This method enables business processes to manage the database record (`Entity`) from the custom web service that uses anonymous authentication.\n/* The user on whose behalf to process the HTTP request. */  \nTerrasoft.Web.Common.SessionHelper.SpecifyWebOperationIdentity(  \nHttpContextAccessor.GetInstance(),  \nSystemUserConnection.CurrentUser  \n);  \nView the source code of the `UsrEncodingService` custom web service below.\nUsrEncodingService\nnamespace Terrasoft.Configuration.UsrEncodingServiceNamespace  \n{  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \nusing Terrasoft.Core.Entities;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(  \nRequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrEncodingService : BaseService  \n{  \nprivate SystemUserConnection _systemUserConnection;  \nprivate SystemUserConnection SystemUserConnection  \n{  \nget  \n{  \nreturn _systemUserConnection ??  \n(_systemUserConnection =  \n(SystemUserConnection)  \nAppConnection.SystemUserConnection);  \n}  \n}  \n/* The method that returns the value of the passed parameter in the  \nspecified encoding. */  \n[OperationContract]  \n[WebInvoke(  \nMethod = \"POST\",  \nRequestFormat = WebMessageFormat.Xml,  \nBodyStyle = WebMessageBodyStyle.Wrapped,  \nResponseFormat = WebMessageFormat.Xml)]  \npublic string ReceiveEncodedText(string EncodedText)  \n{  \n/* The user on whose behalf to process the HTTP request. */  \nSessionHelper.SpecifyWebOperationIdentity(  \nHttpContextAccessor.GetInstance(),  \nSystemUserConnection.CurrentUser);  \n/* Return the result. */  \nreturn EncodedText;  \n}  \n}  \n}  \n10. **Publish the schema**.\n**As a result** , Creatio will add the custom `UsrEncodingService` REST web service that has the `ReceiveEncodedText` endpoint.\n## 2\\. Register the web service\u200b\n1. **Go to the \"..\\Terrasoft.WebApp\\ServiceModel\" directory**.\n2. **Create and open the \"UsrEncodingService.svc\" file**.\n3. **Register the web service**. To do this, add the following record.\n\"UsrEncodingService.svc\" file\n<% @ServiceHost  \nService = \"Terrasoft.Configuration.UsrEncodingServiceNamespace.UsrEncodingService\"  \nDebug = \"true\"  \nLanguage = \"C#\"  \n%>  \nThe `Service` attribute includes the full name of the web service class and specifies the namespace.\n4. **Save the changes**.\n## 3\\. Register a non-standard text encoding\u200b\n1. **Register a non-standard text encoding for HTTP**.\n1. Open the \"..\\Terrasoft.WebApp\\ServiceModel\\http\\bindings.config\" file.\n2. Go to the `<bindings>` section.\n3. Add `<customBinding>` section to the root `<bindings>` section.\n4. Add attributes to the `<customBinding>` file section.\nFor this example, add and set the following attributes:\n* Set the `name` attribute of the `<binding>` element to \"ISO88591Encoding.\"\n* Set the `encoding` attribute of the `<customTextMessageEncoding>` element to \"ISO-8859-1.\"\n* Set the `manualAddressing` attribute of the `<httpTransport>` element to `true`.\n\"..\\Terrasoft.WebApp\\ServiceModel\\http\\bindings.config\" file\n<bindings>  \n...  \n<customBinding>  \n<binding name=\"ISO88591Encoding\">  \n<customTextMessageEncoding encoding=\"ISO-8859-1\" />  \n<httpTransport manualAddressing=\"true\"/>  \n</binding>  \n</customBinding>  \n...  \n</bindings>  \n5. Save the changes.\n2. **Register a non-standard text encoding for HTTPS**. To do this, repeat steps 2\u20135 of the previous step in the \"..\\Terrasoft.WebApp\\ServiceModel\\https\\bindings.config\" file.\n## 4\\. Enable both HTTP and HTTPS support for the web service\u200b\n1. **Enable HTTP support**.\n1. Open the \"..\\Terrasoft.WebApp\\ServiceModel\\http\\services.config\" file.\n2. Go to the `<services>` section.\n3. Add the following record to the root `<services>` section.\n\"..\\Terrasoft.WebApp\\ServiceModel\\http\\services.config\" file\n<services>  \n...  \n<service  \nname=\"Terrasoft.Configuration.UsrEncodingServiceNamespace.UsrEncodingService\">  \n<endpoint  \nname=\"UsrEncodingServiceEndPoint\"  \naddress=\"\"  \nbinding=\"customBinding\"  \nbindingConfiguration=\"ISO88591Encoding\"  \nbehaviorConfiguration=\"RestServiceBehavior\"  \nbindingNamespace=\"http://Terrasoft.WebApp.ServiceModel\"  \ncontract=\"Terrasoft.Configuration.UsrEncodingServiceNamespace.UsrEncodingService\" />  \n</service>  \n</services>  \nThe `binding` attribute specifies the binding type. Use \"customBinding\" to apply a non-standard encoding.\nThe `bindingConfiguration` attribute includes the name of the registered character encoding. Must match the value of the `<binding>` element's `name` attribute specified on the previous step. For this example, `bindingConfiguration=\"ISO88591Encoding\"`.\n4. Save the changes.\n2. **Enable HTTPS support**. To do this, repeat steps 1\u20134 of the previous step in the \"..\\Terrasoft.WebApp\\ServiceModel\\https\\services.config\" file.\n## 5\\. Enable access to the web service for all users\u200b\n1. **Open the \"..\\Terrasoft.WebApp\\Web.config\" file**.\n2. **Go to the** `<configuration>` **section**.\n3. **Add the** `<location>` **element** to the root `<configuration>` section after the `<appSettings>` element. The `<location>` element defines the relative path and access permissions to the web service.\n\"..\\Terrasoft.WebApp\\Web.config\" file\n<configuration>  \n...  \n<location path=\"ServiceModel/UsrEncodingService.svc\">  \n<system.web>  \n<authorization>  \n<allow users=\"*\" />  \n</authorization>  \n</system.web>  \n</location>  \n...  \n</configuration>  \n4. **Check if the** `<appSettings>` **element includes the** `key` **attribute whose value is set to \"AllowedLocations\"**. If the `<add key=\"AllowedLocations\" value=\"\" />` element is omitted, add it to the root `<appSettings>` section.\n5. **Add the relative web service path** (`ServiceModel/UsrEncodingService.svc`) to the `value` attribute.\nWe do not recommend adding a separate value for an existing `key` attribute, since values are only read from the last `key` attribute whose name matches.\n\"..\\Terrasoft.WebApp\\Web.config\" file\n<configuration>  \n...  \n<appSettings>  \n...  \n<add  \nkey=\"AllowedLocations\"  \nvalue=\"[Previous values];ServiceModel/UsrEncodingService.svc\"  />  \n...  \n</appSettings>  \n...  \n</configuration>  \n6. **Save the changes**.\n7. **Apply the changes**. To do this, restart Creatio in IIS.\n## View the result\u200b\nUse Postman to view the outcome of the example. Learn more about working in Postman: [official vendor documentation](https://www.postman.com/). Learn more about using Postman to query Creatio: [Test requests using Postman](https://academy.creatio.com/documents?ver=8.0&id=15452). Learn more about using Postman to call a web service: [Call a custom web service from Postman](https://academy.creatio.com/documents?ver=8.0&id=15266).\nTo **view the outcome of the example** :\n1. **Create a request**.\n1. Add a request string. To do this, access the `/ServiceModel/UsrEncodingService.svc/ReceiveEncodedText` endpoint.\nRequest string\nPOST CreatioURL/0/ServiceModel/UsrEncodingService.svc/ReceiveEncodedText  \n2. Add a request body.\n1. Open the **Body** tab.\n2. Select `raw=XML` in the **Body option** parameter.\n3. Pass the request body. The `EncodedText` parameter includes the characters in the ISO-8859-1 character encoding. Learn more: [ISO/IEC 8859-1](https://en.wikipedia.org/wiki/ISO/IEC_8859-1) (Wikipedia).\nRequest body\n<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>  \n<ReceiveEncodedText xmlns=\"http://tempuri.org/\">  \n<EncodedText>\u00c0\u00c1\u00c2\u00c3\u00c4\u00c5</EncodedText>  \n</ReceiveEncodedText>  \n3. Save the changes.\n2. **Execute the request**.\n**As a result** , Postman will display:\n* **200 OK** status code.\n* The response body in `XML` format. The response body is displayed on the **Body** tab. The body includes the value of the `EncodedText` parameter in the ISO-8859-1 character encoding. [View the result >>>](https://academy.creatio.com/documents?ver=8.0&id=15270&anchor=view-result)\n## Source code\u200b\nUsrEncodingService\nnamespace Terrasoft.Configuration.UsrEncodingServiceNamespace  \n{  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing Terrasoft.Core;  \nusing Terrasoft.Web.Common;  \nusing Terrasoft.Core.Entities;  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(  \nRequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \npublic class UsrEncodingService : BaseService  \n{  \nprivate SystemUserConnection _systemUserConnection;  \nprivate SystemUserConnection SystemUserConnection  \n{  \nget  \n{  \nreturn _systemUserConnection ??  \n(_systemUserConnection =  \n(SystemUserConnection)  \nAppConnection.SystemUserConnection);  \n}  \n}  \n/* The method that returns the value of the passed parameter in the  \nspecified encoding. */  \n[OperationContract]  \n[WebInvoke(  \nMethod = \"POST\",  \nRequestFormat = WebMessageFormat.Xml,  \nBodyStyle = WebMessageBodyStyle.Wrapped,  \nResponseFormat = WebMessageFormat.Xml)]  \npublic string ReceiveEncodedText(string EncodedText)  \n{  \n/* The user on whose behalf to process the HTTP request. */  \nSessionHelper.SpecifyWebOperationIdentity(  \nHttpContextAccessor.GetInstance(),  \nSystemUserConnection.CurrentUser);  \n/* Return the result. */  \nreturn EncodedText;  \n}  \n}  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ImplementWebServiceAnonymousAuthenticationAndNonStandardTextEncoding/8.3/sdkEncodingService_2025-07-31_13.02.48.zip)\n[Postman request that includes the outcome of the example](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ImplementWebServiceAnonymousAuthenticationAndNonStandardTextEncoding/8.3/Test%20requests%20to%20Creatio%20web%20service.postman_collection.json)",
+  "code_examples": [
+    {
+      "code": "/* The user on whose behalf to process the HTTP request. */Terrasoft.Web.Common.SessionHelper.SpecifyWebOperationIdentity(    HttpContextAccessor.GetInstance(),    SystemUserConnection.CurrentUser);",
+      "language": "cs",
+      "context": "Specify the user on whose behalf to process the current HTTP request. To do this, call theSessionHelper.SpecifyWebOperationIdentitymethod of theTerrasoft.Web.Commonnamespace after retrievingSystemUser",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.UsrEncodingServiceNamespace{    using System;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using Terrasoft.Core;    using Terrasoft.Web.Common;    using Terrasoft.Core.Entities;    [ServiceContract]    [AspNetCompatibilityRequirements(        RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    public class UsrEncodingService : BaseService    {        private SystemUserConnection _systemUserConnection;        private SystemUserConnection SystemUserConnection        {            get            {                return _systemUserConnection ??                    (_systemUserConnection =                        (SystemUserConnection)                            AppConnection.SystemUserConnection);            }        }        /* The method that returns the value of the passed parameter in the        specified encoding. */        [OperationContract]        [WebInvoke(            Method = \"POST\",            RequestFormat = WebMessageFormat.Xml,            BodyStyle = WebMessageBodyStyle.Wrapped,            ResponseFormat = WebMessageFormat.Xml)]        public string ReceiveEncodedText(string EncodedText)        {            /* The user on whose behalf to process the HTTP request. */            SessionHelper.SpecifyWebOperationIdentity(                HttpContextAccessor.GetInstance(),                SystemUserConnection.CurrentUser);            /* Return the result. */            return EncodedText;        }    }}",
+      "language": "cs",
+      "context": "View the source code of theUsrEncodingServicecustom web service below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<% @ServiceHost    Service = \"Terrasoft.Configuration.UsrEncodingServiceNamespace.UsrEncodingService\"    Debug = \"true\"    Language = \"C#\"%>",
+      "language": "cs",
+      "context": "Register the web service. To do this, add the following record.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<bindings>    ...    <customBinding>        <binding name=\"ISO88591Encoding\">            <customTextMessageEncoding encoding=\"ISO-8859-1\" />            <httpTransport manualAddressing=\"true\"/>        </binding>    </customBinding>    ...</bindings>",
+      "language": "xml",
+      "context": "For this example, add and set the following attributes:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<services>    ...    <service        name=\"Terrasoft.Configuration.UsrEncodingServiceNamespace.UsrEncodingService\">        <endpoint            name=\"UsrEncodingServiceEndPoint\"            address=\"\"            binding=\"customBinding\"            bindingConfiguration=\"ISO88591Encoding\"            behaviorConfiguration=\"RestServiceBehavior\"            bindingNamespace=\"http://Terrasoft.WebApp.ServiceModel\"            contract=\"Terrasoft.Configuration.UsrEncodingServiceNamespace.UsrEncodingService\" />    </service></services>",
+      "language": "xml",
+      "context": "Add the following record to the root<services>section.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<configuration>  ...  <location path=\"ServiceModel/UsrEncodingService.svc\">    <system.web>      <authorization>        <allow users=\"*\" />      </authorization>    </system.web>  </location>  ...</configuration>",
+      "language": "xml",
+      "context": "Add the<location>elementto the root<configuration>section after the<appSettings>element. The<location>element defines the relative path and access permissions to the web service.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<configuration>  ...  <appSettings>    ...    <add      key=\"AllowedLocations\"      value=\"[Previous values];ServiceModel/UsrEncodingService.svc\"  />    ...  </appSettings>  ...</configuration>",
+      "language": "xml",
+      "context": "We do not recommend adding a separate value for an existingkeyattribute, since values are only read from the lastkeyattribute whose name matches.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "POST CreatioURL/0/ServiceModel/UsrEncodingService.svc/ReceiveEncodedText",
+      "language": "cli",
+      "context": "Add a request string. To do this, access the/ServiceModel/UsrEncodingService.svc/ReceiveEncodedTextendpoint.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><ReceiveEncodedText xmlns=\"http://tempuri.org/\">    <EncodedText>\u00c0\u00c1\u00c2\u00c3\u00c4\u00c5</EncodedText></ReceiveEncodedText>",
+      "language": "xml",
+      "context": "Add a request body.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrEncodingService"
+        ],
+        [
+          "Title",
+          "Service that has custom encoding"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrEncodingService</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>Service that has custom encoding</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThis functionality is available for Creatio deployed on .NET Framework only since version 8.0.2 and later.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>This functionality is available for Creatio deployed on .NET Framework only since version 8.0.2 and later.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This functionality is available for Creatio deployed on .NET Framework only since version 8.0.2 and later.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This functionality is available for Creatio deployed on .NET Framework only since version 8.0.2 and later.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleImplement theUsrEncodingServicecustom web service that uses anonymous authentication and receives an arbitrary text in the ISO-8859-1 encoding. Creatio must return identical text that uses the same encoding.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Implement the <code>UsrEncodingService</code> custom web service that uses anonymous authentication and receives an arbitrary text in the ISO-8859-1 encoding. Creatio must return identical text that uses the same encoding.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ImplementWebServiceAnonymousAuthenticationAndNonStandardTextEncoding/scr_result.png\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Implement theUsrEncodingServicecustom web service that uses anonymous authentication and receives an arbitrary text in the ISO-8859-1 encoding. Creatio must return identical text that uses the same encoding.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Implement the <code>UsrEncodingService</code> custom web service that uses anonymous authentication and receives an arbitrary text in the ISO-8859-1 encoding. Creatio must return identical text that uses the same encoding.</p><figure><figcaption> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ImplementWebServiceAnonymousAuthenticationAndNonStandardTextEncoding/scr_result.png\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/ImplementWebServiceAnonymousAuthenticationAndNonStandardTextEncoding/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "Implement theUsrEncodingServicecustom web service that uses anonymous authentication and receives an",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/09b3835b5e2558a8_vices_web-service-implementation_examples_web-service-non-standard-text-encoding_a55a011103d9.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/ImplementWebServiceAnonymousAuthenticationAndNonStandardTextEncoding/8.3/sdkEncodingService_2025-07-31_13.02.48.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkEncodingService_2025-07-31_13.02.48.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/09b3835b5e2558a8_vices_web-service-implementation_examples_web-service-non-standard-text-encoding_sdkEncodingService_2025-07-31_13.02.48.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement a custom web service that uses anonymous authentication and non-standard text encoding",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement a custom web service\u200b",
+      "anchor": "title-3916-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Register the web service\u200b",
+      "anchor": "title-3916-4"
+    },
+    {
+      "level": 2,
+      "text": "3. Register a non-standard text encoding\u200b",
+      "anchor": "title-3916-5"
+    },
+    {
+      "level": 2,
+      "text": "4. Enable both HTTP and HTTPS support for the web service\u200b",
+      "anchor": "title-3916-6"
+    },
+    {
+      "level": 2,
+      "text": "5. Enable access to the web service for all users\u200b",
+      "anchor": "title-3916-7"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-3916-9"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-3916-2"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-implementation/examples/web-service-non-standard-text-encoding",
+      "text": "Implement a web service (anonymous authentication and non-standard text encoding)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/web-services/web-service-implementation/examples/web-service-non-standard-text-encoding",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/web-services/web-service-implementation/examples/web-service-non-standard-text-encoding",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/web-service-implementation/examples/web-service-non-standard-text-encoding",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-implementation/custom-web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/web-service-implementation-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-implementation/examples/web-service-cookie-authentication",
+      "text": "Implement a web service (cookie-authentication)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-implementation/examples/web-service-anonymous-authentication",
+      "text": "PreviousImplement a web service (anonymous authentication)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "NextCalling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/web-service-calling/call-web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/call-web-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T02:07:26.697031"
+}

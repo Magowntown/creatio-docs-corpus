@@ -1,0 +1,1 @@
+(function() {    require.config({        paths: {            ...,            i18n: Terrasoft.getFileContentUrl("SomePackage", "content/js/i18n.js"),            ...,        },        ...,    });})();

@@ -1,0 +1,1 @@
+static Select DateDiff(    this Select select,    DateDiffQueryFunctionInterval interval,    object startDateExpression,    object endDateExpression)

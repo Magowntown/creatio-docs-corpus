@@ -1,0 +1,1 @@
+<terrasoft>    auth providerNames="InternalUserPassword,SSPUserPassword" ...>    ...</terrasoft>

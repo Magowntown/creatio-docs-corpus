@@ -1,0 +1,1 @@
+define("SomeModuleSchema", ["SomeModuleResources"], function (res) {    return res;});

@@ -1,0 +1,1 @@
+define("ModuleName", "dependencies", function(dependencies) {    // Methods that implement the necessary business logic.    return;});

@@ -1,0 +1,1 @@
+/* Calculate the difference between the [Amount] and [PaymentAmount] column values. */var result = amount - paymentAmount;/* Assign the calculation results to the [UsrBalance] column. */this.set("UsrBalance", result.toFixed(2));

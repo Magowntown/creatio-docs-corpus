@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction CreateDayFunction(string columnPath)

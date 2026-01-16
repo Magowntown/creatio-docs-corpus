@@ -1,0 +1,1 @@
+ProcessDescriptor processDescriptor = processExecutor.Execute("processSchemaName", inputParameters, resultParameterNames);object parameter3Value = processDescriptor.ResultParameterValues["SomeOutputParameter3"];if (processDescriptor.ResultParameterValues.TryGetValue("SomeOutputParameter4", out object parameter4value)) {    Console.Log(parameter4value);}

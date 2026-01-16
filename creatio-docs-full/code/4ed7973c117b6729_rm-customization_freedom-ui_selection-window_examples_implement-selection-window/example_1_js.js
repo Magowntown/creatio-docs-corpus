@@ -1,0 +1,1 @@
+viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "attributes"        ],        "values": {            ...,            /* The attribute that stores data of the request applicant. */            "Applicant": {},        }    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,

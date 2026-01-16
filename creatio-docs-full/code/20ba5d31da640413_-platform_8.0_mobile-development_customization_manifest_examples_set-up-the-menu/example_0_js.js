@@ -1,0 +1,1 @@
+// Mobile application module groups."ModuleGroups": {    // Main menu group setup.    "main": {        // Group position in the main menu.        "Position": 0    },    // [Sales] menu group setup.     "sales": {        // Group position in the main menu.        "Position" 1    }}

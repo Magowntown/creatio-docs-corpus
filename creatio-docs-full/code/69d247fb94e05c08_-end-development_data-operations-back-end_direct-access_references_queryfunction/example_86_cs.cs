@@ -1,0 +1,1 @@
+WindowQueryFunction(WindowQueryFunction source) : this( source.InnerFunction, source.PartitionByExpression, source.OrderByExpression)

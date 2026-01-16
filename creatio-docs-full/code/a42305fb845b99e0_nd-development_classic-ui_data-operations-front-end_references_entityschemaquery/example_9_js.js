@@ -1,0 +1,1 @@
+createColumnBetweenFilterWithParameters(columnPath, lessParamValue, greaterParamValue, paramDataType)

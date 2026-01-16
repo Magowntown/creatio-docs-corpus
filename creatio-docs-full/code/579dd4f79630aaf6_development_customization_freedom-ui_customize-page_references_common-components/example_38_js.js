@@ -1,0 +1,1 @@
+{    "name": "QuickFilter_Custom",    "type": "crt.QuickFilter",    "config": {        "caption": "Show drafts",        "defaultValue": true,        "approachState": true    },    "filterType": "custom"    }

@@ -1,0 +1,1 @@
+var client = new HttpClient();var request = new HttpRequestMessage(HttpMethod.Get, "http://CreatioURL/0/rest/FileService/Download/ContactFile/71bc924d-7341-cdbd-0a98-b04a4e6d04cc");var response = await client.SendAsync(request);response.EnsureSuccessStatusCode();Console.WriteLine(await response.Content.ReadAsStringAsync());

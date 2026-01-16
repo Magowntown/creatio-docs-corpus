@@ -1,0 +1,1 @@
+[  {    "entityConfigKey": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",    "referenceColumnName": "UsrPublisher",    "entitySchemaName": "UsrBook",    "masterRecordColumnName": "Id"  },  ...]

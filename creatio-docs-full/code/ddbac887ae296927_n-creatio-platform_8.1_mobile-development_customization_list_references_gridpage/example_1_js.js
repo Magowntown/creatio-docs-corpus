@@ -1,0 +1,1 @@
+Terrasoft.sdk.GridPage.setPrimaryColumn("Case", "Subject");

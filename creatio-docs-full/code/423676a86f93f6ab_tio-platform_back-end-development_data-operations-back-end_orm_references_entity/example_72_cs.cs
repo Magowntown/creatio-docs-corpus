@@ -1,0 +1,1 @@
+virtual void SetBytesValue(string valueName, byte[] streamBytes)

@@ -1,0 +1,1 @@
+{    "SyncOptions": {        ...    },    "CustomSchemas": ["UsrMobileCustomDashboardItem"],    "Modules": {...},    "Models": {...}}

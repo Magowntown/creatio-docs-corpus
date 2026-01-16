@@ -1,0 +1,1 @@
+Target field: [Sum to issue]Variables: the values of fields [Per diem] and [Duration, days].Formula: = [Per diem] * [Duration, days]

@@ -1,0 +1,1 @@
+<script>    window.TAG_ID='{Measurement ID}';</script>	<script async src="https://www.googletagmanager.com/gtag/js?id={Measurement ID}"></script><script src="https://webtracking-v01.creatio.com/JS/create-object.js"></script><script src="https://webtracking-v01.creatio.com/JS/crt-gtag-with-tracking-form-data.js"></script> 

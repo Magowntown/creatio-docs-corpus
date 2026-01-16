@@ -1,0 +1,1141 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/chat-management-api/overview",
+  "title": "Manage chats in Creatio",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization"
+    },
+    {
+      "text": "Chats",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\nThe pre-installed `OmnichannelMessaging` package contains the basic functionality that lets you manage chats. Before using functionality, set up chat processing. Instructions: [Set up chat processing](https://academy.creatio.com/documents?ver=8.3&id=2382) (user documentation).\n## Manage chat functionality in Creatio\u200b\nView the list of primary classes that let you manage chat functionality in the table below.\nClass| Description  \n---|---  \nMessageManager| Enables the messenger integration with Creatio instance.  \nFacebookOmnichannelMessagingService| Receives and sends messages from Facebook Messenger. The class is based on the `OmnichannelMessagingService` class that contains the set methods that are common for both Facebook Messenger and Telegram.  \nTelegramOmnichannelMessagingService| Receives messages from Telegram. The class is based on the `OmnichannelMessagingService` class that contains the set methods that are common for both Facebook Messenger and Telegram.  \nOmnichannelChatService| Receives history, chats of a specific agent, etc.  \nOmnichannelOperatorService| Receives and changes the agent status.  \n## Implement a custom channel provider\u200b\n### 1\\. Add a channel provider to Creatio\u200b\n1. **Create a user-made package** to add the channel provider. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png) \u2192 **Create new package** \u2192 fill out the package properties \u2192 **Save**.\n2. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.3&id=15072&anchor=change-the-current-package).\n3. **Open the Lookups section**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) in the top right \u2192 **System setup** \u2192 **Lookups**.\n4. **Open the Channel provider lookup**.\n5. **Add the lookup value**. To do this, click **New**.\n6. **Fill out the properties** of the lookup value.\nView the example that adds the \"Some custom channel provider\" channel provider below.\nProperty| Property value  \n---|---  \nName| Some custom channel provider  \n7. **Save the changes**.\n**As a result** , the custom channel provider will be added to Creatio.\n### 2\\. Create a database table to store data of the custom channel provider\u200b\nCreatio uses one database table to store data of one channel provider. The structure of the database table depends on the provider and contains data to send and receive messages.\nTo create a database table, **execute the SQL query**.\n* Microsoft SQL\n* PostgreSQL\nIF OBJECT_ID('SomeProviderMsgSettings') IS NULL   \nBEGIN  \nCREATE TABLE SomeProviderMsgSettings(  \nId uniqueidentifier NOT NULL DEFAULT (newid()),  \nToken nvarchar(250) NOT NULL DEFAULT (''),  \nUserName nvarchar(250) NOT NULL DEFAULT (''),  \nCONSTRAINT PK_SomeProviderMsgSettings_Id PRIMARY KEY CLUSTERED (Id)  \n)  \nEND  \nCREATE TABLE IF NOT EXISTS public.\"SomeProviderMsgSettings\" (   \n\"Id\" uuid NOT NULL DEFAULT uuid_generate_v4(),  \n\"Token\" character varying(250) COLLATE pg_catalog.\"default\" NOT NULL DEFAULT ''::character varying,  \n\"UserName\" character varying(250) COLLATE pg_catalog.\"default\" NOT NULL DEFAULT ''::character varying,  \nCONSTRAINT \"PK_SomeProviderMsgSettings_Id\" PRIMARY KEY (\"Id\")  \n);  \nWhere `SomeProviderMsgSettings` is a template for the name of database table that will store data of the custom channel provider whose name is `SomeProvider`.\n**As a result** , the database table that stores data of the custom channel provider will be created.\n### 3\\. Register the custom channel provider in the database\u200b\nTo do this, **add a record to the** `Channel` **database table** that stores a list of all channel providers. View the primary columns of the `Channel` database table below.\nColumn| Description  \n---|---  \nName| The channel name.  \nProviderId| The custom provider ID.  \nMsgSettingsId| The record ID from the database table that stores data of custom channel provider.  \nSource| The channel ID from the messenger. For example, `Facebook page ID`, `Telegram client ID`. The property value lets you identify the recipient by a messenger message.  \n**As a result** , the custom channel provider will be registered in the database.\n### 4\\. Implement a custom web service that receives messages\u200b\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Create a service class**.\n1. Add the `Terrasoft.Configuration.Omnichannel.Messaging` namespace.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (the **Code** property).\n4. Specify the `OmnichannelMessagingService` class as a parent class.\n5. Add the `[ServiceContract]` and `[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]` attributes to the class.\n3. **Implement a class method**.\nAdd the `public void ReceiveMessage(SomeProviderIncomingMessage message)` method that implements the endpoint of the custom web service. The messenger sends a message to the `receive` endpoint.\nSomeProviderOmnichannelMessagingService\nnamespace Terrasoft.Configuration.Omnichannel.Messaging  \n{  \nusing System;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Activation;  \nusing System.ServiceModel.Web;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Web.Common.ServiceRouting;  \n#region Class: SomeProviderOmnichannelMessagingService  \n[ServiceContract]  \n[AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]  \n[DefaultServiceRoute]  \npublic class SomeProviderOmnichannelMessagingService : OmnichannelMessagingService  \n{  \n#region Constructors: Public  \npublic SomeProviderIncomingMessage() : base()  \n{ }  \n/* Initialize a new \"SomeProviderIncomingMessage\" class instance. */  \npublic SomeProviderIncomingMessage(UserConnection userConnection) : base(userConnection)  \n{ }  \n#endregion  \n#region Methods: Private  \nprivate void GetChannelAndQueueBySource(MessagingMessage message) {  \nSelect channelSelect = new Select(UserConnection)  \n.Top(1).Column(\"Id\")  \n.Column(\"ChatQueueId\")  \n.From(\"Channel\")  \n.Where(\"Source\").IsEqual(Column.Parameter(message.Recipient))  \n.And(\"IsActive\").IsEqual(Column.Parameter(true)) as Select;                 \nchannelSelect.ExecuteReader(reader => {  \nmessage.ChannelId = reader.GetColumnValue(\"Id\").ToString();  \nmessage.ChannelQueueId = reader.GetColumnValue(\"ChatQueueId\");  \n});  \n}  \n#endregion  \n#region Methods: Public  \n/* The method that receives messages from the integration API. */  \n[OperationContract]  \n[WebInvoke(UriTemplate = \"receive\", Method = \"POST\", RequestFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, ResponseFormat = WebMessageFormat.Json)]  \npublic void ReceiveMessage(SomeProviderIncomingMessage message) {  \n/* Convert the message. */  \nMessagingMessage messagingMessage = new MessagingMessage(SomeProviderIncomingMessageConverter.Convert(message));  \n/* Identify the channel using the \"Source\" database field. */  \nGetChannelAndQueueBySource(messagingMessage);  \n/* If an open chat with this user is not found, create a new chat. Otherwise, add a message to an existing chat. If the user contacts you for the first time, create a contact and fill out their credentials. Otherwise, bind the chat to an existing contact. */  \nInternalReceive(messagingMessage);  \n}  \n#endregion  \n}  \n#endregion  \n}  \n4. **Publish the schema**.\n**As a result** , a custom web service that receives messages will be implemented.\n### 5\\. Handle an incoming message\u200b\nSince Creatio attempts to handle incoming messages in the unified format, implement conversion of incoming messages to unified format. To do this:\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Implement the business logic** that handles incoming messages using the `SomeProviderIncomingMessageConverter` class. The class converts a message that has the `SomeProviderIncomingMessage` type to the message with the `MessagingMessage` type.\nSomeProviderIncomingMessageConverter\nnamespace Terrasoft.Configuration.Omnichannel.Messaging  \n{  \nusing OmnichannelProviders.Domain.Entities;  \nusing System;  \nusing System.Collections.Generic;  \npublic class SomeProviderIncomingMessage : UnifiedMessage  \n{ }  \npublic static class SomeProviderIncomingMessageConverter  \n{  \n#region Methods: Public   \npublic static MessagingMessage Convert(SomeProviderIncomingMessage message) {  \nvar messageType = MessageType.Text;  \nvar messageId = Guid.NewGuid();  \nvar result = new MessagingMessage {  \nId = messageId,  \nMessage = message.Message,  \n/* The message recipient is the ID of the page or client added to \"Source\" column in the \"Channel\" database table. */  \nRecipient = message.Recipient,  \n/* The ID of the message sender in the messenger. The sender is bound to the contact via the \"ContactIdentity\" database table. */  \nSender = message.Sender,  \nTimestamp = message.Timestamp,  \n/* The channel ID in Creatio specified in the \"MsgSettingsid\" object field. */  \nChannelId = message.ChannelId,  \nMessageDirection = MessageDirection.Incoming,  \nMessageType = messageType,  \n/* The channel source. */  \nSource = ChannelType.ThirdParty,  \n/* The provider name that is used as the provider ID. */  \nChannelName = \"SomeProvider\"  \n};  \nif (messageType != MessageType.Text) {  \n/* The \"Attachments\" block is populated depending on the file access format provided by the messenger. In this case, it is a link to download. Fill out the \"FileId\" parameter value in the message to make the file available for download. */  \nresult.Attachments = new List<MessageAttachment>();  \nforeach (var attachment in message.Attachments){  \nresult.Attachments.Add(new MessageAttachment {  \nMessageId = messageId,  \nUploadUrl = attachment.UploadUrl,  \nFileType = attachment.FileType  \n});  \n}  \n}  \nreturn result;  \n}  \n#endregion  \n}  \n}  \n3. **Publish the schema**.\n**As a result** , incoming messages will be converted to the unified format that Creatio attempts to handle.\n### 6\\. Implement retrieval of sender data\u200b\nMessengers provide an API to retrieve sender data. To do this:\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Implement the business logic** that retrieves sender data using the `IProfileDataProvider` interface.\n1. Send a request to the channel provider API, for example, `https://somechannelprovider.api/`, to retrieve data in the `SomeProviderProfileData` format. The `SomeProviderProfileData` format is a hypothetical messenger format.\n2. Convert the received response into the internal `ProfileData` format.\n3. Create a contact and add the retrieved data using the internal format. For example, first name, last name, and photo. If the request is unsuccessful or data is invalid, create a contact named `[New Contact][Channel]-[MessengerClientID]`.\nSomeProviderProfileData\nnamespace Terrasoft.Configuration.Omnichannel.Messaging  \n{  \nusing Newtonsoft.Json;  \nusing OmnichannelProviders.Domain.Entities;  \nusing OmnichannelProviders.Interfaces;  \nusing System.IO;  \nusing System.Net;  \nusing Terrasoft.Core;  \npublic class SomeProviderProfileData {  \npublic string first_name { get; set; }  \npublic string last_name { get; set; }  \n}  \n#region Class: SomeProviderProfileData  \n/* Retrieve the profile data from the \"SomeProvider\" provider. */  \npublic class SomeProviderProfileData : IProfileDataProvider  \n{  \n#region Properties: Private   \nprivate readonly string _someProviderUrl = \"https://somechannelprovider.api/\";  \n#endregion  \n#region Constructors: Public   \n/* Initialize a new \"FacebookProfileDataProvider\" class instance. */  \npublic SomeProviderProfileData(UserConnection userConnection)  \n{ }  \n#endregion  \n#region Methods: Public  \n/* Retrieve the profile data from Facebook.  \nThe \"profileId\" parameter is the Facebook profile ID.  \nThe \"channelId\" parameter is the channel from which the request was sent.  \nReturn the contact ID. */  \npublic ProfileData GetProfileDataByProfileId(string profileId, string channelId)    {  \nvar requestUrl = string.Concat(_someChannelProviderNameProviderApiUrl, profileId);  \nWebRequest request = WebRequest.Create(requestUrl);  \ntry {  \nusing (var response = request.GetResponse()) {  \nusing (Stream stream = response.GetResponseStream()) {  \nusing (StreamReader sr = new StreamReader(stream)) {  \nvar someChannelProviderNameProfile = JsonConvert.DeserializeObject<SomeChannelProviderNameProfileData>(sr.ReadToEnd());  \nreturn new ProfileData {  \nFirstName = someChannelProviderNameProfile.first_name,  \nLastName = someChannelProviderNameProfile.last_name,  \n};  \n}  \n}  \n}  \n}  \ncatch {  \nreturn new ProfileData();  \n}  \n}  \n#endregion  \n}  \n#endregion  \n}  \n3. **Publish the schema**.\n**As a result** , Creatio will retrieve the sender data and create contact using this data.\n### 7\\. Implement downloading of attachments\u200b\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Implement the business logic** that lets you download attachments using the `IAttachmentsLoadWorker` interface. The class downloads the attachment via a link and saves the attachment to the `OmnichannelMessageFile` database table.\nSomeProviderAttachmentLoadWorker\nnamespace Terrasoft.Configuration.Omnichannel.Messaging  \n{  \nusing OmnichannelProviders;  \nusing OmnichannelProviders.Domain.Entities;  \nusing OmnichannelProviders.MessageConverters;  \nusing Terrasoft.Core;  \n#region Class: SomeProviderAttachmentLoadWorker  \n/* Load attachments from the \"SomeProvider\" provider. */  \npublic class SomeProviderAttachmentLoadWorker : IAttachmentsLoadWorker  \n{  \n#region Properties: Protected   \nprotected UserConnection UserConnection;  \nprotected AttachmentsDownloader AttachmentsDownloader;  \n#endregion  \n#region Constructors: Public  \n/* Initialize a new \"SomeProviderAttachmentLoadWorker\" class instance. */  \npublic SomeProviderAttachmentLoadWorker(UserConnection userConnection) {  \nUserConnection = userConnection;  \nAttachmentsDownloader = new AttachmentsDownloader(userConnection);  \n}  \n#endregion  \n#region Methods: Public   \n/* Load the attachments.  \nThe \"incomeAttachment\" parameter is the attachment from the messenger.  \nThe \"message\" parameter is the source message. */  \npublic void Load(MessageAttachment incomeAttachment, UnifiedMessage message) {  \nincomeAttachment.FileName = FileUtilities.GetFileNameFromUrl(incomeAttachment.UploadUrl);  \nincomeAttachment.FileId = AttachmentsDownloader.Load(incomeAttachment);  \n}  \n#endregion  \n}  \n#endregion  \n}  \n3. **Publish the schema**.\n**As a result** , users will be able to download attachments.\n### 8\\. Implement sending of messages\u200b\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Implement the business logic** that sends messages using the `IOutcomeMessageWorker` interface.\n1. Convert the message to messenger format and send it using the messenger API.\n2. Send the message using a token. Store the token in the `SomeChannelProviderNameMsgSettings` database table.\n3. `UserConnection` sent in the constructor provides access to the database table.\n4. Send a message to the channel provider API, for example, `https://somechannelprovider.api/`, using the `HttpRequestSender` class.\nSomeProviderOutcomeMessageWorker\nnamespace Terrasoft.Configuration.Omnichannel.Messaging  \n{  \nusing Newtonsoft.Json;  \nusing Newtonsoft.Json.Serialization;  \nusing OmnichannelProviders.Application.Http;  \nusing OmnichannelProviders.Domain.Entities;  \nusing OmnichannelProviders.MessageWorkers;  \nusing Terrasoft.Core;  \n#region Class: SomeProviderOutcomeMessageWorker  \n/* Send messages to the \"SomeProvider\" provider. */  \npublic class SomeProviderOutcomeMessageWorker : IOutcomeMessageWorker  \n{  \n#region Properties: Protected   \nprotected UserConnection UserConnection;  \nprivate readonly string _someChannelProviderNameProviderApiUrl = \"https://somechannelprovider.api\";  \n#endregion  \n#region Constructors: Public  \n/* Initialize a new \"SomeProviderOutcomeMessageWorker\" class instance. */  \npublic SomeProviderOutcomeMessageWorker(UserConnection userConnection) {  \nUserConnection = userConnection;  \n}  \n#endregion  \n#region Methods: Public  \n/* Send the message to the \"SomeProvider\" provider.  \nThe \"message\" parameter is the unified message. */  \npublic string SendMessage(UnifiedMessage unifiedMessage, out bool success) {  \nvar serializerSettings = new JsonSerializerSettings();  \nserializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();  \nvar json = JsonConvert.SerializeObject(unifiedMessage, serializerSettings);  \nvar requestUrl = string.Concat(_someChannelProviderNameProviderApiUrl, json);  \nvar result = new HttpRequestSender().PostAsync(requestUrl, json).Result;  \nsuccess = true;  \nreturn result;  \n}  \npublic string PassControlToPrimaryReceiver(UnifiedMessage message) {  \nreturn string.Empty;  \n}  \n#endregion  \n}  \n#endregion  \n}  \n3. **Publish the schema**.\n**As a result** , users will be able to send messages.\n### 9\\. Link the interfaces\u200b\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Implement the business logic** that links interfaces.\n1. Specify the `AppEventListenerBase` class as a parent class.\n2. Link the created classes using the `SomeProvider` provider ID that is specified in the `ChannelName` property of the business logic handling incoming messages. Creatio uses a provider ID to identify the files required to retrieve profile data, upload attachments, and send messages.\nSomeProviderAppEventListener\nnamespace Terrasoft.Configuration.Omnichannel.Messaging  \n{  \nusing Common;  \nusing Core;  \nusing OmnichannelProviders;  \nusing OmnichannelProviders.Interfaces;  \nusing OmnichannelProviders.MessageWorkers;  \nusing Terrasoft.Core.Factories;  \nusing Web.Common;  \n#region Class : SomeProviderAppEventListener  \n/* Run prerequisites for \"OmnichannelMessaging\" on app start. */  \npublic class SomeProviderAppEventListener : AppEventListenerBase  \n{  \n#region Fields : Protected  \nprotected UserConnection UserConnection {  \nget;  \nprivate set;  \n}  \n#endregion  \n#region Methods : Protected  \n/* Retrieve the user connection from the app event scope.  \nThe \"context\" parameter is the app event scope.  \nReturn user connection. */  \nprotected UserConnection GetUserConnection(AppEventContext context) {  \nvar appConnection = context.Application[\"AppConnection\"] as AppConnection;  \nif (appConnection == null) {  \nthrow new ArgumentNullOrEmptyException(\"AppConnection\");  \n}  \nreturn appConnection.SystemUserConnection;  \n}  \nprotected void BindInterfaces() {  \nClassFactory.Bind<IAttachmentsLoadWorker, SomeChannelProviderNameAttachmentLoadWorker>(ChannelType.ThirdParty.ToString());  \nClassFactory.Bind<IProfileDataProvider, SomeChannelProviderNameProfileDataProvider>(ChannelType.ThirdParty.ToString());  \nClassFactory.Bind<IOutcomeMessageWorker, SomeChannelProviderNameOutcomeMessageWorker>(ChannelType.ThirdParty.ToString());  \n}  \n#endregion  \n#region Methods : Public  \n/* Handle the app start.  \nThe \"context\" parameter is the app event scope. */  \npublic override void OnAppStart(AppEventContext context) {  \nbase.OnAppStart(context);  \nUserConnection = GetUserConnection(context);  \nBindInterfaces();  \n}  \n#endregion  \n}  \n#endregion  \n}  \n3. **Publish the schema**.\n**As a result** , the custom channel provider will be implemented.\n## Implement a custom chat routing rule\u200b\n### 1\\. Add a chat routing rule to Creatio\u200b\n1. **Create a user-made package** to add the chat routing rule. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png) \u2192 **Create new package** \u2192 fill out the package properties \u2192 **Save**.\n2. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.3&id=15072&anchor=change-the-current-package).\n3. **Open the Lookups section**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) in the top right \u2192 **System setup** \u2192 **Lookups**.\n4. **Open the Rules for routing chat queue operators lookup**.\n5. **Add the lookup value**. To do this, click **New**.\n6. **Fill out the properties** of the lookup value.\nView the example that adds the \"Some custom chat routing rule\" chat routing rule below.\nProperty| Property value  \n---|---  \nName| Some custom chat routing rule  \nCode| SomeCustomChatRoutingRule  \n7. **Save the changes**.\n**As a result** , the custom chat routing rule will be added to Creatio.\n### 2\\. Implement routing of chats\u200b\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Create a service class**.\n1. Add the `Terrasoft.Configuration.Omnichannel.Messaging` namespace.\n2. Add the namespaces the data types of which to utilize in the class using the `using` directive.\n3. Add a class name that matches the schema name (the **Code** property).\n4. Specify the `BaseOperatorRoutingRule` class as a parent class.\n3. **Implement a class method**.\n1. Add the `public CustomChatRoutingRule(UserConnection userConnection)` method that routes the chat.\n2. Add the `protected override List<Guid> PickUpFreeQueueOperators(Guid chatId, Guid queueId)` method that matches agent IDs to chat IDs. If the chat is already assigned to an agent (the `[OperatorId]` column includes the user ID), select the agent. Otherwise, retrieve the agent or agents as `List<Guid>`, where `Guid` stores a list of agent IDs in the `SysAdminUnit` database table. The agents that have the corresponding IDs receive new chat notifications and can access the chat using the communication panel. ID of the Supervisor system user is specified in the ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) \u2192 **Users and administration** \u2192 **Users** section \u2192 **Id** column. For this example, the ID is \"7f3b869f-34f3-4f20-ab4d-7480a5fdf647.\"\n3. Add the `protected override Guid GetChatOperator(Guid chatId)` method that returns agent ID using chat ID.\nView the example that routes the chat to the Supervisor system user whose ID is \"7f3b869f-34f3-4f20-ab4d-7480a5fdf647.\" below.\nSomeChatRouting\nnamespace Terrasoft.Configuration.Omnichannel.Messaging {  \nusing System;  \nusing System.Collections.Generic;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \n#region Class: SomeChatRouting  \npublic class SomeChatRouting: BaseOperatorRoutingRule {  \n#region Constructors: Public  \n/* Route the chat to the Supervisor system user. */  \npublic CustomChatRoutingRule(UserConnection userConnection) : base(userConnection) {}  \n#endregion  \n#region Methods: Protected  \n/* Match agent IDs to chat IDs. */  \nprotected override List<Guid> PickUpFreeQueueOperators(Guid chatId, Guid queueId) {  \nreturn new List<Guid> {  \n/* ID of Supervisor system user. */  \nGuid.Parse(\"7f3b869f-34f3-4f20-ab4d-7480a5fdf647\")  \n};  \n}  \n/* Return agent ID using chat ID. */  \nprotected override Guid GetChatOperator(Guid chatId) {  \nGuid operatorId = (new Select(UserConnection).Column(\"OperatorId\").From(\"OmniChat\", \"oc\").Where(\"oc\", \"Id\").IsEqual(Column.Parameter(chatId))  \nas Select).ExecuteScalar<Guid>();  \nreturn operatorId;  \n}  \n#endregion  \n}  \n#endregion  \n}  \n4. **Publish the schema**.\n**As a result** , Creatio will route chats to the dedicated user.\n### 3\\. Link the interfaces\u200b\n1. **Create the source code schema**. Instructions: [Implement the source code](https://academy.creatio.com/documents?ver=8.3&id=15108&anchor=title-2123-8).\n2. **Implement the business logic** that links interfaces.\n1. Specify the `AppEventListenerBase` class as a parent class.\n2. Link the created class using the `SomeCustomChatRoutingRule` chat routing rule that is specified in the **Rules for routing chat queue operators** lookup.\nSomeAppEventListener\nnamespace Terrasoft.Configuration.Omnichannel.Messaging {  \nusing Common;  \nusing Core;  \nusing Terrasoft.Core.Factories;  \nusing Web.Common;  \n#region Class: SomeAppEventListener  \n/* Run prerequisites for \"OmnichannelMessaging\" on app start. */  \npublic class SomeAppEventListener: AppEventListenerBase {  \n#region Fields: Protected  \nprotected UserConnection UserConnection {  \nget;  \nprivate set;  \n}  \n#endregion  \n#region Methods: Protected  \n/* Retrieve the user connection from the app event scope.  \nThe \"context\" parameter is the app event scope.  \nReturn user connection. */  \nprotected UserConnection GetUserConnection(AppEventContext context) {  \nvar appConnection = context.Application[\"AppConnection\"] as AppConnection;  \nif (appConnection == null) {  \nthrow new ArgumentNullOrEmptyException(\"AppConnection\");  \n}  \nreturn appConnection.SystemUserConnection;  \n}  \nprotected void BindInterfaces() {  \nClassFactory.Bind<IOperatorRoutingRule,  \nTestOperatorRoutingRule> (\"SomeCustomChatRoutingRule\");  \n}  \n#endregion  \n#region Methods: Public  \n/* Handle the app start.  \nThe \"context\" parameter is the app event scope. */  \npublic override void OnAppStart(AppEventContext context) {  \nbase.OnAppStart(context);  \nUserConnection = GetUserConnection(context);  \nBindInterfaces();  \n}  \n#endregion  \n}  \n#endregion  \n}  \n3. **Publish the schema**.\n**As a result** , the custom chat routing rule will be implemented.\n### 4\\. Restart Creatio in IIS\u200b\nRestart Creatio in IIS to apply the changes.\n### 5\\. Include the custom chat routing rule in the chat distribution mechanism\u200b\u200b\n1. **Open the Chat settings section**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) in the top right \u2192 **Import and integration** \u2192 **Chat settings**.\n2. **Add the custom chat routing rule** to the chat queues. To do this, go to the **Chat queues** expanded list and click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_add.png).\n3. **Fill out the properties** of the custom chat routing rule.\nProperty| Property value  \n---|---  \nName*| An arbitrary name of a custom chat routing rule. For example, \"Some custom chat distribution mechanism.\"  \nRouting rule*| The way chats will be distributed to agents. For example, \"Some custom chat routing rule.\"  \nQueue agents*| \n1. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_add.png). This opens the **Select user or role** window.\n2. Open the **Organizational roles** , **Functional roles** or **Users** tab based on your business goals.\n3. Select roles and/or users.\n4. Click **Select**.  \n**As a result** , the custom chat routing rule will be implemented and Creatio will route new chats to selected roles and/or users using custom chat routing rule.\n* * *\n## See also\u200b\n[\"Source code\" type schema](https://academy.creatio.com/documents?ver=8.3&id=15108)\n[Best practices for optimizing data fetching in Freedom UI page logic](https://academy.creatio.com/documents?ver=8.3&id=15387)\n* * *\n## Resources\u200b\n[Chat setup](https://academy.creatio.com/docs/8.x/no-code-customization/category/chat-setup) (user documentation)",
+  "code_examples": [
+    {
+      "code": "IF OBJECT_ID('SomeProviderMsgSettings') IS NULL     BEGIN    CREATE TABLE SomeProviderMsgSettings(        Id uniqueidentifier NOT NULL DEFAULT (newid()),        Token nvarchar(250) NOT NULL DEFAULT (''),        UserName nvarchar(250) NOT NULL DEFAULT (''),        CONSTRAINT PK_SomeProviderMsgSettings_Id PRIMARY KEY CLUSTERED (Id)    )END",
+      "language": "sql",
+      "context": "To create a database table,execute the SQL query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "CREATE TABLE IF NOT EXISTS public.\"SomeProviderMsgSettings\" (     \"Id\" uuid NOT NULL DEFAULT uuid_generate_v4(),    \"Token\" character varying(250) COLLATE pg_catalog.\"default\" NOT NULL DEFAULT ''::character varying,    \"UserName\" character varying(250) COLLATE pg_catalog.\"default\" NOT NULL DEFAULT ''::character varying,    CONSTRAINT \"PK_SomeProviderMsgSettings_Id\" PRIMARY KEY (\"Id\"));",
+      "language": "sql",
+      "context": "To create a database table,execute the SQL query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging{    using System;    using System.ServiceModel;    using System.ServiceModel.Activation;    using System.ServiceModel.Web;    using Terrasoft.Common;    using Terrasoft.Core;    using Terrasoft.Core.DB;    using Terrasoft.Web.Common.ServiceRouting;    #region Class: SomeProviderOmnichannelMessagingService    [ServiceContract]    [AspNetCompatibilityRequirements(RequirementsMode = AspNetCompatibilityRequirementsMode.Required)]    [DefaultServiceRoute]    public class SomeProviderOmnichannelMessagingService : OmnichannelMessagingService    {        #region Constructors: Public        public SomeProviderIncomingMessage() : base()        { }        /* Initialize a new \"SomeProviderIncomingMessage\" class instance. */        public SomeProviderIncomingMessage(UserConnection userConnection) : base(userConnection)        { }        #endregion        #region Methods: Private        private void GetChannelAndQueueBySource(MessagingMessage message) {            Select channelSelect = new Select(UserConnection)                .Top(1).Column(\"Id\")                .Column(\"ChatQueueId\")                .From(\"Channel\")                .Where(\"Source\").IsEqual(Column.Parameter(message.Recipient))                .And(\"IsActive\").IsEqual(Column.Parameter(true)) as Select;                           channelSelect.ExecuteReader(reader => {                message.ChannelId = reader.GetColumnValue(\"Id\").ToString();                message.ChannelQueueId = reader.GetColumnValue(\"ChatQueueId\");            });        }        #endregion        #region Methods: Public        /* The method that receives messages from the integration API. */        [OperationContract]        [WebInvoke(UriTemplate = \"receive\", Method = \"POST\", RequestFormat = WebMessageFormat.Json, BodyStyle = WebMessageBodyStyle.Bare, ResponseFormat = WebMessageFormat.Json)]        public void ReceiveMessage(SomeProviderIncomingMessage message) {            /* Convert the message. */            MessagingMessage messagingMessage = new MessagingMessage(SomeProviderIncomingMessageConverter.Convert(message));            /* Identify the channel using the \"Source\" database field. */            GetChannelAndQueueBySource(messagingMessage);            /* If an open chat with this user is not found, create a new chat. Otherwise, add a message to an existing chat. If the user contacts you for the first time, create a contact and fill out their credentials. Otherwise, bind the chat to an existing contact. */            InternalReceive(messagingMessage);        }        #endregion    }    #endregion}",
+      "language": "cs",
+      "context": "Add thepublic void ReceiveMessage(SomeProviderIncomingMessage message)method that implements the endpoint of the custom web service. The messenger sends a message to thereceiveendpoint.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging{    using OmnichannelProviders.Domain.Entities;    using System;    using System.Collections.Generic;    public class SomeProviderIncomingMessage : UnifiedMessage    { }    public static class SomeProviderIncomingMessageConverter    {        #region Methods: Public         public static MessagingMessage Convert(SomeProviderIncomingMessage message) {            var messageType = MessageType.Text;            var messageId = Guid.NewGuid();            var result = new MessagingMessage {                Id = messageId,                Message = message.Message,                /* The message recipient is the ID of the page or client added to \"Source\" column in the \"Channel\" database table. */                Recipient = message.Recipient,                /* The ID of the message sender in the messenger. The sender is bound to the contact via the \"ContactIdentity\" database table. */                Sender = message.Sender,                Timestamp = message.Timestamp,                /* The channel ID in Creatio specified in the \"MsgSettingsid\" object field. */                ChannelId = message.ChannelId,                MessageDirection = MessageDirection.Incoming,                MessageType = messageType,                /* The channel source. */                Source = ChannelType.ThirdParty,                /* The provider name that is used as the provider ID. */                ChannelName = \"SomeProvider\"            };            if (messageType != MessageType.Text) {                /* The \"Attachments\" block is populated depending on the file access format provided by the messenger. In this case, it is a link to download. Fill out the \"FileId\" parameter value in the message to make the file available for download. */                result.Attachments = new List<MessageAttachment>();                foreach (var attachment in message.Attachments){                    result.Attachments.Add(new MessageAttachment {                        MessageId = messageId,                        UploadUrl = attachment.UploadUrl,                        FileType = attachment.FileType                    });                }            }            return result;        }        #endregion    }}",
+      "language": "cs",
+      "context": "Implement the business logicthat handles incoming messages using theSomeProviderIncomingMessageConverterclass. The class converts a message that has theSomeProviderIncomingMessagetype to the message w",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging{    using Newtonsoft.Json;    using OmnichannelProviders.Domain.Entities;    using OmnichannelProviders.Interfaces;    using System.IO;    using System.Net;    using Terrasoft.Core;    public class SomeProviderProfileData {        public string first_name { get; set; }        public string last_name { get; set; }    }    #region Class: SomeProviderProfileData    /* Retrieve the profile data from the \"SomeProvider\" provider. */    public class SomeProviderProfileData : IProfileDataProvider    {        #region Properties: Private         private readonly string _someProviderUrl = \"https://somechannelprovider.api/\";        #endregion        #region Constructors: Public         /* Initialize a new \"FacebookProfileDataProvider\" class instance. */        public SomeProviderProfileData(UserConnection userConnection)        { }        #endregion        #region Methods: Public        /* Retrieve the profile data from Facebook.        The \"profileId\" parameter is the Facebook profile ID.        The \"channelId\" parameter is the channel from which the request was sent.        Return the contact ID. */        public ProfileData GetProfileDataByProfileId(string profileId, string channelId)    {            var requestUrl = string.Concat(_someChannelProviderNameProviderApiUrl, profileId);            WebRequest request = WebRequest.Create(requestUrl);            try {                using (var response = request.GetResponse()) {                    using (Stream stream = response.GetResponseStream()) {                        using (StreamReader sr = new StreamReader(stream)) {                            var someChannelProviderNameProfile = JsonConvert.DeserializeObject<SomeChannelProviderNameProfileData>(sr.ReadToEnd());                            return new ProfileData {                                FirstName = someChannelProviderNameProfile.first_name,                                LastName = someChannelProviderNameProfile.last_name,                            };                        }                    }                }            }            catch {                return new ProfileData();            }        }        #endregion    }    #endregion}",
+      "language": "cs",
+      "context": "Implement the business logicthat retrieves sender data using theIProfileDataProviderinterface.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging{    using OmnichannelProviders;    using OmnichannelProviders.Domain.Entities;    using OmnichannelProviders.MessageConverters;    using Terrasoft.Core;    #region Class: SomeProviderAttachmentLoadWorker    /* Load attachments from the \"SomeProvider\" provider. */    public class SomeProviderAttachmentLoadWorker : IAttachmentsLoadWorker    {        #region Properties: Protected         protected UserConnection UserConnection;        protected AttachmentsDownloader AttachmentsDownloader;        #endregion        #region Constructors: Public        /* Initialize a new \"SomeProviderAttachmentLoadWorker\" class instance. */        public SomeProviderAttachmentLoadWorker(UserConnection userConnection) {            UserConnection = userConnection;            AttachmentsDownloader = new AttachmentsDownloader(userConnection);        }        #endregion        #region Methods: Public         /* Load the attachments.        The \"incomeAttachment\" parameter is the attachment from the messenger.        The \"message\" parameter is the source message. */        public void Load(MessageAttachment incomeAttachment, UnifiedMessage message) {            incomeAttachment.FileName = FileUtilities.GetFileNameFromUrl(incomeAttachment.UploadUrl);            incomeAttachment.FileId = AttachmentsDownloader.Load(incomeAttachment);        }        #endregion    }    #endregion}",
+      "language": "cs",
+      "context": "Implement the business logicthat lets you download attachments using theIAttachmentsLoadWorkerinterface. The class downloads the attachment via a link and saves the attachment to theOmnichannelMessage",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging{    using Newtonsoft.Json;    using Newtonsoft.Json.Serialization;    using OmnichannelProviders.Application.Http;    using OmnichannelProviders.Domain.Entities;    using OmnichannelProviders.MessageWorkers;    using Terrasoft.Core;    #region Class: SomeProviderOutcomeMessageWorker    /* Send messages to the \"SomeProvider\" provider. */    public class SomeProviderOutcomeMessageWorker : IOutcomeMessageWorker    {        #region Properties: Protected         protected UserConnection UserConnection;        private readonly string _someChannelProviderNameProviderApiUrl = \"https://somechannelprovider.api\";        #endregion        #region Constructors: Public        /* Initialize a new \"SomeProviderOutcomeMessageWorker\" class instance. */        public SomeProviderOutcomeMessageWorker(UserConnection userConnection) {            UserConnection = userConnection;        }        #endregion        #region Methods: Public        /* Send the message to the \"SomeProvider\" provider.        The \"message\" parameter is the unified message. */        public string SendMessage(UnifiedMessage unifiedMessage, out bool success) {            var serializerSettings = new JsonSerializerSettings();            serializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();            var json = JsonConvert.SerializeObject(unifiedMessage, serializerSettings);            var requestUrl = string.Concat(_someChannelProviderNameProviderApiUrl, json);            var result = new HttpRequestSender().PostAsync(requestUrl, json).Result;            success = true;            return result;        }        public string PassControlToPrimaryReceiver(UnifiedMessage message) {            return string.Empty;        }        #endregion    }    #endregion}",
+      "language": "cs",
+      "context": "Implement the business logicthat sends messages using theIOutcomeMessageWorkerinterface.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging{    using Common;    using Core;    using OmnichannelProviders;    using OmnichannelProviders.Interfaces;    using OmnichannelProviders.MessageWorkers;    using Terrasoft.Core.Factories;    using Web.Common;    #region Class : SomeProviderAppEventListener    /* Run prerequisites for \"OmnichannelMessaging\" on app start. */    public class SomeProviderAppEventListener : AppEventListenerBase    {        #region Fields : Protected        protected UserConnection UserConnection {            get;            private set;        }        #endregion        #region Methods : Protected        /* Retrieve the user connection from the app event scope.        The \"context\" parameter is the app event scope.        Return user connection. */        protected UserConnection GetUserConnection(AppEventContext context) {            var appConnection = context.Application[\"AppConnection\"] as AppConnection;            if (appConnection == null) {                throw new ArgumentNullOrEmptyException(\"AppConnection\");            }            return appConnection.SystemUserConnection;        }        protected void BindInterfaces() {            ClassFactory.Bind<IAttachmentsLoadWorker, SomeChannelProviderNameAttachmentLoadWorker>(ChannelType.ThirdParty.ToString());            ClassFactory.Bind<IProfileDataProvider, SomeChannelProviderNameProfileDataProvider>(ChannelType.ThirdParty.ToString());            ClassFactory.Bind<IOutcomeMessageWorker, SomeChannelProviderNameOutcomeMessageWorker>(ChannelType.ThirdParty.ToString());        }        #endregion        #region Methods : Public        /* Handle the app start.        The \"context\" parameter is the app event scope. */        public override void OnAppStart(AppEventContext context) {            base.OnAppStart(context);            UserConnection = GetUserConnection(context);            BindInterfaces();        }        #endregion    }    #endregion}",
+      "language": "cs",
+      "context": "Implement the business logicthat links interfaces.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging {using System;using System.Collections.Generic;using Terrasoft.Core;using Terrasoft.Core.DB;#region Class: SomeChatRoutingpublic class SomeChatRouting: BaseOperatorRoutingRule {    #region Constructors: Public    /* Route the chat to the Supervisor system user. */    public CustomChatRoutingRule(UserConnection userConnection) : base(userConnection) {}    #endregion    #region Methods: Protected    /* Match agent IDs to chat IDs. */    protected override List<Guid> PickUpFreeQueueOperators(Guid chatId, Guid queueId) {        return new List<Guid> {            /* ID of Supervisor system user. */            Guid.Parse(\"7f3b869f-34f3-4f20-ab4d-7480a5fdf647\")        };    }    /* Return agent ID using chat ID. */    protected override Guid GetChatOperator(Guid chatId) {        Guid operatorId = (new Select(UserConnection).Column(\"OperatorId\").From(\"OmniChat\", \"oc\").Where(\"oc\", \"Id\").IsEqual(Column.Parameter(chatId))        as Select).ExecuteScalar<Guid>();        return operatorId;    }    #endregion}#endregion}",
+      "language": "cs",
+      "context": "View the example that routes the chat to the Supervisor system user whose ID is \"7f3b869f-34f3-4f20-ab4d-7480a5fdf647.\" below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration.Omnichannel.Messaging {    using Common;    using Core;    using Terrasoft.Core.Factories;    using Web.Common;    #region Class: SomeAppEventListener    /* Run prerequisites for \"OmnichannelMessaging\" on app start. */    public class SomeAppEventListener: AppEventListenerBase {        #region Fields: Protected        protected UserConnection UserConnection {            get;            private set;        }        #endregion        #region Methods: Protected        /* Retrieve the user connection from the app event scope.        The \"context\" parameter is the app event scope.        Return user connection. */        protected UserConnection GetUserConnection(AppEventContext context) {            var appConnection = context.Application[\"AppConnection\"] as AppConnection;            if (appConnection == null) {                throw new ArgumentNullOrEmptyException(\"AppConnection\");            }            return appConnection.SystemUserConnection;        }        protected void BindInterfaces() {            ClassFactory.Bind<IOperatorRoutingRule,            TestOperatorRoutingRule> (\"SomeCustomChatRoutingRule\");        }        #endregion        #region Methods: Public        /* Handle the app start.        The \"context\" parameter is the app event scope. */        public override void OnAppStart(AppEventContext context) {            base.OnAppStart(context);            UserConnection = GetUserConnection(context);            BindInterfaces();        }        #endregion    }    #endregion}",
+      "language": "cs",
+      "context": "Implement the business logicthat links interfaces.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Class",
+          "Description"
+        ],
+        [
+          "MessageManager",
+          "Enables the messenger integration with Creatio instance."
+        ],
+        [
+          "FacebookOmnichannelMessagingService",
+          "Receives and sends messages from Facebook Messenger. The class is based on theOmnichannelMessagingServiceclass that contains the set methods that are common for both Facebook Messenger and Telegram."
+        ],
+        [
+          "TelegramOmnichannelMessagingService",
+          "Receives messages from Telegram. The class is based on theOmnichannelMessagingServiceclass that contains the set methods that are common for both Facebook Messenger and Telegram."
+        ],
+        [
+          "OmnichannelChatService",
+          "Receives history, chats of a specific agent, etc."
+        ],
+        [
+          "OmnichannelOperatorService",
+          "Receives and changes the agent status."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Class</p></th><th><p>Description</p></th></tr><tr><td><p>MessageManager</p></td><td><p>Enables the messenger integration with Creatio instance.</p></td></tr><tr><td><p>FacebookOmnichannelMessagingService</p></td><td><p>Receives and sends messages from Facebook Messenger. The class is based on the <code>OmnichannelMessagingService</code> class that contains the set methods that are common for both Facebook Messenger and Telegram.</p></td></tr><tr><td><p>TelegramOmnichannelMessagingService</p></td><td><p>Receives messages from Telegram. The class is based on the <code>OmnichannelMessagingService</code> class that contains the set methods that are common for both Facebook Messenger and Telegram.</p></td></tr><tr><td><p>OmnichannelChatService</p></td><td><p>Receives history, chats of a specific agent, etc.</p></td></tr><tr><td><p>OmnichannelOperatorService</p></td><td><p>Receives and changes the agent status.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Name",
+          "Some custom channel provider"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Name</p></center></td><td><center><p>Some custom channel provider</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Column",
+          "Description"
+        ],
+        [
+          "Name",
+          "The channel name."
+        ],
+        [
+          "ProviderId",
+          "The custom provider ID."
+        ],
+        [
+          "MsgSettingsId",
+          "The record ID from the database table that stores data of custom channel provider."
+        ],
+        [
+          "Source",
+          "The channel ID from the messenger. For example,Facebook page ID,Telegram client ID. The property value lets you identify the recipient by a messenger message."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Column</p></th><th><p>Description</p></th></tr><tr><td><p>Name</p></td><td><p>The channel name.</p></td></tr><tr><td><p>ProviderId</p></td><td><p>The custom provider ID.</p></td></tr><tr><td><p>MsgSettingsId</p></td><td><p>The record ID from the database table that stores data of custom channel provider.</p></td></tr><tr><td><p>Source</p></td><td><p>The channel ID from the messenger. For example, <code>Facebook page ID</code>, <code>Telegram client ID</code>. The property value lets you identify the recipient by a messenger message.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Name",
+          "Some custom chat routing rule"
+        ],
+        [
+          "Code",
+          "SomeCustomChatRoutingRule"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Name</p></center></td><td><center><p>Some custom chat routing rule</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>SomeCustomChatRoutingRule</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Name*",
+          "An arbitrary name of a custom chat routing rule. For example, \"Some custom chat distribution mechanism.\""
+        ],
+        [
+          "Routing rule*",
+          "The way chats will be distributed to agents. For example, \"Some custom chat routing rule.\""
+        ],
+        [
+          "Queue agents*",
+          "Click. This opens theSelect user or rolewindow.Open theOrganizational roles,Functional rolesorUserstab based on your business goals.Select roles and/or users.ClickSelect."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Name<font color=\"#FF0000\">*</font></p></center></td><td><center><p>An arbitrary name of a custom chat routing rule. For example, \"Some custom chat distribution mechanism.\"</p></center></td></tr><tr><td><center><p>Routing rule<font color=\"#FF0000\">*</font></p></center></td><td><center><p>The way chats will be distributed to agents. For example, \"Some custom chat routing rule.\"</p></center></td></tr><tr><td><center><p>Queue agents<font color=\"#FF0000\">*</font></p></center></td><td><ol>\n<li>Click <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_add.png\"/>. This opens the <strong>Select user or role</strong> window.</li>\n<li>Open the  <strong>Organizational roles</strong>, <strong>Functional roles</strong> or <strong>Users</strong> tab based on your business goals.</li>\n<li>Select roles and/or users.</li>\n<li>Click <strong>Select</strong>.</li>\n</ol></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a user-made packageto add the channel provider. To do this, click\u2192Create new package\u2192 fill ou",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_520896d23b28.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Lookups section. To do this, clickin the top right \u2192System setup\u2192Lookups.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a user-made packageto add the chat routing rule. To do this, click\u2192Create new package\u2192 fill o",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_520896d23b28.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Lookups section. To do this, clickin the top right \u2192System setup\u2192Lookups.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Implement a class method.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Chat settings section. To do this, clickin the top right \u2192Import and integration\u2192Chat setti",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_add.png",
+      "alt": "",
+      "title": "",
+      "context": "Add the custom chat routing ruleto the chat queues. To do this, go to theChat queuesexpanded list an",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_320933218403.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_add.png",
+      "alt": "",
+      "title": "",
+      "context": "Queue agents*",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/cf7bac26e8af862b_-creatio-platform_platform-customization_freedom-ui_chat-management-api_overview_320933218403.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Manage chats in Creatio",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Manage chat functionality in Creatio\u200b",
+      "anchor": "title-3480-1"
+    },
+    {
+      "level": 2,
+      "text": "Implement a custom channel provider\u200b",
+      "anchor": "title-3480-16"
+    },
+    {
+      "level": 3,
+      "text": "1. Add a channel provider to Creatio\u200b",
+      "anchor": "title-15621-1"
+    },
+    {
+      "level": 3,
+      "text": "2. Create a database table to store data of the custom channel provider\u200b",
+      "anchor": "title-15621-2"
+    },
+    {
+      "level": 3,
+      "text": "3. Register the custom channel provider in the database\u200b",
+      "anchor": "title-15621-3"
+    },
+    {
+      "level": 3,
+      "text": "4. Implement a custom web service that receives messages\u200b",
+      "anchor": "title-15621-4"
+    },
+    {
+      "level": 3,
+      "text": "5. Handle an incoming message\u200b",
+      "anchor": "title-15621-5"
+    },
+    {
+      "level": 3,
+      "text": "6. Implement retrieval of sender data\u200b",
+      "anchor": "title-15621-6"
+    },
+    {
+      "level": 3,
+      "text": "7. Implement downloading of attachments\u200b",
+      "anchor": "title-15621-7"
+    },
+    {
+      "level": 3,
+      "text": "8. Implement sending\u00a0of messages\u200b",
+      "anchor": "title-15621-8"
+    },
+    {
+      "level": 3,
+      "text": "9. Link the interfaces\u200b",
+      "anchor": "title-15621-9"
+    },
+    {
+      "level": 2,
+      "text": "Implement a custom chat routing rule\u200b",
+      "anchor": "title-15621-10"
+    },
+    {
+      "level": 3,
+      "text": "1. Add a chat routing rule to Creatio\u200b",
+      "anchor": "title-15621-11"
+    },
+    {
+      "level": 3,
+      "text": "2. Implement routing of chats\u200b",
+      "anchor": "title-15621-12"
+    },
+    {
+      "level": 3,
+      "text": "3. Link the interfaces\u200b",
+      "anchor": "title-15621-13"
+    },
+    {
+      "level": 3,
+      "text": "4. Restart Creatio in IIS\u200b",
+      "anchor": "title-15621-14"
+    },
+    {
+      "level": 3,
+      "text": "5. Include the custom chat routing rule in the chat distribution mechanism\u200b\u200b",
+      "anchor": "title-15621-15"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DESERIALIZEOBJECT",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "SomeChannelProviderNameProfileData"
+      },
+      {
+        "method": "SOMECHANNELPROVIDERNAMEPROFILEDATA",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "BIND",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IAttachmentsLoadWorker"
+      },
+      {
+        "method": "IATTACHMENTSLOADWORKER",
+        "path": ","
+      },
+      {
+        "method": ",",
+        "path": "SomeChannelProviderNameAttachmentLoadWorker"
+      },
+      {
+        "method": "SOMECHANNELPROVIDERNAMEATTACHMENTLOADWORKER",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "BIND",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IProfileDataProvider"
+      },
+      {
+        "method": "IPROFILEDATAPROVIDER",
+        "path": ","
+      },
+      {
+        "method": ",",
+        "path": "SomeChannelProviderNameProfileDataProvider"
+      },
+      {
+        "method": "SOMECHANNELPROVIDERNAMEPROFILEDATAPROVIDER",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "BIND",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IOutcomeMessageWorker"
+      },
+      {
+        "method": "IOUTCOMEMESSAGEWORKER",
+        "path": ","
+      },
+      {
+        "method": ",",
+        "path": "SomeChannelProviderNameOutcomeMessageWorker"
+      },
+      {
+        "method": "SOMECHANNELPROVIDERNAMEOUTCOMEMESSAGEWORKER",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "EXECUTESCALAR",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "BIND",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IOperatorRoutingRule"
+      },
+      {
+        "method": "IOPERATORROUTINGRULE",
+        "path": ","
+      },
+      {
+        "method": ",",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "TestOperatorRoutingRule>(\"SomeCustomChatRoutingRule\");"
+      },
+      {
+        "method": "TESTOPERATORROUTINGRULE",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/chats",
+      "text": "PreviousChats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/chat-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/chat-management-api/references/chat-api",
+      "text": "Chat API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/opening-the-page",
+      "text": "Opening the page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/interface-control-tools/anonymous-access",
+      "text": "Retrieve allowed features before login",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/no-code-customization/category/chat-setup",
+      "text": "Chat setup",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:15:37.027653"
+}

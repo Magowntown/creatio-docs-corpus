@@ -1,0 +1,1 @@
+addDatePeriodMacrosColumn(macrosType, [macrosValue], [columnAlias])

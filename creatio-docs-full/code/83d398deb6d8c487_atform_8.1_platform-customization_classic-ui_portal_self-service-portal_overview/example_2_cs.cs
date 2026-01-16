@@ -1,0 +1,1 @@
+[ServiceContract]public class InternalService : BaseService{}

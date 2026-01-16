@@ -1,0 +1,1 @@
+public string SelectCountryIdByCityName(string CityName) {    var result = "";    var select = new Select(UserConnection)        .Column("CountryId")        .From("City")        .Where("Name").IsEqual(Column.Parameter(CityName)) as Select;    result = select.ExecuteScalar <Guid> ().ToString();    return result;}

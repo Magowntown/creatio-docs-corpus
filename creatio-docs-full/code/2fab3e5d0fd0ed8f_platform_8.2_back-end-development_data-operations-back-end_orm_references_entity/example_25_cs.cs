@@ -1,0 +1,1 @@
+IsSchemaInitialized bool

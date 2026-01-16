@@ -1,0 +1,1 @@
+export class ImageComponent {    @CrtInput()    @Input()    public imageUrl!: string;}

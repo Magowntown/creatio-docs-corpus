@@ -1,0 +1,1 @@
+function createLead1() { landing.createLeadFromLanding(config1) } function createLead2() { landing.createLeadFromLanding(config2) }

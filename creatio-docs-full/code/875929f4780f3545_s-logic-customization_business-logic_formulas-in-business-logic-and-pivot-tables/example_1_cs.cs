@@ -1,0 +1,1 @@
+Target field: [Duration]Elements: the values of fields [Start date] and [End date].Formula: = DiffMinute([End date], [Start date])

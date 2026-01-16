@@ -1,0 +1,1 @@
+setPrimaryColumn(modelName, column)

@@ -1,0 +1,1 @@
+http://[Creatio URL]/0/rest/UsrGreetingService/Hello

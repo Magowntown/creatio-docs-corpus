@@ -1,0 +1,1 @@
+/* AMD module declaration. */define("UsrAppClientSchemaName1", ["UsrAppClientSchemaName"], () {    ...});

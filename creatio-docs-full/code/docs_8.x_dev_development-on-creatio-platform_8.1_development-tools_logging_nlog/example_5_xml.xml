@@ -1,0 +1,1 @@
+<target name="universalAppender" xsi:type="File"    layout="${DefaultLayout}"    fileName="${LogDir}${LogDay}${logger:shortName=True}.log" />

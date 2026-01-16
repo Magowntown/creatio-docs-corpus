@@ -1,0 +1,1 @@
+/* Delete data from the session level storage without previous verification. */;UserConnection.SessionData.Remove("SomeKey");

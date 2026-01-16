@@ -1,0 +1,1 @@
+diff: /**SCHEMA_DIFF*/ [    {        /* Move operation. */        "operation": "move",        "name": "Name",        /* The name of the parent element where the move operation is done. */        "parentName": "SomeContainer"    }] /**SCHEMA_DIFF*/

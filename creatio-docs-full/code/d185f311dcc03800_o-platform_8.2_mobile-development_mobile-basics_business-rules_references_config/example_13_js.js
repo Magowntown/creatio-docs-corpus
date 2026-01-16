@@ -1,0 +1,1 @@
+executeFn: function(record, rule, checkColumnName, customData, callbackConfig, event) {    }

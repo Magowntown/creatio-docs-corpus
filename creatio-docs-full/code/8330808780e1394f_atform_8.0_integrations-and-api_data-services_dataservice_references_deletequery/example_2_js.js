@@ -1,0 +1,1 @@
+{    "RootSchemaName":"[Root schema]",    "OperationType":[Record operation type],    "ColumnValues":[Column values. Not used.],    "Filters":[Query filters]}

@@ -1,0 +1,1 @@
+EntitySchemaWindowQueryFunction(EntitySchemaQueryFunction source)

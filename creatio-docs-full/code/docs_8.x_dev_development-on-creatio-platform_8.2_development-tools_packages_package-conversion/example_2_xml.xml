@@ -1,0 +1,1 @@
+<Compile Remove="$(RelativeCurrentPkgFolderPath)Files/PackageProjectFolder/**" />

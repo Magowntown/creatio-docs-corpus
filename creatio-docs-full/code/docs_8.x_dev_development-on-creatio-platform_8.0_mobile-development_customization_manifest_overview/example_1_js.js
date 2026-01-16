@@ -1,0 +1,1 @@
+Terrasoft.sdk.Details.setChangeModes("UsrCodeOfSomeCustomSection", "UsrCodeOfSomeCustomExpandedList", [Terrasoft.ChangeModes.Read]);

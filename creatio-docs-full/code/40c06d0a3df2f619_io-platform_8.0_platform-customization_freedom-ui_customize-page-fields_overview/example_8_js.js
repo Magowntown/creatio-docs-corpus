@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    {        /* Bind the "crt.ToBoolean" and "crt.InvertBooleanValue" converters to the "$SomeAttribute" attribute. */        "visible": "$SomeAttribute | crt.ToBoolean | crt.InvertBooleanValue",    },]/**SCHEMA_VIEW_CONFIG_DIFF*/,

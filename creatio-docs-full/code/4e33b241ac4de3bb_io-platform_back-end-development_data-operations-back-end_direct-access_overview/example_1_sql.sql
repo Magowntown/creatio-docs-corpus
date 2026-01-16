@@ -1,0 +1,1 @@
+-- For Microsoft SQL or PostgreSQLINSERT INTO [dbo].[Table] (Column1, Column2, Column3)VALUES (1, 1, 1),    (2, 2, 2),    (3, 3, 3)

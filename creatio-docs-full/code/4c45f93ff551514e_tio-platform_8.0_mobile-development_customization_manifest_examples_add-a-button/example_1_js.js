@@ -1,0 +1,1 @@
+Terrasoft.sdk.RecordPage.addPanelItem("Contact", {    xtype: "cftestrecordpanelitem",    position: 1,    componentConfig: {    }});

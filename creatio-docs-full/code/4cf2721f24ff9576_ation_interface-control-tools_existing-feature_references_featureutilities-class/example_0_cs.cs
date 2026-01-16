@@ -1,0 +1,1 @@
+static int GetFeatureState(this UserConnection source, string code)

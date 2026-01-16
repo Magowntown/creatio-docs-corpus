@@ -1,0 +1,1 @@
+CastQueryFunction(QueryColumnExpression expression, DBDataValueType castType)CastQueryFunction(IQueryColumnExpressionConvertible expression, DBDataValueType castType)

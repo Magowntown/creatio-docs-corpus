@@ -1,0 +1,1 @@
+registerMessages(messageConfig)

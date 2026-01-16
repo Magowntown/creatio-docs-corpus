@@ -1,0 +1,1 @@
+var fieldId = $("#name_of_dropdown option:selected").text();

@@ -1,0 +1,1 @@
+CoalesceQueryFunction(CoalesceQueryFunction source)

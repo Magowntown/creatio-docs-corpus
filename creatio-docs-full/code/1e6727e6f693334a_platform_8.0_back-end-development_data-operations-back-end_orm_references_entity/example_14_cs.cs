@@ -1,0 +1,1 @@
+IsInDeleting bool

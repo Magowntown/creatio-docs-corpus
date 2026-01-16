@@ -1,0 +1,1 @@
+https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow/#confirm\GET https://graph.facebook.com/v3.2/oauth/access_token?\client_id={app-id}\&redirect_uri={redirect-uri}\&client_secret={app-secret}\&code={code-parameter}

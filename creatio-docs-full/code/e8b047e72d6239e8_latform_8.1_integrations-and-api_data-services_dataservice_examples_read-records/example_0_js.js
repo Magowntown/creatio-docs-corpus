@@ -1,0 +1,1 @@
+/* Declare the AMD module. */define("Contacts_ListPage", /**SCHEMA_DEPS*/["@creatio-devkit/common"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        ...    }});

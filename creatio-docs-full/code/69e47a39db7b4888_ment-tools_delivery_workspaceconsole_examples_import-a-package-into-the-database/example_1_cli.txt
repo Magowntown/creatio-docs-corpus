@@ -1,0 +1,1 @@
+C:\creatio\Terrasoft.WebApp\DesktopBin\WorkspaceConsole\Terrasoft.Tools.WorkspaceConsole.exe -operation=BuildConfiguration -workspaceName=Default -destinationPath=C:\creatio\Terrasoft.WebApp -webApplicationPath=C:\creatio -confRuntimeParentDirectory=C:\creatio\Terrasoft.WebApp -configurationPath=C:\creatio\Terrasoft.WebApp\Terrasoft.Configuration -logPath=C:\Logspause

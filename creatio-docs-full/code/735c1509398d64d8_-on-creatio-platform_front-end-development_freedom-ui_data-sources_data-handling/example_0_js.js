@@ -1,0 +1,1 @@
+export class DataSchema {    public name: string;    public caption: LocalizableString;    public attributes: DataSchemaAttribute[];    public primaryAttributeName?: string;    public primaryDisplayAttributeName?: string;}

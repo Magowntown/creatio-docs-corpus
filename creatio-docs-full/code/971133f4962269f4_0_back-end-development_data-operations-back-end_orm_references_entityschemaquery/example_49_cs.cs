@@ -1,0 +1,1 @@
+EntitySchemaCoalesceQueryFunction CreateCoalesceFunction(params string[] columnPaths)static EntitySchemaCoalesceQueryFunction CreateCoalesceFunction(EntitySchemaQuery parentQuery, EntitySchema rootSchema, params string[] columnPaths)static EntitySchemaCoalesceQueryFunction CreateCoalesceFunction(EntitySchema rootSchema, params string[] columnPaths)

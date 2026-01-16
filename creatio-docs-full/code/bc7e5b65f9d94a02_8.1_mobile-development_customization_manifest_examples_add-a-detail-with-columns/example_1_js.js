@@ -1,0 +1,1 @@
+{    "SyncOptions": {        ...    },    "Modules": {},    "Models": {        "ContactCareer": {            "RequiredModels": [                ...            ],            "ModelExtensions": [],            "PagesExtensions": [                ...                "UsrContactCareerModuleConfig"            ]        },        ...    }}

@@ -1,0 +1,1 @@
+{Object} save(config, callback, scope)

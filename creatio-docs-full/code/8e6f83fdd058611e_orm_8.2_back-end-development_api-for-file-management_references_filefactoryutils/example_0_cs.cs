@@ -1,0 +1,1 @@
+static IFileFactory GetFileFactory(this UserConnection source)

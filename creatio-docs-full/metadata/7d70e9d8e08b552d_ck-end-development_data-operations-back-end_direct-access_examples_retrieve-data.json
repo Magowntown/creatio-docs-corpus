@@ -1,0 +1,743 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/examples/retrieve-data",
+  "title": "Retrieve data from the database",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    },
+    {
+      "text": "Data operations (back-end)",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end"
+    },
+    {
+      "text": "Direct access",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nnote\nThe examples in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.\nThe `CreateJson` method processes query results in the examples. View the method below.\nCreateJson() method\nprivate string CreateJson(IDataReader dataReader) {  \nvar list = new List <dynamic> ();  \nvar cnt = dataReader.FieldCount;  \nvar fields = new List <string> ();  \nfor (int i = 0; i < cnt; i++) {  \nfields.Add(dataReader.GetName(i));  \n}  \nwhile (dataReader.Read()) {  \ndynamic exo = new System.Dynamic.ExpandoObject();  \nforeach(var field in fields) {  \n((IDictionary <String, Object> ) exo).Add(field, dataReader.GetColumnValue(field));  \n}  \nlist.Add(exo);  \n}  \nreturn JsonConvert.SerializeObject(list);  \n}  \n## Example 1\u200b\nExample\nSelect a number of records from the needed table (object schema).\nSelectColumns() method\npublic string SelectColumns(string tableName, int top) {  \ntop = top > 0 ? top : 1;  \nvar result = \"{}\";  \nvar select = new Select(UserConnection)  \n.Top(top)  \n.Column(Column.Asterisk())  \n.From(tableName);  \nusing(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nresult = CreateJson(dataReader);  \n}  \n}  \nreturn result;  \n}  \n## Example 2\u200b\nExample\nSelect the IDs, names, and birth dates of contacts whose birth dates are later than the required year.\nSelectContactsYoungerThan() method\npublic string SelectContactsYoungerThan(string birthYear) {  \nvar result = \"{}\";  \nvar year = DateTime.ParseExact(birthYear, \"yyyy\", CultureInfo.InvariantCulture);  \nvar select = new Select(UserConnection)  \n.Column(\"Id\")  \n.Column(\"Name\")  \n.Column(\"BirthDate\")  \n.From(\"Contact\")  \n.Where(\"BirthDate\").IsGreater(Column.Parameter(year))  \n.Or(\"BirthDate\").IsNull()  \n.OrderByDesc(\"BirthDate\")  \nas Select;  \nusing(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nresult = CreateJson(dataReader);  \n}  \n}  \nreturn result;  \n}  \n## Example 3\u200b\nExample\nSelect the IDs, names, and birth dates of contacts whose birth dates are later than the specified year and who have the account specified.\nSelectContactsYoungerThanAndHasAccountId() method\npublic string SelectContactsYoungerThanAndHasAccountId(string birthYear) {  \nvar result = \"{}\";  \nvar year = DateTime.ParseExact(birthYear, \"yyyy\", CultureInfo.InvariantCulture);  \nvar select = new Select(UserConnection)  \n.Column(\"Id\")  \n.Column(\"Name\")  \n.Column(\"BirthDate\")  \n.From(\"Contact\")  \n.Where()  \n.OpenBlock(\"BirthDate\").IsGreater(Column.Parameter(year))  \n.Or(\"BirthDate\").IsNull()  \n.CloseBlock()  \n.And(\"AccountId\").Not().IsNull()  \n.OrderByDesc(\"BirthDate\")  \nas Select;  \nusing(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nresult = CreateJson(dataReader);  \n}  \n}  \nreturn result;  \n}  \n## Example 4\u200b\nExample\nSelect the IDs and names of all contacts by joining them to the IDs and names of the corresponding accounts.\nSelectContactsJoinAccount() method\npublic string SelectContactsJoinAccount() {  \nvar result = \"{}\";  \nvar select = new Select(UserConnection)  \n.Column(\"Contact\", \"Id\").As(\"ContactId\")  \n.Column(\"Contact\", \"Name\").As(\"ContactName\")  \n.Column(\"Account\", \"Id\").As(\"AccountId\")  \n.Column(\"Account\", \"Name\").As(\"AccountName\")  \n.From(\"Contact\")  \n.Join(JoinType.Inner, \"Account\")  \n.On(\"Contact\", \"Id\").IsEqual(\"Account\", \"PrimaryContactId\")  \nas Select;  \nusing(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nresult = CreateJson(dataReader);  \n}  \n}  \nreturn result;  \n}  \n## Example 5\u200b\nExample\nSelect the IDs and names of the primary account contacts.\nSelectAccountPrimaryContacts() method\npublic string SelectAccountPrimaryContacts() {  \nvar result = \"{}\";  \nvar select = new Select(UserConnection)  \n.Column(\"Id\")  \n.Column(\"Name\")  \n.From(\"Contact\").As(\"C\")  \n.Where()  \n.Exists(new Select(UserConnection)  \n.Column(\"A\", \"PrimaryContactId\")  \n.From(\"Account\").As(\"A\")  \n.Where(\"A\", \"PrimaryContactId\").IsEqual(\"C\", \"Id\"))  \nas Select;  \nusing(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nresult = CreateJson(dataReader);  \n}  \n}  \nreturn result;  \n}  \n## Example 6\u200b\nExample\nSelect the countries and the number of cities in a country if such number is greater than the specified number.\nSelectCountriesWithCitiesCount() method\npublic string SelectCountriesWithCitiesCount(int count) {  \nvar result = \"{}\";  \nvar select = new Select(UserConnection)  \n.Column(Func.Count(\"City\", \"Id\")).As(\"CitiesCount\")  \n.Column(\"Country\", \"Name\").As(\"CountryName\")  \n.From(\"City\")  \n.Join(JoinType.Inner, \"Country\")  \n.On(\"City\", \"CountryId\").IsEqual(\"Country\", \"Id\")  \n.GroupBy(\"Country\", \"Name\")  \n.Having(Func.Count(\"City\", \"Id\")).IsGreater(Column.Parameter(count))  \n.OrderByDesc(\"CitiesCount\")  \nas Select;  \nusing(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {  \nusing(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {  \nresult = CreateJson(dataReader);  \n}  \n}  \nreturn result;  \n}  \n## Example 7\u200b\nExample\nRetrieve the ID of the contact by their name.\nSelectCountryIdByCityName() method\npublic string SelectCountryIdByCityName(string CityName) {  \nvar result = \"\";  \nvar select = new Select(UserConnection)  \n.Column(\"CountryId\")  \n.From(\"City\")  \n.Where(\"Name\").IsEqual(Column.Parameter(CityName)) as Select;  \nresult = select.ExecuteScalar <Guid> ().ToString();  \nreturn result;  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation (web service)](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWorkWithData_18.12.05_12.22.39.zip)",
+  "code_examples": [
+    {
+      "code": "private string CreateJson(IDataReader dataReader) {    var list = new List <dynamic> ();    var cnt = dataReader.FieldCount;    var fields = new List <string> ();    for (int i = 0; i < cnt; i++) {        fields.Add(dataReader.GetName(i));    }    while (dataReader.Read()) {        dynamic exo = new System.Dynamic.ExpandoObject();        foreach(var field in fields) {            ((IDictionary <String, Object> ) exo).Add(field, dataReader.GetColumnValue(field));        }        list.Add(exo);    }    return JsonConvert.SerializeObject(list);}",
+      "language": "cs",
+      "context": "TheCreateJsonmethod processes query results in the examples. View the method below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public string SelectColumns(string tableName, int top) {    top = top > 0 ? top : 1;    var result = \"{}\";    var select = new Select(UserConnection)        .Top(top)        .Column(Column.Asterisk())        .From(tableName);    using(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {        using(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {            result = CreateJson(dataReader);        }    }    return result;}",
+      "language": "cs",
+      "context": "Select a number of records from the needed table (object schema).",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public string SelectContactsYoungerThan(string birthYear) {    var result = \"{}\";    var year = DateTime.ParseExact(birthYear, \"yyyy\", CultureInfo.InvariantCulture);    var select = new Select(UserConnection)        .Column(\"Id\")        .Column(\"Name\")        .Column(\"BirthDate\")        .From(\"Contact\")        .Where(\"BirthDate\").IsGreater(Column.Parameter(year))        .Or(\"BirthDate\").IsNull()        .OrderByDesc(\"BirthDate\")    as Select;    using(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {        using(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {            result = CreateJson(dataReader);        }    }    return result;}",
+      "language": "cs",
+      "context": "Select the IDs, names, and birth dates of contacts whose birth dates are later than the required year.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public string SelectContactsYoungerThanAndHasAccountId(string birthYear) {    var result = \"{}\";    var year = DateTime.ParseExact(birthYear, \"yyyy\", CultureInfo.InvariantCulture);    var select = new Select(UserConnection)        .Column(\"Id\")        .Column(\"Name\")        .Column(\"BirthDate\")        .From(\"Contact\")        .Where()        .OpenBlock(\"BirthDate\").IsGreater(Column.Parameter(year))        .Or(\"BirthDate\").IsNull()        .CloseBlock()        .And(\"AccountId\").Not().IsNull()        .OrderByDesc(\"BirthDate\")    as Select;    using(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {        using(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {            result = CreateJson(dataReader);        }    }    return result;}",
+      "language": "cs",
+      "context": "Select the IDs, names, and birth dates of contacts whose birth dates are later than the specified year and who have the account specified.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public string SelectContactsJoinAccount() {    var result = \"{}\";    var select = new Select(UserConnection)        .Column(\"Contact\", \"Id\").As(\"ContactId\")        .Column(\"Contact\", \"Name\").As(\"ContactName\")        .Column(\"Account\", \"Id\").As(\"AccountId\")        .Column(\"Account\", \"Name\").As(\"AccountName\")        .From(\"Contact\")        .Join(JoinType.Inner, \"Account\")        .On(\"Contact\", \"Id\").IsEqual(\"Account\", \"PrimaryContactId\")    as Select;    using(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {        using(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {            result = CreateJson(dataReader);        }    }    return result;}",
+      "language": "cs",
+      "context": "Select the IDs and names of all contacts by joining them to the IDs and names of the corresponding accounts.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public string SelectAccountPrimaryContacts() {    var result = \"{}\";    var select = new Select(UserConnection)        .Column(\"Id\")        .Column(\"Name\")        .From(\"Contact\").As(\"C\")        .Where()        .Exists(new Select(UserConnection)            .Column(\"A\", \"PrimaryContactId\")            .From(\"Account\").As(\"A\")            .Where(\"A\", \"PrimaryContactId\").IsEqual(\"C\", \"Id\"))    as Select;    using(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {        using(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {            result = CreateJson(dataReader);        }    }    return result;}",
+      "language": "cs",
+      "context": "Select the IDs and names of the primary account contacts.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public string SelectCountriesWithCitiesCount(int count) {    var result = \"{}\";    var select = new Select(UserConnection)        .Column(Func.Count(\"City\", \"Id\")).As(\"CitiesCount\")        .Column(\"Country\", \"Name\").As(\"CountryName\")        .From(\"City\")        .Join(JoinType.Inner, \"Country\")        .On(\"City\", \"CountryId\").IsEqual(\"Country\", \"Id\")        .GroupBy(\"Country\", \"Name\")        .Having(Func.Count(\"City\", \"Id\")).IsGreater(Column.Parameter(count))        .OrderByDesc(\"CitiesCount\")    as Select;    using(DBExecutor dbExecutor = UserConnection.EnsureDBConnection()) {        using(IDataReader dataReader = select.ExecuteReader(dbExecutor)) {            result = CreateJson(dataReader);        }    }    return result;}",
+      "language": "cs",
+      "context": "Select the countries and the number of cities in a country if such number is greater than the specified number.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public string SelectCountryIdByCityName(string CityName) {    var result = \"\";    var select = new Select(UserConnection)        .Column(\"CountryId\")        .From(\"City\")        .Where(\"Name\").IsEqual(Column.Parameter(CityName)) as Select;    result = select.ExecuteScalar <Guid> ().ToString();    return result;}",
+      "language": "cs",
+      "context": "Retrieve the ID of the contact by their name.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe examples in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The examples in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The examples in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The examples in this article are also implemented in the web service. The package that contains the web service implementation is attached in the Resources block.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleSelect a number of records from the needed table (object schema).",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Select a number of records from the needed table (object schema).</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Select a number of records from the needed table (object schema).",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Select a number of records from the needed table (object schema).</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleSelect the IDs, names, and birth dates of contacts whose birth dates are later than the required year.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Select the IDs, names, and birth dates of contacts whose birth dates are later than the required year.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Select the IDs, names, and birth dates of contacts whose birth dates are later than the required year.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Select the IDs, names, and birth dates of contacts whose birth dates are later than the required year.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleSelect the IDs, names, and birth dates of contacts whose birth dates are later than the specified year and who have the account specified.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Select the IDs, names, and birth dates of contacts whose birth dates are later than the specified year and who have the account specified.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Select the IDs, names, and birth dates of contacts whose birth dates are later than the specified year and who have the account specified.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Select the IDs, names, and birth dates of contacts whose birth dates are later than the specified year and who have the account specified.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleSelect the IDs and names of all contacts by joining them to the IDs and names of the corresponding accounts.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Select the IDs and names of all contacts by joining them to the IDs and names of the corresponding accounts.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Select the IDs and names of all contacts by joining them to the IDs and names of the corresponding accounts.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Select the IDs and names of all contacts by joining them to the IDs and names of the corresponding accounts.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleSelect the IDs and names of the primary account contacts.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Select the IDs and names of the primary account contacts.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Select the IDs and names of the primary account contacts.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Select the IDs and names of the primary account contacts.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleSelect the countries and the number of cities in a country if such number is greater than the specified number.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Select the countries and the number of cities in a country if such number is greater than the specified number.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Select the countries and the number of cities in a country if such number is greater than the specified number.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Select the countries and the number of cities in a country if such number is greater than the specified number.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleRetrieve the ID of the contact by their name.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Retrieve the ID of the contact by their name.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Retrieve the ID of the contact by their name.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Retrieve the ID of the contact by their name.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkWorkWithData_18.12.05_12.22.39.zip",
+      "text": "Package with example implementation (web service)",
+      "filename": "sdkWorkWithData_18.12.05_12.22.39.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/7d70e9d8e08b552d_ck-end-development_data-operations-back-end_direct-access_examples_retrieve-data_sdkWorkWithData_18.12.05_12.22.39.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Retrieve data from the database",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Example 1\u200b",
+      "anchor": "title-1246-1"
+    },
+    {
+      "level": 2,
+      "text": "Example 2\u200b",
+      "anchor": "title-1246-2"
+    },
+    {
+      "level": 2,
+      "text": "Example 3\u200b",
+      "anchor": "title-1246-3"
+    },
+    {
+      "level": 2,
+      "text": "Example 4\u200b",
+      "anchor": "title-1246-4"
+    },
+    {
+      "level": 2,
+      "text": "Example 5\u200b",
+      "anchor": "title-1246-5"
+    },
+    {
+      "level": 2,
+      "text": "Example 6\u200b",
+      "anchor": "title-1246-6"
+    },
+    {
+      "level": 2,
+      "text": "Example 7\u200b",
+      "anchor": "title-1246-7"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "EXECUTESCALAR",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/examples/retrieve-data",
+      "text": "Retrieve data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/direct-access/examples/retrieve-data",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/direct-access/examples/retrieve-data",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/direct-access/examples/retrieve-data",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/execute-operations-in-the-background/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/background-operations-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/examples/add-data",
+      "text": "NextAdd data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/examples/add-data-subqueries",
+      "text": "Add data using subqueries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/examples/modify-data",
+      "text": "Modify data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/examples/delete-data",
+      "text": "Delete data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/references/select",
+      "text": "Select",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/references/insert",
+      "text": "Insert",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/references/insertselect",
+      "text": "InsertSelect",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/references/update",
+      "text": "Update",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/references/updateselect",
+      "text": "UpdateSelect",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/references/delete",
+      "text": "Delete",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/references/queryfunction",
+      "text": "QueryFunction",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:25:35.018554"
+}

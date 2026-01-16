@@ -1,0 +1,1 @@
+Rate = Amount in conversion currency * Ratio / Amount in base currency

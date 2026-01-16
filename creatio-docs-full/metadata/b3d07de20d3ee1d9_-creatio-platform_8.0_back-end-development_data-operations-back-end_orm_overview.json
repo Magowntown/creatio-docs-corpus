@@ -1,0 +1,576 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/overview",
+  "title": "Data access through ORM",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    },
+    {
+      "text": "Data operations (back-end)",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end"
+    },
+    {
+      "text": "ORM",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nThe back-end core components provide the following database **access options** :\n* access using the ORM model\n* direct access\nThis article covers database queries that use the ORM model.\n**ORM** (Object-relational mapping) is a technology that lets you use object-oriented programming languages to manage data retrieved from the database. The **purpose** of ORM is to bind objects implemented in the code to the database table records.\nThe ORM data model implements data management via the following **classes** :\n* The `Terrasoft.Core.Entities.EntitySchemaQuery` class builds queries to retrieve the database table records. The queries apply the access permissions of the current user.\n* The `Terrasoft.Core.Entities.Entity` class accesses entities that represent records in the database table.\nWe recommend using the ORM model to access data, though the direct access to the database is also implemented in the back-end core components. Learn more about running direct database queries: [Access data directly](https://academy.creatio.com/documents?ver=8.0&id=15233).\n## Configure a column path relative to the root schema\u200b\nBase a selection query that uses `EntitySchemaQuery` on the root schema. The **root schema** is the database table relative to which to build paths to the query columns, including the columns of joinable tables. To use a table column in a query, set the path to the column correctly.\nFollow the **principle of connection by lookup fields** when building the column paths. Build the name of a column to add to the query as a chain of interconnected links. Each link must represent the context of the schema connected to the previous schema by a lookup column.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingEntitySchemaQuery/7.18/src_UsingEntitySchemaQuery1_en.png)\nThe template for configuring the path to a column in the N schema: `1SchemaContext.[...].NSchemaContext.LookupSchema'sColumnName`.\n### Specify the column path using the direct connections\u200b\nThe template for configuring the column path using the **direct connections** : `LookupColumnName.LookupSchema'sColumnSchemaName`.\nUse direct connections if the connection lookup column is located in the main schema and links to the joinable schema. For example, a `[City]` root schema contains the `[Country]` lookup column. The column is connected to the `[Country]` lookup schema by the `[Id]` column.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingEntitySchemaQuery/7.18/scr_direct_connections.png)\nThe path to the column that contains the name of the country connected to the city, built using the direct connections: `Country.Name`. Where:\n* `Country` is the name of the lookup column in the `[City]` root schema. Links to the `[Country]` schema.\n* `Name` is the name of the column in the `[Country]` lookup schema.\n### Specify the column path using the reverse connections\u200b\n**Unlike** direct connections, reverse connections require the lookup field to join to be located in the joinable entity, not the main entity.\nThe template for configuring the column path using the **reverse connections** : `[JoinableSchemaName:NameOfTheColumnToLinkTheJoinableSchema:NameOfTheColumnToLinkTheCurrentSchema].JoinableSchema'sColumnName`.\nThe path to the name column of the account whose `[City]` field contains the `[City]` record selected in the query, built using the reverse connections: `[Account:City:Id].Name`. Where:\n* `Account` is the name of the joinable schema.\n* `City` is the name of the `[Account]` schema's column to connect the joinable schema.\n* `Id` is the name of the `[City]` schema's lookup column to connect the current schema.\n* `Name` is the value of the `[Account]` schema's lookup column.\nIf the schema's lookup column to connect the current schema is `[Id]`, you do not have to specify it: `[JoinableSchemaName:NameOfTheColumnToConnectTheJoinableSchema].JoinableSchema'sColumnName`. For example, `[Account:City].Name`.\n## Retrieve data from the database\u200b\nUse the following **classes** to retrieve data from the database:\n* `Terrasoft.Core.DB.Select` retrieves data by accessing the database directly. Learn more: [Access data directly](https://academy.creatio.com/documents?ver=8.0&id=15233&anchor=title-2001-1).\n* `Terrasoft.Core.Entities.EntitySchemaQuery` retrieves database data using the ORM model.\nThe **purpose** of the `Terrasoft.Core.Entities.EntitySchemaQuery` class is to build selection queries for database table records. By default, you can retrieve up to 20 000 records in a query. This value can be modified in the `MaxEntityRowCount` setting in the `...\\Terrasoft.WebApp\\Web.config` file.\nImportant\nHowever, we do not recommend modifying the `MaxEntityRowCount` setting. Doing so may lead to performance issues.\nAfter you create and configure the class instance, Creatio will build a `SELECT` query to the application database. You can add columns, filters, and restriction conditions to the query. You can also set the parameters to output the query results in pagination mode. If needed, use the `Terrasoft.Core.Entities.EntitySchemaQueryOptions` class to set the parameters of a hierarchical query. Pass the same `EntitySchemaQueryOptions` instance as the `GetEntityCollection()` method parameter of the corresponding query to retrieve the results of various queries.\nThe `Terrasoft.Core.Entities.EntitySchemaQuery` class **major features** :\n* The resulting query applies the access permissions of the current user.\n* You can manage the current user's access permissions to the tables that `JOIN` SQL operator joined to the query.\n* The class lets you manage data of a [cache repository](https://academy.creatio.com/documents?ver=8.0&id=15268&anchor=title-3577-3) or any repository you specify.\nCreatio will cache the data retrieved from the database after running the query. Any repository that implements the `Terrasoft.Core.Store.ICacheStore` interface can serve as the query cache. By default, Creatio uses the session level cache with local storage. Define the query cache in the `Cache` property of the `EntitySchemaQuery` class instance. Set the key to access the query cache in the `CacheItemName` property. Learn more about Creatio repository levels: [Storage types](https://academy.creatio.com/documents?ver=8.0&id=15268&anchor=title-3577-1).\nAs **result of the query** , is the `Terrasoft.Nui.ServiceModel.DataContract.EntityCollection` instance or the `Terrasoft.Core.Entities.Entity` class instance collection. Each `Entity` collection instance represents a string of data returned by the query.\n### Manage joined tables\u200b\nYou can specify the schema join type of a query using the `EntitySchemaQuery` class. Use the `JOIN` operator to add the joinable schema column to the query.\nThe template for configuring the join type of the joinable schema column: `SpecialCharacterOfTheJoinTypeNameOfTheColumnToConnectTheJoinableSchema`.\nJoin types description\nJoin type| Special character of the join type| Use example  \n---|---|---  \n`INNER JOIN`| `=`| `=Country.Name`  \n`LEFT OUTER JOIN`| `>`| `>Country.Name`  \n`RIGHT OUTER JOIN`| `<`| `<Country.Name`  \n`FULL OUTER JOIN`| `<>`| `<>Country.Name`  \n`CROSS JOIN`| `*`| `*Country.Name`  \nBy default, Creatio uses the `LEFT OUTER JOIN` type.\nSee the example that adds columns to a query using various join types below.\nAdd columns to a query\n/* Create a query instance based on the City root schema. */  \nvar esqResult = new EntitySchemaQuery(  \nUserConnection.EntitySchemaManager,  \n\"City\"  \n);  \n/* Add the Country schema of the LEFT OUTER JOIN type to the query. */  \nesqResult.AddColumn(\"Country.Name\");  \n/* Add the Country schema of the INNER JOIN type to the query. */  \nesqResult.AddColumn(\"=Country.Name\");  \n/* Add the Country schema of the LEFT OUTER JOIN type and the Contact schema of the RIGHT OUTER JOIN type to the query. */  \nesqResult.AddColumn(\">Country.<CreatedBy.Name\");  \nAs a result, Creatio will generate the SQL query.\nSQL query\nSELECT  \n[Country].[Name] [Country.Name],  \n[Country1].[Name] [Country1.Name],  \n[CreatedBy].[Name] [CreatedBy.Name]  \nFROM  \n[dbo].[City] [City]  \nLEFT OUTER JOIN [dbo].[Country] [Country] ON ([Country].[Id] = [City].[CountryId])  \nINNER JOIN [dbo].[Country] [Country1] ON ([Country1].[Id] = [City].[CountryId])  \nLEFT OUTER JOIN [dbo].[Country] [Country2] ON ([Country2].[Id] = [City].[CountryId])  \nRIGHT OUTER JOIN [dbo].[Contact] [CreatedBy] ON ([CreatedBy].[Id] = [Country2].[CreatedById])  \nIf the query contains the root schema and joinable schemas that use record permissions, you will be able to apply the access permissions of the current user. The `Terrasoft.Core.DB.QueryJoinRightLevel` enumeration lists the ways to apply the record access permissions to the joinable schemas.\nThe **ways to apply the access permissions** to the joinable schema queries are as follows:\n* Apply always.\n* Apply only if the joinable schema query uses columns other than the primary column and primary display column. Usually, these are `[Id]` and `[Name]` columns.\n* Do not apply.\nThe `JoinRightState` query property determines the order to apply the access permissions. The **Joined objects administering** (`QueryJoinRightLevel` code) system setting determines the default value of the property. If the setting is empty, Creatio will apply the access permissions if the joinable schema query uses columns other than the primary column and the primary display column.\n### Manage the query filters\u200b\n**Filter** is sets of conditions applied when displaying the query data. In SQL terms, a filter is a separate predicate (condition) of the `WHERE` operator.\nFilter structure\nFilter = {[AggregationType] {<LeftExpression> | <LeftExpressionColumnPath>}  \n<ComparisonType>  \n{{<RightExpression> | {<RightExpressionColumnPath>,...}} | {<Macros>, [MacrosValue]}}  \n}  \nTo create a simple filter in `EntitySchemaQuery`, use the `CreateFilter()` method that returns the instance of the `EntitySchemaQueryFilter` type. `EntitySchemaQuery` implements a series of overloads for this method. This lets you create filters with different incoming parameters. `EntitySchemaQuery` implements methods that create special kinds of filters.\nThe `EntitySchemaQuery` instance contains the `Filters` property that represents the filter collection of the query (the `EntitySchemaQueryFilterCollection` class instance). The `EntitySchemaQueryFilterCollection` class instance is a typed collection of the `IEntitySchemaQueryFilterItem` elements.\n**Follow this procedure to add a filter to the query** :\n* Create a filter instance for the query (`CreateFilter()` methods, methods that create special kinds of filters).\n* Add the filter instance to the query filter collection (the `Add()` collection method).\nBy default, Creatio uses the logical `AND` operation to combine the filters added to the `Filters` collection. To implement the logical `OR` operation, use the `LogicalOperation` property of the `Filters` collection. This property takes the values of the `LogicalOperationStrict` enumeration and lets you specify the logical operation to combine the filters.\nYou can manage the filters that build the resulting dataset in the `EntitySchemaQuery` queries. Each element of the `Filters` collection includes the `IsEnabled` property that determines whether the element takes part in building the resulting query (`true`/`false`). Creatio defines the similar `IsEnabled` property for the `Filters` collection. If you set this property to `false`, the query filtering will be disabled, yet the query filters collection will remain unchanged. Thus, you can create a query filters collection and use various combinations without changing the collection itself.\n## Manage the database entity\u200b\n`Terrasoft.Core.Entities.Entity` is a class that implements the database entity management.\nThe **purpose** of the `Terrasoft.Core.Entities.Entity` class is to access the object that represents a database table record. You can also use the class for CRUD operations on the corresponding records.\n* * *\n## See also\u200b\n[Access data directly](https://academy.creatio.com/documents?ver=8.0&id=15233)\n[Data storage and cache](https://academy.creatio.com/documents?ver=8.0&id=15268)",
+  "code_examples": [
+    {
+      "code": "/* Create a query instance based on the City root schema. */var esqResult = new EntitySchemaQuery(    UserConnection.EntitySchemaManager,    \"City\");/* Add the Country schema of the LEFT OUTER JOIN type to the query. */esqResult.AddColumn(\"Country.Name\");/* Add the Country schema of the INNER JOIN type to the query. */esqResult.AddColumn(\"=Country.Name\");/* Add the Country schema of the LEFT OUTER JOIN type and the Contact schema of the RIGHT OUTER JOIN type to the query. */esqResult.AddColumn(\">Country.<CreatedBy.Name\");",
+      "language": "cs",
+      "context": "See the example that adds columns to a query using various join types below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "SELECT    [Country].[Name] [Country.Name],    [Country1].[Name] [Country1.Name],    [CreatedBy].[Name] [CreatedBy.Name]FROM    [dbo].[City] [City]    LEFT OUTER JOIN [dbo].[Country] [Country] ON ([Country].[Id] = [City].[CountryId])    INNER JOIN [dbo].[Country] [Country1] ON ([Country1].[Id] = [City].[CountryId])    LEFT OUTER JOIN [dbo].[Country] [Country2] ON ([Country2].[Id] = [City].[CountryId])    RIGHT OUTER JOIN [dbo].[Contact] [CreatedBy] ON ([CreatedBy].[Id] = [Country2].[CreatedById])",
+      "language": "sql",
+      "context": "As a result, Creatio will generate the SQL query.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Filter = {[AggregationType] {<LeftExpression> | <LeftExpressionColumnPath>}    <ComparisonType>    {{<RightExpression> | {<RightExpressionColumnPath>,...}} | {<Macros>, [MacrosValue]}}}",
+      "language": "cs",
+      "context": "Filteris sets of conditions applied when displaying the query data. In SQL terms, a filter is a separate predicate (condition) of theWHEREoperator.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Join type",
+          "Special character of the join type",
+          "Use example"
+        ],
+        [
+          "INNER JOIN",
+          "=",
+          "=Country.Name"
+        ],
+        [
+          "LEFT OUTER JOIN",
+          ">",
+          ">Country.Name"
+        ],
+        [
+          "RIGHT OUTER JOIN",
+          "<",
+          "<Country.Name"
+        ],
+        [
+          "FULL OUTER JOIN",
+          "<>",
+          "<>Country.Name"
+        ],
+        [
+          "CROSS JOIN",
+          "*",
+          "*Country.Name"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Join type</p></th><th><p>Special character of the join type</p></th><th><p>Use example</p></th></tr><tr><td><p><code>INNER JOIN</code></p></td><td><p><code>=</code></p></td><td><p><code>=Country.Name</code></p></td></tr><tr><td><p><code>LEFT OUTER JOIN</code></p></td><td><p><code>&gt;</code></p></td><td><p><code>&gt;Country.Name</code></p></td></tr><tr><td><p><code>RIGHT OUTER JOIN</code></p></td><td><p><code>&lt;</code></p></td><td><p><code>&lt;Country.Name</code></p></td></tr><tr><td><p><code>FULL OUTER JOIN</code></p></td><td><p><code>&lt;&gt;</code></p></td><td><p><code>&lt;&gt;Country.Name</code></p></td></tr><tr><td><p><code>CROSS JOIN</code></p></td><td><p><code>*</code></p></td><td><p><code>*Country.Name</code></p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantHowever, we do not recommend modifying theMaxEntityRowCountsetting. Doing so may lead to performance issues.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>However, we do not recommend modifying the <code>MaxEntityRowCount</code> setting. Doing so may lead to performance issues.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "However, we do not recommend modifying theMaxEntityRowCountsetting. Doing so may lead to performance issues.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>However, we do not recommend modifying the <code>MaxEntityRowCount</code> setting. Doing so may lead to performance issues.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingEntitySchemaQuery/7.18/src_UsingEntitySchemaQuery1_en.png",
+      "alt": "",
+      "title": "",
+      "context": "Follow theprinciple of connection by lookup fieldswhen building the column paths. Build the name of ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3d07de20d3ee1d9_-creatio-platform_8.0_back-end-development_data-operations-back-end_orm_overview_99a20ea1a6f7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/UsingEntitySchemaQuery/7.18/scr_direct_connections.png",
+      "alt": "",
+      "title": "",
+      "context": "Use direct connections if the connection lookup column is located in the main schema and links to th",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3d07de20d3ee1d9_-creatio-platform_8.0_back-end-development_data-operations-back-end_orm_overview_13133c21f628.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Data access through ORM",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Configure a column path relative to the root schema\u200b",
+      "anchor": "title-1263-1"
+    },
+    {
+      "level": 3,
+      "text": "Specify the column path using the direct connections\u200b",
+      "anchor": "title-1263-2"
+    },
+    {
+      "level": 3,
+      "text": "Specify the column path using the reverse connections\u200b",
+      "anchor": "title-1263-3"
+    },
+    {
+      "level": 2,
+      "text": "Retrieve data from the database\u200b",
+      "anchor": "title-1263-4"
+    },
+    {
+      "level": 3,
+      "text": "Manage joined tables\u200b",
+      "anchor": "title-1263-5"
+    },
+    {
+      "level": 3,
+      "text": "Manage the query filters\u200b",
+      "anchor": "title-1263-6"
+    },
+    {
+      "level": 2,
+      "text": "Manage the database entity\u200b",
+      "anchor": "title-1263-7"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-operations-back-end/orm/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-operations-back-end/orm/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/orm/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/execute-operations-in-the-background/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/background-operations-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/direct-access/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/direct-access-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "PreviousORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/examples/retrieve-the-data-based-on-the-users-permissions",
+      "text": "Retrieve the data based on the user's permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/examples/manage-the-database-entities",
+      "text": "Manage the database entities",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/orm-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entityschemaquery",
+      "text": "EntitySchemaQuery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entity",
+      "text": "Entity",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entitymapper",
+      "text": "EntityMapper",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entityschemaqueryfunction",
+      "text": "EntitySchemaQueryFunction",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/orm/references/entityschemaqueryoptions",
+      "text": "EntitySchemaQueryOptions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T02:31:48.459760"
+}

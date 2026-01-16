@@ -1,0 +1,1 @@
+EntitySchemaCurrentDateTimeQueryFunction(EntitySchemaCurrentDateTimeQueryFunction source)

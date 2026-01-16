@@ -1,0 +1,1 @@
+"viewConfig": {    ...    "editCard": {        ...        "body": {            ...            "items": [                ...                {                    "type": "EditField",                    "properties": {                        "value": "$ConfItem"                    }                }            ]        }    }}

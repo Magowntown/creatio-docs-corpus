@@ -1,0 +1,1519 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/no-code-customization/8.1/base-integrations/web-services/set-up-the-rest-web-service-integration",
+  "title": "Set up the REST web service integration",
+  "breadcrumbs": [
+    {
+      "text": "Base integrations",
+      "href": "/docs/8.x/no-code-customization/8.1/category/base-integrations"
+    },
+    {
+      "text": "Web services",
+      "href": "/docs/8.x/no-code-customization/8.1/category/web-services"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nIntegrate the custom REST services with low-code tools. Creatio will generate and send a request to the web service, receive the response and extract the relevant data. Use the data received from the web service to create or update Creatio records, as well as to set up custom business logic or automation.\nAlthough the general integration setup procedure is the same for all REST services, the details largely depend on the web service specifics.\nTo **set up** an integration with a new web service:\n1. [Add the web service and configure](https://academy.creatio.com/documents?id=7145&anchor=title-311-22) its properties and methods.\n2. Set up the web service authentication (optional step). [The authentication setup](https://academy.creatio.com/documents?id=1913) is similar for both REST and SOAP services.\n3. [Test the integration](https://academy.creatio.com/documents?id=7145&anchor=title-311-42).\nYou can start using the integration in custom business processes after that. For instance, you can set up an integration with the \"Fixer\" web service to update the **Currency** lookup data via a business process.\nExample\nSet up an integration with the \"Fixer\" ([https://fixer.io/](https://fixer.io)) REST service to receive the most up-to-date currency exchange rates.\nMake sure these parameters are supported:\n* \"**endpoint** \" \u2013 method address parameter. Returns the actual currency exchange rates in real time.\n* \"**access_key** \" \u2013 request parameter. Use it to pass the service access key.\n* \"**symbols** \" \u2013 request parameter. Use it to pass the currency codes. You can specify several comma-separated currency codes.\n* \"**$.base** \" \u2013 response parameter. Contains the base currency value used to calculate the currency exchange rates. Euro is the default base currency.\n* \"**$.date** \" \u2013 response parameter. Contains the currency exchange rate relevancy date.\n* \"**rates** \" \u2013 response parameter. Contains a collection of exchange rates, calculated relative to the base currency. Each exchange rate is a separate nested parameter named after the currency code.\n## Set up the web service properties and methods\u200b\nTo be able to work with the \"Fixer\" REST service, sign up on <https://fixer.io/> and get the API access key.\nCreatio lets you set up web service properties and methods automatically or manually.\n### Set up the web service properties and methods automatically\u200b\n1. Go to the **Studio** workplace and open the **Web services** section.\n2. Click **New web service** \u2192 **REST service**.\n3. Specify the web service address and click **OK** (Fig. 1).\nFig. 1 Setting up the web service methods automatically\n![Fig.\u00a01 Setting up the web service methods automatically](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_add_rest_web_service.gif)\n### Set up the web service properties and methods manually\u200b\n1. Go to the **Studio** workplace and open the **Web services** section.\n2. Click **New web service** \u2192 **REST service**.\n3. Fill out the fields on the web service **properties page** (Fig. 2).\nField| Comment| Example  \n---|---|---  \nName| Enter the name that will be displayed in the **Which method to call?** field of the **Call web service** business process element.| Currency exchange rates (Fixer)  \nCode| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrFixer  \nWeb service URI| The complete web service call address will consist of this URI and the settings specified on the method setup page.  \nUse the same protocol (HTTP/HTTPS) as your Creatio application.  \nIf the web service is located in an unmodifiable package, you can still edit its URI.| <http://data.fixer.io>  \nRetries on call failure| If the web service response returns an error code or times out, Creatio will repeat the request the specified number of times. Keep in mind the response timeout you are going to specify for web service methods when filling out this field.| 10  \nType| Web service type.| Default value \u2013 REST  \nPackage| The package where Creatio will save this web service integration. The list displays the packages the current user can modify.| RestWebServicePackage  \nFig. 2 Filling out the web service properties page\n![Fig.\u00a02 Filling out the web service properties page](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_rest_web_service.gif)\nnote\nCreatio saves the web service integrations as configuration items. If a web service configuration item is located in an unmodifiable package, you will only be able to edit its URI. To make other changes to such web service integrations, copy the relevant configuration items to user-made packages.\nSet up method calling for each web service integration. You can set up several methods per web service.\nnote\nYou can call any number of web service methods within a single process flow by using multiple [**Call web service** business process elements](https://academy.creatio.com/documents?product=BPMS&ver=7&id=7141) and passing incoming and outgoing parameters between them.\n4. Click ![scr_add_button.png](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_add_button.png) to add methods to the **Methods** tab of the web service integration setup page.\n5. Study the [web service documentation](https://fixer.io/documentation#latestrates) and fill out the **method properties** (Fig. 3).\nField| Comment| Example  \n---|---|---  \nName| Enter the name that will be displayed in the **Which method to call?** field for the **Call web service** business process elements.| Retrieve the exchange rates  \nCode| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrLatest  \nMethod address| Use the value specified in the web service documentation.  \nYou can specify a static value use the method address parameters as \"variables\" to generate a dynamic method address that will depend on the **Call web service** process element properties. For instance, the \"Fixer\" web service has a \"latest\" endpoint that returns the up-to-date currency exchange rates.  \nIf you need more flexibility, pass the endpoint as a method address parameter by specifying the parameter name in curly braces. In this example, we use the \"{endpoint}\" parameter. You can pass several method address parameters, for example: \"{parameter1}/{parameter2}.\"| /{endpoint}?access_key=d3****************************4b&symbols=USD,GBP,AUD,CAD  \nComplete address| Creatio automatically generates the complete address. It consists of the web service URI and the method address along with specified parameters and parameter values. The following format is used: \"?paramCode1=value1&paramCode2=value2.\"  \nThis address is displayed for reference.  \nThe complete address structure is as follows: \"Web service URI\" + \"Method address\" + \"?\" + \"A set of request parameters separated by &.\" For instance: `http://data.fixer.io/latest?access_key=****************************&symbols=GBP`.  \nSpecify the web service access key in the \"access_key\" parameter.  \nThe service will return the exchange rates for the currencies you specify in the \"symbols\" parameter. For example, use the following request to retrieve the exchange rates for the US dollar and British pound: <https://data.fixer.io/latest?symbols=USD,GBP>. If you do not pass the \"symbols\" parameter in the request, the service will return the exchange rates for all supported currencies.| `http://data.fixer.io/api/{endpoint}?access_key=d3****************************4b&symbols=USD,GBP,AUD,CAD`  \nRequest type| The request HTTP method. The standard HTTP methods are supported. The request type you have to use is usually listed in the web service documentation.  \nFor example, use the \"GET\" method to retrieve the currency exchange rates.| GET  \nContent type| Supports the following types: XML (as of version 8.0.1) and JSON.| JSON  \nResponse timeout, ms| The time frame before Creatio considers a web service request timed out. If the service returns no response or responds with an error message, Creatio will retry the request after this time frame so long as there are retries available for this service call.| By default, \"5000\"  \nUse authentication| Use the authentication to access the web service. To enable authentication, set it up on the **Authentication** detail of the web service integration setup page. Learn more: [Web service authentication](https://academy.creatio.com/documents?id=1913).| By default, \"false\"  \nFig. 3 Web service method properties\n![Fig.\u00a03 Web service method properties](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_method_properties.png)\n## Set up the request parameters\u200b\nYou can add the request parameters manually or import them from the request example by clicking **Quick setup** and selecting the example type (cURL, RAW or JSON) in the menu. Also, you can add request parameters from the \"Method address\" field. For this example, use a GET request to the \"/latest\" endpoint to get the most up-to-date currency exchange rates.\nCreatio uses the method request parameters to generate the endpoint URL for calling the web service.\nThe number and type of request parameters depend on the web service specifics. You can import the request parameters from the examples or add them manually.\nThe following **request parameter types** are available:\nMethod address parameter| Use these parameters as variables to generate the request method address.  \nEnclose the parameter names in curly braces in the **Method address** field to add them to the method address. For instance: {parameterName1}/{parameterName2}, etc. Upon a web service call, Creatio will replace these variables with the actual method address parameter values specified in the corresponding [**Call web service**](https://academy.creatio.com/documents?product=bpms&ver=7&id=7141) business process element. For instance: `http://web.service.uri/parameterValue1/parameterValue2`.  \nIf you do not specify the parameter value in the element properties yet fill out the **Default value** field, Creatio will use the default value.  \nThe **Required** checkbox is selected and non-editable for this parameter type.  \n---|---  \nBody parameter| Creatio uses this parameter type to send data of any type (including [collections](https://academy.creatio.com#HT_chapter_web_service_integration_collection)) in the request body. Learn more about the POST request method in [Wikipedia](https://en.wikipedia.org/wiki/POST_\\(HTTP\\)).  \nThe parameter is not available for the GET method  \nQuery parameter| Creatio will add this parameter type to the request after the method address and the \"?\" character. Learn more about this parameter in [Wikipedia](https://en.wikipedia.org/wiki/Query_string).  \nHeader parameter| Creatio uses this parameter type to generate request headers. Learn more about HTTP headers in [Wikipedia](https://en.wikipedia.org/wiki/List_of_HTTP_header_fields).  \nCookies parameter| Creatio uses this parameter type to pass cookie files in the requests. For example, you can pass a previously-received authentication cookie. Learn more about cookies in [Wikipedia](https://en.wikipedia.org/wiki/HTTP_cookie).  \n### Set up the request parameters automatically\u200b\n1. Click the ![](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/icn_magic_wand.png) quick setup button to the right of the **Method address** field. Alternatively, click **Quick setup** at the top of the method setup window and select **From field \"Method address** \" (Fig. 4):\nFig. 4 Adding parameters from the Method address field\n![Fig.\u00a04 Adding parameters from the Method address field](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_address.png)\n2. Select the parameters you need to add to the request in the newly-opened list and click **Save** (Fig. 5):\nFig. 5 The method address parameter list\n![Fig.\u00a05 The method address parameter list](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_method_address_parameters.png)\nThis will add the selected parameters to the request. You can modify the parameter settings to adjust them for further use in the **Call web service** business process element. For example, select the **Required** checkbox for the \"Access_key\" parameter.\n### Set up the request parameters manually\u200b\n1. Study the [web service documentation](https://fixer.io/documentation#latestrates).\n2. Add the **request parameters** :\n1. Click **Add parameter** on the **Request parameters** tab.\n2. Add the \"Endpoint\" parameter and fill out its properties (Fig. 6).\nField| Comment| Example  \n---|---|---  \nName| The service parameter name.| Endpoint  \nParameter type| The service parameter type.| Method address parameter  \nRequest code| The code used in the request.| endpoint  \nCode in Creatio| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrEndpoint  \nDefault value| The default parameter value.| A constant. Value \u2013 \"latest\"  \nFig. 6 Setting up the Endpoint parameter\n![Fig.\u00a06 Setting up the Endpoint parameter](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_endpoint.png)\nnote\nCreatio will bind the system settings used during the method parameter setup to the web service package. This streamlines transferring the web service to a different environment.\n3. Add the \"API key\" parameter and fill out its properties (Fig. 7).\nField| Comment| Example  \n---|---|---  \nName| The service parameter name.| API key  \nParameter type| The service parameter type.| Query parameter  \nRequest code| The code used in the request.| access_key  \nCode in Creatio| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrAccessKey  \nRequired| If selected, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.| Selected  \nDefault value| The default parameter value.| Constant  \nFig. 7 Setting up the API key parameter\n![Fig.\u00a07 Setting up the API key parameter](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_api_key.png)\n4. Add the \"Currencies\" parameter and fill out its properties (Fig. 8).\nField| Comment| Example  \n---|---|---  \nName| The service parameter name.| Currencies  \nParameter type| The service parameter type.| Query parameter  \nRequest code| The code used in the request.| symbols  \nCode in Creatio| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrSymbols  \nRequired| If checked, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.| Cleared by default  \nDefault value| The default parameter value.| Constant  \nFig. 8 Setting up the Currencies parameter\n![Fig.\u00a08 Setting up the Currencies parameter](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_symbols.png)\nThis will allow Creatio to call the web service via automatically-generated requests. Business processes generate the requests based on the following template:\nhttp://data.fixer.io/latest?access_key={value}&symbols={value}  \nThe values in curly braces are set to the values of the request parameters. For example:\nhttp://data.fixer.io/latest?access_key=d3****************************4b&symbols=USD  \n## Set up the response parameters\u200b\nThe web service can send cURL, RAW, and JSON responses. To use the data retrieved from the web service, set up the response parameters. Creatio will parse the response and pass the data to these parameters. You can add the response parameters automatically or manually.\n### Set up the response parameters automatically\u200b\nIf the server returns a JSON or RAW response, you can add the response parameters automatically by clicking the **Quick setup** button.\n1. Click **Quick setup** and select **Example in JSON** from the \"From response example\" menu block (Fig. 9).\nFig. 9 Setting up the response parameters from a JSON example\n![Fig.\u00a09 Setting up the response parameters from a JSON example](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_response_json.png)\n2. Enter the server\u2019s JSON response (Fig. 10). This code will display in the browser if you go to the URL that calls the web service.\nFig. 10 A JSON response\n![Fig.\u00a010 A JSON response](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_json_code.png)\nClick **Next**.\n3. This will open a parameter list:\n* \"**Success** \" \u2013 indicates whether the request was successful.\n* \"**Timestamp** \" \u2013 an object with a UNIX time stamp that indicates the time when the service collected this data.\n* \"**Base** \" \u2013 specifies the base currency relative to which the service calculated the exchange rates. For example, **\"base\":\"EUR\"** indicates that the service calculated the exchange rates relative to euro.\n* \"**Date** \" \u2013 specifies the exchange rate relevancy date. For example, \"**date:2021-05-26** \" indicates that the service calculated the exchange rates for May 26, 2021.\n* \"**Rates** \" \u2013 contains an array of nested parameters. Each nested parameter contains the exchange rate between the base currency and one of the supported currencies.\nFor example, **\"rates\": {\"USD\":1.222845,\"GBP\":0.862279,\"AUD\":0.635032,\"CAD\":0.676577}** in the response indicates that the service returned the exchange rates for US dollar (**\"USD\": 1.222845**), British pound (**\"GBP\": 0.862279**), Australian dollar (**\"AUD\":0.635032**), and Canadian dollar (**\"CAD\":0.676577**).\nSpecify the parameters you need to add to the response and click **Save** (Fig. 11):\nFig. 11 List of parameters from the JSON example\n![Fig.\u00a011 List of parameters from the JSON example](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_response_parameters.png)\nThis will add all the selected parameters to the response. You can modify the parameter settings. For example, change the data type of the currency rate to \"Decimal\" to adjust it for further use.\n### Set up the response parameters manually\u200b\n1. Study the [web service documentation](https://fixer.io/documentation#latestrates).\n2. Add the **response parameters** :\n1. Go to the **Response parameters** tab and click **Add parameter**.\n2. Add the \"Base currency\" parameter and fill out its properties (Fig. 12).\nField| Comment| Example  \n---|---|---  \nName| The service parameter name.| Base currency  \nParameter type| The service parameter type.| Body parameter  \nPath to element (JSONPath)| The value must be in JSON format. For example, JSONPath \"$.base\" receives the \"base\" parameter value in the web service response.| $.base  \nCode in Creatio| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrBaseCurrency  \nData type| The service parameter data type. A parameter with nested elements must have an \"Object\" data type.| Text  \nIs array| An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.| Cleared by default  \nDefault value| The default parameter value.| A constant. Value \u2013 EUR  \nFig. 12 Setting up the Base currency request parameter\n![Fig.\u00a012 Setting up the Base currency request parameter](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_response_parameter_base_currency.png)\n3. Add the \"Date\" parameter and fill out its properties (Fig. 13).\nField| Comment| Example  \n---|---|---  \nName| The service parameter name.| Date  \nParameter type| The service parameter type.| Body parameter  \nPath to element (JSONPath)| The value must be in JSON format. For example, **JSONPath** \"$.date\" receives the \"date\" parameter value in the web service response.| $.date  \nCode in Creatio| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrDate  \nData type| The service parameter data type A parameter with nested elements must have an \"Object\" data type.| Date  \nIs array| An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.| Cleared by default  \nDefault value| The default parameter value.| Constant  \nFig. 13 Setting up the Date parameter\n![Fig.\u00a013 Setting up the Date parameter](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_response_parameter_date.png)\n4. Add the \"RatesAUD\" parameter and fill out its properties (Fig. 14).\nField| Comment| Example  \n---|---|---  \nName| The service parameter name.| Rates AUD  \nParameter type| The service parameter type.| Body parameter  \nPath to element (JSONPath)| The value must be in JSON format. For example, JSONPath \"$.rates.AUD\" receives the \"AUD\" parameter value in the web service\u2019s response.| $.rates.AUD  \nCode in Creatio| Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.| UsrRatesAUD  \nData type| The service parameter data type A parameter with nested elements must have an \"Object\" data type.| Decimal  \nIs array| An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.| Cleared by default  \nDefault value| The default parameter value.| Constant  \nFig. 14 Setting the Rates AUD parameter\n![Fig.\u00a014 Setting the Rates AUD parameter](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_rate_usd.png)\nnote\nJSONpath \"$.rates.USD\" receives the \"AUD\" parameter value. \"AUD\" is a nested parameter of the \"rates\" parameter in the web service response.\n5. Set up the response parameters for the other necessary exchange rates in a similar way (Fig. 15).\nFig. 15 Setting up the web service response parameters\n![Fig.\u00a015 Setting up the web service response parameters](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_response_parameter.png)\n3. Click **OK** to save the settings.\n## Set up the \"collection\" type response and request parameters\u200b\nA collection (or an array) is a set of elements. Creatio can pass collections to the web service and parse the service responses that contain collections. You can set up both request and response \"collection\" parameters, provided the web service can receive and/or send arrays.\n**Collection parameter types** :\n* **Simple collection**. You can make any parameter a collection by selecting the \"Is array\" checkbox in the parameter properties. Simple collections are arrays with data of a single type. Each value is a separate collection element. For example, \"1, 2, 3\" is a simple array of integer values, \"Boston, New York, Chicago\" is a simple array of string values, etc.\n* **Object collection**. A root parameter (or an object) that contains nested parameters. Each item in an object collection can have a different parameter type. These collection item parameters are nested within the root parameter. For example, a contact collection can have nested parameters for contact name, date of birth, and age (Fig. 16).\nFig. 16 An example of a contact collection\n![Fig.\u00a016 An example of a contact collection](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_object_collection_example.png)\nThe collection with such a structure would look like this:\nContact name| Birth date| Age  \n---|---|---  \nJohn Best| 04/12/1991| 30  \nAndrew Barber| 04/10/1985| 36  \nAlice Phillips| 05/12/1989| 31  \nCreatio can pass collections in web service requests and parse web service responses that contain collections. You can set up both request and response \"collection\" parameters, provided the web service can receive and/or send arrays.\nnote\nYou can only select the \"collection\" data type for the \"Body parameter\" type parameters. This parameter type is not available for GET requests. However, it is available for GET responses.\nTo set up a collection:\n1. Study the [web service documentation](https://fixer.io/documentation#latestrates).\n2. Add the \"Receive contacts\" method.\n3. To set up a collection request parameter, specify \"Object\" in the **Data type** field. Creatio will select the **Is array** checkbox automatically (Fig. 17).\nFig. 17 Adding a parameter to a collection\n![Fig.\u00a017 Adding a parameter to a collection](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_object.png)\nThat way, the web service \"collection\" response parameter that receives the contact records from the server will look like this (Fig. 18):\nFig. 18 Setting up the request parameters\n![Fig.\u00a018 Setting up the request parameters](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_object_parameters.png)\nnote\nThe value of the nested parameter\u2019s JSONPath is a suffix of the root parameter\u2019s JSONPath. For example, if the root parameter has the \"$.records\" value in the JSONPath field and the \"$.records.name\" value should be specified for the \"Name\" nested parameter, you need to specify only \"$.records\" in the \"Path to element\" field.\nYou can use the web service response parameters of the collection type as incoming parameters in the \"Call web service\" business process element. Learn more: [**Call web service** process element](https://academy.creatio.com/documents?product=BPMS&ver=7&id=7141).\n## Test the REST service integration\u200b\nTest the integration setup before using the data received from the web service with custom business logic.\nSince Creatio version 7.18.0, you can test a REST integration in the UI without creating a [test business process](https://academy.creatio.com/documents?id=2347&anchor=title-2003-7).\nTo **test the REST web service integration** :\n1. Go to the **Studio** workplace and open the **Web services** section.\n2. Open the page of the web service whose integration you want to test. For example, \"Currency exchange rates (Fixer).\"\n3. Open the \"Retrieve the exchange rates\" method on the **Methods** detail of the web service integration setup page.\n4. Click **Send a test request** on the method setup page.\n5. Specify the values for the method call parameters.\nParameter| Value  \n---|---  \nEndpoint| latest  \nAPI key| d3****************************4b  \nCurrencies| USD,GBP,AUD,CAD  \n6. Click **Send request** (Fig. 19).\nAs a result of the test request, the web service will send a response. The values of the response parameters are displayed on the **Response parameters** tab in the corresponding fields (Fig. 19). View the request and response formatted as JSON or raw HTTP on other tabs.\nFig. 19 Testing the REST service integration\n![Fig.\u00a019 Testing the REST service integration](https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_send_test_request.gif)\nIf the web service integration is configured with an error, the test request will result in a response with empty parameter values. In this case, check all of the web service\u2019s settings and try again.\nOnce you test the web service integration, you can start using the service in custom business processes.\nDepending on the web service specifics, you may need to authenticate the service before it becomes available. Read more: [Set up the web service authentication](https://academy.creatio.com/documents?id=1913).\n* * *\n## See also\u200b\n[Getting started with low-code web service integration](https://academy.creatio.com/documents?id=1862)\n[Update currency exchange rates with web service integration](https://academy.creatio.com/documents?id=2364)\n* * *\n## Resources\u200b\n[Tech Hour - Integrate like a boss](https://www.youtube.com/watch?v=mHaGY1DxETw)",
+  "code_examples": [
+    {
+      "code": "http://data.fixer.io/latest?access_key={value}&symbols={value}",
+      "language": "cli",
+      "context": "This will allow Creatio to call the web service via automatically-generated requests. Business processes generate the requests based on the following template:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "http://data.fixer.io/latest?access_key=d3****************************4b&symbols=USD",
+      "language": "cli",
+      "context": "The values in curly braces are set to the values of the request parameters. For example:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "Enter the name that will be displayed in theWhich method to call?field of theCall web servicebusiness process element.",
+          "Currency exchange rates (Fixer)"
+        ],
+        [
+          "Code",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrFixer"
+        ],
+        [
+          "Web service URI",
+          "The complete web service call address will consist of this URI and the settings specified on the method setup page.Use the same protocol (HTTP/HTTPS) as your Creatio application.If the web service is located in an unmodifiable package, you can still edit its URI.",
+          "http://data.fixer.io"
+        ],
+        [
+          "Retries on call failure",
+          "If the web service response returns an error code or times out, Creatio will repeat the request the specified number of times. Keep in mind the response timeout you are going to specify for web service methods when filling out this field.",
+          "10"
+        ],
+        [
+          "Type",
+          "Web service type.",
+          "Default value \u2013 REST"
+        ],
+        [
+          "Package",
+          "The package where Creatio will save this web service integration. The list displays the packages the current user can modify.",
+          "RestWebServicePackage"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>Enter the name that will be displayed in the <strong>Which method to call?</strong> field of the <strong>Call web service</strong> business process element.</p></td><td><p>Currency exchange rates (Fixer)</p></td></tr><tr><th><p>Code</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrFixer</p></td></tr><tr><th><p>Web service URI</p></th><td><p>The complete web service call address will consist of this URI and the settings specified on the method setup page.<br/>\n<!-- -->Use the same protocol (HTTP/HTTPS) as your Creatio application.<br/>\n<!-- -->If the web service is located in an unmodifiable package, you can still edit its URI.</p></td><td><p><a href=\"http://data.fixer.io\" rel=\"noopener noreferrer\" target=\"_blank\">http://data.fixer.io</a></p></td></tr><tr><th><p>Retries on call failure</p></th><td><p>If the web service response returns an error code or times out, Creatio will repeat the request the specified number of times. Keep in mind the response timeout you are going to specify for web service methods when filling out this field.</p></td><td><p>10</p></td></tr><tr><th><p>Type</p></th><td><p>Web service type.</p></td><td><p>Default value \u2013 REST</p></td></tr><tr><th><p>Package</p></th><td><p>The package where Creatio will save this web service integration. The list displays the packages the current user can modify.</p></td><td><p>RestWebServicePackage</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "Enter the name that will be displayed in theWhich method to call?field for theCall web servicebusiness process elements.",
+          "Retrieve the exchange rates"
+        ],
+        [
+          "Code",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrLatest"
+        ],
+        [
+          "Method address",
+          "Use the value specified in the web service documentation.You can specify a static value use the method address parameters as \"variables\" to generate a dynamic method address that will depend on theCall web serviceprocess element properties. For instance, the \"Fixer\" web service has a \"latest\" endpoint that returns the up-to-date currency exchange rates.If you need more flexibility, pass the endpoint as a method address parameter by specifying the parameter name in curly braces. In this example, we use the \"{endpoint}\" parameter. You can pass several method address parameters, for example: \"{parameter1}/{parameter2}.\"",
+          "/{endpoint}?access_key=d3****************************4b&symbols=USD,GBP,AUD,CAD"
+        ],
+        [
+          "Complete address",
+          "Creatio automatically generates the complete address. It consists of the web service URI and the method address along with specified parameters and parameter values. The following format is used: \"?paramCode1=value1&paramCode2=value2.\"This address is displayed for reference.The complete address structure is as follows: \"Web service URI\" + \"Method address\" + \"?\" + \"A set of request parameters separated by &.\" For instance:http://data.fixer.io/latest?access_key=****************************&symbols=GBP.Specify the web service access key in the \"access_key\" parameter.The service will return the exchange rates for the currencies you specify in the \"symbols\" parameter. For example, use the following request to retrieve the exchange rates for the US dollar and British pound:https://data.fixer.io/latest?symbols=USD,GBP. If you do not pass the \"symbols\" parameter in the request, the service will return the exchange rates for all supported currencies.",
+          "http://data.fixer.io/api/{endpoint}?access_key=d3****************************4b&symbols=USD,GBP,AUD,CAD"
+        ],
+        [
+          "Request type",
+          "The request HTTP method. The standard HTTP methods are supported. The request type you have to use is usually listed in the web service documentation.For example, use the \"GET\" method to retrieve the currency exchange rates.",
+          "GET"
+        ],
+        [
+          "Content type",
+          "Supports the following types: XML (as of version 8.0.1) and JSON.",
+          "JSON"
+        ],
+        [
+          "Response timeout, ms",
+          "The time frame before Creatio considers a web service request timed out. If the service returns no response or responds with an error message, Creatio will retry the request after this time frame so long as there are retries available for this service call.",
+          "By default, \"5000\""
+        ],
+        [
+          "Use authentication",
+          "Use the authentication to access the web service. To enable authentication, set it up on theAuthenticationdetail of the web service integration setup page. Learn more:Web service authentication.",
+          "By default, \"false\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>Enter the name that will be displayed in the <strong>Which method to call?</strong> field for the <strong>Call web service</strong> business process elements.</p></td><td><p>Retrieve the exchange rates</p></td></tr><tr><th><p>Code</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrLatest</p></td></tr><tr><th><p>Method address</p></th><td><p>Use the value specified in the web service documentation.<br/>\n<!-- -->You can specify a static value use the method address parameters as \"variables\" to generate a dynamic method address that will depend on the <strong>Call web service</strong> process element properties. For instance, the \"Fixer\" web service has a \"latest\" endpoint that returns the up-to-date currency exchange rates.<br/>\n<!-- -->If you need more flexibility, pass the endpoint as a method address parameter by specifying the parameter name in curly braces. In this example, we use the \"{endpoint}\" parameter. You can pass several method address parameters, for example: \"{parameter1}/{parameter2}.\"</p></td><td><p>/{endpoint}?access_key=d3****************************4b&amp;symbols=USD,GBP,AUD,CAD</p></td></tr><tr><th><p>Complete address</p></th><td><p>Creatio automatically generates the complete address. It consists of the web service URI and the method address along with specified parameters and parameter values. The following format is used: \"?paramCode1=value1&amp;paramCode2=value2.\"<br/>\n<!-- -->This address is displayed for reference.<br/>\n<!-- -->The complete address structure is as follows: \"Web service URI\" + \"Method address\" + \"?\" + \"A set of request parameters separated by &amp;.\" For instance: <code>http://data.fixer.io/latest?access_key=****************************&amp;symbols=GBP</code>.<br/>\n<!-- -->Specify the web service access key in the \"access_key\" parameter.<br/>\n<!-- -->The service will return the exchange rates for the currencies you specify in the \"symbols\" parameter. For example, use the following request to retrieve the exchange rates for the US dollar and British pound: <a href=\"https://data.fixer.io/latest?symbols=USD,GBP\" rel=\"noopener noreferrer\" target=\"_blank\">https://data.fixer.io/latest?symbols=USD,GBP</a>. If you do not pass the \"symbols\" parameter in the request, the service will return the exchange rates for all supported currencies.</p></td><td><p><code>http://data.fixer.io/api/{endpoint}?access_key=d3****************************4b&amp;symbols=USD,GBP,AUD,CAD</code></p></td></tr><tr><th><p>Request type</p></th><td><p>The request HTTP method. The standard HTTP methods are supported. The request type you have to use is usually listed in the web service documentation.<br/>\n<!-- -->For example, use the \"GET\" method to retrieve the currency exchange rates.</p></td><td><p>GET</p></td></tr><tr><th><p>Content type</p></th><td><p>Supports the following types: XML (as of version 8.0.1) and JSON.</p></td><td><p>JSON</p></td></tr><tr><th><p>Response timeout, ms</p></th><td><p>The time frame before Creatio considers a web service request timed out. If the service returns no response or responds with an error message, Creatio will retry the request after this time frame so long as there are retries available for this service call.</p></td><td><p>By default, \"5000\"</p></td></tr><tr><th><p>Use authentication</p></th><td><p>Use the authentication to access the web service. To enable authentication, set it up on the <strong>Authentication</strong> detail of the web service integration setup page. Learn more: <a href=\"https://academy.creatio.com/documents?id=1913\" rel=\"noopener noreferrer\" target=\"_blank\">Web service authentication</a>.</p></td><td><p>By default, \"false\"</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Method address parameter",
+          "Use these parameters as variables to generate the request method address.Enclose the parameter names in curly braces in theMethod addressfield to add them to the method address. For instance: {parameterName1}/{parameterName2}, etc.\nUpon a web service call, Creatio will replace these variables with the actual method address parameter values specified in the correspondingCall web servicebusiness process element. For instance:http://web.service.uri/parameterValue1/parameterValue2.If you do not specify the parameter value in the element properties yet fill out theDefault valuefield, Creatio will use the default value.TheRequiredcheckbox is selected and non-editable for this parameter type."
+        ],
+        [
+          "Body parameter",
+          "Creatio uses this parameter type to send data of any type (includingcollections) in the request body. Learn more about the POST request method inWikipedia.The parameter is not available for the GET method"
+        ],
+        [
+          "Query parameter",
+          "Creatio will add this parameter type to the request after the method address and the \"?\" character. Learn more about this parameter inWikipedia."
+        ],
+        [
+          "Header parameter",
+          "Creatio uses this parameter type to generate request headers. Learn more about HTTP headers inWikipedia."
+        ],
+        [
+          "Cookies parameter",
+          "Creatio uses this parameter type to pass cookie files in the requests. For example, you can pass a previously-received authentication cookie. Learn more about cookies inWikipedia."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Method address parameter</p></th><td><p>Use these parameters as variables to generate the request method address.<br/>\n<!-- -->Enclose the parameter names in curly braces in the <strong>Method address</strong> field to add them to the method address. For instance: {parameterName1}/{parameterName2}, etc.\nUpon a web service call, Creatio will replace these variables with the actual method address parameter values specified in the corresponding <a href=\"https://academy.creatio.com/documents?product=bpms&amp;ver=7&amp;id=7141\" rel=\"noopener noreferrer\" target=\"_blank\"><strong>Call web service</strong></a> business process element. For instance: <code>http://web.service.uri/parameterValue1/parameterValue2</code>.<br/>\n<!-- -->If you do not specify the parameter value in the element properties yet fill out the <strong>Default value</strong> field, Creatio will use the default value.<br/>\n<!-- -->The <strong>Required</strong> checkbox is selected and non-editable for this parameter type.</p></td></tr><tr><th><p>Body parameter</p></th><td><p>Creatio uses this parameter type to send data of any type (including <a href=\"https://academy.creatio.com#HT_chapter_web_service_integration_collection\" rel=\"noopener noreferrer\" target=\"_blank\">collections</a>) in the request body. Learn more about the POST request method in <a href=\"https://en.wikipedia.org/wiki/POST_(HTTP)\" rel=\"noopener noreferrer\" target=\"_blank\">Wikipedia</a>.<br/>\n<!-- -->The parameter is not available for the GET method</p></td></tr><tr><th><p>Query parameter</p></th><td><p>Creatio will add this parameter type to the request after the method address and the \"?\" character. Learn more about this parameter in <a href=\"https://en.wikipedia.org/wiki/Query_string\" rel=\"noopener noreferrer\" target=\"_blank\">Wikipedia</a>.</p></td></tr><tr><th><p>Header parameter</p></th><td><p>Creatio uses this parameter type to generate request headers. Learn more about HTTP headers in <a href=\"https://en.wikipedia.org/wiki/List_of_HTTP_header_fields\" rel=\"noopener noreferrer\" target=\"_blank\">Wikipedia</a>.</p></td></tr><tr><th><p>Cookies parameter</p></th><td><p>Creatio uses this parameter type to pass cookie files in the requests. For example, you can pass a previously-received authentication cookie. Learn more about cookies in <a href=\"https://en.wikipedia.org/wiki/HTTP_cookie\" rel=\"noopener noreferrer\" target=\"_blank\">Wikipedia</a>.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "The service parameter name.",
+          "Endpoint"
+        ],
+        [
+          "Parameter type",
+          "The service parameter type.",
+          "Method address parameter"
+        ],
+        [
+          "Request code",
+          "The code used in the request.",
+          "endpoint"
+        ],
+        [
+          "Code in Creatio",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrEndpoint"
+        ],
+        [
+          "Default value",
+          "The default parameter value.",
+          "A constant. Value \u2013 \"latest\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>The service parameter name.</p></td><td><p>Endpoint</p></td></tr><tr><th><p>Parameter type</p></th><td><p>The service parameter type.</p></td><td><p>Method address parameter</p></td></tr><tr><th><p>Request code</p></th><td><p>The code used in the request.</p></td><td><p>endpoint</p></td></tr><tr><th><p>Code in Creatio</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrEndpoint</p></td></tr><tr><th><p>Default value</p></th><td><p>The default parameter value.</p></td><td><p>A constant. Value \u2013 \"latest\"</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "The service parameter name.",
+          "API key"
+        ],
+        [
+          "Parameter type",
+          "The service parameter type.",
+          "Query parameter"
+        ],
+        [
+          "Request code",
+          "The code used in the request.",
+          "access_key"
+        ],
+        [
+          "Code in Creatio",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrAccessKey"
+        ],
+        [
+          "Required",
+          "If selected, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.",
+          "Selected"
+        ],
+        [
+          "Default value",
+          "The default parameter value.",
+          "Constant"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>The service parameter name.</p></td><td><p>API key</p></td></tr><tr><th><p>Parameter type</p></th><td><p>The service parameter type.</p></td><td><p>Query parameter</p></td></tr><tr><th><p>Request code</p></th><td><p>The code used in the request.</p></td><td><p>access_key</p></td></tr><tr><th><p>Code in Creatio</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrAccessKey</p></td></tr><tr><th><p>Required</p></th><td><p>If selected, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.</p></td><td><p>Selected</p></td></tr><tr><th><p>Default value</p></th><td><p>The default parameter value.</p></td><td><p>Constant</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "The service parameter name.",
+          "Currencies"
+        ],
+        [
+          "Parameter type",
+          "The service parameter type.",
+          "Query parameter"
+        ],
+        [
+          "Request code",
+          "The code used in the request.",
+          "symbols"
+        ],
+        [
+          "Code in Creatio",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrSymbols"
+        ],
+        [
+          "Required",
+          "If checked, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.",
+          "Cleared by default"
+        ],
+        [
+          "Default value",
+          "The default parameter value.",
+          "Constant"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>The service parameter name.</p></td><td><p>Currencies</p></td></tr><tr><th><p>Parameter type</p></th><td><p>The service parameter type.</p></td><td><p>Query parameter</p></td></tr><tr><th><p>Request code</p></th><td><p>The code used in the request.</p></td><td><p>symbols</p></td></tr><tr><th><p>Code in Creatio</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrSymbols</p></td></tr><tr><th><p>Required</p></th><td><p>If checked, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.</p></td><td><p>Cleared by default</p></td></tr><tr><th><p>Default value</p></th><td><p>The default parameter value.</p></td><td><p>Constant</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "The service parameter name.",
+          "Base currency"
+        ],
+        [
+          "Parameter type",
+          "The service parameter type.",
+          "Body parameter"
+        ],
+        [
+          "Path to element (JSONPath)",
+          "The value must be in JSON format. For example, JSONPath \"$.base\" receives the \"base\" parameter value in the web service response.",
+          "$.base"
+        ],
+        [
+          "Code in Creatio",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrBaseCurrency"
+        ],
+        [
+          "Data type",
+          "The service parameter data type. A parameter with nested elements must have an \"Object\" data type.",
+          "Text"
+        ],
+        [
+          "Is array",
+          "An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.",
+          "Cleared by default"
+        ],
+        [
+          "Default value",
+          "The default parameter value.",
+          "A constant. Value \u2013 EUR"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>The service parameter name.</p></td><td><p>Base currency</p></td></tr><tr><th><p>Parameter type</p></th><td><p>The service parameter type.</p></td><td><p>Body parameter</p></td></tr><tr><th><p>Path to element (JSONPath)</p></th><td><p>The value must be in JSON format. For example, JSONPath \"$.base\" receives the \"base\" parameter value in the web service response.</p></td><td><p>$.base</p></td></tr><tr><th><p>Code in Creatio</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrBaseCurrency</p></td></tr><tr><th><p>Data type</p></th><td><p>The service parameter data type. A parameter with nested elements must have an \"Object\" data type.</p></td><td><p>Text</p></td></tr><tr><th><p>Is array</p></th><td><p>An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.</p></td><td><p>Cleared by default</p></td></tr><tr><th><p>Default value</p></th><td><p>The default parameter value.</p></td><td><p>A constant. Value \u2013 EUR</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "The service parameter name.",
+          "Date"
+        ],
+        [
+          "Parameter type",
+          "The service parameter type.",
+          "Body parameter"
+        ],
+        [
+          "Path to element (JSONPath)",
+          "The value must be in JSON format. For example,JSONPath\"$.date\" receives the \"date\" parameter value in the web service response.",
+          "$.date"
+        ],
+        [
+          "Code in Creatio",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrDate"
+        ],
+        [
+          "Data type",
+          "The service parameter data type A parameter with nested elements must have an \"Object\" data type.",
+          "Date"
+        ],
+        [
+          "Is array",
+          "An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.",
+          "Cleared by default"
+        ],
+        [
+          "Default value",
+          "The default parameter value.",
+          "Constant"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>The service parameter name.</p></td><td><p>Date</p></td></tr><tr><th><p>Parameter type</p></th><td><p>The service parameter type.</p></td><td><p>Body parameter</p></td></tr><tr><th><p>Path to element (JSONPath)</p></th><td><p>The value must be in JSON format. For example, <strong>JSONPath</strong> \"$.date\" receives the \"date\" parameter value in the web service response.</p></td><td><p>$.date</p></td></tr><tr><th><p>Code in Creatio</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrDate</p></td></tr><tr><th><p>Data type</p></th><td><p>The service parameter data type A parameter with nested elements must have an \"Object\" data type.</p></td><td><p>Date</p></td></tr><tr><th><p>Is array</p></th><td><p>An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.</p></td><td><p>Cleared by default</p></td></tr><tr><th><p>Default value</p></th><td><p>The default parameter value.</p></td><td><p>Constant</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Field",
+          "Comment",
+          "Example"
+        ],
+        [
+          "Name",
+          "The service parameter name.",
+          "Rates AUD"
+        ],
+        [
+          "Parameter type",
+          "The service parameter type.",
+          "Body parameter"
+        ],
+        [
+          "Path to element (JSONPath)",
+          "The value must be in JSON format. For example, JSONPath \"$.rates.AUD\" receives the \"AUD\" parameter value in the web service\u2019s response.",
+          "$.rates.AUD"
+        ],
+        [
+          "Code in Creatio",
+          "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+          "UsrRatesAUD"
+        ],
+        [
+          "Data type",
+          "The service parameter data type A parameter with nested elements must have an \"Object\" data type.",
+          "Decimal"
+        ],
+        [
+          "Is array",
+          "An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.",
+          "Cleared by default"
+        ],
+        [
+          "Default value",
+          "The default parameter value.",
+          "Constant"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Field</p></th><th><p>Comment</p></th><th><p>Example</p></th></tr><tr><th><p>Name</p></th><td><p>The service parameter name.</p></td><td><p>Rates AUD</p></td></tr><tr><th><p>Parameter type</p></th><td><p>The service parameter type.</p></td><td><p>Body parameter</p></td></tr><tr><th><p>Path to element (JSONPath)</p></th><td><p>The value must be in JSON format. For example, JSONPath \"$.rates.AUD\" receives the \"AUD\" parameter value in the web service\u2019s response.</p></td><td><p>$.rates.AUD</p></td></tr><tr><th><p>Code in Creatio</p></th><td><p>Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.</p></td><td><p>UsrRatesAUD</p></td></tr><tr><th><p>Data type</p></th><td><p>The service parameter data type A parameter with nested elements must have an \"Object\" data type.</p></td><td><p>Decimal</p></td></tr><tr><th><p>Is array</p></th><td><p>An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.</p></td><td><p>Cleared by default</p></td></tr><tr><th><p>Default value</p></th><td><p>The default parameter value.</p></td><td><p>Constant</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Contact name",
+          "Birth date",
+          "Age"
+        ],
+        [
+          "John Best",
+          "04/12/1991",
+          "30"
+        ],
+        [
+          "Andrew Barber",
+          "04/10/1985",
+          "36"
+        ],
+        [
+          "Alice Phillips",
+          "05/12/1989",
+          "31"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Contact name</p></th><th><p>Birth date</p></th><th><p>Age</p></th></tr><tr><td><p>John Best</p></td><td><p>04/12/1991</p></td><td><p>30</p></td></tr><tr><td><p>Andrew Barber</p></td><td><p>04/10/1985</p></td><td><p>36</p></td></tr><tr><td><p>Alice Phillips</p></td><td><p>05/12/1989</p></td><td><p>31</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Value"
+        ],
+        [
+          "Endpoint",
+          "latest"
+        ],
+        [
+          "API key",
+          "d3****************************4b"
+        ],
+        [
+          "Currencies",
+          "USD,GBP,AUD,CAD"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Value</p></th></tr><tr><th><p>Endpoint</p></th><td><p>latest</p></td></tr><tr><th><p>API key</p></th><td><p>d3****************************4b</p></td></tr><tr><th><p>Currencies</p></th><td><p>USD,GBP,AUD,CAD</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "endpoint",
+      "content": "ExampleSet up an integration with the \"Fixer\" (https://fixer.io/) REST service to receive the most up-to-date currency exchange rates.Make sure these parameters are supported:\"endpoint\" \u2013 method address parameter. Returns the actual currency exchange rates in real time.\"access_key\" \u2013 request parameter. Use it to pass the service access key.\"symbols\" \u2013 request parameter. Use it to pass the currency codes. You can specify several comma-separated currency codes.\"$.base\" \u2013 response parameter. Contains the base currency value used to calculate the currency exchange rates. Euro is the default base currency.\"$.date\" \u2013 response parameter. Contains the currency exchange rate relevancy date.\"rates\" \u2013 response parameter. Contains a collection of exchange rates, calculated relative to the base currency. Each exchange rate is a separate nested parameter named after the currency code.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Set up an integration with the \"Fixer\" (<a href=\"https://fixer.io\" rel=\"noopener noreferrer\" target=\"_blank\">https://fixer.io/</a>) REST service to receive the most up-to-date currency exchange rates.</p><p>Make sure these parameters are supported:</p><ul>\n<li>\"<strong>endpoint</strong>\" \u2013 method address parameter. Returns the actual currency exchange rates in real time.</li>\n<li>\"<strong>access_key</strong>\" \u2013 request parameter. Use it to pass the service access key.</li>\n<li>\"<strong>symbols</strong>\" \u2013 request parameter. Use it to pass the currency codes. You can specify several comma-separated currency codes.</li>\n<li>\"<strong>$.base</strong>\" \u2013 response parameter. Contains the base currency value used to calculate the currency exchange rates. Euro is the default base currency.</li>\n<li>\"<strong>$.date</strong>\" \u2013 response parameter. Contains the currency exchange rate relevancy date.</li>\n<li>\"<strong>rates</strong>\" \u2013 response parameter. Contains a collection of exchange rates, calculated relative to the base currency. Each exchange rate is a separate nested parameter named after the currency code.</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "endpoint",
+      "content": "Set up an integration with the \"Fixer\" (https://fixer.io/) REST service to receive the most up-to-date currency exchange rates.Make sure these parameters are supported:\"endpoint\" \u2013 method address parameter. Returns the actual currency exchange rates in real time.\"access_key\" \u2013 request parameter. Use it to pass the service access key.\"symbols\" \u2013 request parameter. Use it to pass the currency codes. You can specify several comma-separated currency codes.\"$.base\" \u2013 response parameter. Contains the base currency value used to calculate the currency exchange rates. Euro is the default base currency.\"$.date\" \u2013 response parameter. Contains the currency exchange rate relevancy date.\"rates\" \u2013 response parameter. Contains a collection of exchange rates, calculated relative to the base currency. Each exchange rate is a separate nested parameter named after the currency code.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Set up an integration with the \"Fixer\" (<a href=\"https://fixer.io\" rel=\"noopener noreferrer\" target=\"_blank\">https://fixer.io/</a>) REST service to receive the most up-to-date currency exchange rates.</p><p>Make sure these parameters are supported:</p><ul>\n<li>\"<strong>endpoint</strong>\" \u2013 method address parameter. Returns the actual currency exchange rates in real time.</li>\n<li>\"<strong>access_key</strong>\" \u2013 request parameter. Use it to pass the service access key.</li>\n<li>\"<strong>symbols</strong>\" \u2013 request parameter. Use it to pass the currency codes. You can specify several comma-separated currency codes.</li>\n<li>\"<strong>$.base</strong>\" \u2013 response parameter. Contains the base currency value used to calculate the currency exchange rates. Euro is the default base currency.</li>\n<li>\"<strong>$.date</strong>\" \u2013 response parameter. Contains the currency exchange rate relevancy date.</li>\n<li>\"<strong>rates</strong>\" \u2013 response parameter. Contains a collection of exchange rates, calculated relative to the base currency. Each exchange rate is a separate nested parameter named after the currency code.</li>\n</ul></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteCreatio saves the web service integrations as configuration items. If a web service configuration item is located in an unmodifiable package, you will only be able to edit its URI. To make other changes to such web service integrations, copy the relevant configuration items to user-made packages.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Creatio saves the web service integrations as configuration items. If a web service configuration item is located in an unmodifiable package, you will only be able to edit its URI. To make other changes to such web service integrations, copy the relevant configuration items to user-made packages.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio saves the web service integrations as configuration items. If a web service configuration item is located in an unmodifiable package, you will only be able to edit its URI. To make other changes to such web service integrations, copy the relevant configuration items to user-made packages.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio saves the web service integrations as configuration items. If a web service configuration item is located in an unmodifiable package, you will only be able to edit its URI. To make other changes to such web service integrations, copy the relevant configuration items to user-made packages.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Call web service",
+      "content": "noteYou can call any number of web service methods within a single process flow by using multipleCall web servicebusiness process elementsand passing incoming and outgoing parameters between them.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can call any number of web service methods within a single process flow by using multiple <a href=\"https://academy.creatio.com/documents?product=BPMS&amp;ver=7&amp;id=7141\" rel=\"noopener noreferrer\" target=\"_blank\"><strong>Call web service</strong> business process elements</a> and passing incoming and outgoing parameters between them.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Call web service",
+      "content": "You can call any number of web service methods within a single process flow by using multipleCall web servicebusiness process elementsand passing incoming and outgoing parameters between them.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can call any number of web service methods within a single process flow by using multiple <a href=\"https://academy.creatio.com/documents?product=BPMS&amp;ver=7&amp;id=7141\" rel=\"noopener noreferrer\" target=\"_blank\"><strong>Call web service</strong> business process elements</a> and passing incoming and outgoing parameters between them.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteCreatio will bind the system settings used during the method parameter setup to the web service package. This streamlines transferring the web service to a different environment.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Creatio will bind the system settings used during the method parameter setup to the web service package. This streamlines transferring the web service to a different environment.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio will bind the system settings used during the method parameter setup to the web service package. This streamlines transferring the web service to a different environment.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio will bind the system settings used during the method parameter setup to the web service package. This streamlines transferring the web service to a different environment.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteJSONpath \"$.rates.USD\" receives the \"AUD\" parameter value. \"AUD\" is a nested parameter of the \"rates\" parameter in the web service response.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>JSONpath \"$.rates.USD\" receives the \"AUD\" parameter value. \"AUD\" is a nested parameter of the \"rates\" parameter in the web service response.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "JSONpath \"$.rates.USD\" receives the \"AUD\" parameter value. \"AUD\" is a nested parameter of the \"rates\" parameter in the web service response.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>JSONpath \"$.rates.USD\" receives the \"AUD\" parameter value. \"AUD\" is a nested parameter of the \"rates\" parameter in the web service response.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteYou can only select the \"collection\" data type for the \"Body parameter\" type parameters. This parameter type is not available for GET requests. However, it is available for GET responses.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can only select the \"collection\" data type for the \"Body parameter\" type parameters. This parameter type is not available for GET requests. However, it is available for GET responses.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You can only select the \"collection\" data type for the \"Body parameter\" type parameters. This parameter type is not available for GET requests. However, it is available for GET responses.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can only select the \"collection\" data type for the \"Body parameter\" type parameters. This parameter type is not available for GET requests. However, it is available for GET responses.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe value of the nested parameter\u2019s JSONPath is a suffix of the root parameter\u2019s JSONPath. For example, if the root parameter has the \"$.records\" value in the JSONPath field and the \"$.records.name\" value should be specified for the \"Name\" nested parameter, you need to specify only \"$.records\" in the \"Path to element\" field.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The value of the nested parameter\u2019s JSONPath is a suffix of the root parameter\u2019s JSONPath. For example, if the root parameter has the \"$.records\" value in the JSONPath field and the \"$.records.name\" value should be specified for the \"Name\" nested parameter, you need to specify only \"$.records\" in the \"Path to element\" field.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The value of the nested parameter\u2019s JSONPath is a suffix of the root parameter\u2019s JSONPath. For example, if the root parameter has the \"$.records\" value in the JSONPath field and the \"$.records.name\" value should be specified for the \"Name\" nested parameter, you need to specify only \"$.records\" in the \"Path to element\" field.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The value of the nested parameter\u2019s JSONPath is a suffix of the root parameter\u2019s JSONPath. For example, if the root parameter has the \"$.records\" value in the JSONPath field and the \"$.records.name\" value should be specified for the \"Name\" nested parameter, you need to specify only \"$.records\" in the \"Path to element\" field.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_add_rest_web_service.gif",
+      "alt": "Fig.\u00a01 Setting up the web service methods automatically",
+      "title": "",
+      "context": "Specify the web service address and clickOK(Fig.\u00a01).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_dd9fee7f9728.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_rest_web_service.gif",
+      "alt": "Fig.\u00a02 Filling out the web service properties page",
+      "title": "",
+      "context": "RestWebServicePackage",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_20a246ec35a7.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_add_button.png",
+      "alt": "scr_add_button.png",
+      "title": "",
+      "context": "Clickto add methods to theMethodstab of the web service integration setup page.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_76590de6f36d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_method_properties.png",
+      "alt": "Fig.\u00a03 Web service method properties",
+      "title": "",
+      "context": "By default, \"false\"",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_1e37c2144d6e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/icn_magic_wand.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thequick setup button to the right of theMethod addressfield. Alternatively, clickQuick setupa",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_c0a27911b6e0.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_address.png",
+      "alt": "Fig.\u00a04 Adding parameters from the Method address field",
+      "title": "",
+      "context": "Click thequick setup button to the right of theMethod addressfield. Alternatively, clickQuick setupa",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_7120f41a05c7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_method_address_parameters.png",
+      "alt": "Fig.\u00a05 The method address parameter list",
+      "title": "",
+      "context": "Select the parameters you need to add to the request in the newly-opened list and clickSave(Fig.\u00a05):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_1bcca92d2ba3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_endpoint.png",
+      "alt": "Fig.\u00a06 Setting up the Endpoint parameter",
+      "title": "",
+      "context": "A constant. Value \u2013 \"latest\"",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_674009f02526.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_api_key.png",
+      "alt": "Fig.\u00a07 Setting up the API key parameter",
+      "title": "",
+      "context": "Constant",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_7cfcd548d5f3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_symbols.png",
+      "alt": "Fig.\u00a08 Setting up the Currencies parameter",
+      "title": "",
+      "context": "Constant",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_d894eb69ca43.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_response_json.png",
+      "alt": "Fig.\u00a09 Setting up the response parameters from a JSON example",
+      "title": "",
+      "context": "ClickQuick setupand selectExample in JSONfrom the \"From response example\" menu block (Fig.\u00a09).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_09dd0fc540ba.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_json_code.png",
+      "alt": "Fig.\u00a010 A JSON response",
+      "title": "",
+      "context": "Enter the server\u2019s JSON response (Fig.\u00a010). This code will display in the browser if you go to the U",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_b5f7c25fef4e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_response_parameters.png",
+      "alt": "Fig.\u00a011 List of parameters from the JSON example",
+      "title": "",
+      "context": "Specify the parameters you need to add to the response and clickSave(Fig.\u00a011):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_88e6e74e4ff3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_response_parameter_base_currency.png",
+      "alt": "Fig.\u00a012 Setting up the Base currency request parameter",
+      "title": "",
+      "context": "A constant. Value \u2013 EUR",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_b8008832984a.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_response_parameter_date.png",
+      "alt": "Fig.\u00a013 Setting up the Date parameter",
+      "title": "",
+      "context": "Constant",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_ba8a506b5692.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_request_parameter_rate_usd.png",
+      "alt": "Fig.\u00a014 Setting the Rates AUD parameter",
+      "title": "",
+      "context": "Constant",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_b6d8d7ca844d.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_add_method_response_parameter.png",
+      "alt": "Fig.\u00a015 Setting up the web service response parameters",
+      "title": "",
+      "context": "Set up the response parameters for the other necessary exchange rates in a similar way (Fig.\u00a015).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_dc935231b3a9.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_object_collection_example.png",
+      "alt": "Fig.\u00a016 An example of a contact collection",
+      "title": "",
+      "context": "Collection parameter types:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_4bd6530d6979.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_object.png",
+      "alt": "Fig.\u00a017 Adding a parameter to a collection",
+      "title": "",
+      "context": "To set up a collection:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_b339c1c8382e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_web_service_object_parameters.png",
+      "alt": "Fig.\u00a018 Setting up the request parameters",
+      "title": "",
+      "context": "That way, the web service \"collection\" response parameter that receives the contact records from the",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_abafe4159de1.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCode_Customization/web_rest_service/7.18/scr_send_test_request.gif",
+      "alt": "Fig.\u00a019 Testing the REST service integration",
+      "title": "",
+      "context": "As a result of the test request, the web service will send a response. The values of the response pa",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7c6d7e702f374acb_ation_8.1_base-integrations_web-services_set-up-the-rest-web-service-integration_c29ed006683b.gif"
+    }
+  ],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=mHaGY1DxETw",
+      "text": "Tech Hour - Integrate like a boss"
+    }
+  ],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up the REST web service integration",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up the web service properties and methods\u200b",
+      "anchor": "title-311-22"
+    },
+    {
+      "level": 3,
+      "text": "Set up the web service properties and methods automatically\u200b",
+      "anchor": "title-311-8"
+    },
+    {
+      "level": 3,
+      "text": "Set up the web service properties and methods manually\u200b",
+      "anchor": "title-311-9"
+    },
+    {
+      "level": 2,
+      "text": "Set up the request parameters\u200b",
+      "anchor": "title-311-1"
+    },
+    {
+      "level": 3,
+      "text": "Set up the request parameters automatically\u200b",
+      "anchor": "title-311-2"
+    },
+    {
+      "level": 3,
+      "text": "Set up the request parameters manually\u200b",
+      "anchor": "title-311-3"
+    },
+    {
+      "level": 2,
+      "text": "Set up the response parameters\u200b",
+      "anchor": "title-311-4"
+    },
+    {
+      "level": 3,
+      "text": "Set up the response parameters automatically\u200b",
+      "anchor": "title-311-5"
+    },
+    {
+      "level": 3,
+      "text": "Set up the response parameters manually\u200b",
+      "anchor": "title-311-6"
+    },
+    {
+      "level": 2,
+      "text": "Set up the \"collection\" type response and request parameters\u200b",
+      "anchor": "title-311-7"
+    },
+    {
+      "level": 2,
+      "text": "Test the REST service integration\u200b",
+      "anchor": "title-311-42"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "Enter the name that will be displayed in theWhich method to call?field of theCall web servicebusiness process element.",
+        "type": "Currency exchange rates (Fixer)",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrFixer",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The complete web service call address will consist of this URI and the settings specified on the method setup page.Use the same protocol (HTTP/HTTPS) as your Creatio application.If the web service is located in an unmodifiable package, you can still edit its URI.",
+        "type": "http://data.fixer.io",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "If the web service response returns an error code or times out, Creatio will repeat the request the specified number of times. Keep in mind the response timeout you are going to specify for web service methods when filling out this field.",
+        "type": "10",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Web service type.",
+        "type": "Default value \u2013 REST",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The package where Creatio will save this web service integration. The list displays the packages the current user can modify.",
+        "type": "RestWebServicePackage",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Enter the name that will be displayed in theWhich method to call?field for theCall web servicebusiness process elements.",
+        "type": "Retrieve the exchange rates",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrLatest",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Use the value specified in the web service documentation.You can specify a static value use the method address parameters as \"variables\" to generate a dynamic method address that will depend on theCall web serviceprocess element properties. For instance, the \"Fixer\" web service has a \"latest\" endpoint that returns the up-to-date currency exchange rates.If you need more flexibility, pass the endpoint as a method address parameter by specifying the parameter name in curly braces. In this example, we use the \"{endpoint}\" parameter. You can pass several method address parameters, for example: \"{parameter1}/{parameter2}.\"",
+        "type": "/{endpoint}?access_key=d3****************************4b&symbols=USD,GBP,AUD,CAD",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Creatio automatically generates the complete address. It consists of the web service URI and the method address along with specified parameters and parameter values. The following format is used: \"?paramCode1=value1&paramCode2=value2.\"This address is displayed for reference.The complete address structure is as follows: \"Web service URI\" + \"Method address\" + \"?\" + \"A set of request parameters separated by &.\" For instance:http://data.fixer.io/latest?access_key=****************************&symbols=GBP.Specify the web service access key in the \"access_key\" parameter.The service will return the exchange rates for the currencies you specify in the \"symbols\" parameter. For example, use the following request to retrieve the exchange rates for the US dollar and British pound:https://data.fixer.io/latest?symbols=USD,GBP. If you do not pass the \"symbols\" parameter in the request, the service will return the exchange rates for all supported currencies.",
+        "type": "http://data.fixer.io/api/{endpoint}?access_key=d3****************************4b&symbols=USD,GBP,AUD,CAD",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The request HTTP method. The standard HTTP methods are supported. The request type you have to use is usually listed in the web service documentation.For example, use the \"GET\" method to retrieve the currency exchange rates.",
+        "type": "GET",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Supports the following types: XML (as of version 8.0.1) and JSON.",
+        "type": "JSON",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The time frame before Creatio considers a web service request timed out. If the service returns no response or responds with an error message, Creatio will retry the request after this time frame so long as there are retries available for this service call.",
+        "type": "By default, \"5000\"",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Use the authentication to access the web service. To enable authentication, set it up on theAuthenticationdetail of the web service integration setup page. Learn more:Web service authentication.",
+        "type": "By default, \"false\"",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter name.",
+        "type": "Endpoint",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter type.",
+        "type": "Method address parameter",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The code used in the request.",
+        "type": "endpoint",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrEndpoint",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The default parameter value.",
+        "type": "A constant. Value \u2013 \"latest\"",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter name.",
+        "type": "API key",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter type.",
+        "type": "Query parameter",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The code used in the request.",
+        "type": "access_key",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrAccessKey",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "If selected, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.",
+        "type": "Selected",
+        "description": "",
+        "required": true
+      },
+      {
+        "name": "The default parameter value.",
+        "type": "Constant",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter name.",
+        "type": "Currencies",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter type.",
+        "type": "Query parameter",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The code used in the request.",
+        "type": "symbols",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrSymbols",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "If checked, the parameter will be required in the Process Designer. If you specify a default parameter value, this checkbox will become unmodifiable.",
+        "type": "Cleared by default",
+        "description": "",
+        "required": true
+      },
+      {
+        "name": "The default parameter value.",
+        "type": "Constant",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter name.",
+        "type": "Base currency",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter type.",
+        "type": "Body parameter",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The value must be in JSON format. For example, JSONPath \"$.base\" receives the \"base\" parameter value in the web service response.",
+        "type": "$.base",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrBaseCurrency",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter data type. A parameter with nested elements must have an \"Object\" data type.",
+        "type": "Text",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.",
+        "type": "Cleared by default",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The default parameter value.",
+        "type": "A constant. Value \u2013 EUR",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter name.",
+        "type": "Date",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter type.",
+        "type": "Body parameter",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The value must be in JSON format. For example,JSONPath\"$.date\" receives the \"date\" parameter value in the web service response.",
+        "type": "$.date",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrDate",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter data type A parameter with nested elements must have an \"Object\" data type.",
+        "type": "Date",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.",
+        "type": "Cleared by default",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The default parameter value.",
+        "type": "Constant",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter name.",
+        "type": "Rates AUD",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter type.",
+        "type": "Body parameter",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The value must be in JSON format. For example, JSONPath \"$.rates.AUD\" receives the \"AUD\" parameter value in the web service\u2019s response.",
+        "type": "$.rates.AUD",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Used to interact with this web service in Creatio source code. In this case, it consists of the method name and the \"Usr\" prefix.",
+        "type": "UsrRatesAUD",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The service parameter data type A parameter with nested elements must have an \"Object\" data type.",
+        "type": "Decimal",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "An array parameter value cannot be set in the process designer\u2019s \"Call web service\" element. Use the \"Script task\" element instead. The parameter with an \"Object\" data type must be an array.",
+        "type": "Cleared by default",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "The default parameter value.",
+        "type": "Constant",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/set-up-the-rest-web-service-integration",
+      "text": "REST",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/base-integrations/web-services/set-up-the-rest-web-service-integration",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/base-integrations/web-services/set-up-the-rest-web-service-integration",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/base-integrations/web-services/set-up-the-rest-web-service-integration",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/customization-tools",
+      "text": "Customization tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/recommendations",
+      "text": "Recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/app-management",
+      "text": "App management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/ui-and-business-logic-customization",
+      "text": "UI and business logic customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/custom-localization",
+      "text": "Custom localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/system-settings-and-lookups",
+      "text": "System settings and lookups",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/ai-tools",
+      "text": "AI tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/print-ready-reports",
+      "text": "Print-ready reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/appearance-customization",
+      "text": "Appearance customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/mobile-app-setup",
+      "text": "Mobile app setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/tags-setup",
+      "text": "Tags setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/base-integrations",
+      "text": "Base integrations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/add-imap-smtp-email-provider",
+      "text": "IMAP / SMTP email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/ms-exchange--microsoft-365-email-and-calendar",
+      "text": "MS Exchange / Microsoft 365 email and calendar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/microsoft-email-contacts-and-calendar/set-up-the-ms-exchange-and-microsoft-365-services",
+      "text": "Set up Microsoft Exchange and Office 365",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/microsoft-email-contacts-and-calendar/synchronizing-creatio-calendar-with-ms-exchange-and-microsoft-365-calendars",
+      "text": "Synchronize calendar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/microsoft-email-contacts-and-calendar/set-up-oauth-authentication-for-ms-office-365",
+      "text": "Set up OAuth authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/google-services",
+      "text": "Google services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/google-mail-contacts-and-calendar/register-creatio-application-in-gsuite",
+      "text": "Register with Google Workspace",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/google-mail-contacts-and-calendar/synchronize-contacts-and-activities-with-google",
+      "text": "Synchronize Google services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/google-mail-contacts-and-calendar/delete-your-google-account-from-creatio",
+      "text": "Delete the account",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/mailbox-setup",
+      "text": "Mailbox setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/set-up-a-secure-mailbox-connection",
+      "text": "Set up a secure connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/set-up-a-personal-mailbox",
+      "text": "Set up a personal mailbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/configure-a-shared-mailbox",
+      "text": "Set up a shared mailbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/email-account-individual-settings",
+      "text": "Email settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/mailbox-setup/mailbox-setup-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/webhook-service-integration",
+      "text": "Webhook service integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/webhook-service-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/webhook-service-integration/retrieve-a-webhook",
+      "text": "Retrieve a webhook",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/webhook-service-integration/process-webhooks",
+      "text": "Process webhooks",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/chat-setup",
+      "text": "Chat setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-chat-processing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-facebook-messenger-integration",
+      "text": "Set up Facebook Messenger",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-telegram-integration",
+      "text": "Set up Telegram",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-whatsapp-integration",
+      "text": "Set up WhatsApp",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/set-up-chats/set-up-ada-integration",
+      "text": "Set up Ada",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/oauth-2-0/general-oauth-flow",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/oauth-2-0/set-up-the-oauth-2-0-authorization-instruction",
+      "text": "Get credentials",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/getting-started-with-low-code-web-service-integration",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/set-up-the-soap-web-service-integration",
+      "text": "PreviousSOAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/web-services/web-service-authentication",
+      "text": "NextAuthentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/phone-integration-connectors",
+      "text": "Phone integration connectors",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-avaya",
+      "text": "Avaya",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-cisco-finesse",
+      "text": "Cisco Finesse",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-tapi",
+      "text": "TAPI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/set-up-integration-with-callway",
+      "text": "CallWay",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/configure-a-wss-phone-service-connection",
+      "text": "Set up WSS telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/creatio-phone-integration-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/base-integrations/phone-integration-connectors/feature-comparison-for-supported-phone-systems copy",
+      "text": "Comparison of phone systems",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/bpm-tools",
+      "text": "BPM tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/business-process-setup",
+      "text": "Business process setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-elements-reference",
+      "text": "Process elements reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-element-use-cases",
+      "text": "Process element use cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-examples",
+      "text": "Process examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/process-administration",
+      "text": "Process administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/category/dynamic-case-setup-dcm",
+      "text": "Dynamic case setup (DCM)",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T03:19:35.652629"
+}

@@ -1,0 +1,1 @@
+<appSettings>    ...    <add key="AutoUpdateOnCommit" value="true" />    <add key="AutoUpdateDBStructure" value="true" />    <add key="AutoInstallSqlScript" value="true" />    <add key="AutoInstallPackageData" value="true" /></appSettings>

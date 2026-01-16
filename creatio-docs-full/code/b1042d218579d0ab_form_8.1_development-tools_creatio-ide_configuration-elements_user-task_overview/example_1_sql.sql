@@ -1,0 +1,1 @@
+INSERT INTO "SysProcessUserTask" ("SysUserTaskSchemaUId", "Caption")VALUES(    SELECT s."UId", s."Caption" FROM "SysSchema" AS s    WHERE s."Name" = 'UsrSomeProcessUserTask')

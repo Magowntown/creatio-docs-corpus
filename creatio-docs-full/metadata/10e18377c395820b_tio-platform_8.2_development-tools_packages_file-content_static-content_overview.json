@@ -1,0 +1,808 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/static-content/overview",
+  "title": "Static content bundling service",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools"
+    },
+    {
+      "text": "Packages",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages"
+    },
+    {
+      "text": "File content",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-content"
+    },
+    {
+      "text": "Static content",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/static-content"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\n**Static content** includes *.js and *.css files that are located in the Creatio file system and are required to display the Creatio UI in the browser. *.js files might include code of client module schema or other JavaScript data. If the browser must initially load a large amount of static content, this can significantly affect the loading time. Use static content bundling service to improve Creatio performance. Out of the box, Creatio has static content enabled. Learn more about features of static content: [Packages file content basics](https://academy.creatio.com/documents?ver=8.2&id=15126).\nView the ways to optimize the page loading time provided by Creatio in the table below.\nWay| Description  \n---|---  \nMinification| Reduces the size of *.css, *.js, and *.html files. This implies removal of commented out code as well as superfluous line breaks, leading and trailing spaces. This reduces the size of the original file by 10-20%.  \nBundling, i. e., generation of bundled files| Optimizes the performance by combining the static files of the same type into a single bundled file. Reduces the number of requests.  \nStatic content bundling service executes both minification and bundling. Most web apps are delivered with minified and bundled files. Since the Creatio configuration and static content can change during the life cycle, the service runs minification and bundling automatically when necessary. If you use Creatio **in the cloud** , the static content bundling service is deployed out of the box.\n## Architecture of static content bundling service\u200b\nView the list of bundling service components in the table below.\nComponent| Description  \n---|---  \nContentService| The service that minifies and bundles Creatio files. Deployed independently of Creatio.  \nContentWatcher| A utility that interacts with Creatio files and `ContentService` to ensure timely minification and bundling.  \nTo improve performance, the app is configured to generate minified bundled files out of the box.\nView the bundling service flowchart in the figure below.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BundlingStaticContent/8.3/scr_bundling_service_flowchart.png)\nView the bundling service workflow in the figure below.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BundlingStaticContent/8.3/scr_bundling_service_workflow.png)\nRequirements for the correct operation of the bundling service:\n* Uninterrupted operation of `ContentService` and `ContentWatcher`.\n* `ContentService` and `ContentWatcher` access to static content.\n* Ability to access static content from `ContentService` to `ContentWatcher` via HTTP.\n* A valid configuration of `ContentService` and `ContentWatcher`.\n### ContentService\u200b\n`ContentService` can be paired with `ContentWatcher` or work independently. If the `ContentService` works independently, access the endpoints manually or using a third-party automation, for example, when deploying or updating Creatio. Learn more: [ContentService endpoints](https://academy.creatio.com/documents?ver=8.2&id=15190&anchor=title-15190-1).\nThe bundling service does not require a change in the `ContentService` configuration to work correctly. Out of the box, the bundling service is configured optimally, but you can change the settings to boost performance or enable additional functionality. Learn more: [ContentService settings](https://academy.creatio.com/documents?ver=8.2&id=15190&anchor=title-15190-2).\n### ContentWatcher\u200b\n`ContentWatcher` executes the following actions:\n* Monitors the specified static content files to determine if their content changes.\n* Notifies `ContentService` that the file contents are updated and passes the appropriate parameters to the service.\n`ContentWatcher` works as follows:\n1. **Watch for changes** to the `_MetaInfo.json` file that is changed when static content is updated.\n2. **Send a notification** to `ContentService` about a pending bundling. `ContentWatcher` can track changes to any file and send a notification to any URL.\n`ContentWatcher` can monitor multiple Creatio instances. To orchestrate Creatio, `ContentWatcher`, and `ContentService` correctly, configure `ContentWatcher`. Learn more: [ContentWatcher settings](https://academy.creatio.com/documents?ver=8.2&id=15195).\n## Deploy the static content bundling service\u200b\nDeploy the static content bundling service using Docker. Learn more: [official vendor documentation](https://docs.docker.com/) (Docker).\n### 1\\. Perform preliminary setup\u200b\n1. **Deploy physical or virtual server** on Linux machine. We recommend using stable versions of Debian or Ubuntu. The server serves as the host machine for the bundling service components.\n2. **Install Docker**. [Install Docker](https://academy.creatio.com/documents?ver=8.2&id=2451&anchor=title-2649-6) (user documentation).\n3. **Provide the server access** to files in the `/conf` directory of the current Creatio instance to make files accessible for the server runtime, for example, over a network using the NFS protocol.\n### 2\\. Install bundling service components\u200b\n#### Install bundling service components for a server that has internet connection\u200b\n1. **Contact Creatio support** to obtain read access to the private Creatio image repository (`https://registry.creatio.com`) and *.tar archives that include Docker images of the bundling service components.\n2. **Log in to the private Creatio image repository** using user credentials provided by Creatio support. To do this, run the following command.\ndocker login https://registry.creatio.com -u=SomeUserLogin -p=SomeUserPassword  \nWhere `SomeUserLogin` and `SomeUserPassword` are user credentials.\n**As a result** , subsequent deployment of the bundling service will download components from the private repository automatically.\n#### Install bundling service components for a server that has no internet connection\u200b\n1. **Contact Creatio support** to obtain *.tar archives that include Docker images of the bundling service components.\n2. **Place the obtained archives** on the server where the bundling service is deployed.\n3. **Upload Docker images** from the file system on the server to the local Docker cache. To do this, run the following command.\ndocker load -i content-service.tar  \ndocker load -i content-watcher.tar  \nIf you use an internal storage of Docker images, upload archives to the storage.\n**As a result** , bundling service components will be installed.\n### 3\\. Set up the bundling service\u200b\n1. **Provide the server access** to content of the files in the `/conf` directory to make file content accessible for the server runtime. Omit this step if the bundling service is deployed on the same server as Creatio. If you use a dedicated server to deploy bundling service:\n1. Obtain read and write access to the `/conf` directory.\n2. Specify the path to the `/conf` directory on the server dedicated to deploying the bundling service.\n2. **Ensure that an arbitrary directory on the server includes the configuration files** of the bundling service listed in the table below.\nConfiguration file| Description  \n---|---  \n../etc/content-watcher/appsettings.json| Configuration of the `ContentWatcher` utility.  \ndocker-compose.yml| Configuration of the Docker Compose utility.  \n*.env| A list of environmental variables to launch the bundling service components.  \n3. **Specify the parameters** listed in the table below in the `*.env` file.\nParameter| Description  \n---|---  \nDOCKER_REGISTRY| Path to the registry of Docker images. If you deploy the bundling service from local cache, leave the parameter blank.  \nDOCKER_TAG_SERVICE,  \nDOCKER_TAG_WATCHER| Current versions of the bundling service components provided by Creatio support.  \nContentPath| Path to the `/conf` directory that includes the static content.  \n### 4\\. Download the required Docker images\u200b\nDownload the required Docker images of the bundling service components to the directory where the configuration files are deployed, for example, `/opt/services`. Take this step if you deploy the bundling service using the private Creatio image repository. To do this, **run the following command**.\ndocker-compose pull  \n### 5\\. Launch the bundling service components\u200b\n1. **Run the following command** within the directory that includes the configuration files of the bundling service.\ndocker-compose up -d  \n2. **Make sure the bundling service components are launched successfully** and view the logs. To do this, run the following command within the directory that includes the configuration files of the bundling service.\ndocker logs SomeContainer  \nWhere `SomeContainer` is the name of the Docker container.\n### 6\\. Make sure the bundling service is deployed successfully\u200b\n1. **Make sure the bundling service is ready to accept requests** to generate bundled files in one of the following ways:\n* Send `GET` request to the `SomeServerIP:SomeBundlingServicePort`.\n* Enter the `SomeServerIP:SomeBundlingServicePort` URL in the browser address bar.\nWhere:\n* `SomeServerIP` is the IP address of the server that includes the installed service.\n* `SomeBundlingServicePort` is the port where the `ContentService` is launched.\nIf the bundling service is ready to accept requests to generate bundled files, you receive the following response.\nService is running. Go to /start page to use web interface  \n2. **Make sure the static content of the Creatio instance is bundled correctly**.\n1. Log in to Creatio.\n2. Save an arbitrary client schema.\n3. Make sure the bundling service starts to generate bundled files. To do this, verify the logs of `ContentService` component include the following record.\nINFO|ContentService.Web.API.ContentProcessingRequestHandler|Content processing (/process-content) is running for path /app/content/content...  \n4. Wait for the process that generates bundled file to complete. To do this, verify the logs of `ContentService` component include the following record.\nINFO|ContentService.Web.API.ContentProcessingRequestHandler|Content processing (/process-content) finished in 12345ms for path /app/content/content  \n5. Ensure that bundled files are loaded instead of static files when using Creatio. To do this, verify that the **Network** tab in browser debugging tools includes the `/conf/content/bundles/` requests whose *.js files have the `_bundle` prefix.\n## Interaction between bundling service components and Creatio\u200b\nView the interaction diagram of `ContentService`, `ContentWatcher` and Creatio that uses common settings and is deployed using the default configuration in the figure below.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BundlingStaticContent/8.3/scr_interaction_diagram.png)\nIf `ContentWatcher` and `ContentService` are deployed on Linux (including Docker) and the Creatio file system is shared with `ContentWatcher` and `ContentService`, specify the paths to the directories where the Creatio file system is mounted in the `Directory` and `ContentPath` settings. For example, if the `/conf` directory of the Creatio instance is built-in into a container in the `/app/content/` path, specify `/app/content/` in the `Directory` setting and `/app/content/content` in the `ContentPath` setting.\nView the example of the configuration file for Creatio on-site below.\nConfiguration file example (Creatio on-site)\n{  \n\"ContentServiceUrl\": \"http://host.docker.internal:29572/process-content\",  \n\"ConfigurationRefreshInterval\": \"86400000\",  \n\"DefaultFileFilter\": \"_MetaInfo.json\",  \n\"FileEventWatcher\": {  \n\"RetryFileWatchingDelay\": \"180000\",  \n\"MaxFileWatchingRetries\": \"20\"  \n},  \n\"ContentWorkers\": [  \n{  \n\"Name\": \"Some Website Name\",  \n\"Directory\": \"/path_to_creatio_conf_directory/\",  \n\"ContentWorkerArguments\": {  \n\"key\": \"ContentPath\",  \n\"value\": \"/path_to_creatio_conf_directory/content\"  \n}  \n}  \n]  \n}  \n* * *\n## See also\u200b\n[Packages file content basics](https://academy.creatio.com/documents?ver=8.2&id=15126)\n[ContentService service](https://academy.creatio.com/documents?ver=8.2&id=15190)\n[ContentWatcher utility](https://academy.creatio.com/documents?ver=8.2&id=15195)\n[Deploy the Creatio .NET application server on Linux](https://academy.creatio.com/documents?ver=8.2&id=2451) (user documentation)\n* * *\n## Resources\u200b\n[Official vendor documentation](https://docs.docker.com/) (Docker)",
+  "code_examples": [
+    {
+      "code": "docker login https://registry.creatio.com -u=SomeUserLogin -p=SomeUserPassword",
+      "language": "cli",
+      "context": "Log in to the private Creatio image repositoryusing user credentials provided by Creatio support. To do this, run the following command.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker load -i content-service.tardocker load -i content-watcher.tar",
+      "language": "cli",
+      "context": "Upload Docker imagesfrom the file system on the server to the local Docker cache. To do this, run the following command.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker-compose pull",
+      "language": "cli",
+      "context": "Download the required Docker images of the bundling service components to the directory where the configuration files are deployed, for example,/opt/services. Take this step if you deploy the bundling",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker-compose up -d",
+      "language": "cli",
+      "context": "Run the following commandwithin the directory that includes the configuration files of the bundling service.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker logs SomeContainer",
+      "language": "cli",
+      "context": "Make sure the bundling service components are launched successfullyand view the logs. To do this, run the following command within the directory that includes the configuration files of the bundling s",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Service is running. Go to /start page to use web interface",
+      "language": "cli",
+      "context": "If the bundling service is ready to accept requests to generate bundled files, you receive the following response.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "INFO|ContentService.Web.API.ContentProcessingRequestHandler|Content processing (/process-content) is running for path /app/content/content...",
+      "language": "cli",
+      "context": "Make sure the bundling service starts to generate bundled files. To do this, verify the logs ofContentServicecomponent include the following record.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "INFO|ContentService.Web.API.ContentProcessingRequestHandler|Content processing (/process-content) finished in 12345ms for path /app/content/content",
+      "language": "cli",
+      "context": "Wait for the process that generates bundled file to complete. To do this, verify the logs ofContentServicecomponent include the following record.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"ContentServiceUrl\": \"http://host.docker.internal:29572/process-content\",    \"ConfigurationRefreshInterval\": \"86400000\",    \"DefaultFileFilter\": \"_MetaInfo.json\",    \"FileEventWatcher\": {        \"RetryFileWatchingDelay\": \"180000\",        \"MaxFileWatchingRetries\": \"20\"    },    \"ContentWorkers\": [        {            \"Name\": \"Some Website Name\",            \"Directory\": \"/path_to_creatio_conf_directory/\",            \"ContentWorkerArguments\": {                \"key\": \"ContentPath\",                \"value\": \"/path_to_creatio_conf_directory/content\"            }        }    ]}",
+      "language": "js",
+      "context": "View the example of the configuration file for Creatio on-site below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Way",
+          "Description"
+        ],
+        [
+          "Minification",
+          "Reduces the size of *.css, *.js, and *.html files. This implies removal of commented out code as well as superfluous line breaks, leading and trailing spaces. This reduces the size of the original file by 10-20%."
+        ],
+        [
+          "Bundling, i.\u00a0e., generation of bundled files",
+          "Optimizes the performance by combining the static files of the same type into a single bundled file. Reduces the number of requests."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Way</p></th><th><p>Description</p></th></tr><tr><td><center><p>Minification</p></center></td><td><p>Reduces the size of *.css, *.js, and *.html files. This implies removal of commented out code as well as superfluous line breaks, leading and trailing spaces. This reduces the size of the original file by 10-20%.</p></td></tr><tr><td><center><p>Bundling, i.\u00a0e., generation of bundled files</p></center></td><td><p>Optimizes the performance by combining the static files of the same type into a single bundled file. Reduces the number of requests.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Component",
+          "Description"
+        ],
+        [
+          "ContentService",
+          "The service that minifies and bundles Creatio files. Deployed independently of Creatio."
+        ],
+        [
+          "ContentWatcher",
+          "A utility that interacts with Creatio files andContentServiceto ensure timely minification and bundling."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Component</p></th><th><p>Description</p></th></tr><tr><td><center><p>ContentService</p></center></td><td><p>The service that minifies and bundles Creatio files. Deployed independently of Creatio.</p></td></tr><tr><td><center><p>ContentWatcher</p></center></td><td><p>A utility that interacts with Creatio files and <code>ContentService</code> to ensure timely minification and bundling.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Configuration file",
+          "Description"
+        ],
+        [
+          "../etc/content-watcher/appsettings.json",
+          "Configuration of theContentWatcherutility."
+        ],
+        [
+          "docker-compose.yml",
+          "Configuration of the Docker Compose utility."
+        ],
+        [
+          "*.env",
+          "A list of environmental variables to launch the bundling service components."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Configuration file</p></th><th><p>Description</p></th></tr><tr><td><p>../etc/content-watcher/appsettings.json</p></td><td><p>Configuration of the <code>ContentWatcher</code> utility.</p></td></tr><tr><td><p>docker-compose.yml</p></td><td><p>Configuration of the Docker Compose utility.</p></td></tr><tr><td><p>*.env</p></td><td><p>A list of environmental variables to launch the bundling service components.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "DOCKER_REGISTRY",
+          "Path to the registry of Docker images. If you deploy the bundling service from local cache, leave the parameter blank."
+        ],
+        [
+          "DOCKER_TAG_SERVICE,DOCKER_TAG_WATCHER",
+          "Current versions of the bundling service components provided by Creatio support."
+        ],
+        [
+          "ContentPath",
+          "Path to the/confdirectory that includes the static content."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><p>DOCKER_REGISTRY</p></td><td><p>Path to the registry of Docker images. If you deploy the bundling service from local cache, leave the parameter blank.</p></td></tr><tr><td><p>DOCKER_TAG_SERVICE,<br/>\n<!-- -->DOCKER_TAG_WATCHER</p></td><td><p>Current versions of the bundling service components provided by Creatio support.</p></td></tr><tr><td><p>ContentPath</p></td><td><p>Path to the <code>/conf</code> directory that includes the static content.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BundlingStaticContent/8.3/scr_bundling_service_flowchart.png",
+      "alt": "",
+      "title": "",
+      "context": "View the bundling service flowchart in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/10e18377c395820b_tio-platform_8.2_development-tools_packages_file-content_static-content_overview_c20bfe7b646e.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BundlingStaticContent/8.3/scr_bundling_service_workflow.png",
+      "alt": "",
+      "title": "",
+      "context": "View the bundling service workflow in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/10e18377c395820b_tio-platform_8.2_development-tools_packages_file-content_static-content_overview_430e9925c604.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BundlingStaticContent/8.3/scr_interaction_diagram.png",
+      "alt": "",
+      "title": "",
+      "context": "View the interaction diagram ofContentService,ContentWatcherand Creatio that uses common settings an",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/10e18377c395820b_tio-platform_8.2_development-tools_packages_file-content_static-content_overview_d18400ced524.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Static content bundling service",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Architecture of static content bundling service\u200b",
+      "anchor": "title-15802-1"
+    },
+    {
+      "level": 3,
+      "text": "ContentService\u200b",
+      "anchor": "title-2393-1"
+    },
+    {
+      "level": 3,
+      "text": "ContentWatcher\u200b",
+      "anchor": "title-2393-4"
+    },
+    {
+      "level": 2,
+      "text": "Deploy the static content bundling service\u200b",
+      "anchor": "title-2393-6"
+    },
+    {
+      "level": 3,
+      "text": "1. Perform preliminary setup\u200b",
+      "anchor": "title-15802-3"
+    },
+    {
+      "level": 3,
+      "text": "2. Install bundling service components\u200b",
+      "anchor": "title-15802-4"
+    },
+    {
+      "level": 4,
+      "text": "Install bundling service components for a server that has internet connection\u200b",
+      "anchor": "title-15802-5"
+    },
+    {
+      "level": 4,
+      "text": "Install bundling service components for a server that has no internet connection\u200b",
+      "anchor": "title-15802-6"
+    },
+    {
+      "level": 3,
+      "text": "3. Set up the bundling service\u200b",
+      "anchor": "title-15802-7"
+    },
+    {
+      "level": 3,
+      "text": "4. Download the required Docker images\u200b",
+      "anchor": "title-15802-8"
+    },
+    {
+      "level": 3,
+      "text": "5. Launch the bundling service components\u200b",
+      "anchor": "title-15802-9"
+    },
+    {
+      "level": 3,
+      "text": "6. Make sure the bundling service is deployed successfully\u200b",
+      "anchor": "title-15802-10"
+    },
+    {
+      "level": 2,
+      "text": "Interaction between bundling service components and Creatio\u200b",
+      "anchor": "title-15802-2"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "DOCKER_REGISTRY",
+        "type": "Path to the registry of Docker images. If you deploy the bundling service from local cache, leave the parameter blank.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "DOCKER_TAG_SERVICE,DOCKER_TAG_WATCHER",
+        "type": "Current versions of the bundling service components provided by Creatio support.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "ContentPath",
+        "type": "Path to the/confdirectory that includes the static content.",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/static-content/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/packages/file-content/static-content/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/packages/file-content/static-content/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/file-content/static-content/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/bind-data/bind-data-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/bind-data-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/package-conversion",
+      "text": "Conversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/file-content-basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/localize-the-file-content",
+      "text": "Localize the file content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/static-content",
+      "text": "PreviousStatic content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/static-content-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/static-content/references/contentservice",
+      "text": "ContentService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/static-content/references/contentwatcher",
+      "text": "ContentWatcher",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/packages/file-content/create-an-angular-component",
+      "text": "Angular component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/delivery/hotfix-mode",
+      "text": "Hotfix mode",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:53:36.533555"
+}

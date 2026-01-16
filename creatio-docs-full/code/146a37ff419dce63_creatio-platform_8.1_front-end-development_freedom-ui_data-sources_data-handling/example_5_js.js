@@ -1,0 +1,1 @@
+viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "attributes"        ],        "values": {            "StringAttribute_jghoo32": {                "modelConfigDiff": {                    "path": "ContactDS.Name"                }            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,

@@ -1,0 +1,1 @@
+EntitySchemaAggregationQueryFunction CreateAggregationFunction(AggregationTypeStrict aggregationType, string columnPath)

@@ -1,0 +1,1 @@
+{Terrasoft.DataManagerItem} findItem(entitySchemaName, id)

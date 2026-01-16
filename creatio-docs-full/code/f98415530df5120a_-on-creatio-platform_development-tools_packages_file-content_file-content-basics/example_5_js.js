@@ -1,0 +1,1 @@
+var Terrasoft = Terrasoft || {};Terrasoft.configuration = Terrasoft.configuration || {};Terrasoft.configuration.FileContentBootstraps = {    MyPackage1: ["src/js/bootstrap.js"],};

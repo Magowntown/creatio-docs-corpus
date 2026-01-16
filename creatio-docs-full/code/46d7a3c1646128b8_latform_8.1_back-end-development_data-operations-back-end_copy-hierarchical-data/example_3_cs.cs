@@ -1,0 +1,1 @@
+/*** Call the record copying service.* @protected*/callCopyRecordService: function() {    this.showBodyMask();    var config = this.getCopyRecordConfig();    this.callService(config, this.copyRecordServiceCallback, this);}

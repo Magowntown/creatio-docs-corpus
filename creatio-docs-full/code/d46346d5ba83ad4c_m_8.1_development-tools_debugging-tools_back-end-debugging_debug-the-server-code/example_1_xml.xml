@@ -1,0 +1,1 @@
+<add key="IncludeDebugInformation" value="true" /><add key="ExtractAllCompilerSources" value="false" />

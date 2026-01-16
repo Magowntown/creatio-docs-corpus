@@ -1,0 +1,1 @@
+{    "type": "crt.ViewField",    "value": "$SomeAttribute",    "maxLines": 2,    "label": {        "visible": true,        "value": "Title",        "position": "left"    },    "launchConfig": {        "name": "ConfigurationOptionalName",        "type": "phone",        "bindingColumn": "CommunicationType",        "binding": {            ...        },    }}

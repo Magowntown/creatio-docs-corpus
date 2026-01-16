@@ -1,0 +1,1 @@
+define("CustomPageModule", ["BusinessRuleModule"], function(BusinessRuleModule) {    return {        /* Implement the client module. */    };});

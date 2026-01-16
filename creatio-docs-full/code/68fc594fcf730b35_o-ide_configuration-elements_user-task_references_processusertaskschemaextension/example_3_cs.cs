@@ -1,0 +1,1 @@
+public virtual void AnalyzePackageDependencies(ProcessSchemaUserTask schemaElement, IProcessSchemaPackageDependencyReporter dependencyReporter)

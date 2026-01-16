@@ -1,0 +1,661 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/examples/filter-values",
+  "title": "Filter values in the mobile app",
+  "breadcrumbs": [
+    {
+      "text": "Mobile app development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development"
+    },
+    {
+      "text": "Customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization"
+    },
+    {
+      "text": "Business rules",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-rules"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/business-rules-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\n## Example 1\u200b\nExample\nFilter values in a column by condition.\nWhen selecting a value in the **Product** lookup column, only the products containing the `true` value in the **Active** column of the **Product in invoice** detail are available.\n### Example implementation\u200b\nFiltration example\nTerrasoft.sdk.Model.addBusinessRule(\"InvoiceProduct\", {  \nruleType: Terrasoft.RuleTypes.Filtration,  \nevents: [Terrasoft.BusinessRuleEvents.Load],  \ntriggeredByColumns: [\"Product\"],  \nfilters: Ext.create(\"Terrasoft.Filter\", {  \nmodelName: \"Product\",  \nproperty: \"Active\",  \nvalue: true  \n})  \n});  \n## Example 2\u200b\nExample\nFilter values in a column by the value in another column.\nThe **Contact** field on the record edit page of the **Invoices** section should be filtered based on the **Account** field value.\n### Example implementation\u200b\nFiltration example\nTerrasoft.sdk.Model.addBusinessRule(\"Invoice\", {  \nruleType: Terrasoft.RuleTypes.Filtration,  \nevents: [Terrasoft.BusinessRuleEvents.Load, Terrasoft.BusinessRuleEvents.ValueChanged],  \ntriggeredByColumns: [\"Account\"],  \nfilteredColumn: \"Contact\",  \nfilters: Ext.create(\"Terrasoft.Filter\", {  \nproperty: \"Account\"  \n})  \n});  \n## Example 3\u200b\nExample\nAdd and delete filtration by custom logic.\n### Example implementation\u200b\nFiltration example\nTerrasoft.sdk.Model.addBusinessRule(\"Activity\", {  \nname: \"ActivityResultByAllowedResultFilterRule\",  \nposition: 1,  \nruleType: Terrasoft.RuleTypes.Custom,  \ntriggeredByColumns: [\"Result\"],  \nevents: [Terrasoft.BusinessRuleEvents.ValueChanged, Terrasoft.BusinessRuleEvents.Load],  \nexecuteFn: function(record, rule, column, customData, callbackConfig) {  \nvar allowedResult = record.get(\"AllowedResult\");  \nvar filterName = \"ActivityResultByAllowedResultFilter\";  \nif (!Ext.isEmpty(allowedResult)) {  \nvar allowedResultIds =  Ext.JSON.decode(allowedResult, true);  \nvar resultIdsAreCorrect = true;  \nfor (var i = 0, ln = allowedResultIds.length; i < ln; i++) {  \nvar item = allowedResultIds[i];  \nif (!Terrasoft.util.isGuid(item)) {  \nresultIdsAreCorrect = false;  \nbreak;  \n}  \n}  \nif (resultIdsAreCorrect) {  \nvar filter = Ext.create(\"Terrasoft.Filter\", {  \nname: filterName,  \nproperty: \"Id\",  \nfuncType: Terrasoft.FilterFunctions.In,  \nfuncArgs: allowedResultIds  \n});  \nrecord.changeProperty(\"Result\", {  \naddFilter: filter  \n});  \n} else {  \nrecord.changeProperty(\"Result\", {  \nremoveFilter: filterName  \n});  \n}  \n} else {  \nrecord.changeProperty(\"Result\", {  \nremoveFilter: filterName  \n});  \n}  \nExt.callback(callbackConfig.success, callbackConfig.scope, [true]);  \n}  \n});",
+  "code_examples": [
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"InvoiceProduct\", {    ruleType: Terrasoft.RuleTypes.Filtration,    events: [Terrasoft.BusinessRuleEvents.Load],    triggeredByColumns: [\"Product\"],    filters: Ext.create(\"Terrasoft.Filter\", {        modelName: \"Product\",        property: \"Active\",        value: true    })});",
+      "language": "js",
+      "context": "Example implementation\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"Invoice\", {    ruleType: Terrasoft.RuleTypes.Filtration,    events: [Terrasoft.BusinessRuleEvents.Load, Terrasoft.BusinessRuleEvents.ValueChanged],    triggeredByColumns: [\"Account\"],    filteredColumn: \"Contact\",    filters: Ext.create(\"Terrasoft.Filter\", {        property: \"Account\"    })});",
+      "language": "js",
+      "context": "Example implementation\u200b",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "Terrasoft.sdk.Model.addBusinessRule(\"Activity\", {    name: \"ActivityResultByAllowedResultFilterRule\",    position: 1,    ruleType: Terrasoft.RuleTypes.Custom,    triggeredByColumns: [\"Result\"],    events: [Terrasoft.BusinessRuleEvents.ValueChanged, Terrasoft.BusinessRuleEvents.Load],    executeFn: function(record, rule, column, customData, callbackConfig) {        var allowedResult = record.get(\"AllowedResult\");        var filterName = \"ActivityResultByAllowedResultFilter\";        if (!Ext.isEmpty(allowedResult)) {            var allowedResultIds =  Ext.JSON.decode(allowedResult, true);            var resultIdsAreCorrect = true;            for (var i = 0, ln = allowedResultIds.length; i < ln; i++) {                var item = allowedResultIds[i];                if (!Terrasoft.util.isGuid(item)) {                    resultIdsAreCorrect = false;                    break;                }            }            if (resultIdsAreCorrect) {                var filter = Ext.create(\"Terrasoft.Filter\", {                    name: filterName,                    property: \"Id\",                    funcType: Terrasoft.FilterFunctions.In,                    funcArgs: allowedResultIds                });                record.changeProperty(\"Result\", {                    addFilter: filter                });            } else {                record.changeProperty(\"Result\", {                    removeFilter: filterName                });            }        } else {            record.changeProperty(\"Result\", {                removeFilter: filterName            });        }        Ext.callback(callbackConfig.success, callbackConfig.scope, [true]);    }});",
+      "language": "js",
+      "context": "Example implementation\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Product",
+      "content": "ExampleFilter values in a column by condition.When selecting a value in theProductlookup column, only the products containing thetruevalue in theActivecolumn of theProduct in invoicedetail are available.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Filter values in a column by condition.</p><p>When selecting a value in the <strong>Product</strong> lookup column, only the products containing the <code>true</code> value in the <strong>Active</strong> column of the <strong>Product in invoice</strong> detail are available.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Product",
+      "content": "Filter values in a column by condition.When selecting a value in theProductlookup column, only the products containing thetruevalue in theActivecolumn of theProduct in invoicedetail are available.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Filter values in a column by condition.</p><p>When selecting a value in the <strong>Product</strong> lookup column, only the products containing the <code>true</code> value in the <strong>Active</strong> column of the <strong>Product in invoice</strong> detail are available.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Contact",
+      "content": "ExampleFilter values in a column by the value in another column.TheContactfield on the record edit page of theInvoicessection should be filtered based on theAccountfield value.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Filter values in a column by the value in another column.</p><p>The <strong>Contact</strong> field on the record edit page of the <strong>Invoices</strong> section should be filtered based on the <strong>Account</strong> field value.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Contact",
+      "content": "Filter values in a column by the value in another column.TheContactfield on the record edit page of theInvoicessection should be filtered based on theAccountfield value.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Filter values in a column by the value in another column.</p><p>The <strong>Contact</strong> field on the record edit page of the <strong>Invoices</strong> section should be filtered based on the <strong>Account</strong> field value.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleAdd and delete filtration by custom logic.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add and delete filtration by custom logic.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Add and delete filtration by custom logic.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add and delete filtration by custom logic.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Filter values in the mobile app",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Example 1\u200b",
+      "anchor": "title-1519-2"
+    },
+    {
+      "level": 3,
+      "text": "Example implementation\u200b",
+      "anchor": "title-1519-1"
+    },
+    {
+      "level": 2,
+      "text": "Example 2\u200b",
+      "anchor": "title-1519-4"
+    },
+    {
+      "level": 3,
+      "text": "Example implementation\u200b",
+      "anchor": "title-1519-1"
+    },
+    {
+      "level": 2,
+      "text": "Example 3\u200b",
+      "anchor": "title-1519-6"
+    },
+    {
+      "level": 3,
+      "text": "Example implementation\u200b",
+      "anchor": "title-1519-1"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "ADDBUSINESSRULE",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "ISEMPTY",
+        "path": "("
+      },
+      {
+        "method": "DECODE",
+        "path": "("
+      },
+      {
+        "method": "ISGUID",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "CHANGEPROPERTY",
+        "path": "("
+      },
+      {
+        "method": "CHANGEPROPERTY",
+        "path": "("
+      },
+      {
+        "method": "CHANGEPROPERTY",
+        "path": "("
+      },
+      {
+        "method": "CALLBACK",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/examples/filter-values",
+      "text": "Filter values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mobile-development/customization/business-rules/examples/filter-values",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/architecture-mobile/overview-mobile",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-architecture-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedomui-mobile",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/freedom-ui/client-schema-mobile",
+      "text": "Freedom UI page schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/customize-page",
+      "text": "Customize Freedom UI page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/freedom-ui/bind-data-mobile",
+      "text": "Bind Freedom UI component to the attribute value",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/freedom-ui/data-operations-mobile",
+      "text": "Data operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/freedom-ui/creatio-mobile-common",
+      "text": "@creatio/mobile-common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/manifest",
+      "text": "Manifest",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/manifest/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/manifest-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/manifest-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/list",
+      "text": "List",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/list/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/list-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/list-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-rules",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/business-rules-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/examples/select-a-field-by-condition",
+      "text": "NextSelect a field by condition",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/examples/reset-negative-values-to-0",
+      "text": "Reset negative values to 0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/examples/generate-the-title-of-an-activity",
+      "text": "Generate the activity title",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/business-rules-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/business-rules/references/config",
+      "text": "config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboards",
+      "text": "Dashboards",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/dashboards/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboards-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboards-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/overview",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/set-up-section-icon",
+      "text": "Set up a dedicated section icon",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/branding-and-publishing",
+      "text": "Branding and publishing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/mobile-application-branding/brand-and-publish-mobile-apps-built",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-branding-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/customization/mobile-creatio-for-intune",
+      "text": "Mobile Creatio for Intune",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/debugging-mobile-app/overview",
+      "text": "Set up the emulator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mobile-development/debugging-mobile-app/general-procedure",
+      "text": "General procedure",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T02:15:50.453263"
+}

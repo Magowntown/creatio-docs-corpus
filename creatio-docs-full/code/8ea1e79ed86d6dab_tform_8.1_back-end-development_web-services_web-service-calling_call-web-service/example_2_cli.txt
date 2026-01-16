@@ -1,0 +1,1 @@
+SomeCreatioAppURL/0/ServiceModel/SomeCustomWebServiceName.svc/SomeCustomWebServiceEndpoint?SomeOptionalParameters

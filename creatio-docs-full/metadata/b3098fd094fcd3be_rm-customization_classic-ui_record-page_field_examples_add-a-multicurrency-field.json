@@ -1,0 +1,1152 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-multicurrency-field",
+  "title": "Add a multicurrency field to a record page",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1"
+    },
+    {
+      "text": "Record page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page"
+    },
+    {
+      "text": "Field",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/field-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nExample\nAdd an **Amount** multicurrency field to the project page.\n## 1\\. Create a replacing object schema\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing object** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema\\(7.17\\)/scr_add_entity_schema_replaced.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"Project.\"\n* Set **Title** to \"Project.\"\n* Select \"Project\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_schema_props.png)\n4. Add a **column** to the schema.\n1. Click ![add_button](https://academy.creatio.com/docs/sites/default/files/inline-images/scr_add_button.png) in the context menu of the object structure's **Columns** node.\n2. Click **Lookup** in the drop-down menu.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_add_lookup_column.png)\n3. Fill out the **properties of the added column**.\n* Set **Code** to \"UsrCurrency.\"\n* Set **Title** to \"Currency.\"\n* Set **Lookup** to \"Currency.\"\n* Set up the **Default value** property.\n1. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema\\(7.17\\)/scr_edit_button.png) in the **Default value** field.\n2. Select \"System setting\" in the **Default value type** property.\n3. Select \"Base currency\" (`PrimaryCurrency` code) in the **System setting** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_default_column_value.png)\nView the column properties in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_column_props.png)\n5. Add columns that contain the total amount, the amount in base currency, and the exchange rate similarly. View the column properties in the table below.\nProperties of the columns to add\nData type| Code| Title  \n---|---|---  \n**Currency**|  \"UsrAmount\"| \"Amount\"  \n**Currency**|  \"UsrPrimaryAmount\"| \"Amount, base currency\"  \n**Decimal (0.0001)**|  \"UsrCurrencyRate\"| \"Exchange rate\"  \n6. Click **Save** then **Publish** on the Object Designer's toolbar.\n## 2\\. Create a replacing view model schema of the project page\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.1&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.1&id=15121) to add the schema.\n2. Click **Add** \u2192 **Replacing view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_replacing_module.png)\n3. Fill out the **schema properties**.\n* Set **Code** to \"ProjectPageV2.\"\n* Set **Title** to \"Project edit page.\"\n* Select \"ProjectPageV2\" in the **Parent object** property.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_ProjectPageV2_props.png)\n4. Add the `MoneyModule`, `MultiCurrencyEdit`, `MultiCurrencyEditUtilities` modules as dependencies to the declaration of the view model class.\n5. Set up the **layout of the multicurrency field**.\n1. Add the following **attributes** to the `attributes` property:\n* `UsrCurrency`. The currency. Corresponds to the **UsrCurrency** column.\n* `UsrCurrencyRate`. The exchange rate. Corresponds to the **UsrCurrencyRate** column.\n* `UsrAmount`. Total amount. Corresponds to the **UsrAmount** column.\n* `UsrPrimaryAmount`. The amount in base currency. Corresponds to the **UsrPrimaryAmount** column.\n* `Currency`. The currency. Corresponds to the **Currency** column. The multicurrency module interacts with this column. Declare a virtual column in the `Currency` attribute and link the column to the **UsrCurrency** column using the handler method.\n* `CurrencyRateList`. The collection of exchange rates. Required for the multicurrency module to operate as intended.\n* `CurrencyButtonMenuList`. The collection for the currency selection button. Required for the multicurrency module to operate as intended.\n2. Add the `MultiCurrencyEditUtilities` mixin to the `mixins` property.\n3. Implement the following **methods** in the `methods` property:\n* `onEntityInitialized()`. Overloads the base virtual method. Called after Creatio initializes the object schema of the record page.\n* `setCurrencyRate()`. Sets the currency exchange rate.\n* `recalculateAmount()`. Recalculates the total amount.\n* `recalculatePrimaryAmount()`. Recalculates the amount in base currency.\n* `onVirtualCurrencyChange()`. Handles the changes to the virtual currency column.\n4. Add a configuration object with the settings that determine the layout of the multicurrency field to the `diff` array of modifications.\nView the source code of the replacing view model schema of the project page below.\nProjectPageV2\n/* Specify the MoneyModule, MultiCurrencyEdit, and MultiCurrencyEditUtilities modules as dependencies. */  \ndefine(\"ProjectPageV2\", [\"MoneyModule\", \"MultiCurrencyEdit\", \"MultiCurrencyEditUtilities\"], function(MoneyModule, MultiCurrencyEdit, MultiCurrencyEditUtilities) {  \nreturn {  \n/* The name of the record page's object schema. */  \nentitySchemaName: \"Project\",  \n/* The attributes of the view model. */  \nattributes: {  \n/* The currency. */  \n\"UsrCurrency\": {  \n/* The data type of the view model column. */  \n\"dataValueType\": this.Terrasoft.DataValueType.LOOKUP,  \n/* The configuration of the currency lookup. */  \n\"lookupListConfig\": {  \n\"columns\": [\"Division\", \"Symbol\"]  \n}  \n},  \n/* The exchange rate. */  \n\"UsrCurrencyRate\": {  \n\"dataValueType\": this.Terrasoft.DataValueType.FLOAT,  \n/* The array of configuration objects that define the [UsrCurrencyRate] column dependencies. */  \n\"dependencies\": [  \n{  \n/* The [UsrCurrencyRate] column value depends on the [UsrCurrency] column value. */  \n\"columns\": [\"UsrCurrency\"],  \n/* The handler method. */  \n\"methodName\": \"setCurrencyRate\"  \n}  \n]  \n},  \n/* The total amount. */  \n\"UsrAmount\": {  \n\"dataValueType\": this.Terrasoft.DataValueType.FLOAT,  \n\"dependencies\": [  \n{  \n\"columns\": [\"UsrCurrencyRate\", \"UsrCurrency\"],  \n\"methodName\": \"recalculateAmount\"  \n}  \n]  \n},  \n/* The amount in base currency. */  \n\"UsrPrimaryAmount\": {  \n\"dependencies\": [  \n{  \n\"columns\": [\"UsrAmount\"],  \n\"methodName\": \"recalculatePrimaryAmount\"  \n}  \n]  \n},  \n/* Currency is a virtual column for compatibility with the MultiCurrencyEditUtilities module. */  \n\"Currency\": {  \n\"type\": this.Terrasoft.ViewModelColumnType.VIRTUAL_COLUMN,  \n\"dataValueType\": this.Terrasoft.DataValueType.LOOKUP,  \n\"lookupListConfig\": {  \n\"columns\": [\"Division\"]  \n},  \n\"dependencies\": [  \n{  \n\"columns\": [\"Currency\"],  \n\"methodName\": \"onVirtualCurrencyChange\"  \n}  \n]  \n},  \n/* The collection of exchange rates. */  \n\"CurrencyRateList\": {  \ndataValueType: this.Terrasoft.DataValueType.COLLECTION,  \nvalue: this.Ext.create(\"Terrasoft.Collection\")  \n},  \n/* The collection for the currency selection button. */  \n\"CurrencyButtonMenuList\": {  \ndataValueType: this.Terrasoft.DataValueType.COLLECTION,  \nvalue: this.Ext.create(\"Terrasoft.BaseViewModelCollection\")  \n}  \n},  \n/* The mixins of the view model. */  \nmixins: {  \n/* The mixin that manages multiple currencies on the record page. */  \nMultiCurrencyEditUtilities: \"Terrasoft.MultiCurrencyEditUtilities\"  \n},  \n/* The methods of the record page's view model. */  \nmethods: {  \n/* Overload the Terrasoft.BasePageV2.onEntityInitialized() base method. */  \nonEntityInitialized: function() {  \n/* Call the parent implementation of the method. */  \nthis.callParent(arguments);  \nthis.set(\"Currency\", this.get(\"UsrCurrency\"), {silent: true});  \n/* Initialize the mixin that manages multiple currencies. */  \nthis.mixins.MultiCurrencyEditUtilities.init.call(this);  \n},  \n/* Set the exchange rate. */  \nsetCurrencyRate: function() {  \n/* Load the exchange rate on the project start date. */  \nMoneyModule.LoadCurrencyRate.call(this, \"UsrCurrency\", \"UsrCurrencyRate\", this.get(\"StartDate\"));  \n},  \n/* Recalculate the amount. */  \nrecalculateAmount: function() {  \nvar currency = this.get(\"UsrCurrency\");  \nvar division = currency ? currency.Division : null;  \nMoneyModule.RecalcCurrencyValue.call(this, \"UsrCurrencyRate\", \"UsrAmount\", \"UsrPrimaryAmount\", division);  \n},  \n/* Recalculate the amount in base currency. */  \nrecalculatePrimaryAmount: function() {  \nvar currency = this.get(\"UsrCurrency\");  \nvar division = currency ? currency.Division : null;  \nMoneyModule.RecalcBaseValue.call(this, \"UsrCurrencyRate\", \"UsrAmount\", \"UsrPrimaryAmount\", division);  \n},  \n/* The handler of changes to the virtual currency columns. */  \nonVirtualCurrencyChange: function() {  \nvar currency = this.get(\"Currency\");  \nthis.set(\"UsrCurrency\", currency);  \n}  \n},  \n/* Display the field on the record page. */  \ndiff: /**SCHEMA_DIFF*/[  \n/* The properties to add the multicurrency field to the record page. */  \n{  \n/* Add the element to the page. */  \n\"operation\": \"insert\",  \n/* The meta name of the parent container to add the field. */  \n\"parentName\": \"Header\",  \n/* Add the field to the parent element's collection of elements. */  \n\"propertyName\": \"items\",  \n/* The meta name of the field to add. */  \n\"name\": \"UsrAmount\",  \n/* The properties to pass to the element's constructor. */  \n\"values\": {  \n/* Bind the value of the control to the view model column. */  \n\"bindTo\": \"UsrAmount\",  \n/* Set up the field layout. */  \n\"layout\": {   \n/* The column number. */  \n\"column\": 0,   \n/* The row number. */  \n\"row\": 2,   \n/* The column span. */  \n\"colSpan\": 12   \n},  \n/* The name of the column that contains the amount in base currency. */  \n\"primaryAmount\": \"UsrPrimaryAmount\",  \n/* The name of the column that contains the currency of the amount. */  \n\"currency\": \"UsrCurrency\",  \n/* The name of the column that contains the exchange rate. */  \n\"rate\": \"UsrCurrencyRate\",  \n/* The property that flags the field of the amount in the base currency as editable. */  \n\"primaryAmountEnabled\": false,  \n/* The view generator of the control. */  \n\"generator\": \"MultiCurrencyEditViewGenerator.generate\"  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n};  \n});  \n6. Click **Save** on the Designer's toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** , refresh the **Projects** section page.\nAs a result, Creatio will add an **Amount** multicurrency field.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_result.png)\nCreatio recalculates the field value automatically after you select the currency in the drop-down list.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_change_result.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddMultiCurrencyFieldToPagePackage_2021-11-18_10.25.53.zip)",
+  "code_examples": [
+    {
+      "code": "/* Specify the MoneyModule, MultiCurrencyEdit, and MultiCurrencyEditUtilities modules as dependencies. */define(\"ProjectPageV2\", [\"MoneyModule\", \"MultiCurrencyEdit\", \"MultiCurrencyEditUtilities\"], function(MoneyModule, MultiCurrencyEdit, MultiCurrencyEditUtilities) {    return {        /* The name of the record page's object schema. */        entitySchemaName: \"Project\",        /* The attributes of the view model. */        attributes: {            /* The currency. */            \"UsrCurrency\": {                /* The data type of the view model column. */                \"dataValueType\": this.Terrasoft.DataValueType.LOOKUP,                /* The configuration of the currency lookup. */                \"lookupListConfig\": {                    \"columns\": [\"Division\", \"Symbol\"]                }            },            /* The exchange rate. */            \"UsrCurrencyRate\": {                \"dataValueType\": this.Terrasoft.DataValueType.FLOAT,                /* The array of configuration objects that define the [UsrCurrencyRate] column dependencies. */                \"dependencies\": [                    {                        /* The [UsrCurrencyRate] column value depends on the [UsrCurrency] column value. */                        \"columns\": [\"UsrCurrency\"],                        /* The handler method. */                        \"methodName\": \"setCurrencyRate\"                    }                ]            },            /* The total amount. */            \"UsrAmount\": {                \"dataValueType\": this.Terrasoft.DataValueType.FLOAT,                \"dependencies\": [                    {                        \"columns\": [\"UsrCurrencyRate\", \"UsrCurrency\"],                        \"methodName\": \"recalculateAmount\"                    }                ]            },            /* The amount in base currency. */            \"UsrPrimaryAmount\": {                \"dependencies\": [                    {                        \"columns\": [\"UsrAmount\"],                        \"methodName\": \"recalculatePrimaryAmount\"                    }                ]            },            /* Currency is a virtual column for compatibility with the MultiCurrencyEditUtilities module. */            \"Currency\": {                \"type\": this.Terrasoft.ViewModelColumnType.VIRTUAL_COLUMN,                \"dataValueType\": this.Terrasoft.DataValueType.LOOKUP,                \"lookupListConfig\": {                    \"columns\": [\"Division\"]                },                \"dependencies\": [                    {                        \"columns\": [\"Currency\"],                        \"methodName\": \"onVirtualCurrencyChange\"                    }                ]            },            /* The collection of exchange rates. */            \"CurrencyRateList\": {                dataValueType: this.Terrasoft.DataValueType.COLLECTION,                value: this.Ext.create(\"Terrasoft.Collection\")            },            /* The collection for the currency selection button. */            \"CurrencyButtonMenuList\": {                dataValueType: this.Terrasoft.DataValueType.COLLECTION,                value: this.Ext.create(\"Terrasoft.BaseViewModelCollection\")            }        },        /* The mixins of the view model. */        mixins: {            /* The mixin that manages multiple currencies on the record page. */            MultiCurrencyEditUtilities: \"Terrasoft.MultiCurrencyEditUtilities\"        },        /* The methods of the record page's view model. */        methods: {            /* Overload the Terrasoft.BasePageV2.onEntityInitialized() base method. */            onEntityInitialized: function() {                /* Call the parent implementation of the method. */                this.callParent(arguments);                this.set(\"Currency\", this.get(\"UsrCurrency\"), {silent: true});                /* Initialize the mixin that manages multiple currencies. */                this.mixins.MultiCurrencyEditUtilities.init.call(this);            },            /* Set the exchange rate. */            setCurrencyRate: function() {                /* Load the exchange rate on the project start date. */                MoneyModule.LoadCurrencyRate.call(this, \"UsrCurrency\", \"UsrCurrencyRate\", this.get(\"StartDate\"));            },            /* Recalculate the amount. */            recalculateAmount: function() {                var currency = this.get(\"UsrCurrency\");                var division = currency ? currency.Division : null;                MoneyModule.RecalcCurrencyValue.call(this, \"UsrCurrencyRate\", \"UsrAmount\", \"UsrPrimaryAmount\", division);            },            /* Recalculate the amount in base currency. */            recalculatePrimaryAmount: function() {                var currency = this.get(\"UsrCurrency\");                var division = currency ? currency.Division : null;                MoneyModule.RecalcBaseValue.call(this, \"UsrCurrencyRate\", \"UsrAmount\", \"UsrPrimaryAmount\", division);            },            /* The handler of changes to the virtual currency columns. */            onVirtualCurrencyChange: function() {                var currency = this.get(\"Currency\");                this.set(\"UsrCurrency\", currency);            }        },        /* Display the field on the record page. */        diff: /**SCHEMA_DIFF*/[            /* The properties to add the multicurrency field to the record page. */            {                /* Add the element to the page. */                \"operation\": \"insert\",                /* The meta name of the parent container to add the field. */                \"parentName\": \"Header\",                /* Add the field to the parent element's collection of elements. */                \"propertyName\": \"items\",                /* The meta name of the field to add. */                \"name\": \"UsrAmount\",                /* The properties to pass to the element's constructor. */                \"values\": {                    /* Bind the value of the control to the view model column. */                    \"bindTo\": \"UsrAmount\",                    /* Set up the field layout. */                    \"layout\": {                         /* The column number. */                        \"column\": 0,                         /* The row number. */                        \"row\": 2,                         /* The column span. */                        \"colSpan\": 12                     },                    /* The name of the column that contains the amount in base currency. */                    \"primaryAmount\": \"UsrPrimaryAmount\",                    /* The name of the column that contains the currency of the amount. */                    \"currency\": \"UsrCurrency\",                    /* The name of the column that contains the exchange rate. */                    \"rate\": \"UsrCurrencyRate\",                    /* The property that flags the field of the amount in the base currency as editable. */                    \"primaryAmountEnabled\": false,                    /* The view generator of the control. */                    \"generator\": \"MultiCurrencyEditViewGenerator.generate\"                }            }        ]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the project page below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Data type",
+          "Code",
+          "Title"
+        ],
+        [
+          "Currency",
+          "\"UsrAmount\"",
+          "\"Amount\""
+        ],
+        [
+          "Currency",
+          "\"UsrPrimaryAmount\"",
+          "\"Amount, base currency\""
+        ],
+        [
+          "Decimal (0.0001)",
+          "\"UsrCurrencyRate\"",
+          "\"Exchange rate\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Data type</p></th><th><p>Code</p></th><th><p>Title</p></th></tr><tr><td><p><strong>Currency</strong></p></td><td><p>\"UsrAmount\"</p></td><td><p>\"Amount\"</p></td></tr><tr><td><p><strong>Currency</strong></p></td><td><p>\"UsrPrimaryAmount\"</p></td><td><p>\"Amount, base currency\"</p></td></tr><tr><td><p><strong>Decimal (0.0001)</strong></p></td><td><p>\"UsrCurrencyRate\"</p></td><td><p>\"Exchange rate\"</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Amount",
+      "content": "ExampleAdd anAmountmulticurrency field to the project page.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add an <strong>Amount</strong> multicurrency field to the project page.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Amount",
+      "content": "Add anAmountmulticurrency field to the project page.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add an <strong>Amount</strong> multicurrency field to the project page.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema(7.17)/scr_add_entity_schema_replaced.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing objecton the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_e886854da10b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_schema_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_f511ca653c72.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/default/files/inline-images/scr_add_button.png",
+      "alt": "add_button",
+      "title": "",
+      "context": "Clickin the context menu of the object structure'sColumnsnode.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_483377ad635b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_add_lookup_column.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickLookupin the drop-down menu.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_be9a7aa20760.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateEntitySchema(7.17)/scr_edit_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickin theDefault valuefield.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_f338bba93811.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_default_column_value.png",
+      "alt": "",
+      "title": "",
+      "context": "Select \"Base currency\" (PrimaryCurrencycode) in theSystem settingproperty.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_282a09c1f62e.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_column_props.png",
+      "alt": "",
+      "title": "",
+      "context": "View the column properties in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_a68dab3d11ca.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_replacing_module.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Replacing view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_c9c4a52e038b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_ProjectPageV2_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out theschema properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_8371b3dad3f4.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_result.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add anAmountmulticurrency field.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_a56f9d81ee44.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/AddMultiCurrencyFieldToPage/7.18/scr_change_result.png",
+      "alt": "",
+      "title": "",
+      "context": "Creatio recalculates the field value automatically after you select the currency in the drop-down li",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_b529d38e5755.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkAddMultiCurrencyFieldToPagePackage_2021-11-18_10.25.53.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkAddMultiCurrencyFieldToPagePackage_2021-11-18_10.25.53.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/b3098fd094fcd3be_rm-customization_classic-ui_record-page_field_examples_add-a-multicurrency-field_sdkAddMultiCurrencyFieldToPagePackage_2021-11-18_10.25.53.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Add a multicurrency field to a record page",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a replacing object schema\u200b",
+      "anchor": "title-3198-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a replacing view model schema of the project page\u200b",
+      "anchor": "title-3198-2"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-3198-3"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "INIT",
+        "path": "."
+      },
+      {
+        "method": "CALL",
+        "path": "("
+      },
+      {
+        "method": "LOADCURRENCYRATE",
+        "path": "."
+      },
+      {
+        "method": "CALL",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "RECALCCURRENCYVALUE",
+        "path": "."
+      },
+      {
+        "method": "CALL",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "RECALCBASEVALUE",
+        "path": "."
+      },
+      {
+        "method": "CALL",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "SET",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-multicurrency-field",
+      "text": "Add a multicurrency field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/record-page/field/examples/add-a-multicurrency-field",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/record-page-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/record-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/record-page-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/field-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-field-a-new-column",
+      "text": "Add a field (a new column)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-field-an-existing-column",
+      "text": "Add a field (an existing column)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-an-image-field",
+      "text": "Add an image field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-calculated-field",
+      "text": "PreviousAdd a calculated field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/implement-the-validation-of-a-date-time-type-field",
+      "text": "NextImplement the validation of a Date/Time type field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/implement-the-validation-of-a-string-type-field",
+      "text": "Implement the validation of a String type field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-the-default-value",
+      "text": "Set the default field value",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/make-required",
+      "text": "Make required field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-filtering-of-lookup-field-values",
+      "text": "Set up filtering of lookup field values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-filtering-of-bound-lookup-field-values",
+      "text": "Set up filtering of bound lookup field values",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-the-lock-conditions",
+      "text": "Set up the conditions that lock a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/keep-fields-unlocked",
+      "text": "Keep fields unlocked",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/set-up-the-display-conditions",
+      "text": "Set up the display conditions of a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/enable-the-automatic-numbering-front-end",
+      "text": "Enable the automatic field numbering (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/enable-the-automatic-numbering-back-end",
+      "text": "Enable the automatic field numbering (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/attach-an-info-button",
+      "text": "Attach an info button to a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/field/examples/add-a-tooltip",
+      "text": "Add a tooltip to a field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/button/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/button-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/button-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/action-dashboard/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/action-dashboard-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/timeline/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/timeline-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/record-page/connected-entity-profile/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/connected-profile-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/connected-profile-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:30:44.214020"
+}

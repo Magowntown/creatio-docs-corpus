@@ -1,0 +1,1 @@
+"viewConfig": {    "type": "crt.List",    "items": "CustomAttribute",    ...}

@@ -1,0 +1,1 @@
+EXISTS (  SELECT 1  FROM "SysSSPEntitySchemaAccessList"  WHERE "EntitySchemaUId" = BaseSchema."UId") "IsInSSPEntitySchemaAccessList"

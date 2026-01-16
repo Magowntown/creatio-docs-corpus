@@ -1,0 +1,1 @@
+EntitySchemaUpperQueryFunction CreateUpperFunction(string columnPath)

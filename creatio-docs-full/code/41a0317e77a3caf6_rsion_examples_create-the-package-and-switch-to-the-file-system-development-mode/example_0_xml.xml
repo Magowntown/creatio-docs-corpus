@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><connectionStrings>    ...    <add name="defPackagesWorkingCopyPath" connectionString="C:\creatio\Terrasoft.WebApp\Terrasoft.Configuration\Pkg"/>    ...</connectionStrings>

@@ -1,0 +1,1 @@
+var _hierarchyDataStructureObtainer = ClassFactory.Get<HierarchyDataStructureObtainerContext>(new ConstructorArgument("userConnection", UserConnection));

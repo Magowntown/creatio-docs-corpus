@@ -1,0 +1,1 @@
+Amount in conversion currency = 1.94*1000/100=19.4

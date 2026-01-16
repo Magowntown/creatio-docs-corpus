@@ -1,0 +1,1 @@
+DECLARE @Caption nvarchar(max);SET @Caption = 'UsrDetailSchemaName';DECLARE @UId UNIQUEIDENTIFIER;select @UId = EntitySchemaUId from SysDetailwhere Caption = @Captiondelete from SysDetail where EntitySchemaUId = @UId

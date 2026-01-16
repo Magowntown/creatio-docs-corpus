@@ -1,0 +1,1 @@
+ng g c angular-element

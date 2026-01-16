@@ -1,0 +1,1 @@
+copy(primaryColumnValue: string | JsonObject, data: JsonObject = {})

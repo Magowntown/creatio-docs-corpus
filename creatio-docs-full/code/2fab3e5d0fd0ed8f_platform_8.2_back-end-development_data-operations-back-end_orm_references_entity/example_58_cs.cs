@@ -1,0 +1,1 @@
+virtual bool GetIsColumnValueLoaded(string valueName)bool GetIsColumnValueLoaded(EntitySchemaColumn column)

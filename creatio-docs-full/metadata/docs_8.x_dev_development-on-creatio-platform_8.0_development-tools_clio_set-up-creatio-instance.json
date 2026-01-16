@@ -1,0 +1,723 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/set-up-creatio-instance",
+  "title": "Set up Creatio instance for working with Clio",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools"
+    },
+    {
+      "text": "Clio utility",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nBefore you set up Creatio instance for working with Clio, install Clio. Instructions: [Install Clio](https://academy.creatio.com/documents?ver=8.0&id=15213).\nYou can connect Clio to an existing Creatio instance or deploy a Creatio instance from scratch using Clio.\n## Connect Clio to an existing Creatio instance\u200b\n1. **Open the terminal of Visual Studio Code** or **run the command-line interface** as administrator.\n2. **Run the** `clio reg-web-app SomeEnvironmentName -u SomeCreatioURL -l SomeLogin -p SomePassword` **command** , where:\n* `SomeEnvironmentName` is the name of your Creatio environment.\n* `SomeCreatioURL` is the URL of already deployed Creatio instance.\n* `SomeLogin` is the user login to the Creatio instance.\n* `SomePassword` is the user password to the Creatio instance.\n## Deploy a Creatio instance using Clio\u200b\nClio lets you deploy Creatio on .NET and .NET Framework platforms and use Microsoft SQL or PostgreSQL DBMS.\n### 1\\. Install additional components\u200b\n1. **Install Linux on Windows** (for Windows only). Instructions: [How to install Linux on Windows with WSL](https://learn.microsoft.com/en-us/windows/wsl/install) (official vendor documentation).\nView the example that configures `.wlsconfig` file below.\n.wlsconfig file\n[wsl2]  \nmemory=8GB # Limits VM memory in WSL 2 to 16 GB  \nprocessors=4 # Makes the WSL VM use 8 virtual processors  \n2. **Install Rancher Desktop** that creates a local Kubernetes cluster. Instructions: [Rancher Desktop by SUSE](https://rancherdesktop.io/) (official vendor documentation).\nWe recommend using the latest stable Kubernetes version and Docker Container Engine.\n3. **Make sure that you have required Windows components enabled** (for Windows only).\n1. Run the `clio check-windows-features` command.\n2. Check enabled components. Enable required components if needed. Instructions: [Enable required Windows components](https://academy.creatio.com/documents?ver=8.0&id=2081) (user documentation).\n### 2\\. Set up a local Kubernetes cluster\u200b\n1. **Run the** `kubectl cluster-info` **command** to make sure that local Kubernetes cluster is installed.\n2. **Run the** `clio create-k8-files` **command** to generate k8s manifests for required components. This creates the `C:\\Users\\SomeWindowsUser\\AppData\\Local\\creatio\\clio\\infrastructure` directory for Windows or `/home/SomeLinuxUser/.local/share/creatio/clio/infrastructure` for Linux. The directory includes pre-configured services of your environment, such as Email Listener, Microsoft SQL server, PostgreSQL server, Redis server and pgAdmin GUI to manage PostgreSQL databases.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_infrastructure_directory.png)\n3. **Set up paths to the generated k8s manifests**.\n1. Go to the `infrastructure` directory in command-line interface.\n2. Run the following commands.\n# Retrieve the path to the \"appsettings.json\" file and store it in the \"$appsettings\" variable.  \n$appsettings = clio externalLink clio://GetAppSettingsFilePath  \n# Extract the directory path of the \"appsettings.json\" file and store it in the \"$dir\" variable.  \n$dir = Get-Item $appsettings | Select-Object -ExpandProperty DirectoryName  \n# Change the current location to the \"infrastructure\" directory located next to \"appsettings.json\" file.  \nSet-Location -Path $dir/infrastructure  \n# Display all files and subdirectories in the \"infrastructure\" directory.  \nGet-ChildItem -Path $dir/infrastructure  \n4. **Make sure your kubectl context is set to Rancher Desktop**. Otherwise, your Creatio instance will be deployed into another Kubernetes cluster.\n5. **Modify nested files** in the `infrastructure` subdirectories to redefine CPU resources dedicated to Creatio (optional).\n1. Go to the `clio` directory in command-line interface.\n2. Run the `code .` command to open the structure of `clio` directory in Visual Studio Code.\n3. Redefine CPU resources.\nFor PostgreSQL\n1. Go to the `postgres` directory \u2192 `postgres-stateful-set.yaml` file.\n2. Redefine requested amount of `postgres-data` storage. To do this, go to the `spec` object \u2192 `volumeClaimTemplates` array of objects \u2192 object whose `name` string is \"postgres-data\" \u2192 `spec` object \u2192 `resources` object \u2192 `requests` map \u2192 `storage` string \u2192 change to \"10Gi.\"\n3. Redefine requested amount of `postgres-backup-images` storage. To do this, go to the `spec` object \u2192 `volumeClaimTemplates` array of objects \u2192 object whose `name` string is \"postgres-backup-images\" \u2192 `spec` object \u2192 `resources` object \u2192 `requests` map \u2192 `storage` string \u2192 change to \"3Gi.\"\n4. Open the `postgres-volumes.yaml` file.\n5. Redefine quantity of `postgres-data-pv` resource. To do this, go to the object whose `name` string is \"postgres-data-pv\" \u2192 `spec` object \u2192 `capacity` map \u2192 `storage` string \u2192 change to \"10Gi.\"\n6. Redefine quantity of `postgres-backup-images-pv` resource. To do this, go to the object whose `name` string is \"postgres-backup-images-pv\" \u2192 `spec` object \u2192 `capacity` map \u2192 `storage` string \u2192 change to \"3Gi.\"\nFor Microsoft SQL\n7. Go to the `mssql` directory \u2192 `mssql-stateful-set.yaml` file.\n8. Redefine requested amount of `mssql-data` storage. To do this, go to the `spec` object \u2192 `volumeClaimTemplates` array of objects \u2192 object whose `name` string is \"mssql-data\" \u2192 `spec` object \u2192 `resources` object \u2192 `requests` map \u2192 `storage` string \u2192 change to \"10Gi.\"\n9. Open the `mssql-volumes.yaml` file.\n10. Redefine quantity of `clio-mssql-data-pv` resource. To do this, go to the object whose `name` string is \"clio-mssql-data-pv\" \u2192 `spec` object \u2192 `capacity` map \u2192 `storage` string \u2192 change to \"10Gi.\"\n6. **Apply the changes**.\n1. Go to the command-line interface that is run as administrator.\n2. Go to the `infrastructure` directory.\n3. Run the following commands.\n# Create or update Kubernetes resources defined in the \"clio-namespace.yaml' file.  \nkubectl apply -f clio-namespace.yaml  \n# Create or update a Kubernetes \"StorageClass\" defined in the \"clio-storage-class.yaml\" file.  \nkubectl apply -f clio-storage-class.yaml  \n# Apply Kubernetes resource files located in the \"redis\" directory.  \nkubectl apply -f .\\redis  \n# Create or update Kubernetes resources located in the \"postgres\" directory.  \nkubectl apply -f .\\postgres  \n# Create or update Kubernetes resources located in the \"pgadmin\" directory.  \nkubectl apply -f .\\pgadmin  \n7. **Make sure Rancher Desktop includes required resources**.\n1. Open the Rancher Desktop.\n2. Click **Cluster Dashboard** to open the **Rancher - Local Cluster - Cluster Dashboard** window.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Cluster_Dashboard_window.png)\n3. Click **Workloads** \u2192 **Deployment** to open the **Rancher - Local Cluster - Deployments** tab.\n4. Make sure the `clio-pgadmin` and `clio-redis` have the \"Active\" states.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Deployments_tab.png)\n5. Click **StatefulSets** to open the **Rancher - Local Cluster - StatefulSets** tab.\n6. Make sure the `clio-postgres` has the \"Active\" state.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_StatefulSets_tab.png)\nOtherwise, we recommend deleting all the files from the `postgres` directory:\n1. Go to the command-line interface that is run as administrator.\n2. Go to the `infrastructure` directory.\n3. Run the `kubectl delete -f postgres` command.\n4. Open the Rancher Desktop.\n5. Click **Cluster Dashboard** to open the **Rancher - Local Cluster - Cluster Dashboard** window.\n6. Click **Storage** \u2192 **PersistentVolumes** to open the **Rancher - Local Cluster - PersistentVolumes** tab.\n7. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/icn_menu_rancher_desktop.png) \u2192 **Delete**.\n8. Click **Storage** \u2192 **PersistentVolumeClaims** to open the **Rancher - Local Cluster - PersistentVolumeClaims** tab.\n9. Select the **postgres-data-clio-postgres-0** and **postgres-backup-images-clio-postgres-0** checkboxes \u2192 click **Delete** \u2192 confirm the action.\n10. Run the `kubectl apply -f .\\postgres` command to re-create Kubernetes resources located in the `postgres` directory.\n11. Make sure Rancher Desktop includes required resources.\n### 3\\. Verify that the pgAdmin GUI is accessible\u200b\n1. **Find the port number** through which pgAdmin is accessible.\n1. Open the structure of `clio` directory in Visual Studio Code.\n2. Go to the `pgadmin` directory \u2192 `pgadmin-services.yaml` file.\n3. Go to the `spec` object \u2192 `ports` array of objects \u2192 `port` integer value. The port number is \"1080.\"\n2. **Find the user credentials** to login.\n1. Open the `pgadmin-secrets.yaml` file.\n2. Go to the `stringData` object.\nThe `PGADMIN_DEFAULT_EMAIL` string includes email to log in to pgAdmin website and is equal to \"`root@creatio.com`.\"\nThe `PGADMIN_DEFAULT_PASSWORD` string includes password to log in to pgAdmin website and is equal to \"root.\"\n3. **Log in to** `http://localhost:1080` **URL** using user credentials. This opens the pgAdmin website.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_pgAdmin_website.png)\n4. **Click Servers** \u2192 **PostgreSQL** to open the **Connect to Server** window.\n5. **Connect to the PostgreSQL server** using the same user password as the pgAdmin website. This opens the **Activity** tab for the connected server.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_PostgreSQL_server.png)\n6. **Allow pgAdmin to display template databases**.\n1. Click **File** \u2192 **Preferences** to open the **Preferences** tab.\n2. Go to the **Browser** \u2192 **Display**.\n3. Select the **Show template databases?** checkbox.\n4. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/icn_save_pgAdmin_website.png). This opens the **Object explorer refresh required** window.\n5. Click **Refresh**.\n### 4\\. Set up Redis server\u200b\n1. **Install Redis extension** (Redis Client for Visual Studio Code). Instructions: [official vendor website](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-redis-client).\n2. **Connect to the server**.\n1. Click **Create Connection** to open the **Connect to server** tab.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Connect_to_server_tab.png)\n2. Fill out the connection parameters.\nParameter| Description  \n---|---  \nName| An arbitrary name for Redis server. For example, \"Redis-Clio.\"  \nLeave default values for other connection parameters.\n3. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/btn_Save_Redis_VS_Code.png).\nOut of the box, Redis server supports 99 databases. To **check whether the database is supported by the Redis server** :\n1. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/btn_Open_Terminal_Redis_VS_Code.png) to open the Redis terminal.\n2. Run the `select SomeDatabaseIndex` command.\n**As a result** :\n* If the terminal returns \"OK\" response, a database whose number is `SomeDatabaseIndex` can be supported by the Redis server.\n* If the terminal returns \"ERR DB index is out of range\" response, a database whose number is `SomeDatabaseIndex` cannot be supported by the Redis server.\n### 5\\. Select the way to deploy Creatio\u200b\nClio lets you deploy Creatio in the following ways:\n* using File Explorer context menu\n* using terminal\nBefore you select the way to deploy Creatio:\n1. **Find the path and name of the IIS root directory** where Clio is deployed. The directory path and name are specified in the `iis-clio-root-path` property of the `C:\\Users\\SomeWindowsUser\\AppData\\Local\\creatio\\clio\\appsettings.json` file. Out of the box, `C:\\\\inetpub\\\\wwwroot\\\\clio`.\n2. **Create the IIS root directory**.\n3. **Make sure that IIS_IUSRS user has the Full control checkbox selected** for the IIS root directory.\n4. **Contact Creatio support** to receive Creatio setup zip archive. We recommend using PostgreSQL database.\n5. **Save Creatio setup zip archive** to the directory on your local device. The directory path is specified in the `creatio-products` property of the `C:\\Users\\SomeWindowsUser\\AppData\\Local\\creatio\\clio\\appsettings.json` file. Out of the box, `C:\\\\CreatioProductBuild`.\n#### Deploy Creatio using File Explorer context menu\u200b\n1. **Open the directory that has Creatio setup zip archive saved**.\n2. **Right-click a Creatio setup zip archive** \u2192 **clio: deploy Creatio**. This opens the Windows command prompt.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Windows_command_prompt_window.png)\nIf context menu does not include Clio options, re-register Clio. To do this:\n1. Go to the command-line interface that is run as administrator.\n2. Run the `clio register` command.\n3. **Fill out the parameters** to deploy Creatio.\nParameter| Description  \n---|---  \nPlease enter site name| An arbitrary name of the Creatio to deploy. For example, \"DevEnv.\"  \nPlease enter site port, Max value - 65535:  \n(recommended range between 40000 and 40100)| Port to access deployed Creatio website. For example, \"40015.\"  \n4. **Click Enter** to start deploying Creatio. Operation might take some time.\n#### Deploy Creatio using terminal\u200b\n1. **Open the terminal of Visual Studio Code** or **run the command-line interface** as administrator.\n2. **Run the** `clio deploy-creatio --SiteName SomeCreatioWebsite --SitePort SomePort --ZipFile PathToSomeCreatioArchive` **command** , where:\n* `SomeCreatioWebsite` is an arbitrary name of your Creatio website.\n* `SomePort` is the port number to deploy Creatio instance.\n* `PathToSomeCreatioArchive` is the full path to the Creatio setup zip archive including archive name.\nThis starts deploying Creatio. Operation might take some time.\n**As a result** :\n* Creatio instance will be deployed.\n* Creatio login page will be opened in the browser. Log in to Creatio using your user credentials.\nNow you can start using Clio and execute different operation with Creatio using Clio directly from Visual Studio Code based on your business goals. Instructions: [Use Clio](https://academy.creatio.com/documents?ver=8.3&id=15215).\n* * *\n## See also\u200b\n[Install Clio](https://academy.creatio.com/documents?ver=8.0&id=15213)\n[Use Clio](https://academy.creatio.com/documents?ver=8.0&id=15215)\n* * *\n## Resources\u200b\n[Official Clio documentation](https://github.com/Advance-Technologies-Foundation/clio) (GitHub)\n[Clio explorer extension for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=AdvanceTechnologiesFoundation.clio-explorer)\n[Official Redis website](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-redis-client)\n[Clio tutorials](https://www.youtube.com/playlist?list=PLnolcTT5TeE2BMFf_XmJrSwpnbcLCLJkb) (YouTube)",
+  "code_examples": [
+    {
+      "code": "[wsl2]memory=8GB # Limits VM memory in WSL 2 to 16 GBprocessors=4 # Makes the WSL VM use 8 virtual processors",
+      "language": "cli",
+      "context": "View the example that configures.wlsconfigfile below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "# Retrieve the path to the \"appsettings.json\" file and store it in the \"$appsettings\" variable.$appsettings = clio externalLink clio://GetAppSettingsFilePath# Extract the directory path of the \"appsettings.json\" file and store it in the \"$dir\" variable.$dir = Get-Item $appsettings | Select-Object -ExpandProperty DirectoryName# Change the current location to the \"infrastructure\" directory located next to \"appsettings.json\" file.Set-Location -Path $dir/infrastructure# Display all files and subdirectories in the \"infrastructure\" directory.Get-ChildItem -Path $dir/infrastructure",
+      "language": "cli",
+      "context": "Run the following commands.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "# Create or update Kubernetes resources defined in the \"clio-namespace.yaml' file.kubectl apply -f clio-namespace.yaml# Create or update a Kubernetes \"StorageClass\" defined in the \"clio-storage-class.yaml\" file.kubectl apply -f clio-storage-class.yaml# Apply Kubernetes resource files located in the \"redis\" directory.kubectl apply -f .\\redis# Create or update Kubernetes resources located in the \"postgres\" directory.kubectl apply -f .\\postgres# Create or update Kubernetes resources located in the \"pgadmin\" directory.kubectl apply -f .\\pgadmin",
+      "language": "cli",
+      "context": "Run the following commands.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "Name",
+          "An arbitrary name for Redis server. For example, \"Redis-Clio.\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><center><p>Name</p></center></td><td><center><p>An arbitrary name for Redis server. For example, \"Redis-Clio.\"</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Description"
+        ],
+        [
+          "Please enter site name",
+          "An arbitrary name of the Creatio to deploy. For example, \"DevEnv.\""
+        ],
+        [
+          "Please enter site port, Max value - 65535:(recommended range between 40000 and 40100)",
+          "Port to access deployed Creatio website. For example, \"40015.\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Parameter</p></th><th><p>Description</p></th></tr><tr><td><p>Please enter site name</p></td><td><p>An arbitrary name of the Creatio to deploy. For example, \"DevEnv.\"</p></td></tr><tr><td><p>Please enter site port, Max value - 65535:<br/>\n<!-- -->(recommended range between 40000 and 40100)</p></td><td><p>Port to access deployed Creatio website. For example, \"40015.\"</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "For PostgreSQLGo to thepostgresdirectory \u2192postgres-stateful-set.yamlfile.Redefine requested amount ofpostgres-datastorage. To do this, go to thespecobject \u2192volumeClaimTemplatesarray of objects \u2192 object whosenamestring is \"postgres-data\" \u2192specobject \u2192resourcesobject \u2192requestsmap \u2192storagestring \u2192 change to \"10Gi.\"Redefine requested amount ofpostgres-backup-imagesstorage. To do this, go to thespecobject \u2192volumeClaimTemplatesarray of objects \u2192 object whosenamestring is \"postgres-backup-images\" \u2192specobject \u2192resourcesobject \u2192requestsmap \u2192storagestring \u2192 change to \"3Gi.\"Open thepostgres-volumes.yamlfile.Redefine quantity ofpostgres-data-pvresource. To do this, go to the object whosenamestring is \"postgres-data-pv\" \u2192specobject \u2192capacitymap \u2192storagestring \u2192 change to \"10Gi.\"Redefine quantity ofpostgres-backup-images-pvresource. To do this, go to the object whosenamestring is \"postgres-backup-images-pv\" \u2192specobject \u2192capacitymap \u2192storagestring \u2192 change to \"3Gi.\"",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>For PostgreSQL</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 326ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol>\n<li>Go to the <code>postgres</code> directory \u2192 <code>postgres-stateful-set.yaml</code> file.</li>\n<li>Redefine requested amount of <code>postgres-data</code> storage. To do this, go to the <code>spec</code> object \u2192 <code>volumeClaimTemplates</code> array of objects \u2192 object whose <code>name</code> string is \"postgres-data\" \u2192 <code>spec</code> object \u2192 <code>resources</code> object \u2192 <code>requests</code> map \u2192 <code>storage</code> string \u2192 change to \"10Gi.\"</li>\n<li>Redefine requested amount of <code>postgres-backup-images</code> storage. To do this, go to the <code>spec</code> object \u2192 <code>volumeClaimTemplates</code> array of objects \u2192 object whose <code>name</code> string is \"postgres-backup-images\" \u2192 <code>spec</code> object \u2192 <code>resources</code> object \u2192 <code>requests</code> map \u2192 <code>storage</code> string \u2192 change to \"3Gi.\"</li>\n<li>Open the <code>postgres-volumes.yaml</code> file.</li>\n<li>Redefine quantity of <code>postgres-data-pv</code> resource. To do this, go to the object whose <code>name</code> string is \"postgres-data-pv\" \u2192 <code>spec</code> object \u2192 <code>capacity</code> map \u2192 <code>storage</code> string \u2192 change to \"10Gi.\"</li>\n<li>Redefine quantity of <code>postgres-backup-images-pv</code> resource. To do this, go to the object whose <code>name</code> string is \"postgres-backup-images-pv\" \u2192 <code>spec</code> object \u2192 <code>capacity</code> map \u2192 <code>storage</code> string \u2192 change to \"3Gi.\"</li>\n</ol></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "For Microsoft SQLGo to themssqldirectory \u2192mssql-stateful-set.yamlfile.Redefine requested amount ofmssql-datastorage. To do this, go to thespecobject \u2192volumeClaimTemplatesarray of objects \u2192 object whosenamestring is \"mssql-data\" \u2192specobject \u2192resourcesobject \u2192requestsmap \u2192storagestring \u2192 change to \"10Gi.\"Open themssql-volumes.yamlfile.Redefine quantity ofclio-mssql-data-pvresource. To do this, go to the object whosenamestring is \"clio-mssql-data-pv\" \u2192specobject \u2192capacitymap \u2192storagestring \u2192 change to \"10Gi.\"",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>For Microsoft SQL</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 287ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><ol start=\"7\">\n<li>Go to the <code>mssql</code> directory \u2192 <code>mssql-stateful-set.yaml</code> file.</li>\n<li>Redefine requested amount of <code>mssql-data</code> storage. To do this, go to the <code>spec</code> object \u2192 <code>volumeClaimTemplates</code> array of objects \u2192 object whose <code>name</code> string is \"mssql-data\" \u2192 <code>spec</code> object \u2192 <code>resources</code> object \u2192 <code>requests</code> map \u2192 <code>storage</code> string \u2192 change to \"10Gi.\"</li>\n<li>Open the <code>mssql-volumes.yaml</code> file.</li>\n<li>Redefine quantity of <code>clio-mssql-data-pv</code> resource. To do this, go to the object whose <code>name</code> string is \"clio-mssql-data-pv\" \u2192 <code>spec</code> object \u2192 <code>capacity</code> map \u2192 <code>storage</code> string \u2192 change to \"10Gi.\"</li>\n</ol></div></div></div></details>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_infrastructure_directory.png",
+      "alt": "",
+      "title": "",
+      "context": "Run theclio create-k8-filescommandto generate k8s manifests for required components. This creates th",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_1b4bf3e6cefd.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Cluster_Dashboard_window.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickCluster Dashboardto open theRancher - Local Cluster - Cluster Dashboardwindow.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_33155ce2d79f.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Deployments_tab.png",
+      "alt": "",
+      "title": "",
+      "context": "Make sure theclio-pgadminandclio-redishave the \"Active\" states.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_a5c49daf6594.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_StatefulSets_tab.png",
+      "alt": "",
+      "title": "",
+      "context": "Make sure theclio-postgreshas the \"Active\" state.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_7f2a54670583.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/icn_menu_rancher_desktop.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_ef04789c46b5.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_pgAdmin_website.png",
+      "alt": "",
+      "title": "",
+      "context": "Log in tohttp://localhost:1080URLusing user credentials. This opens the pgAdmin website.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_5d2af9a73df4.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_PostgreSQL_server.png",
+      "alt": "",
+      "title": "",
+      "context": "Connect to the PostgreSQL serverusing the same user password as the pgAdmin website. This opens theA",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_03a9f5bca7df.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/icn_save_pgAdmin_website.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_9dac58df52f4.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Connect_to_server_tab.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickCreate Connectionto open theConnect to servertab.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_4e9f9712a7a0.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/btn_Save_Redis_VS_Code.png",
+      "alt": "",
+      "title": "",
+      "context": "Click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_e2e4998af132.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/btn_Open_Terminal_Redis_VS_Code.png",
+      "alt": "",
+      "title": "",
+      "context": "",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_0e5e30385b32.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/Clio/8.3/scr_Windows_command_prompt_window.png",
+      "alt": "",
+      "title": "",
+      "context": "Right-click a Creatio setup zip archive\u2192clio: deploy Creatio. This opens the Windows command prompt.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_clio_set-up-creatio-instance_5219e29357c9.png"
+    }
+  ],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/playlist?list=PLnolcTT5TeE2BMFf_XmJrSwpnbcLCLJkb",
+      "text": "Clio tutorials"
+    }
+  ],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up Creatio instance for working with Clio",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Connect Clio to an existing Creatio instance\u200b",
+      "anchor": "title-15214-1"
+    },
+    {
+      "level": 2,
+      "text": "Deploy a Creatio instance using Clio\u200b",
+      "anchor": "title-15214-2"
+    },
+    {
+      "level": 3,
+      "text": "1. Install additional components\u200b",
+      "anchor": "title-15214-3"
+    },
+    {
+      "level": 3,
+      "text": "2. Set up a local Kubernetes cluster\u200b",
+      "anchor": "title-15214-4"
+    },
+    {
+      "level": 3,
+      "text": "3. Verify that the pgAdmin GUI is accessible\u200b",
+      "anchor": "title-15214-5"
+    },
+    {
+      "level": 3,
+      "text": "4. Set up Redis server\u200b",
+      "anchor": "title-15214-6"
+    },
+    {
+      "level": 3,
+      "text": "5. Select the way to deploy Creatio\u200b",
+      "anchor": "title-15214-7"
+    },
+    {
+      "level": 4,
+      "text": "Deploy Creatio using File Explorer context menu\u200b",
+      "anchor": "title-15214-8"
+    },
+    {
+      "level": 4,
+      "text": "Deploy Creatio using terminal\u200b",
+      "anchor": "title-15214-8"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "Name",
+        "type": "An arbitrary name for Redis server. For example, \"Redis-Clio.\"",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Please enter site name",
+        "type": "An arbitrary name of the Creatio to deploy. For example, \"DevEnv.\"",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "Please enter site port, Max value - 65535:(recommended range between 40000 and 40100)",
+        "type": "Port to access deployed Creatio website. For example, \"40015.\"",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/clio/set-up-creatio-instance",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/clio/set-up-creatio-instance",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/clio/set-up-creatio-instance",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/install-clio",
+      "text": "PreviousInstall Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/use-clio",
+      "text": "NextUse Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "HTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:52:04.257322"
+}

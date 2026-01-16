@@ -1,0 +1,1 @@
+bool IsColumnValueLoaded(string valueName)bool IsColumnValueLoaded(EntitySchemaColumn column)

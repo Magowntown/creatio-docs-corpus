@@ -1,0 +1,1 @@
+TResult GetTypedOldColumnValue<tresult>(string valueName)TResult GetTypedOldColumnValue<tresult>(EntitySchemaColumn column)

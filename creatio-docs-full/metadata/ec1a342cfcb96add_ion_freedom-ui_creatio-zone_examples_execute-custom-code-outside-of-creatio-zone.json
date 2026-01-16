@@ -1,0 +1,881 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-zone/examples/execute-custom-code-outside-of-creatio-zone",
+  "title": "Optimize the execution of a custom business logic using Creatio zone",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization"
+    },
+    {
+      "text": "Creatio zone",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-zone-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: intermediate\nTo implement the example:\n1. Set up the page UI. Read more >>>\n2. Implement the execution of business logic using Creatio zone. Read more >>>\nExample\nAdd the following buttons to the custom request page:\n* **Open contacts**. Must open the **Contacts** section.\n* **Show emails**. Must call the `{JSON} Placeholder` external web service that retrieves emails of post comments.\n* Creatio lets you switch between pages regardless of whether the request to the web service is complete or still in progress.\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result.gif)\n* Creatio blocks switching between pages while the request to the web service is still in progress.\n![](https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result_01.gif)\n## 1\\. Set up the page UI\u200b\n1. **Create an app** based on the **Records & business processes** template. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.2&id=2377&anchor=title-2232-6) (user documentation).\nFor this example, create a **Requests** app.\n2. **Open the form page** in the Freedom UI Designer.\nFor this example, open the **Requests form page**.\n3. **Add a button**.\nFor this example, add the following buttons:\n* button that calls the [{JSON} Placeholder](https://jsonplaceholder.typicode.com/posts) external web service from the request page\n* button that opens the **Contacts** section\nTo do this:\n1. Add a **Button** type component to the toolbar of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the button properties.\nElement| Property| Property value  \n---|---|---  \nButton that calls the `{JSON} Placeholder` external web service from the request page| Title| Show emails  \nButton that opens the **Contacts** section| Title| Open contacts  \nStyle| Primary  \n4. **Save the changes**.\n## 2\\. Implement the execution of business logic using Creatio zone\u200b\n1. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n2. **Enable the** `CrtZoneService` **service** that optimizes the execution of custom business logic using Creatio zone. To do this, add `@creatio-devkit/common` to the AMD module as a dependency.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \n...  \n};  \n);  \n3. **Set up how to handle the action** executed on button click.\n1. Go to the `viewConfigDiff` schema section \u2192 `ShowEmailsButton` element.\n2. Bind the sending of the custom `usr.ShowEmailsRequest` request to the `clicked` button event.\n3. Go to the `OpenContactsButton` element.\n4. Bind the sending of the base `crt.OpenPageRequest` request to the `clicked` button event.\n5. Enter the schema code of the page to open in the `params` property.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that calls the {JSON} Placeholder external web service from the request page. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ShowEmailsButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the clicked button event. */  \n\"request\": \"usr.ShowEmailsRequest\"  \n}  \n},  \n...  \n},  \n/* Button that opens the Contacts section. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"OpenContactsButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the clicked button event. */  \n\"request\": \"crt.OpenPageRequest\",  \n\"params\": {  \n\"schemaName\": \"Contacts_ListPage\"  \n}  \n}  \n},  \n...  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n4. **Implement the custom request handler**.\nFor this example, implement the custom `usr.ShowEmailsRequest` request handler.\n1. Go to the `handlers` schema section.\n2. Create an instance of the `CrtZoneService` service.\n3. Create an instance of the `HttpClientService` service.\n4. Specify the URL to retrieve a list of posts. Use the `{JSON} Placeholder` external service.\n5. Retrieve emails from post comments. For this example, handle 10 posts.\n6. Implement the business logic.\n* If you need to **switch between pages** regardless of whether the request to the web service is complete or still in progress, use the `CrtZoneService` service instance and `runOutside()` method.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.ShowEmailsRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Create an instance of the CrtZoneService service. */  \nconst zoneService = new sdk.CrtZoneService();  \n/* Create an instance of the HttpClientService service. */  \nconst httpClientService = new sdk.HttpClientService();  \n/* Specify the URL to retrieve emails from post comments. Use the {JSON} Placeholder external service. */  \nconst postsEndpoint = \"https://jsonplaceholder.typicode.com/posts\";  \n/* Implement the business logic to switch between pages regardless of whether the request to the web service is complete or still in progress. */  \nzoneService.runOutside(async () => {  \nconst collectedEmails = [];  \n/* Retrieve emails from comments to 10 posts. */  \nfor (let postsId = 1; postsId <= 10; postsId++) {  \nconst commends = await httpClientService.get(`${postsEndpoint}/${postsId}/comments`);  \nconst commentEmails = commends.body.map(comment => comment.email);  \ncollectedEmails.push(...commentEmails);  \n}  \nalert(`Post comments have been successfully processed.` + '\\n\\n' + `Selected posts are commented by users with following emails:` + '\\n' + collectedEmails.join(', '));  \n});  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \n* If you need to **block switching between pages** while the request to the web service is still in progress, comment out the use of the `CrtZoneService` service instance and `runOutside()` method. This retrieves emails from post comments without using Creatio zone.\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.ShowEmailsRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Create an instance of the CrtZoneService service. */  \n//const zoneService = new sdk.CrtZoneService();  \n/* Create an instance of the HttpClientService service. */  \nconst httpClientService = new sdk.HttpClientService();  \n/* Specify the URL to retrieve emails from post comments. Use the {JSON} Placeholder external service. */  \nconst postsEndpoint = \"https://jsonplaceholder.typicode.com/posts\";  \n/* Implement the business logic to switch between pages regardless of whether the request to the web service is complete or still in progress. */  \n//zoneService.runOutside(async () => {  \nconst collectedEmails = [];  \n/* Retrieve emails from comments to 10 posts. */  \nfor (let postsId = 1; postsId <= 10; postsId++) {  \nconst commends = await httpClientService.get(`${postsEndpoint}/${postsId}/comments`);  \nconst commentEmails = commends.body.map(comment => comment.email);  \ncollectedEmails.push(...commentEmails);  \n}  \nalert(`Post comments have been successfully processed.` + '\\n\\n' + `Selected posts are commented by users with following emails:` + '\\n' + collectedEmails.join(', '));  \n//});  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \n5. **Save the changes**.\n## View the result\u200b\nTo view the outcome of the example that **lets you switch between pages** :\n1. Make sure the `usr.ShowEmailsRequest` request handler **uses the** `CrtZoneService` **service instance and** `runOutside()` **method**.\n2. **Open the Requests section**.\n3. **Create a request**.\n4. Click **Show emails**.\n5. Click **Open contacts**.\n**As a result** , Creatio will open the **Contacts** section regardless of whether the request to the web service is complete or still in progress. [View the result >>>](https://academy.creatio.com/documents?ver=8.2&id=15093&anchor=view-result-1)\nTo view the outcome of the example that **blocks switching between pages** :\n1. Make sure the `usr.ShowEmailsRequest` request handler **does not use the** `CrtZoneService` **service instance and** `runOutside()` **method**.\n2. **Open the Requests section**.\n3. **Create a request**.\n4. Click **Show emails**.\n5. Click **Open contacts**.\n**As a result** , Creatio will block opening the **Contacts** section while the request to the web service is still in progress. [View the result >>>](https://academy.creatio.com/documents?ver=8.2&id=15093&anchor=view-result-2)\n## Source code\u200b\nUsrRequests_FormPage\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Feed\",  \n\"values\": {  \n\"dataSourceName\": \"PDS\",  \n\"entitySchemaName\": \"UsrRequests\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AttachmentList\",  \n\"values\": {  \n\"columns\": [  \n{  \n\"id\": \"2756ad1d-3f63-4d21-9e4f-f4c3ad260326\",  \n\"code\": \"AttachmentListDS_Name\",  \n\"caption\": \"#ResourceString(AttachmentListDS_Name)#\",  \n\"dataValueType\": 28,  \n\"width\": 200  \n}  \n]  \n}  \n},  \n/* Button that calls the {JSON} Placeholder external web service from the request page. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"ShowEmailsButton\",  \n\"values\": {  \n\"type\": \"crt.Button\",  \n\"caption\": \"#ResourceString(ShowEmailsButton_caption)#\",  \n\"color\": \"default\",  \n\"disabled\": false,  \n\"size\": \"large\",  \n\"iconPosition\": \"only-text\",  \n\"visible\": true,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the clicked button event. */  \n\"request\": \"usr.ShowEmailsRequest\"  \n}  \n},  \n\"parentName\": \"CardToolsContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n/* Button that opens the Contacts section. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"OpenContactsButton\",  \n\"values\": {  \n\"type\": \"crt.Button\",  \n\"caption\": \"#ResourceString(OpenContactsButton_caption)#\",  \n\"color\": \"primary\",  \n\"disabled\": false,  \n\"size\": \"large\",  \n\"iconPosition\": \"only-text\",  \n\"visible\": true,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the clicked button event. */  \n\"request\": \"crt.OpenPageRequest\",  \n\"params\": {  \n\"schemaName\": \"Contacts_ListPage\"  \n}  \n}  \n},  \n\"parentName\": \"CardToolsContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrName\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrName\",  \n\"control\": \"$UsrName\",  \n\"labelPosition\": \"auto\"  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"UsrName\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrName\"  \n}  \n}  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n\"Id\",  \n\"modelConfig\"  \n],  \n\"values\": {  \n\"path\": \"PDS.Id\"  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [],  \n\"values\": {  \n\"primaryDataSourceName\": \"PDS\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"PDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"UsrRequests\"  \n},  \n\"scope\": \"page\"  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.ShowEmailsRequest\",  \n/* Implement the custom request handler. */  \nhandler: async (request, next) => {  \n/* Create an instance of the CrtZoneService service. */  \nconst zoneService = new sdk.CrtZoneService();  \n/* Create an instance of the HttpClientService service. */  \nconst httpClientService = new sdk.HttpClientService();  \n/* Specify the URL to retrieve emails from post comments. Use the {JSON} Placeholder external service. */  \nconst postsEndpoint = \"https://jsonplaceholder.typicode.com/posts\";  \n/* Implement the business logic to switch between pages regardless of whether the request to the web service is complete or still in progress. */  \nzoneService.runOutside(async () => {  \nconst collectedEmails = [];  \n/* Retrieve emails from comments to 10 posts. */  \nfor (let postsId = 1; postsId <= 10; postsId++) {  \nconst commends = await httpClientService.get(`${postsEndpoint}/${postsId}/comments`);  \nconst commentEmails = commends.body.map(comment => comment.email);  \ncollectedEmails.push(...commentEmails);  \n}  \nalert(`Post comments have been successfully processed.` + '\\n\\n' + `Selected posts are commented by users with following emails:` + '\\n' + collectedEmails.join(', '));  \n});  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/docs/sites/academy_en/files/packages/CreatioZone/8.1/UsrRequests_2024-03-21_08.51.00.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"] /**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {        ...    };);",
+      "language": "js",
+      "context": "Enable theCrtZoneServiceservicethat optimizes the execution of custom business logic using Creatio zone. To do this, add@creatio-devkit/commonto the AMD module as a dependency.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    /* Button that calls the {JSON} Placeholder external web service from the request page. */    {        \"operation\": \"insert\",        \"name\": \"ShowEmailsButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the custom request to the clicked button event. */                \"request\": \"usr.ShowEmailsRequest\"            }        },        ...    },    /* Button that opens the Contacts section. */    {        \"operation\": \"insert\",        \"name\": \"OpenContactsButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the custom request to the clicked button event. */                \"request\": \"crt.OpenPageRequest\",                \"params\": {                    \"schemaName\": \"Contacts_ListPage\"                }            }        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Set up how to handle the actionexecuted on button click.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.ShowEmailsRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Create an instance of the CrtZoneService service. */            const zoneService = new sdk.CrtZoneService();            /* Create an instance of the HttpClientService service. */            const httpClientService = new sdk.HttpClientService();            /* Specify the URL to retrieve emails from post comments. Use the {JSON} Placeholder external service. */            const postsEndpoint = \"https://jsonplaceholder.typicode.com/posts\";            /* Implement the business logic to switch between pages regardless of whether the request to the web service is complete or still in progress. */            zoneService.runOutside(async () => {                const collectedEmails = [];                /* Retrieve emails from comments to 10 posts. */                for (let postsId = 1; postsId <= 10; postsId++) {                    const commends = await httpClientService.get(`${postsEndpoint}/${postsId}/comments`);                    const commentEmails = commends.body.map(comment => comment.email);                    collectedEmails.push(...commentEmails);                }                alert(`Post comments have been successfully processed.` + '\\n\\n' + `Selected posts are commented by users with following emails:` + '\\n' + collectedEmails.join(', '));            });        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "If you need toswitch between pagesregardless of whether the request to the web service is complete or still in progress, use theCrtZoneServiceservice instance andrunOutside()method.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.ShowEmailsRequest\",        /* Implement the custom request handler. */        handler: async (request, next) => {            /* Create an instance of the CrtZoneService service. */            //const zoneService = new sdk.CrtZoneService();            /* Create an instance of the HttpClientService service. */            const httpClientService = new sdk.HttpClientService();            /* Specify the URL to retrieve emails from post comments. Use the {JSON} Placeholder external service. */            const postsEndpoint = \"https://jsonplaceholder.typicode.com/posts\";            /* Implement the business logic to switch between pages regardless of whether the request to the web service is complete or still in progress. */            //zoneService.runOutside(async () => {                const collectedEmails = [];                /* Retrieve emails from comments to 10 posts. */                for (let postsId = 1; postsId <= 10; postsId++) {                    const commends = await httpClientService.get(`${postsEndpoint}/${postsId}/comments`);                    const commentEmails = commends.body.map(comment => comment.email);                    collectedEmails.push(...commentEmails);                }                alert(`Post comments have been successfully processed.` + '\\n\\n' + `Selected posts are commented by users with following emails:` + '\\n' + collectedEmails.join(', '));            //});        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "If you need toblock switching between pageswhile the request to the web service is still in progress, comment out the use of theCrtZoneServiceservice instance andrunOutside()method. This retrieves ema",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"name\": \"Feed\",                \"values\": {                    \"dataSourceName\": \"PDS\",                    \"entitySchemaName\": \"UsrRequests\"                }            },            {                \"operation\": \"merge\",                \"name\": \"AttachmentList\",                \"values\": {                    \"columns\": [                        {                            \"id\": \"2756ad1d-3f63-4d21-9e4f-f4c3ad260326\",                            \"code\": \"AttachmentListDS_Name\",                            \"caption\": \"#ResourceString(AttachmentListDS_Name)#\",                            \"dataValueType\": 28,                            \"width\": 200                        }                    ]                }            },            /* Button that calls the {JSON} Placeholder external web service from the request page. */            {                \"operation\": \"insert\",                \"name\": \"ShowEmailsButton\",                \"values\": {                    \"type\": \"crt.Button\",                    \"caption\": \"#ResourceString(ShowEmailsButton_caption)#\",                    \"color\": \"default\",                    \"disabled\": false,                    \"size\": \"large\",                    \"iconPosition\": \"only-text\",                    \"visible\": true,                    \"clicked\": {                        /* Bind the sending of the custom request to the clicked button event. */                        \"request\": \"usr.ShowEmailsRequest\"                    }                },                \"parentName\": \"CardToolsContainer\",                \"propertyName\": \"items\",                \"index\": 0            },            /* Button that opens the Contacts section. */            {                \"operation\": \"insert\",                \"name\": \"OpenContactsButton\",                \"values\": {                    \"type\": \"crt.Button\",                    \"caption\": \"#ResourceString(OpenContactsButton_caption)#\",                    \"color\": \"primary\",                    \"disabled\": false,                    \"size\": \"large\",                    \"iconPosition\": \"only-text\",                    \"visible\": true,                    \"clicked\": {                        /* Bind the sending of the custom request to the clicked button event. */                        \"request\": \"crt.OpenPageRequest\",                        \"params\": {                            \"schemaName\": \"Contacts_ListPage\"                        }                    }                },                \"parentName\": \"CardToolsContainer\",                \"propertyName\": \"items\",                \"index\": 1            },            {                \"operation\": \"insert\",                \"name\": \"UsrName\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrName\",                    \"control\": \"$UsrName\",                    \"labelPosition\": \"auto\"                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 0            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"UsrName\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrName\"                        }                    }                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\",                    \"Id\",                    \"modelConfig\"                ],                \"values\": {                    \"path\": \"PDS.Id\"                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [],                \"values\": {                    \"primaryDataSourceName\": \"PDS\"                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"dataSources\"                ],                \"values\": {                    \"PDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"UsrRequests\"                        },                        \"scope\": \"page\"                    }                }            }        ]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[            {                request: \"usr.ShowEmailsRequest\",                /* Implement the custom request handler. */                handler: async (request, next) => {                    /* Create an instance of the CrtZoneService service. */                    const zoneService = new sdk.CrtZoneService();                    /* Create an instance of the HttpClientService service. */                    const httpClientService = new sdk.HttpClientService();                    /* Specify the URL to retrieve emails from post comments. Use the {JSON} Placeholder external service. */                    const postsEndpoint = \"https://jsonplaceholder.typicode.com/posts\";                    /* Implement the business logic to switch between pages regardless of whether the request to the web service is complete or still in progress. */                    zoneService.runOutside(async () => {                        const collectedEmails = [];                        /* Retrieve emails from comments to 10 posts. */                        for (let postsId = 1; postsId <= 10; postsId++) {                            const commends = await httpClientService.get(`${postsEndpoint}/${postsId}/comments`);                            const commentEmails = commends.body.map(comment => comment.email);                            collectedEmails.push(...commentEmails);                        }                        alert(`Post comments have been successfully processed.` + '\\n\\n' + `Selected posts are commented by users with following emails:` + '\\n' + collectedEmails.join(', '));                    });                }            }        ]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Button that calls the{JSON} Placeholderexternal web service from the request page",
+          "Title",
+          "Show emails"
+        ],
+        [
+          "Button that opens theContactssection",
+          "Title",
+          "Open contacts"
+        ],
+        [
+          "Style",
+          "Primary"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><p>Button that calls the <code>{JSON} Placeholder</code> external web service from the request page</p></td><td><center><p>Title</p></center></td><td><center><p>Show emails</p></center></td></tr><tr><td rowspan=\"2\"><p>Button that opens the <strong>Contacts</strong> section</p></td><td><center><p>Title</p></center></td><td><center><p>Open contacts</p></center></td></tr><tr><td><center><p>Style</p></center></td><td><center><p>Primary</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Open contacts",
+      "content": "ExampleAdd the following buttons to the custom request page:Open contacts. Must open theContactssection.Show emails. Must call the{JSON} Placeholderexternal web service that retrieves emails of post comments.Creatio lets you switch between pages regardless of whether the request to the web service is complete or still in progress.Creatio blocks switching between pages while the request to the web service is still in progress.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add the following buttons to the custom request page:</p><ul>\n<li>\n<p><strong>Open contacts</strong>. Must open the <strong>Contacts</strong> section.</p>\n</li>\n<li>\n<p><strong>Show emails</strong>. Must call the <code>{JSON} Placeholder</code> external web service that retrieves emails of post comments.</p>\n<ul>\n<li>\n<p>Creatio lets you switch between pages regardless of whether the request to the web service is complete or still in progress.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result.gif\"/></div></figure>\n</li>\n<li>\n<p>Creatio blocks switching between pages while the request to the web service is still in progress.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result_01.gif\"/></div></figure>\n</li>\n</ul>\n</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Open contacts",
+      "content": "Add the following buttons to the custom request page:Open contacts. Must open theContactssection.Show emails. Must call the{JSON} Placeholderexternal web service that retrieves emails of post comments.Creatio lets you switch between pages regardless of whether the request to the web service is complete or still in progress.Creatio blocks switching between pages while the request to the web service is still in progress.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add the following buttons to the custom request page:</p><ul>\n<li>\n<p><strong>Open contacts</strong>. Must open the <strong>Contacts</strong> section.</p>\n</li>\n<li>\n<p><strong>Show emails</strong>. Must call the <code>{JSON} Placeholder</code> external web service that retrieves emails of post comments.</p>\n<ul>\n<li>\n<p>Creatio lets you switch between pages regardless of whether the request to the web service is complete or still in progress.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result.gif\"/></div></figure>\n</li>\n<li>\n<p>Creatio blocks switching between pages while the request to the web service is still in progress.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result_01.gif\"/></div></figure>\n</li>\n</ul>\n</li>\n</ul></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Creatio lets you switch between pages regardless of whether the request to the web service is comple",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ec1a342cfcb96add_ion_freedom-ui_creatio-zone_examples_execute-custom-code-outside-of-creatio-zone_c8faea43686f.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/academy_en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreatioZone/8.1/scr_result_01.gif",
+      "alt": "",
+      "title": "",
+      "context": "Creatio blocks switching between pages while the request to the web service is still in progress.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ec1a342cfcb96add_ion_freedom-ui_creatio-zone_examples_execute-custom-code-outside-of-creatio-zone_0df18b2f93ce.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the button properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ec1a342cfcb96add_ion_freedom-ui_creatio-zone_examples_execute-custom-code-outside-of-creatio-zone_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/ec1a342cfcb96add_ion_freedom-ui_creatio-zone_examples_execute-custom-code-outside-of-creatio-zone_0022b8eb0588.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/docs/sites/academy_en/files/packages/CreatioZone/8.1/UsrRequests_2024-03-21_08.51.00.zip",
+      "text": "Package with example implementation",
+      "filename": "UsrRequests_2024-03-21_08.51.00.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/ec1a342cfcb96add_ion_freedom-ui_creatio-zone_examples_execute-custom-code-outside-of-creatio-zone_UsrRequests_2024-03-21_08.51.00.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Optimize the execution of a custom business logic using Creatio zone",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Set up the page UI\u200b",
+      "anchor": "title-15093-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Implement the execution of business logic using Creatio zone\u200b",
+      "anchor": "title-15093-2"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-15093-3"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15093-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "RUNOUTSIDE",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "MAP",
+        "path": "("
+      },
+      {
+        "method": "PUSH",
+        "path": "("
+      },
+      {
+        "method": "JOIN",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "MAP",
+        "path": "("
+      },
+      {
+        "method": "PUSH",
+        "path": "("
+      },
+      {
+        "method": "JOIN",
+        "path": "("
+      },
+      {
+        "method": "RUNOUTSIDE",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "MAP",
+        "path": "("
+      },
+      {
+        "method": "PUSH",
+        "path": "("
+      },
+      {
+        "method": "JOIN",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-zone/examples/execute-custom-code-outside-of-creatio-zone",
+      "text": "Optimize the business logic execution (Creatio zone)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/creatio-zone/examples/execute-custom-code-outside-of-creatio-zone",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/creatio-zone/examples/execute-custom-code-outside-of-creatio-zone",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-zone-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "NextRender repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/sites/academy_en/files/packages/CreatioZone/8.1/UsrRequests_2024-03-21_08.51.00.zip",
+      "text": "Package with example implementation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:00:33.994916"
+}

@@ -1,0 +1,1 @@
+"modelConfig": {    "primaryDataSourceName": "PDS",    "dataSources": {        ...,    },    "dependencies": {        "ContactCareerDetailDS": [            {"attributePath": "Contact", "relationPath": "PDS.Id"}        ],        ...,    }}

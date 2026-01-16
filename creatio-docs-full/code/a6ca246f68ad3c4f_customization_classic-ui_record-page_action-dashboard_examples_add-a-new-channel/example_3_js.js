@@ -1,0 +1,1 @@
+//Sets the class that will work with this page.getServiceConfig: function() {   return {      className: "Terrasoft.Configuration.CallsMessagePublisher"  };}

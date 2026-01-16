@@ -1,0 +1,1 @@
+EntitySchemaDatePartQueryFunction(EntitySchemaDatePartQueryFunction source) : base(source)

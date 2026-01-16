@@ -1,0 +1,1 @@
+import { Component, OnInit, ViewEncapsulation } from "@angular/core";@Component({    selector: "angular-element-component",    templateUrl: "./angular-element-component.html",    styleUrls: ["./angular-element-component.scss"],    encapsulation: ViewEncapsulation.ShadowDom,})export class AngularElementComponent implements OnInit {}

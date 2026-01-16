@@ -1,0 +1,1 @@
+static IFile Get(this IFileFactory source, IFileLocator fileLocator)

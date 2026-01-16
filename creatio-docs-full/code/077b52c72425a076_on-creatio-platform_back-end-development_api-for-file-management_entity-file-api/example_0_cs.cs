@@ -1,0 +1,1 @@
+EntitySchema schema = userConnection.EntitySchemaManager.GetInstanceByName("SysFile");bool isFile = schema.IsFile;

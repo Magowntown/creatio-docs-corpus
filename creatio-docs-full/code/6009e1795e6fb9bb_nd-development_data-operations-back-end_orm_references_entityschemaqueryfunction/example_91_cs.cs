@@ -1,0 +1,1 @@
+EntitySchemaTrimQueryFunction(EntitySchemaTrimQueryFunction source)

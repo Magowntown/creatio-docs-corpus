@@ -1,0 +1,1 @@
+SubstringQueryFunction(QueryColumnExpression expression, int start, int length)SubstringQueryFunction(IQueryColumnExpressionConvertible expression, int start, int length)

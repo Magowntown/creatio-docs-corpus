@@ -1,0 +1,1 @@
+InsertSelect Set(IEnumerable<string> sourceColumnAliases)InsertSelect Set(params string[] sourceColumnAliases)InsertSelect Set(IEnumerable<ModifyQueryColumn> columns)InsertSelect Set(params ModifyQueryColumn[] columns)

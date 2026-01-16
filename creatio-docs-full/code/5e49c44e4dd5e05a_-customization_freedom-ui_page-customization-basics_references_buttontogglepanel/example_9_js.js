@@ -1,0 +1,1 @@
+contentAlign: ButtonContentAlign

@@ -1,0 +1,1 @@
+CREATE USER pg_user;

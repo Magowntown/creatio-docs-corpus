@@ -1,0 +1,1 @@
+{    "addClientRequest": {        "name": "PowerBI",        "redirectUrl": "test.com/redirect",        "applicationUrl": "test.com",        "grantType": "authorization_code"    }}

@@ -1,0 +1,1 @@
+{    "operation": "insert",    "name": "CaseAddCardConfItem",    "values": {"type": "EditField", "properties": {"value": "$ConfItem"}},    "parentName": "CaseAddCardBody",    "propertyName": "items",    "index": 2},

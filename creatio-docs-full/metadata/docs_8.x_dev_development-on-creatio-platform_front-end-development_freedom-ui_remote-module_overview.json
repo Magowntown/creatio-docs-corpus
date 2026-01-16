@@ -1,0 +1,737 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/overview",
+  "title": "Assets in the remote module",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui"
+    },
+    {
+      "text": "Custom components",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/custom-components"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nLevel: intermediate\nCreatio lets you use assets in the remote module.\nAssets include the following:\n* fonts\n* icons (*.svg files)\n* images (*.png, *.jpg, *.jpeg, *.gif files)\n* background images (images connected via the `background-image` CSS property)\nDo not use assets in the remote module in the following **situations** :\n* You do not have access to the source code of the remote module.\n* Configuring the module properties via incoming properties is not possible because the developer of the remote module does not provide this capability.\nYou can use assets in the remote module in other situations. Connect assets either directly (`CDN` or `Base64`) or via an incoming property. The asset format depends on the Angular project file where the user adds the asset. If you connect the required asset in the `Base64` format, the user can use the remote module without access to the required asset on the Internet. View detailed instructions on how to use the assets below.\nYou can customize assets connected via an incoming property more flexibly than `CDN` or `Base64` assets connected directly . If incoming properties are provided, interact with them via the `CrtInput` decorator. In this case, set the property value via an attribute or in the Freedom UI page schema. View an example below.\nExample that connects the asset via an incoming property\n<usr-view-element></usr-view-element>  \n...  \nconst viewElement = document.querySelector('usr-view-element');  \nconst base64Image = 'data:image/png;base64,...';  \nviewElement.setAttribute('image', base64Image)  \n## Use a custom font\u200b\nYou can connect a custom font to a remote module in the following **ways** :\n* `CDN` or `Base64` directly\n* `CDN` or `Base64` via the incoming property\nTo use a custom font in a remote module (`CDN`):\n1. Connect the font in the `index.html` component file.\nExample of the index.html file\n<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Dancing+Script&display=swap\" />  \n2. Apply the font.\nTo use a custom font in a remote module (`Base64`):\n1. Connect the font in the `src` property of the `*.component.scss` file.\nExample of the *.component.scss file\n@font-face {  \nfont-family: \"Menlo\";  \nsrc: url(\"data:font/ttf;base64, ...\")  \n}  \n2. Apply the font in the `*.component.html` file.\nExample of the *.component.html file\np {  \nfont-family: \"Menlo\", cursive;  \ncolor: green;  \nfont-size: 36px;  \n}  \nTo use a custom font in a remote module (`CDN` **or** `Base64` **via the incoming property**):\n1. Flag the incoming field using the `CrtInput` decorator.\n2. Implement the business logic that installs and loads a custom font.\nExample that implements the business logic\nprivate _fontFamily!: string;  \nprivate _fontSrc!: string;  \n@CrtInput()  \n@Input()  \npublic set fontConfig(config: { fontFamily: string; fontSrc: string}) {  \nif (Boolean(config)) {  \nthis._fontFamily = config.fontFamily;  \nthis._fontSrc = config.fontSrc;  \nconst font = new FontFace(this._fontFamily, 'url(${this._fontSrc})');  \nfont.load().then(() => {  \nthis._renderrer.setStyle(  \ndocument.querySelector('p'),  \n'fontFamily',  \nthis._fontFamily  \n);  \n});  \n}  \n}  \n3. Add the needed configuration object that contains the custom font to the Freedom UI page schema. If the Freedom UI page schema of other component uses the remote module, set up the properties via the component attributes.\n* Example of a configuration object (CDN)\n* Example of a configuration object (Base64)\n\"type\": \"usr.viewElement\",  \n\"fontConfig\": {  \n\"fontFamily\": \"FontFamily Style Bitter\",  \n\"fontSrc\": \"https://fonts.gstatic.com/s/bitter/v7/HEpP8tJXlWaYHimsnXgfCOvvDin1pK8aKtelpeZ5c0A.woff2\"  \n}  \n\"type\": \"usr.viewElement\",  \n\"fontConfig\": {  \n\"fontFamily\": \"FontFamily Style Bitter\",  \n\"fontSrc\": \"data:application/octet-stream;base64, ...\"  \n}  \n## Use a custom icon\u200b\nYou can connect a custom icon to a remote module in the following **ways** :\n* `CDN` or `Base64` directly\n* `CDN` or `Base64` via the incoming property\nTo use a custom icon in a remote module (`CDN` **or** `Base64`):\n1. Add the `DomSanitizer` abstract class to the component constructor. Learn more about the `DomSanitizer` abstract class: [official vendor documentation](https://angular.io/api/platform-browser/DomSanitizer) (Angular).\nExample of a constructor\nconstructor(  \nprivate readonly _renderrer: Renderer2,  \nprivate readonly _domSanitizer: DomSanitizer  \n) {}  \nIn this case, it can display an error about the unsafe URL address of the custom icon.\n2. Add the URL of the needed `CDN` or `Base64` custom icon to the `bypassSecurityTrustResourceUrl()` method.\n* Example of the bypassSecurityTrustResourceUrl() method (CDN)\n* Example of the bypassSecurityTrustResourceUrl() method (Base64)\npublic svgImage: string = this._domSanitizer.bypassSecurityTrustResourceUrl(  \n'https://www.svgrepo.com/show/303233/icon.svg'  \n) as string;  \npublic svgImage: string = this._domSanitizer.bypassSecurityTrustResourceUrl(  \n'data:image/svg+xml;base64,...'  \n) as string;  \n3. Connect the icon.\nYou can connect the icon in the following **ways** :\n* via the `<img>` tag\n* via the `<object>` tag\n* Example that connects an icon (<img> tag)\n* Example that connects an icon (<cke:object> tag)\n<img [src]=\"svgImage\" alt=\"svgImage\" />  \n<object type=\"image/svg+xml\" [data]=\"svgImage\">svg image</object>  \nTo use a custom icon in a remote module (`CDN` **or** `Base64` **via the incoming property**):\n1. Add the `DomSanitizer` abstract class to the component constructor.\nExample of a constructor\nconstructor(  \nprivate readonly _renderrer: Renderer2,  \nprivate readonly _domSanitizer: DomSanitizer  \n) {}  \nIn this case, can display an error about the unsafe URL address of the custom icon.\n2. Flag the field that contains the custom icon using the `CrtInput` decorator.\n3. Add the URL of the needed `CDN` or `Base64` custom icon to the `bypassSecurityTrustResourceUrl()` method in.\nExample of the bypassSecurityTrustResourceUrl() method\n@CrtInput()  \n@Input()  \npublic set svgImage(value: string){  \nif (Boolean(value)) {  \nthis._svgImage = this._domSanitizer.bypassSecurityTrustResourceUrl(  \nvalue  \n) as string;  \n}  \n}  \npublic get svgImage(): string {  \nreturn this._svgImage;  \n}  \n4. Connect the icon.\nYou can connect the icon in the following **ways** :\n* via the `<img>` tag\n* via the `<object>` tag\n* Example that connects an icon (<img> tag)\n* Example that connects an icon (<cke:object> tag)\n<ng-container *ngIf=\"svgImage\">  \n<img [src]=\"svgImage\" alt=\"svgImage\" />  \n</ng-container>  \n<ng-container *ngIf=\"svgImage\">  \n<object type=\"image/svg+xml\" [data]=\"svgImage\" >svg image</object>  \n</ng-container>  \n5. Add the needed configuration object that contains a custom icon to the Freedom UI page schema. Set up the properties via the component attributes using a wrapper.\nExample of a configuration object\n\"type\": \"usr.viewElement\",  \n\"svgImage\": \"https://www.svgrepo.com/show/303233/icon.svg\"  \n## Use a custom image\u200b\nYou can connect a custom image to a remote module in the following **ways** :\n* `CDN` or `Base64` directly\n* `CDN` or `Base64` via the incoming property\nTo use a custom image in a remote module (`CDN` **or** `Base64`):\n1. Add an image to the `imageUrl` attribute.\n* Example of the imageUrl attribute (CDN)\n* Example of the imageUrl attribute (Base64)\nexport class ImageComponent {  \npublic imageUrl = 'https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png'  \n}  \nexport class ImageComponent {  \npublic imageUrl = 'data:image/png;base64,...'  \n}  \n2. Connect the image to the `[src]` attribute of the `<img>` tag.\nExample of the <img> tag\n<img [src]=\"imageUrl\" alt=\"image\" />  \nTo use a custom image in a remote module (`CDN` **or** `Base64` **via the incoming property**):\n1. Flag the incoming parameter using the `CrtInput` decorator.\nExample of an incoming parameter\nexport class ImageComponent {  \n@CrtInput()  \n@Input()  \npublic imageUrl!: string;  \n}  \n2. Set the `imageUrl` property value in the Freedom UI page schema. Creatio lets you set a property value from the page schema and the component wrapper.\n* Example of the imageUrl attribute (CDN)\n* Example of the imageUrl attribute (Base64)\n\"values\": {  \n\"type\": \"usr.viewElement\",  \n\"imageUrl\": \"https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png\"  \n}  \n\"values\": {  \n\"type\": \"usr.viewElement\",  \n\"imageUrl\": \"data:image/png;base64,...\"  \n}  \nUse the attribute that contains the property name to set the `Base64` image in the wrapper in.\nExample that sets an image (the Base64 property)\n<usr-view-element></usr-view-element>  \n...  \nconst viewElement = document.querySelector('usr-view-element');  \nconst base64Image = 'data:image/png;base64,...';  \nviewElement.setAttribute('image', base64Image)  \n## Use a custom background image\u200b\nYou can connect a custom background image in a remote module in the following **ways** :\n* `CDN` or `Base64` directly\n* `CDN` or `Base64` via the incoming property\nTo use a custom background image in a remote module (`CDN` **or** `Base64`):\n1. Find the needed element after the `View` model initialization.\n2. Connect the background image in the remote module.\n* Example that connects image (CDN)\n* Example that connects image (Base64)\npublic ngAfterViewInit(): void {  \nthis._renderrer.setStyle(  \ndocument.querySelector('p'),  \n'background-image',  \n'url(https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png)'  \n);  \n}  \npublic ngAfterViewInit(): void {  \nthis._renderrer.setStyle(  \ndocument.querySelector('p'),  \n'background-image',  \n'url(data:image/png;base64,...)'  \n);  \n}  \nTo use a custom background image in a remote module (`CDN` **or** `Base64` **via the incoming property**):\n1. Flag the incoming parameter using the `CrtInput` decorator.\n2. Set the CSS style when receiving the incoming parameter value.\nExample that sets a CSS style\n@CrtInput()  \n@Input()  \npublic set imageUrl(value) {  \nif (Boolean(value)) {  \nthis._renderrer.setStyle(  \ndocument.querySelector('p'),  \n'background-image',  \n'url(${value})'  \n);  \n}  \n}  \n3. Specify the background image URL in the Freedom UI page schema.\n* Example of a background image URL (CDN)\n* Example of a background image URL (Base64)\n\"type\": \"usr.viewElement\",  \n\"imageUrl\": \"https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png\"  \n\"type\": \"usr.viewElement\",  \n\"imageUrl\": \"data:image/png;base64,...\"  \n* * *\n## Resources\u200b\n[DomSanitizer abstract class](https://angular.io/api/platform-browser/DomSanitizer) (official Angular documentation)",
+  "code_examples": [
+    {
+      "code": "<usr-view-element></usr-view-element>...const viewElement = document.querySelector('usr-view-element');const base64Image = 'data:image/png;base64,...';viewElement.setAttribute('image', base64Image)",
+      "language": "js",
+      "context": "You can customize assets connected via an incoming property more flexibly thanCDNorBase64assets connected directly . If incoming properties are provided, interact with them via theCrtInputdecorator. I",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Dancing+Script&display=swap\" />",
+      "language": "html",
+      "context": "Connect the font in theindex.htmlcomponent file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "@font-face {    font-family: \"Menlo\";    src: url(\"data:font/ttf;base64, ...\")}",
+      "language": "css",
+      "context": "Connect the font in thesrcproperty of the*.component.scssfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "p {    font-family: \"Menlo\", cursive;    color: green;    font-size: 36px;}",
+      "language": "html",
+      "context": "Apply the font in the*.component.htmlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "private _fontFamily!: string;private _fontSrc!: string;@CrtInput()@Input()public set fontConfig(config: { fontFamily: string; fontSrc: string}) {    if (Boolean(config)) {        this._fontFamily = config.fontFamily;        this._fontSrc = config.fontSrc;        const font = new FontFace(this._fontFamily, 'url(${this._fontSrc})');        font.load().then(() => {            this._renderrer.setStyle(                document.querySelector('p'),                'fontFamily',                this._fontFamily            );        });    }}",
+      "language": "js",
+      "context": "Implement the business logic that installs and loads a custom font.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"type\": \"usr.viewElement\",\"fontConfig\": {    \"fontFamily\": \"FontFamily Style Bitter\",    \"fontSrc\": \"https://fonts.gstatic.com/s/bitter/v7/HEpP8tJXlWaYHimsnXgfCOvvDin1pK8aKtelpeZ5c0A.woff2\"}",
+      "language": "js",
+      "context": "Add the needed configuration object that contains the custom font to the Freedom UI page schema. If the Freedom UI page schema of other component uses the remote module, set up the properties via the ",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"type\": \"usr.viewElement\",\"fontConfig\": {    \"fontFamily\": \"FontFamily Style Bitter\",    \"fontSrc\": \"data:application/octet-stream;base64, ...\"}",
+      "language": "js",
+      "context": "Add the needed configuration object that contains the custom font to the Freedom UI page schema. If the Freedom UI page schema of other component uses the remote module, set up the properties via the ",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "constructor(    private readonly _renderrer: Renderer2,    private readonly _domSanitizer: DomSanitizer) {}",
+      "language": "js",
+      "context": "Add theDomSanitizerabstract class to the component constructor. Learn more about theDomSanitizerabstract class:official vendor documentation(Angular).",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public svgImage: string = this._domSanitizer.bypassSecurityTrustResourceUrl(    'https://www.svgrepo.com/show/303233/icon.svg') as string;",
+      "language": "js",
+      "context": "Add the URL of the neededCDNorBase64custom icon to thebypassSecurityTrustResourceUrl()method.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public svgImage: string = this._domSanitizer.bypassSecurityTrustResourceUrl(    'data:image/svg+xml;base64,...') as string;",
+      "language": "js",
+      "context": "Add the URL of the neededCDNorBase64custom icon to thebypassSecurityTrustResourceUrl()method.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<img [src]=\"svgImage\" alt=\"svgImage\" />",
+      "language": "html",
+      "context": "You can connect the icon in the followingways:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<object type=\"image/svg+xml\" [data]=\"svgImage\">svg image</object>",
+      "language": "html",
+      "context": "You can connect the icon in the followingways:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "@CrtInput()@Input()public set svgImage(value: string){    if (Boolean(value)) {        this._svgImage = this._domSanitizer.bypassSecurityTrustResourceUrl(            value        ) as string;    }}public get svgImage(): string {    return this._svgImage;}",
+      "language": "js",
+      "context": "Add the URL of the neededCDNorBase64custom icon to thebypassSecurityTrustResourceUrl()method in.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<ng-container *ngIf=\"svgImage\">    <img [src]=\"svgImage\" alt=\"svgImage\" /></ng-container>",
+      "language": "html",
+      "context": "You can connect the icon in the followingways:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<ng-container *ngIf=\"svgImage\">    <object type=\"image/svg+xml\" [data]=\"svgImage\" >svg image</object></ng-container>",
+      "language": "html",
+      "context": "You can connect the icon in the followingways:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"type\": \"usr.viewElement\",\"svgImage\": \"https://www.svgrepo.com/show/303233/icon.svg\"",
+      "language": "js",
+      "context": "Add the needed configuration object that contains a custom icon to the Freedom UI page schema. Set up the properties via the component attributes using a wrapper.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "export class ImageComponent {    public imageUrl = 'https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png'}",
+      "language": "js",
+      "context": "Add an image to theimageUrlattribute.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "export class ImageComponent {    public imageUrl = 'data:image/png;base64,...'}",
+      "language": "js",
+      "context": "Add an image to theimageUrlattribute.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<img [src]=\"imageUrl\" alt=\"image\" />",
+      "language": "html",
+      "context": "Connect the image to the[src]attribute of the<img>tag.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "export class ImageComponent {    @CrtInput()    @Input()    public imageUrl!: string;}",
+      "language": "js",
+      "context": "Flag the incoming parameter using theCrtInputdecorator.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"values\": {    \"type\": \"usr.viewElement\",    \"imageUrl\": \"https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png\"}",
+      "language": "js",
+      "context": "Set theimageUrlproperty value in the Freedom UI page schema. Creatio lets you set a property value from the page schema and the component wrapper.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"values\": {    \"type\": \"usr.viewElement\",    \"imageUrl\": \"data:image/png;base64,...\"}",
+      "language": "js",
+      "context": "Set theimageUrlproperty value in the Freedom UI page schema. Creatio lets you set a property value from the page schema and the component wrapper.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public ngAfterViewInit(): void {    this._renderrer.setStyle(        document.querySelector('p'),        'background-image',        'url(https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png)'    );}",
+      "language": "js",
+      "context": "Connect the background image in the remote module.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "public ngAfterViewInit(): void {    this._renderrer.setStyle(        document.querySelector('p'),        'background-image',        'url(data:image/png;base64,...)'    );}",
+      "language": "js",
+      "context": "Connect the background image in the remote module.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "@CrtInput()@Input()public set imageUrl(value) {    if (Boolean(value)) {        this._renderrer.setStyle(            document.querySelector('p'),            'background-image',            'url(${value})'        );    }}",
+      "language": "js",
+      "context": "Set the CSS style when receiving the incoming parameter value.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"type\": \"usr.viewElement\",\"imageUrl\": \"https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png\"",
+      "language": "js",
+      "context": "Specify the background image URL in the Freedom UI page schema.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"type\": \"usr.viewElement\",\"imageUrl\": \"data:image/png;base64,...\"",
+      "language": "js",
+      "context": "Specify the background image URL in the Freedom UI page schema.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Assets in the remote module",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Use a custom font\u200b",
+      "anchor": "title-3971-10"
+    },
+    {
+      "level": 2,
+      "text": "Use a custom icon\u200b",
+      "anchor": "title-3971-11"
+    },
+    {
+      "level": 2,
+      "text": "Use a custom image\u200b",
+      "anchor": "title-3971-12"
+    },
+    {
+      "level": 2,
+      "text": "Use a custom background image\u200b",
+      "anchor": "title-3971-13"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "QUERYSELECTOR",
+        "path": "("
+      },
+      {
+        "method": "SETATTRIBUTE",
+        "path": "("
+      },
+      {
+        "method": "LOAD",
+        "path": "("
+      },
+      {
+        "method": "THEN",
+        "path": "("
+      },
+      {
+        "method": "SETSTYLE",
+        "path": "("
+      },
+      {
+        "method": "QUERYSELECTOR",
+        "path": "("
+      },
+      {
+        "method": "BYPASSSECURITYTRUSTRESOURCEURL",
+        "path": "("
+      },
+      {
+        "method": "BYPASSSECURITYTRUSTRESOURCEURL",
+        "path": "("
+      },
+      {
+        "method": "BYPASSSECURITYTRUSTRESOURCEURL",
+        "path": "("
+      },
+      {
+        "method": "QUERYSELECTOR",
+        "path": "("
+      },
+      {
+        "method": "SETATTRIBUTE",
+        "path": "("
+      },
+      {
+        "method": "SETSTYLE",
+        "path": "("
+      },
+      {
+        "method": "QUERYSELECTOR",
+        "path": "("
+      },
+      {
+        "method": "SETSTYLE",
+        "path": "("
+      },
+      {
+        "method": "QUERYSELECTOR",
+        "path": "("
+      },
+      {
+        "method": "SETSTYLE",
+        "path": "("
+      },
+      {
+        "method": "QUERYSELECTOR",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/overview",
+      "text": "Asserts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/manage-files",
+      "text": "Manage files",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/client-schema-freedomui/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/schema-freedomui-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/freedom-ui-component",
+      "text": "Freedom UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/implement-a-remote-module/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/remote-module-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/validator",
+      "text": "Validator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/custom-validator-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/converter",
+      "text": "Converter",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/custom-converter/converters-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/custom-converter-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/request-handler",
+      "text": "Request handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/custom-request-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/custom-handler-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/localize-remote-module",
+      "text": "PreviousLocalization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-component",
+      "text": "NextClassic UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/implement-a-custom-component/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/custom-component-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/requirements-for-icons",
+      "text": "Requirements for icons",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "Data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/crud-operations",
+      "text": "CRUD operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/data-sources/data-processing",
+      "text": "Additional data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/creatio-devkit-common",
+      "text": "@creatio-devkit/common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/classic-client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:49:20.085288"
+}

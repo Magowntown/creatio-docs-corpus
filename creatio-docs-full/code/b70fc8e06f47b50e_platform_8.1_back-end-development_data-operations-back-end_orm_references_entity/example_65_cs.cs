@@ -1,0 +1,1 @@
+void LoadColumnValue(string columnValueName, IDataReader dataReader, int fieldIndex, int binaryPackageSize)void LoadColumnValue(string columnValueName, IDataReader dataReader, int fieldIndex)void LoadColumnValue(string columnValueName, object value)void LoadColumnValue(EntitySchemaColumn column, object value)

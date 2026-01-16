@@ -1,0 +1,1 @@
+/* Key of the collection item. The key is the message name. */"MessageName": {    /* Value of the collection item. */    mode: [Message mode],    direction: [Message direction]}

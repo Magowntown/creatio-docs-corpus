@@ -1,0 +1,1 @@
+SizeEnum iconSize

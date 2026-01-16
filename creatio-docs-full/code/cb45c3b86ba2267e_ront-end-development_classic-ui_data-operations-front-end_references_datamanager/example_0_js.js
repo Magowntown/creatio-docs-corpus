@@ -1,0 +1,1 @@
+dataStore: {    /* The DataManagerItem type data collection of the SysModule schema. */    SysModule: sysModuleCollection,    /* The DataManagerItem type data collection of the SysModuleEntity schema. */    SysModuleEntity: sysModuleEntityCollection}

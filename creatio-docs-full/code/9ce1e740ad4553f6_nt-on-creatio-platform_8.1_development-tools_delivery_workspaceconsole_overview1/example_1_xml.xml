@@ -1,0 +1,1 @@
+<connectionStrings>    <add name="db" connectionString="Data Source=YourDBServerName; Initial Catalog=YourDBName; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security = SSPI; Pooling = true; Max Pool Size = 100; Async = true" /></connectionStrings>

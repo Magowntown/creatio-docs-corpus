@@ -1,0 +1,1 @@
+Terrasoft.sdk.Model.addBusinessRule("Account", {    ruleType: Terrasoft.RuleTypes.Visibility,    conditionalColumns: [        {name: "Type", value: Terrasoft.Configuration.Consts.AccountTypePharmacy}    ],    triggeredByColumns: ["Type"],    dependentColumnNames: ["IsRx", "IsOTC"]});

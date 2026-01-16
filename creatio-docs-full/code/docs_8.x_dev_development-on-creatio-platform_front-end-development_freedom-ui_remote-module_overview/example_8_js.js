@@ -1,0 +1,1 @@
+public svgImage: string = this._domSanitizer.bypassSecurityTrustResourceUrl(    'https://www.svgrepo.com/show/303233/icon.svg') as string;

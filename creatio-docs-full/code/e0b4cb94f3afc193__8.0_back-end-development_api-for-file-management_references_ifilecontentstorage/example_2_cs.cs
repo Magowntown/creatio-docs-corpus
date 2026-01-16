@@ -1,0 +1,1 @@
+Task DeleteAsync(IFileContentDeleteContext context)

@@ -1,0 +1,1 @@
+modelConfig: /**SCHEMA_MODEL_CONFIG*/{    "dataSources": {        /* Unique names of data sources. */        "ContactDS": {            /* Data source type. */            "type": "crt.EntityDataSource",            "config": {                /* Data schema code. */                "entitySchemaName": "Contact"            }        }    }}/**SCHEMA_MODEL_CONFIG*/

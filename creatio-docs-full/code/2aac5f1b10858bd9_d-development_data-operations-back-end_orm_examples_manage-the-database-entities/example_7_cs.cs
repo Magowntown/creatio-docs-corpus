@@ -1,0 +1,1 @@
+EntitySchema entitySchema = UserConnection.EntitySchemaManager.GetInstanceByName("Contact");Entity entity = entitySchema.CreateEntity(UserConnection);var fetchConditions = new Dictionary<string, object> {    {"Name", "User02"}};if (entity.FetchFromDB(fetchConditions)) {    entity.Delete();}

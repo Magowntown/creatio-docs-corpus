@@ -1,0 +1,1 @@
+Ext.define("Terrasoft.configuration.controls.CustomDashboardItem", {    extend: "Terrasoft.configuration.controls.BaseDashboardItem",    // Displays the value transferred through the customValue property.     updateRawConfig: function(config) {        this.innerHtmlElement.setHtml(config.customValue);    }});

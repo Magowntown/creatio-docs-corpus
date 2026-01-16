@@ -1,0 +1,1 @@
+/* Receive the "OpportunityType" column value of a "lookup" type and save it to the "type" variable. When you work with the "lookup" type field, use the "value" and "displayValue" properties of the "LookupValue" instance. */let type = await request.$context["OpportunityType"];let isVisible = type != null && (type as LookupValue).value === "19127009-20ae-4003-8eb8-7bb7764663d4";

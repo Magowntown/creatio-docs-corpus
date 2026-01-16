@@ -1,0 +1,650 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-authentication",
+  "title": "Set up LDAP authentication",
+  "breadcrumbs": [
+    {
+      "text": "Administration",
+      "href": "/docs/8.x/setup-and-administration/8.1/category/administration"
+    },
+    {
+      "text": "User and access management",
+      "href": "/docs/8.x/setup-and-administration/8.1/category/user-and-access-management"
+    },
+    {
+      "text": "Synchronize users with LDAP",
+      "href": "/docs/8.x/setup-and-administration/8.1/category/synchronize-users-with-ldap"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\n## Set up user authentication through LDAP on .NET Framework\u200b\nTo enable user authentication through LDAP, modify the Web.config file in the Creatio root folder. Active Directory and OpenLDAP settings are different.\n1. Specify \"Ldap\" and \"SspLdapProvider\" in the list of available authentication providers. The step is the same for Active Directory and OpenLDAP.\n<terrasoft>  \n<auth providerNames=\"InternalUserPassword,Ldap,SSPLdapProvider\" autoLoginProviderNames=\"\" defLanguage=\"en-US\" defWorkspaceName=\"Default\" useIPRestriction=\"false\" loginTimeout=\"30000\">  \n<providers>  \nImportant\nUpper/lowercase characters must be as in the example. Also, note that the provider names must be separated by commas with no blank spaces.\n2. Specify the server IP or URL, as well as user domain parameters in the \"Ldap\" section. Active Directory and OpenLDAP parameters are different.\n* For Active Directory\n* For OpenLDAP\n<provider name=\"Ldap\" type=\"Terrasoft.WebApp.Loader.Authentication.Ldap.LdapProvider, Terrasoft.WebApp.Loader\">  \n<parameters>  \n...  \n<add name=\"ServerPath\" value=\"testactivedirectory.com\" />  \n<add name=\"AuthType\" value=\"Ntlm\" />  \n<add name=\"DistinguishedName\" value=\"dc=tscrm,dc=com\" />  \n<add name=\"UseLoginUserLDAPEntryDN\" value=\"false\" />  \n<!--<add name=\"SearchPattern\"  \nvalue=\"(&amp;(objectCategory=person)(objectClass=user)  \n(!(userAccountControl:1.2.840.113556.1.4.803:=2))  \nmemberOf=CN=SVNUsers,OU=groups,OU=Terrasoft,DC=tscrm,DC=com))\" />-->  \n<add name=\"SearchPattern\"  \nvalue=\"(&amp;(sAMAccountName={0})(objectClass=person))\" />  \n<!--With Kerberos authentication-->  \n<add name=\"KeyDistributionCenter\" value=\"ctl.com\" />  \n</parameters>  \n<provider name=\"Ldap\" type=\"Terrasoft.WebApp.Loader.Authentication.Ldap.LdapProvider, Terrasoft.WebApp.Loader\">  \n<parameters>  \n...  \n<add name=\"ServerPath\" value=\"testopenldap.com\" />  \n<add name=\"AuthType\" value=\"Basic\" />  \n<add name=\"DistinguishedName\" value=\"dc=example,dc=org\" />  \n<add name=\"UseLoginUserLDAPEntryDN\" value=\"true\" />  \n<add name=\"SearchPattern\"  \nvalue=\"(&amp;(uid={0})(objectClass=inetOrgPerson))\" />  \n<!--With Kerberos authentication-->  \n<add name=\"KeyDistributionCenter\" value=\"ctl.com\" />  \n</parameters>  \n* **ServerPath** \u2013 the LDAP server domain name. It must be a URL, not an IP address.\n* **KeyDistributionCenter** \u2013 the domain name. It must be a URL, not an IP address.\nnote\nIf you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.\n3. Specify the server IP or URL, as well as portal user domain parameters in the \"SspLdapProvider\" section. The step is the same for Active Directory and OpenLDAP:\n<provider name=\"SSPLdapProvider\" type=\"Terrasoft.WebApp.Loader.Authentication.SSPUserPassword.SSPLdapProvider, Terrasoft.WebApp.Loader\">  \n<parameters>  \n...  \n<add name=\"ServerPath\" value=\"ldapserver.domain.com\" />  \n...  \n<add name=\"DistinguishedName\" value=\"dc=domain, dc=com\" />  \n...  \n</parameters>  \n4. Save the changes in the Web.config file.\n5. **Additional step for OpenLDAP** : before you synchronize with the OpenLDAP server, specify the \"true\" value for \"UseLoginUserLDAPEntryDN\" in the Web.config file of Terrasoft.WebApp.\n<appSettings>  \n...  \n<add key=\"UseLoginUserLDAPEntryDN\" value=\"true\" />  \nThis setting ensures that Creatio does not us an empty **LDAPEntryDN** field in the **SysAdminUnit** table to synchronize the users. An empty **LDAPEntryDN** field is known to cause authentication issues.\n## Set up user authentication through LDAP on .NET Core or .NET 6\u200b\nTo enable user authentication through LDAP, modify the Terrasoft.WebHost.dll.config file in the Creatio root folder. Active Directory and OpenLDAP settings are the same.\n1. Specify \"Ldap\" in the list of available authentication providers. Add the \"SspLdapProvider\" provider to allow portal users to log in to Creatio:\n<terrasoft>  \n<auth providerNames=\"InternalUserPassword,Ldap,SspLdapProvider\" autoLoginProviderNames=\"\" defLanguage=\"en-US\" defWorkspaceName=\"Default\" useIPRestriction=\"false\" loginTimeout=\"30000\">  \n<providers>  \nImportant\nUpper/lowercase characters must be as in the example. Also note that the provider names must be separated by commas with no blank spaces.\n2. Specify the \"Ldap\" authentication provider settings:\n<provider name=\"LdapProvider\" type=\"Terrasoft.Authentication.Core.Ldap.NetStandardLdapProvider, Terrasoft.Authentication\">  \n<parameters>  \n<add name=\"ServerPath\" value=\"testldap.com\" />  \n<add name=\"DistinguishedName\" value=\"dc=ctl,dc=com\" />  \n<add name=\"UseLoginUserLDAPEntryDN\" value=\"false\" />  \n<add name=\"SearchPattern\" value=\"(&amp;(sAMAccountName={0})(objectClass=person))\" />  \n<!--With Kerberos authentication-->  \n<add name=\"KeyDistributionCenter\" value=\"ctl.com\" />  \n<!--When using LDAPS-->  \n<add name=\"SecureSocketLayer\" value=\"false\" />  \n<add name=\"CertificateFileName\" value=\"\" />  \n</parameters>  \n</provider>  \n* **ServerPath** is the LDAP server domain name. It must be a URL address, not an IP address.\n* **KeyDistributionCenter** is the domain name. It must be a URL address, not an IP address.\nnote\nIf you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.\nTo use the **secure LDAPS protocol** , specify the following parameters in the authentication provider settings:\n* **SecureSocketLayer** is the flag that enables LDAPS.\n* **CertificateFileName** is the name of the SSL certificate that validates the LDAPS connection. The certificate must be located in the Creatio root folder. This is a requried parameter if \"SecureSocketLayer=true\" is specified. For instance:\n<add name=\"CertificateFileName\" value=\"ldap_certificate_example.cer\" />  \n<add name=\"SecureSocketLayer\" value=\"true\" />  \n3. Specify the server IP or URL, as well as portal user domain parameters in the \"SspLdapProvider\" section.\n<provider name=\"SSPLdapProvider\" type=\"Terrasoft.WebApp.Loader.Authentication.SSPUserPassword.SSPLdapProvider, Terrasoft.WebApp.Loader\">  \n<parameters>  \n<add name=\"ServerPath\" value=\"ldapserver.domain.com\" />  \n...  \n<add name=\"DistinguishedName\" value=\"dc=domain, dc=com\" />  \n...  \n</parameters>  \n4. Save the changes in the Terrasoft.WebHost.dll.config file.\n## Set up the authentication providers\u200b\nThe authentication provider setup is the same for Creatio **.NET Framework** , Creatio **.NET 6** and Creatio **.NET Core**. Modify the following files in the Creatio root directory:\n* **Web.config** for Creatio **.NET Framework**.\n* **Terrasoft.WebHost.dll.config** for Creatio **.NET Core** or **.NET 6**.\nOpen the file in a text editor and specify the authentication providers:\nauth providerNames=\"InternalUserPassword,SSPLdapProvider,Ldap\"  \nautoLoginProviderNames=\"NtlmUser,SSPNtlmUser\"  \n* **InternalUserPassword** \u2013 the default provider. If you would like to provide NTLM authentication only to the users not synchronized with LDAP, do not specify additional values for the **providerNames** parameter.\n* **Ldap** \u2013 add this provider to the **providerNames** parameter value to provide NTLM authentication to the users synchronized with LDAP.\n* **SSPLdapProvider** \u2013 add this provider to the **providerNames** parameter value to provide NTLM authentication to the self-service portal's users synchronized with LDAP.\n* **NtlmUser** \u2013 add this provider to the **autoLoginProviderNames** parameter value to provide NTLM authentication to the main application's users regardless of their LDAP synchronization status and the authentication type configured for the users in Creatio.\n* **SSPNtlmUser** \u2013 add this provider to the **autoLoginProviderNames** parameter value to provide NTLM authentication to the self-service portal's users regardless of their LDAP synchronization status and the authentication type configured for the Creatio users.\n* The order of records in the **autoLoginProviderNames** parameter defines the order in which Creatio checks if its users are available in the main application's user list (NtlmUser) or the self-service portal's user list (SSPNtlmUser). For example, if you would like Creatio to check the main application's user list first, put the **NtlmUser** provider at the head of the list of **autoLoginProviderNames** parameter values.\nImportant\nOnly specify the **SSPNtlmUser** provider as the **autoLoginProviderNames** parameter's value if you also specify the **NtlmUser** provider. However, you can use the **NtlmUser** parameter without the other providers.\n## Set up the domain authentication\u200b\nIf you would like to activate the **pass-through authentication** that lets users authenticate in Creatio without visiting the login page, specify the \"true\" value for the **UsePathThroughAuthentication** parameter of the `<appSettings>` element:\n<appSettings>  \n<add key=\"UsePathThroughAuthentication\" value=\"true\" />  \n...  \n</appSettings>  \nIf you would like to **display the login page** with the available **Log in as domain user** link, specify the \"false\" value for the **UsePathThroughAuthentication** parameter. The pass-through authentication will be performed only when accessing the main Creatio page. Add \"/Login/NuiLogin.aspx\" to the Creatio website address to display the login page.\nAs a result, users will be able to log in to Creatio as domain users. They may still be required to enter their credentials in a domain authentication window, which will pop up on a login attempt. Modify Windows settings to prevent the domain authentication window from being displayed:\n1. Click \"Start\" \u2192 \"Settings\" \u2192 \"Control Panel\" \u2192 \"Network and Internet\" menu. Select \"Internet options\" (Fig. 1).\nFig. 1 Modifying Windows settings\n![Fig.\u00a01 Modifying Windows settings](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/LDAP/chapter_ldap_synchronization_ie_internet_options.png)\n2. This will open a new window. Select the \"Security\" tab and click \"Custom level\" to go to security settings (Fig. 2).\nFig. 2 Security settings\n![Fig.\u00a02 Security settings](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/LDAP/chapter_ldap_synchronization_ie_internet_options_security_tab.png)\n3. Select the \"Automatic logon with current user name and password\" authentication methods in the \"User authentication\" settings group (Fig. 3).\nFig. 3 Selecting the authentication method\n![Fig.\u00a03 Selecting the authentication method](https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/LDAP/chapter_ldap_synchronization_ie_internet_options_user_authentication.png)\n4. Click \"OK.\"\nAs a result, the domain authentication window will not pop up and the users will not have to re-enter their domain credentials each time they access Creatio.\n* * *\n## See also\u200b\n[Set up LDAP synchronization](https://academy.creatio.com/documents?id=513)\n[Set up Active Directory filters](https://academy.creatio.com/documents?id=1868)\n[Import new users and roles from Active Directory](https://academy.creatio.com/documents?id=1996)",
+  "code_examples": [
+    {
+      "code": "<terrasoft>    <auth providerNames=\"InternalUserPassword,Ldap,SSPLdapProvider\" autoLoginProviderNames=\"\" defLanguage=\"en-US\" defWorkspaceName=\"Default\" useIPRestriction=\"false\" loginTimeout=\"30000\">    <providers>",
+      "language": "xml",
+      "context": "Specify \"Ldap\" and \"SspLdapProvider\" in the list of available authentication providers. The step is the same for Active Directory and OpenLDAP.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<provider name=\"Ldap\" type=\"Terrasoft.WebApp.Loader.Authentication.Ldap.LdapProvider, Terrasoft.WebApp.Loader\"><parameters>    ...    <add name=\"ServerPath\" value=\"testactivedirectory.com\" />    <add name=\"AuthType\" value=\"Ntlm\" />    <add name=\"DistinguishedName\" value=\"dc=tscrm,dc=com\" />    <add name=\"UseLoginUserLDAPEntryDN\" value=\"false\" />    <!--<add name=\"SearchPattern\"    value=\"(&amp;(objectCategory=person)(objectClass=user)    (!(userAccountControl:1.2.840.113556.1.4.803:=2))    memberOf=CN=SVNUsers,OU=groups,OU=Terrasoft,DC=tscrm,DC=com))\" />-->    <add name=\"SearchPattern\"    value=\"(&amp;(sAMAccountName={0})(objectClass=person))\" />    <!--With Kerberos authentication-->    <add name=\"KeyDistributionCenter\" value=\"ctl.com\" /></parameters>",
+      "language": "xml",
+      "context": "Specify the server IP or URL, as well as user domain parameters in the \"Ldap\" section. Active Directory and OpenLDAP parameters are different.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<provider name=\"Ldap\" type=\"Terrasoft.WebApp.Loader.Authentication.Ldap.LdapProvider, Terrasoft.WebApp.Loader\"><parameters>    ...    <add name=\"ServerPath\" value=\"testopenldap.com\" />    <add name=\"AuthType\" value=\"Basic\" />    <add name=\"DistinguishedName\" value=\"dc=example,dc=org\" />    <add name=\"UseLoginUserLDAPEntryDN\" value=\"true\" />    <add name=\"SearchPattern\"    value=\"(&amp;(uid={0})(objectClass=inetOrgPerson))\" />    <!--With Kerberos authentication-->    <add name=\"KeyDistributionCenter\" value=\"ctl.com\" /></parameters>",
+      "language": "xml",
+      "context": "Specify the server IP or URL, as well as user domain parameters in the \"Ldap\" section. Active Directory and OpenLDAP parameters are different.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<provider name=\"SSPLdapProvider\" type=\"Terrasoft.WebApp.Loader.Authentication.SSPUserPassword.SSPLdapProvider, Terrasoft.WebApp.Loader\"><parameters>    ...    <add name=\"ServerPath\" value=\"ldapserver.domain.com\" />    ...    <add name=\"DistinguishedName\" value=\"dc=domain, dc=com\" />    ...</parameters>",
+      "language": "xml",
+      "context": "Specify the server IP or URL, as well as portal user domain parameters in the \"SspLdapProvider\" section. The step is the same for Active Directory and OpenLDAP:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<appSettings>    ...    <add key=\"UseLoginUserLDAPEntryDN\" value=\"true\" />",
+      "language": "xml",
+      "context": "Additional step for OpenLDAP: before you synchronize with the OpenLDAP server, specify the \"true\" value for \"UseLoginUserLDAPEntryDN\" in the Web.config file of Terrasoft.WebApp.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<terrasoft>    <auth providerNames=\"InternalUserPassword,Ldap,SspLdapProvider\" autoLoginProviderNames=\"\" defLanguage=\"en-US\" defWorkspaceName=\"Default\" useIPRestriction=\"false\" loginTimeout=\"30000\">    <providers>",
+      "language": "xml",
+      "context": "Specify \"Ldap\" in the list of available authentication providers. Add the \"SspLdapProvider\" provider to allow portal users to log in to Creatio:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<provider name=\"LdapProvider\" type=\"Terrasoft.Authentication.Core.Ldap.NetStandardLdapProvider, Terrasoft.Authentication\">    <parameters>        <add name=\"ServerPath\" value=\"testldap.com\" />        <add name=\"DistinguishedName\" value=\"dc=ctl,dc=com\" />        <add name=\"UseLoginUserLDAPEntryDN\" value=\"false\" />        <add name=\"SearchPattern\" value=\"(&amp;(sAMAccountName={0})(objectClass=person))\" />        <!--With Kerberos authentication-->        <add name=\"KeyDistributionCenter\" value=\"ctl.com\" />        <!--When using LDAPS-->        <add name=\"SecureSocketLayer\" value=\"false\" />        <add name=\"CertificateFileName\" value=\"\" />    </parameters></provider>",
+      "language": "xml",
+      "context": "Specify the \"Ldap\" authentication provider settings:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<add name=\"CertificateFileName\" value=\"ldap_certificate_example.cer\" /><add name=\"SecureSocketLayer\" value=\"true\" />",
+      "language": "xml",
+      "context": "CertificateFileNameis the name of the SSL certificate that validates the LDAPS connection. The certificate must be located in the Creatio root folder. This is a requried parameter if \"SecureSocketLaye",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<provider name=\"SSPLdapProvider\" type=\"Terrasoft.WebApp.Loader.Authentication.SSPUserPassword.SSPLdapProvider, Terrasoft.WebApp.Loader\">    <parameters>        <add name=\"ServerPath\" value=\"ldapserver.domain.com\" />        ...        <add name=\"DistinguishedName\" value=\"dc=domain, dc=com\" />        ...    </parameters>",
+      "language": "xml",
+      "context": "Specify the server IP or URL, as well as portal user domain parameters in the \"SspLdapProvider\" section.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "auth providerNames=\"InternalUserPassword,SSPLdapProvider,Ldap\"autoLoginProviderNames=\"NtlmUser,SSPNtlmUser\"",
+      "language": "js",
+      "context": "Open the file in a text editor and specify the authentication providers:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<appSettings>    <add key=\"UsePathThroughAuthentication\" value=\"true\" />    ...</appSettings>",
+      "language": "xml",
+      "context": "If you would like to activate thepass-through authenticationthat lets users authenticate in Creatio without visiting the login page, specify the \"true\" value for theUsePathThroughAuthenticationparamet",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantUpper/lowercase characters must be as in the example. Also, note that the provider names must be separated by commas with no blank spaces.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Upper/lowercase characters must be as in the example. Also, note that the provider names must be separated by commas with no blank spaces.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Upper/lowercase characters must be as in the example. Also, note that the provider names must be separated by commas with no blank spaces.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Upper/lowercase characters must be as in the example. Also, note that the provider names must be separated by commas with no blank spaces.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantUpper/lowercase characters must be as in the example. Also note that the provider names must be separated by commas with no blank spaces.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Upper/lowercase characters must be as in the example. Also note that the provider names must be separated by commas with no blank spaces.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Upper/lowercase characters must be as in the example. Also note that the provider names must be separated by commas with no blank spaces.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Upper/lowercase characters must be as in the example. Also note that the provider names must be separated by commas with no blank spaces.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you select \"Kerberos\" authentication type, make sure your Creatio application server is joined to the same domain as the LDAP server and the key distribution center.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "SSPNtlmUser",
+      "content": "ImportantOnly specify theSSPNtlmUserprovider as theautoLoginProviderNamesparameter's value if you also specify theNtlmUserprovider. However, you can use theNtlmUserparameter without the other providers.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Only specify the <strong>SSPNtlmUser</strong> provider as the <strong>autoLoginProviderNames</strong> parameter's value if you also specify the <strong>NtlmUser</strong> provider. However, you can use the <strong>NtlmUser</strong> parameter without the other providers.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "SSPNtlmUser",
+      "content": "Only specify theSSPNtlmUserprovider as theautoLoginProviderNamesparameter's value if you also specify theNtlmUserprovider. However, you can use theNtlmUserparameter without the other providers.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Only specify the <strong>SSPNtlmUser</strong> provider as the <strong>autoLoginProviderNames</strong> parameter's value if you also specify the <strong>NtlmUser</strong> provider. However, you can use the <strong>NtlmUser</strong> parameter without the other providers.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/LDAP/chapter_ldap_synchronization_ie_internet_options.png",
+      "alt": "Fig.\u00a01 Modifying Windows settings",
+      "title": "",
+      "context": "Click \"Start\" \u2192 \"Settings\" \u2192 \"Control Panel\" \u2192 \"Network and Internet\" menu. Select \"Internet options",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/72bc41ac06170b9f_ser-and-access-management_synchronize-users-with-ldap_set-up-ldap-authentication_49a4444167c9.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/LDAP/chapter_ldap_synchronization_ie_internet_options_security_tab.png",
+      "alt": "Fig.\u00a02 Security settings",
+      "title": "",
+      "context": "This will open a new window. Select the \"Security\" tab and click \"Custom level\" to go to security se",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/72bc41ac06170b9f_ser-and-access-management_synchronize-users-with-ldap_set-up-ldap-authentication_ac7a17aeff2c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/Setup_and_Administration/LDAP/chapter_ldap_synchronization_ie_internet_options_user_authentication.png",
+      "alt": "Fig.\u00a03 Selecting the authentication method",
+      "title": "",
+      "context": "Select the \"Automatic logon with current user name and password\" authentication methods in the \"User",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-supplementary/images/72bc41ac06170b9f_ser-and-access-management_synchronize-users-with-ldap_set-up-ldap-authentication_3c95232711c2.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up LDAP authentication",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up user authentication through LDAP on .NET Framework\u200b",
+      "anchor": "title-2020-24"
+    },
+    {
+      "level": 2,
+      "text": "Set up user authentication through LDAP on .NET Core or .NET 6\u200b",
+      "anchor": "title-2020-25"
+    },
+    {
+      "level": 2,
+      "text": "Set up the authentication providers\u200b",
+      "anchor": "title-2020-26"
+    },
+    {
+      "level": 2,
+      "text": "Set up the domain authentication\u200b",
+      "anchor": "title-2020-27"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-authentication",
+      "text": "Set up LDAP authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-authentication",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-authentication",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-authentication",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-access-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/single-sign-on",
+      "text": "Single Sign-On",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/single-sign-on-via-adfs",
+      "text": "Set up SSO via AD FS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/set-up-sso-via-azure-ad",
+      "text": "Set up SSO via Microsoft Entra AD",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/set-up-sso-via-okta",
+      "text": "Set up SSO via Okta",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/single-sign-on-via-custom-provider",
+      "text": "Set up SSO via OneLogin",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/single-sign-on-via-google",
+      "text": "Set up SSO via Google",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/single-sign-on-via-cognito",
+      "text": "Set up SSO via Cognito AWS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/just-in-time-user-provisioning",
+      "text": "Set up JIT Provisioning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/windows-authentication",
+      "text": "Windows authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/authentication/set-up-two-factor-authentication",
+      "text": "Set up two-factor authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/synchronize-users-with-ldap",
+      "text": "Synchronize users with LDAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-synchronization",
+      "text": "Set up LDAP synchronization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/synchronize-users-with-ldap/set-up-active-directory-filters",
+      "text": "Set up AD filters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/synchronize-users-with-ldap/import-new-users-and-roles-from-active-directory",
+      "text": "PreviousImport users from AD",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/synchronize-users-with-ldap/ldap-synchronization-faq",
+      "text": "NextFAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/user-management",
+      "text": "User management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/organizational-roles",
+      "text": "Organizational roles",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/functional-roles",
+      "text": "Functional roles",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/add-users",
+      "text": "Add users",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/import-users-from-excel",
+      "text": "Import users from Excel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/assign-a-user-role",
+      "text": "Assign a user role",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/change-the-system-user-supervisor",
+      "text": "The system user (Supervisor)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/technical-user",
+      "text": "Technical user",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/password-recovery",
+      "text": "Password recovery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/user-management/unblock-a-user",
+      "text": "Unblock a user",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/access-management",
+      "text": "Access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/object-operation-permissions",
+      "text": "Operation permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/column-permissions",
+      "text": "Column permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/record-permissions",
+      "text": "Record permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/page-permissions",
+      "text": "Page permission checks",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/export-permissions",
+      "text": "Export permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/system-operation-permissions",
+      "text": "System operation permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/system-operation-reference",
+      "text": "System operation reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/access-management/delegate-permissions",
+      "text": "Delegate permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/licensing/creatio-licensing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/licensing/manage-user-licenses",
+      "text": "Manage licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/licensing/creatio-licensing-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/change-log",
+      "text": "Change log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/audit-log",
+      "text": "Audit log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/secure-file-upload",
+      "text": "Secure file upload",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/recommended-information-security-settings",
+      "text": "Information security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/content-security-policy",
+      "text": "Content security policy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/store-secrets-in-vault",
+      "text": "Sensitive data security",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/host-header-protection",
+      "text": "Host header protection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/limit-ip-for-login",
+      "text": "IP restrictions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/platform-cookies",
+      "text": "Platform Cookies",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/security-settings/remote-access-for-creatio-support",
+      "text": "Remote access for Creatio support",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/creatio-cloud-ips",
+      "text": "Creatio cloud IP addresses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/clean-up-the-drive-space",
+      "text": "Clean up the drive space",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/process-complex-database-queries-faster",
+      "text": "Improve page loading time",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/limit-DB-thread-count",
+      "text": "Limit thread count for DB queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/manage-resource-intensive-queries",
+      "text": "Query management rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/backup-datadase",
+      "text": "Back up database",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/manage-site",
+      "text": "Maintain Creatio website",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/compile-app-on-web-farm",
+      "text": "Compile an app on a web farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/category/faq",
+      "text": "FAQ",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T08:07:57.129837"
+}

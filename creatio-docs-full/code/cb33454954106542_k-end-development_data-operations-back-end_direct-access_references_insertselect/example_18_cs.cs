@@ -1,0 +1,1 @@
+InsertSelect FromSelect(Select subSelect)InsertSelect FromSelect(Query subSelectQuery)

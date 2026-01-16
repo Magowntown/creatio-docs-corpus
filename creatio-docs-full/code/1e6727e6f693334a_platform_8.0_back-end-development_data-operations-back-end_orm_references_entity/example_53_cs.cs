@@ -1,0 +1,1 @@
+IEnumerable<EntityColumnValue> GetChangedColumnValues()

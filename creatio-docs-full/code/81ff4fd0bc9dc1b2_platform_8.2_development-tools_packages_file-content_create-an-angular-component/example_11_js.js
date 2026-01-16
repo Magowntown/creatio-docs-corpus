@@ -1,0 +1,1 @@
+(function() {    require.config({        paths: {            "angular-element-component": Terrasoft.getFileContentUrl(                "MyPackageName",                "src/js/angular-element-component.js"            ),        },    });})();

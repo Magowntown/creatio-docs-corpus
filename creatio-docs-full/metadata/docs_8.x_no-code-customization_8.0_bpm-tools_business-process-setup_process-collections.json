@@ -1,0 +1,672 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-collections",
+  "title": "Process collections",
+  "breadcrumbs": [
+    {
+      "text": "BPM tools",
+      "href": "/docs/8.x/no-code-customization/8.0/category/bpm-tools"
+    },
+    {
+      "text": "Business process setup",
+      "href": "/docs/8.x/no-code-customization/8.0/category/business-process-setup"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: intermediate\nSeveral types of process elements, namely the **Sub-process** , **Read data** , and **Call web-service** , can have outgoing [parameters](https://academy.creatio.com/documents?id=7054) of the \"Collection\" type. To be able to work with the collection \"instances\" (separate records within a collection), the collection needs to be processed.\nThere are several ways of processing a collection:\n* Pass a collection of records to another parameter of a \"collection\" type. For example, you can pass a collection of records to a [**Call web service**](https://academy.creatio.com/documents?id=7141) element that has a collection in its request parameters.\n* Use the [**Script task**](https://academy.creatio.com/documents?id=7015) element to process the parameters of the \"collection\" type. For example, you can use a C# script to parse the collections of records into separate records that can be passed to other process elements.\n* Display a collection of records using the [**Pre-configured page**](https://academy.creatio.com/documents?id=7008) element. For example, display a list of invoices an employee has to review. To set up a collection in the pre-configured page, find the page view model in the **Configuration** section by title, add the \"Serializable list of composite values\" parameter with the needed sub-parameters to the model, and code the business logic.\n* Use a collection in the [**User task**](https://academy.creatio.com/documents?id=7006) element. For example, bulk update contacts. To set up a collection in the user task, click the ![btn_chapter_designer_user_task_designer_task00021.png](https://academy.creatio.com/docs/sites/en/files/documentation/user/en/bpms/BPMonlineHelp/chapter_process_designer/btn_chapter_designer_user_task_designer_task00021.png) button to open the task in the User Task Designer, add the \"Serializable list of composite values\" parameter with the needed sub-parameters, and code the business logic.\n* Use the [**Sub-process**](https://academy.creatio.com/documents?id=7041) element to handle each instance of a collection in a separate instance of the sub-process. If any of the incoming parameters of the **Sub-process** element are mapped to a data collection, the element will automatically run a separate instance of the sub-process per each instance of the collection.\n## Use sub-processes to handle \"collection\" parameters\u200b\nSub-process is the preferable method of working with collections, as it is not limited by the capabilities of a third-party web service, like the **Call web service** element, and does not involve coding, like the **Script task** , **Pre-configured page** , and **User task** elements.\nThe general procedure for processing a collection via the **Sub-process** element is as follows:\n1. Prepare a process that will handle collection instances (this process will be used as a sub-process).\n2. Add the **Sub-process** element in the parent process and select the prepared sub-process.\n3. Map the incoming and bi-directional parameters of the **Sub-process** element to the parameters of the collection type.\n### Prepare the process that will handle collection instances\u200b\nCreate or modify a process that will work with a collection instance as if it were a single record. For example, to send an email to a collection of contacts, prepare a process to send email to a single contact (Fig. 1).\nFig. 1 A basic email sub-process\n![Fig.\u00a01 A basic email sub-process](https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/chapter_process_principles_mail.png)\nThe incoming parameters of the sub-process must match the nested parameters of the collection. For example, sending an email requires the contact\u2019s email address. This means that the collection must include the **Email** column, while the process for sending email must have corresponding incoming **Email** parameter, whose value is then passed to the [**Send email**](https://academy.creatio.com/documents?id=7127) element.\nnote\nYou can access the sub-process diagram \"on the go,\" while working with the parent process, by clicking ![btn_bpms_principles_add.png](https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_add.png) to create a new sub-process or ![btn_bpms_principles_edit.png](https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_edit.png) to edit the current sub-process in the **Which process to run** field of the **Sub-process** element. Learn more: [**Sub-process** element parameters](https://academy.creatio.com/documents?id=7041&anchor=title-1703-5).\n### Set up the Sub-process element\u200b\nAdd the **Sub-process** element to the diagram of the process where a collection parameter is obtained. Select a process that will handle collection instances in the **Which process to run?** field and map the incoming parameters of the selected process (Fig. 2):\nFig. 2 Mapping a data collection\n![Fig.\u00a02 Mapping a data collection](https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/chapter_process_principles_mapping_data_collection.gif)\nImportant\nParameters of a **Sub-process** element can only be mapped to one collection. There are no restrictions on using values from non-collection parameters.\nAs a result, the **Sub-process** element will become a multi-instance sub-process. Multi-instance sub-processes initiate a separate process instance for each item in the data collection, using data from that item as parameter values.\nMulti-instance sub-processes have two execution modes (Fig. 3):\nFig. 3 Select the execution method\n![Fig.\u00a03 Select the execution method](https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/chapter_process_principles_selecting_execution_method.png)\n* **Sequential.** In this mode, sub-process instances run successively; each new sub-process instance runs upon completion of the previous instance. This is the default method.\n* **Parallel.** In this mode, the **Sub-process** element initiates all its instances at once, without waiting for the completion of the already running instances before running a new instance. Sub-process instances are unlikely to complete in the same order they started.\nUpon completion of the last instance, the **Sub-process** element will update its outgoing and bidirectional parameter values from the corresponding parameters of the completed sub-process instances and activate its outgoing flows.\nThis means that after processing a collection, the **Sub-process** element can return a new collection, based on the incoming one. For example, in the case of sending emails to a collection of contacts, the sub-process can be configured to return a collection of sending results and/or errors.\nWhen using the parallel execution methods, outgoing parameters are added to the resulting data collection as soon as the corresponding sub-process instance completes. As a result, the order of items in the resulting data collection is unpredictable. For example, a sub-process instance mapped to the first element in the incoming data collection may be the last one to complete.\n* * *\n## See also\u200b\n[Process parameters](https://academy.creatio.com/documents?id=7054)\n* * *\n## Resources\u200b\n[Tech Hour - How to process multiple records in Creatio](https://www.youtube.com/watch?v=bfUyp9_pi60&list=PLnolcTT5TeE3v8WGd3VqlZSd2D02GWSGa&index=6)",
+  "code_examples": [],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Which process to run",
+      "content": "noteYou can access the sub-process diagram \"on the go,\" while working with the parent process, by clickingto create a new sub-process orto edit the current sub-process in theWhich process to runfield of theSub-processelement. Learn more:Sub-processelement parameters.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>You can access the sub-process diagram \"on the go,\" while working with the parent process, by clicking <img alt=\"btn_bpms_principles_add.png\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_add.png\"/> to create a new sub-process or <img alt=\"btn_bpms_principles_edit.png\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_edit.png\"/> to edit the current sub-process in the <strong>Which process to run</strong> field of the <strong>Sub-process</strong> element. Learn more: <a href=\"https://academy.creatio.com/documents?id=7041&amp;anchor=title-1703-5\" rel=\"noopener noreferrer\" target=\"_blank\"><strong>Sub-process</strong> element parameters</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Which process to run",
+      "content": "You can access the sub-process diagram \"on the go,\" while working with the parent process, by clickingto create a new sub-process orto edit the current sub-process in theWhich process to runfield of theSub-processelement. Learn more:Sub-processelement parameters.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can access the sub-process diagram \"on the go,\" while working with the parent process, by clicking <img alt=\"btn_bpms_principles_add.png\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_add.png\"/> to create a new sub-process or <img alt=\"btn_bpms_principles_edit.png\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_edit.png\"/> to edit the current sub-process in the <strong>Which process to run</strong> field of the <strong>Sub-process</strong> element. Learn more: <a href=\"https://academy.creatio.com/documents?id=7041&amp;anchor=title-1703-5\" rel=\"noopener noreferrer\" target=\"_blank\"><strong>Sub-process</strong> element parameters</a>.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Sub-process",
+      "content": "ImportantParameters of aSub-processelement can only be mapped to one collection. There are no restrictions on using values from non-collection parameters.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Parameters of a <strong>Sub-process</strong> element can only be mapped to one collection. There are no restrictions on using values from non-collection parameters.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Sub-process",
+      "content": "Parameters of aSub-processelement can only be mapped to one collection. There are no restrictions on using values from non-collection parameters.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Parameters of a <strong>Sub-process</strong> element can only be mapped to one collection. There are no restrictions on using values from non-collection parameters.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/documentation/user/en/bpms/BPMonlineHelp/chapter_process_designer/btn_chapter_designer_user_task_designer_task00021.png",
+      "alt": "btn_chapter_designer_user_task_designer_task00021.png",
+      "title": "",
+      "context": "Fig.\u00a01 A basic email sub-process",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.0_bpm-tools_business-process-setup_process-collections_62ed675220db.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/chapter_process_principles_mail.png",
+      "alt": "Fig.\u00a01 A basic email sub-process",
+      "title": "",
+      "context": "Create or modify a process that will work with a collection instance as if it were a single record. ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.0_bpm-tools_business-process-setup_process-collections_e09d9778a4d7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_add.png",
+      "alt": "btn_bpms_principles_add.png",
+      "title": "",
+      "context": "You can access the sub-process diagram \"on the go,\" while working with the parent process, by clicki",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.0_bpm-tools_business-process-setup_process-collections_018cde9e9de8.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/btn_bpms_principles_edit.png",
+      "alt": "btn_bpms_principles_edit.png",
+      "title": "",
+      "context": "You can access the sub-process diagram \"on the go,\" while working with the parent process, by clicki",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.0_bpm-tools_business-process-setup_process-collections_fb5ff4b6f0ad.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/chapter_process_principles_mapping_data_collection.gif",
+      "alt": "Fig.\u00a02 Mapping a data collection",
+      "title": "",
+      "context": "Add theSub-processelement to the diagram of the process where a collection parameter is obtained. Se",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.0_bpm-tools_business-process-setup_process-collections_3b49e0a5579a.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documents/docs_en/technic/BPMS/7.16.0/BPMonlineHelp/chapter_process_principles/chapter_process_principles_selecting_execution_method.png",
+      "alt": "Fig.\u00a03 Select the execution method",
+      "title": "",
+      "context": "Multi-instance sub-processes have two execution modes (Fig.\u00a03):",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_no-code-customization_8.0_bpm-tools_business-process-setup_process-collections_feeaf8009038.png"
+    }
+  ],
+  "videos": [
+    {
+      "type": "link",
+      "src": "https://www.youtube.com/watch?v=bfUyp9_pi60&list=PLnolcTT5TeE3v8WGd3VqlZSd2D02GWSGa&index=6",
+      "text": "Tech Hour - How to process multiple records in Creatio"
+    }
+  ],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Process collections",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Use sub-processes to handle \"collection\" parameters\u200b",
+      "anchor": "title-2074-4"
+    },
+    {
+      "level": 3,
+      "text": "Prepare the process that will handle collection instances\u200b",
+      "anchor": "title-2074-2"
+    },
+    {
+      "level": 3,
+      "text": "Set up the Sub-process element\u200b",
+      "anchor": "title-2074-3"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-collections",
+      "text": "Collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/bpm-tools/business-process-setup/process-collections",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.2/bpm-tools/business-process-setup/process-collections",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.1/bpm-tools/business-process-setup/process-collections",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/no-code-platform",
+      "text": "No-code platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/UI-designer",
+      "text": "Elements reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/recommendations-on-app-creation",
+      "text": "Recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/overview",
+      "text": "Freedom UI app types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/apps-management",
+      "text": "Manage apps",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/manage-elements",
+      "text": "Manage app elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/store-freedom-ui-data",
+      "text": "Store app data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/set-up-the-app",
+      "text": "Set up the UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/element-setup-examples",
+      "text": "Element setup examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/localize-a-freedom-ui-element",
+      "text": "UI localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/create-a-custom-freedom-ui-record-page",
+      "text": "Add page for existing object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/move-a-classic-ui-section-to-freedom-ui",
+      "text": "Classic UI sections in Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/manage-the-form-pages-overview",
+      "text": "Manage the form pages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/cyclic-connection-chains",
+      "text": "Cyclic connection chains",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/set-up-app-metadata",
+      "text": "App properties",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/application-hub",
+      "text": "Application Hub",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/nocode-platform/freedom-ui-business-rules",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/customization-tools",
+      "text": "Customization tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/analytics",
+      "text": "Analytics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/ui-and-business-logic-customization",
+      "text": "UI and business logic customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/ai-tools",
+      "text": "AI tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/print-ready-reports",
+      "text": "Print-ready reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/appearance-customization",
+      "text": "Appearance customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/mobile-app-setup",
+      "text": "Mobile app setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/custom-localization",
+      "text": "Custom localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/customization-tools/install-applications-from-the-marketplace",
+      "text": "Marketplace applications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/system-settings-and-lookups",
+      "text": "System settings and lookups",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/base-integrations",
+      "text": "Base integrations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/base-integrations/add-imap-smtp-email-provider",
+      "text": "IMAP / SMTP email",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/ms-exchange--microsoft-365-email-and-calendar",
+      "text": "MS Exchange / Microsoft 365 email and calendar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/google-services",
+      "text": "Google services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/mailbox-setup",
+      "text": "Mailbox setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/webhook-service-integration",
+      "text": "Webhook service integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/base-integrations/add-an-online-meeting-service",
+      "text": "Set up online meeting services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/chat-setup",
+      "text": "Chat setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/web-services-1",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/base-integrations/set-up-automatic-lead-registration-from-linkedin",
+      "text": "LinkedIn lead generation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/phone-integration-connectors",
+      "text": "Phone integration connectors",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/bpm-tools",
+      "text": "BPM tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/business-process-setup",
+      "text": "Business process setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-designer",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-designer-basics",
+      "text": "Business process setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-designer-hotkeys",
+      "text": "Hotkeys",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-events",
+      "text": "Events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-data",
+      "text": "Data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-formulas",
+      "text": "Formulas",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/set-up-business-process-launch-from-a-section-record",
+      "text": "PreviousLaunch from a record",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/process-parameters",
+      "text": "NextParameters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/import-process",
+      "text": "Process import",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-setup/business-process-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/process-elements-reference",
+      "text": "Process elements reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/user-actions",
+      "text": "User actions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/system-actions",
+      "text": "System actions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/events",
+      "text": "Events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/gateways",
+      "text": "Gateways",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/sub-processes",
+      "text": "Sub-processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/business-process-flows-and-connecting-objects",
+      "text": "Business process flows and connecting objects",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/process-element-use-cases",
+      "text": "Process element use cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/process-element-use-cases/how-to-use-events",
+      "text": "Events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/process-element-use-cases/use-process-parameters",
+      "text": "Parameters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/process-element-use-cases/how-to-use-sub-processes",
+      "text": "Sub-processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/process-element-use-cases/how-to-work-with-data",
+      "text": "Data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/process-examples",
+      "text": "Process examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/how-send-emails-via-business-processes",
+      "text": "Send emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/how-to-interact-with-user-interface-and-pages",
+      "text": "Interact with record pages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/how-to-manage-access-permissions-with-business-processes",
+      "text": "Manage access permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/update-currency-exchange-rates-with-web-service-integration",
+      "text": "Web service integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/notify-employees-by-email-when-lead-has-been-received-via-landing-page",
+      "text": "New lead notification",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/notify-employee-when-an-activity-participant",
+      "text": "New activity notification",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/set-up-push-notifications-for-mobile-users",
+      "text": "New push notification",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/notify-user-about-comment-in-the-feed",
+      "text": "Feed message notification",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/remove-record-permissions-when-changing-a-contact",
+      "text": "Remove access permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/bpm-process-examples/configur-document-approval-process",
+      "text": "Set up approvals",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/process-administration",
+      "text": "Process administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/run-process-or-process-step",
+      "text": "Run a process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/deactivate-a-process",
+      "text": "Deactivate a process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/cancel-process",
+      "text": "Cancel a process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/activate-process",
+      "text": "Activate a process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/find-process",
+      "text": "Find a process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/view-process-execution-data",
+      "text": "Process execution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/set-up-permissions-to-a-process",
+      "text": "Process access permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/view-process-properties",
+      "text": "Process properties",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/trace-process",
+      "text": "Trace process parameters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/business-process-administration/view-process-statistics",
+      "text": "Process statistics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/dynamic-case-setup-dcm",
+      "text": "Dynamic case setup (DCM)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/case-designer-workflows",
+      "text": "Case Designer workflows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/case-designer-elements-reference",
+      "text": "Case Designer elements reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/dynamic-case-setup/case-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/category/collaborative-bpmn-process-design",
+      "text": "Collaborative BPMN process design",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/registration-and-profile",
+      "text": "Register with Studio Free",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/change-profile-data-and-language",
+      "text": "Account data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/process-library",
+      "text": "Process library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/creating-business-processes",
+      "text": "Create a process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/collaboration",
+      "text": "Collaboration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/import-and-export",
+      "text": "Import and export",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/documentation",
+      "text": "Documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/no-code-customization/8.0/bpm-tools/collaborative-business-processes-design-in-studio-creatio/keyboard-shortcuts",
+      "text": "Hotkeys",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T04:58:23.445416"
+}

@@ -1,0 +1,1 @@
+CREATE RULE RU_VwAdministrativeObjects ASON UPDATE TO "VwAdministrativeObjects"DO INSTEAD NOTHING;

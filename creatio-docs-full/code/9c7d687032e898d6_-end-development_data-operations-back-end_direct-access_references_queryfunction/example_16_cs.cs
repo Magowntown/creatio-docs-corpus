@@ -1,0 +1,1 @@
+AggregationQueryFunction(AggregationTypeStrict aggregationType, QueryColumnExpression expression)

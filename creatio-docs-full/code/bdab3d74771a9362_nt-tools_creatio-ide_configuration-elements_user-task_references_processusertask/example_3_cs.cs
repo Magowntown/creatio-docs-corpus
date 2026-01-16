@@ -1,0 +1,1 @@
+protected internal virtual void WriteExecutionData(IProcessExecutionDataWriter dataWriter)

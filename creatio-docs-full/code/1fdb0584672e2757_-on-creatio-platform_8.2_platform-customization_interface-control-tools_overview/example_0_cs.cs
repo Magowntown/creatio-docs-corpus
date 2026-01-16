@@ -1,0 +1,1 @@
+#region Class: SomeCustomFeatureinternal class SomeCustomFeature : FeatureMetadata {    #region Constructors: Public    public SomeCustomFeature() {        IsEnabled = true;        Description = "Some feature description";    }    #endregion}#endregion

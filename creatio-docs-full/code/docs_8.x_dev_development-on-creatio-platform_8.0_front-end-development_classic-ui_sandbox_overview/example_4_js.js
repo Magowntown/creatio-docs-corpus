@@ -1,0 +1,1 @@
+/* Retrieve the ID of the module to unload. */ getModuleId: function() {     return this.sandbox.id + "_ModuleName"; }, /* Unload a visual module loaded into the "ModuleContainer" container. */ this.sandbox.unloadModule(this.getModuleId(), "ModuleContainer");

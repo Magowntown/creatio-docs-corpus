@@ -1,0 +1,1 @@
+PrimaryQueryColumn Terrasoft.Core.Entities.EntitySchemaQueryColumn

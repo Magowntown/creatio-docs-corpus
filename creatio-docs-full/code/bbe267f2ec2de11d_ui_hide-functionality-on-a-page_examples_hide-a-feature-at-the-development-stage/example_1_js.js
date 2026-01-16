@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {    ...,        /* The attribute that stores data about the feature status. */        "IsFeatureDeveloped": {}    },    ...}/**SCHEMA_VIEW_MODEL_CONFIG*/,

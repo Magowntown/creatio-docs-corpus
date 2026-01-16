@@ -1,0 +1,1 @@
+"RequestLogging": {    ...,    "Extended": {        "Enabled": true,        "LogRequestBody": false,        "MaxBodySizeBytes": 500,        "StatusCodes": [ 400, 401, 403 ]    }}

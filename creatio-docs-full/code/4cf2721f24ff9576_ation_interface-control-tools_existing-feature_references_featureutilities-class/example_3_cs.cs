@@ -1,0 +1,1 @@
+static bool GetIsFeatureEnabledForAllUsers(this UserConnection source, string code)

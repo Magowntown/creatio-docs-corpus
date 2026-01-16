@@ -1,0 +1,1 @@
+viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    "attributes": {        "AccountName": {            "modelConfig": {                "path": "ContactDS.AccountName"            }        }    }}/**SCHEMA_VIEW_MODEL_CONFIG*/,

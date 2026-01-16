@@ -1,0 +1,1 @@
+EntitySchemaConcatQueryFunction CreateConcatFunction(params EntitySchemaQueryExpression[] expressions)

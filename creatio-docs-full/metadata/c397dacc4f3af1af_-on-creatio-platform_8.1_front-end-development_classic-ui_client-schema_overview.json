@@ -1,0 +1,1076 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/overview",
+  "title": "Client schema (Classic UI)",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui"
+    },
+    {
+      "text": "Client schema",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: beginner\nA **client view model schema** is a visual module schema that implements the front-end part of Creatio. A client view model schema is a configuration object for generating views and view models by `ViewGenerator` and `ViewModelGenerator`. Learn more about module types and their specificities in a separate article: [Client module types](https://academy.creatio.com/documents?ver=8.1&id=15304&anchor=title-1278-2).\n## Develop a client schema\u200b\n**Ways to develop** client view model schemas:\n* The **Configuration** section. Learn more about development in the **Configuration** section in a separate article: [View model schema](https://academy.creatio.com/documents?ver=8.1&id=15106&anchor=title-2123-15).\n* No-Code Designer. Learn more: [Manage app elements in the No-Code Designer](https://academy.creatio.com/documents?ver=8.1&id=2418) (user documentation).\n**Structure elements** of the client schema:\n* Auto-generated code. Contains the description of the schema, its dependencies, localized resources, and messages.\n* Rendering styles. Only available in some types of client schemas.\n* The schema source code. A syntactically correct JavaScript code that defines the module.\nUse **marker comments** in the schema source code for the `diff`, `modules`, `details`, and `businessRules` properties.\nThe **purpose** of marker comments is to uniquely identify the client schema properties. When you open the Wizard, Creatio validates the presence of marker comments as shown in the table below.\nSchema type| Required marker comments  \n---|---  \n`EditViewModelSchema` model view schema of a record page| \ndetails: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,  \nmodules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,  \ndiff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/,  \nbusinessRules: /**SCHEMA_BUSINESS_RULES*/{}/**SCHEMA_BUSINESS_RULES*/  \n`ModuleViewModelSchema` model view schema of a section| \nmodules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,  \ndiff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/  \n`EditControlsDetailViewModelSchema` model view schema of a detail with fields  \n`DetailViewModelSchema` model view schema of a detail  \n`GridDetailViewModelSchema` model view schema of a detail that has a list  \n## Client schema properties\u200b\nThe source code of client schemas has a generic structure available below.\nSource code of a client schema\ndefine(\"ExampleSchema\", [], function() {  \nreturn {  \nentitySchemaName: \"ExampleEntity\",  \nmixins: {},  \nattributes: {},  \nmessages: {},  \nmethods: {},  \nrules: {},  \nbusinessRules: /**SCHEMA_BUSINESS_RULES*/{}/**SCHEMA_BUSINESS_RULES*/,  \nmodules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,  \ndiff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/  \n};  \n});  \nAfter the module is loaded, Creatio calls the anonymous factory function, which returns the schema configuration object. **Properties** of the configuration object schema:\n* `entitySchemaName`. The name of the entity schema used by the current client schema.\n* `mixins`. A configuration object that contains a mixin declaration.\n* `attributes`. A configuration object that contains schema attributes.\n* `messages`. A configuration object that contains schema messages.\n* `methods`. A configuration object that contains schema methods.\n* `rules`. A configuration object that contains schema business rules.\n* `businessRules`. A configuration object that contains schema business rules. The `/**SCHEMA_BUSINESS_RULES*/` marker comments are required since they are necessary for the operation of the Wizards.\n* `modules`. A configuration object that contains schema modules. The `/ ** SCHEMA_MODULES * /` marker comments are required since they are necessary for the operation of the Wizards.\nnote\nThe `details` property loads a detail to a page. Since a detail is also a module, we recommend using the `modules` property instead.\n* `diff`. A configuration object array that contains the schema view description. The `/**SCHEMA_DIFF*/` marker comments are required since they are necessary for the operation of the Wizards.\n* `properties`. A configuration object that contains view model properties.\n* `$-properties`. Automatically generated properties for the attributes of the view model schema.\n### Schema name (entitySchemaName)\u200b\nTo implement the entity schema name, use the required `entitySchemaName` property. Simply specify it in one of the inheritance hierarchy schemas.\nExample that declares the entitySchemaName property\ndefine(\"ClientSchemaName\", [], function () {  \nreturn {  \n/* Object schema (model). */  \nentitySchemaName: \"EntityName\",  \n/* ... */  \n};  \n});  \n### Mixins (mixins)\u200b\n**A mixin** is a class that extends the functions of other classes. JavaScript does not support multiple inheritances. However, mixins let you extend the schema functionality without duplicating the logic used in the schema methods. You can use the same set of actions in different client schemas of Creatio. Create a mixin to avoid duplicating the code in each schema. Mixins are **different** from other modules added to the dependency list in the way of calling their methods from the module schema. You can call to their methods directly, much like those of a schema. Use the `mixins` property to implement mixins.\nMixin management **procedure** :\n1. Create a mixin.\n2. Assign a name to the mixin.\n3. Connect the corresponding name array.\n4. Implement the mixin functionality.\n5. Use the mixin in the client schema.\n#### Create a mixin\u200b\nCreate a mixin similarly to an [object schema](https://academy.creatio.com/documents?ver=8.1&id=15107&anchor=title-3028-6).\n#### Assign a name to the mixin\u200b\nWhen naming mixins, use an -able suffix in the schema name. For example, name a mixin that enables serializing in the components `Serializable`. If a mixin name cannot end \"-able,\" end the schema name in Mixin.\nImportant\nDo not use words like `Utilities`, `Extension`, `Tools`, or similar in the names. They make the purpose of the mixin impossible to discern based on the mixin name.\n#### Connect the namespace\u200b\nEnable a corresponding name array in the mixin (`Terrasoft.configuration.mixins` for the configuration, `Terrasoft.core.mixins` for the core).\n#### Implement the mixin functionality\u200b\nMixins cannot depend on the internal implementation of the schema to which to apply them. Mixins must be independent mechanisms that receive a set of parameters, process them, and, if needed, return a result. Design mixins as modules that must be connected to the schema dependency list when the `define()` function declares the schema.\nView the mixin structure below.\nMixin structure\ndefine(\"MixinName\", [], function() {   \nExt.define(\"Terrasoft.configuration.mixins.MixinName\", {  \nalternateClassName: \"Terrasoft.MixinName\",  \n/* Mixin functionality. */          \n});  \nreturn Ext.create(Terrasoft.MixinName);  \n})  \n#### Use the mixin\u200b\nThe mixin implements the functionality needed in the client schema. To receive the set of mixin actions, specify the mixin in the `mixins` block of the client schema.\nUse a mixin in the client schema\n/* MixinName is a module where the mixin class is implemented. */  \ndefine(\"ClientSchemaName\", [\"MixinName\"], function () {  \nreturn {  \n/* SchemaName is the name of the entity. */  \nentitySchemaName: \"SchemaName\",  \nmixins: {  \n/* Connect the mixin. */  \nMixinName: \"Terrasoft.NameSpace.Mixin\"  \n},  \nattributes: {},  \nmessages: {},  \nmethods: {},  \nrules: {},  \nmodules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,  \ndiff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/  \n};  \n});  \nOnce you connect the mixin, you can use its methods, attributes, and fields in the client schema as if they were part of the client schema. That way, method calls are more concise than when using a separate schema. For example, `getDefaultImageResource` is a mixin function. To call the `getDefaultImageResource` mixin function in the custom schema to which the mixin is connected, use `this.getDefaultImageResource();`.\nnote\nTo overload a mixin function, create a function with the same name in the client schema. As a result, Creatio will use the function of the schema, and not that of the mixin, when calling.\n### Attributes (attributes)\u200b\nUse the `attributes` property to implement attributes.\n### Messages (messages)\u200b\nThe **purpose** of messages is to organize [data exchange](https://academy.creatio.com/documents?ver=8.1&id=15327) between modules. Use the `messages` property to implement messages. Use the `Terrasoft.MessageMode` enumeration to set the message **mode**.\nMessage mode types\nMessage mode| Description| Connection  \n---|---|---  \nAddress| Address messages are only received by the last subscriber.| To switch to address mode, set the `mode` property to `this.Terrasoft.MessageMode.PTP`.  \nBroadcasting| Broadcasting messages are received by all subscribers.| To switch to broadcasting `mode`, set the mode property to `this.Terrasoft.MessageMode.BROADCAST`.  \nAside from modes, you can also specify the message **direction**.\nView the message direction types in the table below.\nMessage direction| Description| Connection  \n---|---|---  \nPublishing| The message can only be published, i. e., it is an **outbound** message.| To set the message direction to publishing, set the `direction` property to `this.Terrasoft.MessageDirectionType.PUBLISH`.  \nSubscription| The message can only be subscribed to, i. e., it is an **inbound** message.| To set the message direction to subscription, set the `direction` property to `this.Terrasoft.MessageDirectionType.SUBSCRIBE`.  \nBidirectional| The bidirectional mode enables publishing of and subscription to the same message in different instances of a single class or within a single schema inheritance hierarchy. The same message cannot be announced with different directions in a single schema inheritance hierarchy. Learn more about using bidirectional messages in cases where that is a requirement in a separate article: [Sandbox](https://academy.creatio.com/documents?ver=8.1&id=15321).| Corresponds to `the Terrasoft.MessageDirectionType.BIDIRECTIONAL` enumeration value.  \n#### Message publication\u200b\nDeclare a message with the \"publishing\" direction in the schema where you want to publish the message.\nExample that declares a message with the publishing direction\nmessages: {  \n/* Message name. */  \n\"GetColumnsValues\": {  \n/* Set the message mode to address. */  \nmode: this.Terrasoft.MessageMode.PTP,  \n/* Set the message direction to \"publishing.\" */  \ndirection: this.Terrasoft.MessageDirectionType.PUBLISH  \n}  \n}  \nPublishing is done by calling the `publish` method from the `sandbox` class instance.\nMessage publishing example\n/* GetColumnsValues method that gets the message publishing result. */  \ngetColumnsValues: function(argument) {  \n/* Message publishing.  \nGetColumnsValues is the message name.  \nargument is the argument passed to the handler function of the subscriber. An argument is an object with the message parameters.  \nkey is an array of message filtering tags. */  \nreturn this.sandbox.publish(\"GetColumnsValues\", argument, [\"key\"]);  \n}  \nImportant\nMessage publishing can return the handler function results only in the **address** mode.\n#### Message subscription\u200b\nDeclare a message with the \"subscription\" direction in the subscription schema.\nExample that declares a message with the subscription direction\nmessages: {  \n/* Message name. */  \n\"GetColumnsValues\": {  \n/* Set the message mode to address. */  \nmode: this.Terrasoft.MessageMode.PTP,  \n/* Set the message direction to \"subscription.\" */  \ndirection: this.Terrasoft.MessageDirectionType.SUBSCRIBE  \n}  \n}  \nThe subscription is made by calling the `subscribe` method in the `sandbox` class instance.\nMessage subscription example\n/* GetColumnsValues is the message name.  \nmessageHandler is the message handler function.  \ncontext is the execution scope of the handler function.  \nkey is an array of message filtering tags. */  \nthis.sandbox.subscribe(\"GetColumnsValues\", messageHandler, context, [\"key\"]);  \nIn the **address** mode, the `messageHandler` method returns the object, which is processed as the result of message publishing. In **broadcasting** mode, the `messageHandler` method does not return a value.\n* messageHandler method (address mode)\n* messageHandler method (broadcast mode)\nmethods: {  \nmessageHandler: function(args) {   \n/* Return an object to process as a message publishing result. */  \nreturn { };   \n}  \n}  \nmethods: {  \nmessageHandler: function(args) {   \n}  \n}  \n### Methods (methods)\u200b\nTo implement a method, use the `methods` property.The property contains a collection of methods that form the schema business logic and affect the view model. By default, the scope of methods is the scope of view model.\nThe **purpose** of the `methods` property.\n1. Create new methods.\n2. Extend the basic methods of parent schemas.\n### Business rules (rules and businessRules)\u200b\n**Business rules** are Creatio mechanisms that let you customize the behavior of fields on a page or detail. To implement business rules, use the `rules` and `businessRules` properties. Use the `businessRules` property for business rules.\nThe **purposes** of business rules:\n* Hide or show fields.\n* Lock or unlock fields for editing.\n* Make fields required or optional.\n* Filter lookup fields based on values in other fields.\nCreatio implements the business rule functionality in the `BusinessRuleModule` client module. To use the business rule functionality, add `BusinessRuleModule` to the list of schema dependencies.\nExample that adds BusinessRuleModule to the dependency list\ndefine(\"CustomPageModule\", [\"BusinessRuleModule\"], function(BusinessRuleModule) {  \nreturn {  \n/* Implement the client module. */  \n};  \n});  \nThe `RuleType` enumeration of the `BusinessRuleModule` module defines business rule types.\n#### Specifics of business rules\u200b\n**Specifics** of business rule declaration:\n* Describe business rules in the `rules` schema property.\n* Apply business rules to view model columns and not to controls.\n* Name each business rule.\n* Set business rule parameters in the configuration object.\nBusiness rules defined in the `businessRules` property have the following **features** :\n* They are generated by the Section or Detail Wizards.\n* When you create a new business rule, the corresponding Wizard generates the name and adds the rule to the client schema of the record page view model.\n* Creatio does not use the `BusinessRuleModule` enumerations when describing generated business rules.\n* The `/**SCHEMA_BUSINESS_RULES*/` marker comments are required since they are necessary for the operation of the Wizards.\n* They have a higher priority during runtime.\n* When a business rule is disabled, Creatio sets the `enabled` property of the configuration object to `false`.\n* When a business rule is removed, the configuration object remains in the client schema of the record page view model, but Creatio sets the `removed` property to `true`.\nImportant\nWe do not recommend editing the `businessRules` property of the client schema.\n#### Edit an existing business rule\u200b\nAfter a Wizard edits a manually created business rule, the business rule's configuration object in the `rules` property of the record page view model remains unchanged. At the same time, a new version of the business rule configuration object with the same name is created in the `businessRules` property.\nWhen Creatio processes a business rule during runtime, the business rule defined in the `businessRules` property takes precedence. Subsequent changes to this business rule in the `rules` property will not affect Creatio in any way.\nnote\nChanges made to the configuration object of the `businessRules` property take precedence when you delete or disable a business rule.\n### Modules (modules)\u200b\nTo implement modules, use the `modules` property. Its configuration object declares and configures modules and details loaded on the page. The `/** SCHEMA_MODULES */` marker comments are required since they are necessary for the operation of the Wizards.\nnote\nThe `details` property loads a detail to a page. Since a detail is also a module, we recommend using the `modules` property instead.\nExample that uses the modules property\nmodules: /**SCHEMA_MODULES*/{  \n/* Load the module.  \nModule title. Must be the same as the name property in the diff array. */  \n\"TestModule\": {   \n/* Optional. The ID of the module to load. If not specified, Creatio will generate it automatically.*/  \n\"moduleId\": \"myModuleId\",.  \n/* If no parameter is specified, Creatio will use BaseSchemaModuleV2 for loading. */  \n\"moduleName\": \"MyTestModule\",        \n/* Configuration object. When the module is loaded, the object is passed as instanceConfig. The object stores a set of initial parameter values \u200b\u200bfor the module. */  \n\"config\": {   \n\"isSchemaConfigInitialized\": true,  \n\"schemaName\": \"MyTestSchema\",  \n\"useHistoryState\": false,  \n/* Additional module parameters. */  \n\"parameters\": {   \n/* Parameters passed to the schema during the initialization. */  \n\"viewModelConfigDiff\": {   \nmasterColumnName: \"PrimaryContact\"  \n}  \n}  \n}  \n},  \n/* Load the detail.  \nDetail name. */  \n\"Project\": {  \n/* Detail schema name. */  \n\"schemaName\": \"ProjectDetailV2\",  \n\"filter\": {  \n/* The column of the section object schema. */  \n\"masterColumn\": \"Id\",  \n/* The column of a detail object schema. */  \n\"detailColumn\": \"Opportunity\"  \n}  \n}  \n}/**SCHEMA_MODULES*/  \n### Array of modifications (diff)\u200b\nTo implement an array of modifications, use the `diff` property, which contains an array of configuration objects. The **purpose** of the array of modifications is to build a representation of the module in the Creatio interface. Each element in the array represents properties from which Creatio generates various interface controls. The `/**SCHEMA_DIFF*/` marker comments are required since they are necessary for the operation of the Wizards.\n#### Alias mechanism\u200b\nWhen developing new versions, you sometimes need to move page elements to new zones. In situations where users have customized the record page, such changes can have unpredictable consequences. The `alias` **mechanism** interacts with the `diff` builder to provide partial backward compatibility when changing the UI in new product versions. The builder is the `json-applier` class that merges base schema and client extension schema parameters.\nThe `alias` property contains data about the previous name of the element. Creatio creates the `diff` array of modifications based on that data, considering not only elements with a new name but also with the name specified in `alias`. In essence, `alias` is a configuration object that links the new and old elements. When creating a `diff` array of modifications, the `alias` configuration object can disallow application of some properties and operations to the element where it is declared. You can add the `alias` object to any element in the `diff` array of modifications.\n#### Relationship between a view and model\u200b\nThe **purpose** of the `bindTo` property is to indicate the relationship between a view model attribute and a view object property.\nDeclare the property in the `values` \u200b\u200bproperty of the configuration objects in the `diff` array of modfications.\nView an example that uses the `bindTo` property below.\nExample that uses the bindTo property\ndiff: [  \n{  \n\"operation\": \"insert\",  \n\"parentName\": \"CombinedModeActionButtonsCardLeftContainer\",  \n\"propertyName\": \"items\",  \n\"name\": \"MainContactButton\",  \n/* Properties passed to the component\u2019s constructor. */  \n\"values\": {  \n/* Set the type of the added element to button. */  \n\"itemType\": Terrasoft.ViewItemType.BUTTON,  \n/* Bind the button title to the localizable schema string. */  \n\"caption\": {bindTo: \"Resources.Strings.OpenPrimaryContactButtonCaption\"},  \n/* Bind the button click handler method. */  \n\"click\": {bindTo: \"onOpenPrimaryContactClick\"},  \n/* The display style of the button. */  \n\"style\": Terrasoft.controls.ButtonEnums.style.GREEN,  \n/* Bind the button availability property. */  \n\"enabled\": {bindTo: \"ButtonEnabled\"}  \n}  \n}  \n]  \n**Tabs** are objects that contain the `tabs` value in their `propertyName` property.\nCreatio implements an alternative way to use the `bindTo` property for **tab titles**.\nAlternative way to use the bindTo property\n...  \n{  \n\"operation\": \"insert\",  \n\"name\": \"GeneralInfoTab\",  \n\"parentName\": \"Tabs\",  \n/* Imply that the object is a tab. */  \n\"propertyName\": \"tabs\",  \n\"index\": 0,  \n\"values\": {  \n/* $ replaces usage of bindTo: {...}. */  \n\"caption\": \"$Resources.Strings.GeneralInfoTabCaption\",  \n\"items\": []  \n}  \n},  \n...  \n#### `diff` property declaration rules\u200b\n* **Best use of converters**.\nA **converter** is a function executed in the `viewModel` environment. A converter accepts the values \u200b\u200bof the `viewModel` property and returns a result of the corresponding type. To ensure that Wizards operate correctly, format the `diff` property value in JSON. Therefore, the value of the converter must be the name of the view model method rather than an inline function.\n* Correct use of the converter\n* Incorrect use of the converter\nmethods: {  \nmessageHandler: function(args) {   \n/* Return an object to process as a message publishing result. */  \nreturn { };   \n}  \n}  \ndiff: /**SCHEMA_DIFF*/[  \n{  \n/* ... */  \n\"bindConfig\": {  \n\"converter\": function(val) {  \n/* ... */  \n}  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n* Correct use of the generator\n* Incorrect use of the generator\nmethods: {  \nsomeFunction: function(val) {  \n/* ... */  \n}  \n},  \ndiff: /**SCHEMA_DIFF*/[  \n{  \n/* ... */  \n\"values\": {  \n\"generator\": \"someFunction\"  \n}  \n/* ... */  \n}  \n]/**SCHEMA_DIFF*/  \ndiff: /**SCHEMA_DIFF*/[  \n{  \n/* ... */  \n\"values\": {  \n\"generator\": function(val) {  \n/* ... */  \n}  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n* **Parent element**.\nThe **parent element (container)** is the DOM element where the module renders its view. To ensure that the Wizards operate as intended, place a single child element in the parent container.\n* Example of the correct placement of a view in the parent element\n* Example of the incorrect placement of a view in the parent element\n<div id=\"OpportunityPageV2Container\" class=\"schema-wrap one-el\" data-item-marker=\"OpportunityPageV2Container\">  \n<div id=\"CardContentWrapper\" class=\"card-content-container page-with-left-el\" data-item-marker=\"EntityLoaded\"></div>  \n</div>  \n<div id=\"OpportunityPageV2Container\" class=\"schema-wrap one-el\" data-item-marker=\"OpportunityPageV2Container\">  \n<div id=\"CardContentWrapper\" class=\"card-content-container page-with-left-el\" data-item-marker=\"EntityLoaded\"></div>  \n<div id=\"DuplicateContainer\" class=\"DuplicateContainer\"></div>  \n</div>  \nWhen you add, change, move an element (`insert`, `merge`, `move` operations), specify the `parentName` property (the parent element\u2019s name) in the `diff` property.\n* Example of the correct definition of the view element in the diff property\n* Example of the incorrect definition of the view element in the diff property\n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeName\",  \n\"propertyName\": \"items\",  \n\"parentName\": \"SomeContainer\",  \n\"values\": {}  \n}  \n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeName\",  \n\"propertyName\": \"items\",  \n\"values\": {}  \n}  \nIf the `parentName` property is missing, the Wizard will be unable to configure the page. Creatio will display a corresponding error message.\nThe value of the `parentName` property must match the name of the parent element in the corresponding base page schema. For example, this is `CardContentContainer` for record pages.\nIf you specify the name of a non-existent container element as the parent element in the `parentName` property, a \"Schema cannot have more than one root object\" error will occur, since the added element will be placed in the root container.\n* **Unique names.**\nEach element in the `diff` array must have a unique name.\n* Example of the correct addition of elements to a diff array\n* Example of the incorrect addition of elements to a diff array\n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeName\",  \n\"values\": { }  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeSecondName\",  \n\"values\": { }  \n}  \n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeName\",  \n\"values\": { }  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"SomeName\",  \n\"values\": { }  \n}  \n* **Placement of view elements**.\nTo ensure the view elements are customizable and changeable, place them on the **layout grid**. In Creatio, each row of the layout grid has 24 cells (columns). Use the `layout` property to place elements on the grid.\nGrid element **properties** :\n* `column`. The index of the left column.\n* `row`. The index of the top row.\n* `colSpan`. The number of spanned columns.\n* `rowSpan`. The number of spanned rows.\nExample that places elements\n{  \n\"operation\": \"insert\",  \n\"parentName\": \"ParentContainerName\",  \n\"propertyName\": \"items\",  \n\"name\": \"ItemName\",  \n\"values\": {  \n/* Element placement. */  \n\"layout\": {  \n/* Start at column zero. */  \n\"column\": 0,  \n/* Place in the fifth row of the grid. */  \n\"row\": 5,  \n/* Span 12 columns wide. */  \n\"colSpan\": 12,  \n/* Occupy one row. */  \n\"rowSpan\": 1  \n},  \n\"contentType\": Terrasoft.ContentType.ENUM  \n}  \n}  \n* **Number of operations**.\nIf you change the client schema without a Wizard, we recommend adding no more than one operation per schema element to ensure that the Wizard operates as intended.\n### Properties (properties)\u200b\nTo implement properties, use the `properties` property, which contains a JavaScript object.\nView an example that uses the `properties` property in the `SectionTabsSchema` schema of the `NUI` package below.\nExample that uses the properties property\ndefine(\"SectionTabsSchema\", [], function() {  \nreturn {  \n...  \n/* Declare the properties property. */  \nproperties: {  \n/* The parameters property. Array. */  \nparameters: [],  \n/* modulesContainer property. Entity. */  \nmodulesContainer: {}  \n},  \nmethods: {  \n...  \n/* Initialization method. Always executed first. */  \ninit: function(callback, scope) {  \n...  \n/* Call the method uses the view model properties. */  \nthis.initContainers();  \n...  \n},  \n...  \n/* The method where to use the properties. */  \ninitContainers: function() {  \n/* Use the modulesContainer property. */  \nthis.modulesContainer.items = [];  \n...  \n/* Use the parameters property. */  \nthis.Terrasoft.each(this.parameters, function(config) {  \nconfig = this.applyConfigs(config);  \nvar moduleConfig = this.getModuleContainerConfig(config);  \nvar initConfig = this.getInitConfig();  \nvar container = viewGenerator.generatePartial(moduleConfig, initConfig)[0];  \nthis.modulesContainer.items.push(container);  \n}, this);  \n},  \n...  \n},  \n...  \n}  \n});  \n* * *\n## See also\u200b\n[Configuration elements](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/configuration-elements)\n[Module types](https://academy.creatio.com/documents?ver=8.1&id=15308)\n[DataService](https://academy.creatio.com/documents?ver=8.1&id=15411)\n[Create a new section](https://academy.creatio.com/documents?ver=8.0&id=1705) (user documentation)\n[Create a detail](https://academy.creatio.com/documents?ver=8.0&id=2032) (user documentation)\n[Send messages via WebSocket](https://academy.creatio.com/documents?ver=8.1&id=15327)\n[Sandbox](https://academy.creatio.com/documents?ver=8.1&id=15321)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkMixinPackage_2021-02-02_09.44.04.zip)",
+  "code_examples": [
+    {
+      "code": "details: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,modules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,diff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/,businessRules: /**SCHEMA_BUSINESS_RULES*/{}/**SCHEMA_BUSINESS_RULES*/",
+      "language": "js",
+      "context": "EditViewModelSchemamodel view schema of a record page",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "modules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,diff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/",
+      "language": "js",
+      "context": "ModuleViewModelSchemamodel view schema of a section",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"ExampleSchema\", [], function() {    return {        entitySchemaName: \"ExampleEntity\",        mixins: {},        attributes: {},        messages: {},        methods: {},        rules: {},        businessRules: /**SCHEMA_BUSINESS_RULES*/{}/**SCHEMA_BUSINESS_RULES*/,        modules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,        diff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "The source code of client schemas has a generic structure available below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"ClientSchemaName\", [], function () {    return {        /* Object schema (model). */        entitySchemaName: \"EntityName\",        /* ... */    };});",
+      "language": "js",
+      "context": "To implement the entity schema name, use the requiredentitySchemaNameproperty. Simply specify it in one of the inheritance hierarchy schemas.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"MixinName\", [], function() {     Ext.define(\"Terrasoft.configuration.mixins.MixinName\", {        alternateClassName: \"Terrasoft.MixinName\",        /* Mixin functionality. */            });    return Ext.create(Terrasoft.MixinName);})",
+      "language": "js",
+      "context": "View the mixin structure below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* MixinName is a module where the mixin class is implemented. */define(\"ClientSchemaName\", [\"MixinName\"], function () {    return {        /* SchemaName is the name of the entity. */        entitySchemaName: \"SchemaName\",        mixins: {            /* Connect the mixin. */            MixinName: \"Terrasoft.NameSpace.Mixin\"        },        attributes: {},        messages: {},        methods: {},        rules: {},        modules: /**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,        diff: /**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "The mixin implements the functionality needed in the client schema. To receive the set of mixin actions, specify the mixin in themixinsblock of the client schema.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "messages: {    /* Message name. */    \"GetColumnsValues\": {        /* Set the message mode to address. */        mode: this.Terrasoft.MessageMode.PTP,        /* Set the message direction to \"publishing.\" */        direction: this.Terrasoft.MessageDirectionType.PUBLISH    }}",
+      "language": "js",
+      "context": "Declare a message with the \"publishing\" direction in the schema where you want to publish the message.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* GetColumnsValues method that gets the message publishing result. */getColumnsValues: function(argument) {    /* Message publishing.    GetColumnsValues is the message name.    argument is the argument passed to the handler function of the subscriber. An argument is an object with the message parameters.    key is an array of message filtering tags. */    return this.sandbox.publish(\"GetColumnsValues\", argument, [\"key\"]);}",
+      "language": "js",
+      "context": "Publishing is done by calling thepublishmethod from thesandboxclass instance.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "messages: {    /* Message name. */    \"GetColumnsValues\": {        /* Set the message mode to address. */        mode: this.Terrasoft.MessageMode.PTP,        /* Set the message direction to \"subscription.\" */        direction: this.Terrasoft.MessageDirectionType.SUBSCRIBE    }}",
+      "language": "js",
+      "context": "Declare a message with the \"subscription\" direction in the subscription schema.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* GetColumnsValues is the message name.messageHandler is the message handler function.context is the execution scope of the handler function.key is an array of message filtering tags. */this.sandbox.subscribe(\"GetColumnsValues\", messageHandler, context, [\"key\"]);",
+      "language": "js",
+      "context": "The subscription is made by calling thesubscribemethod in thesandboxclass instance.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "methods: {    messageHandler: function(args) {         /* Return an object to process as a message publishing result. */        return { };     }}",
+      "language": "js",
+      "context": "In theaddressmode, themessageHandlermethod returns the object, which is processed as the result of message publishing. Inbroadcastingmode, themessageHandlermethod does not return a value.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "methods: {    messageHandler: function(args) {     }}",
+      "language": "js",
+      "context": "In theaddressmode, themessageHandlermethod returns the object, which is processed as the result of message publishing. Inbroadcastingmode, themessageHandlermethod does not return a value.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"CustomPageModule\", [\"BusinessRuleModule\"], function(BusinessRuleModule) {    return {        /* Implement the client module. */    };});",
+      "language": "js",
+      "context": "Creatio implements the business rule functionality in theBusinessRuleModuleclient module. To use the business rule functionality, addBusinessRuleModuleto the list of schema dependencies.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "modules: /**SCHEMA_MODULES*/{    /* Load the module.    Module title. Must be the same as the name property in the diff array. */    \"TestModule\": {         /* Optional. The ID of the module to load. If not specified, Creatio will generate it automatically.*/        \"moduleId\": \"myModuleId\",.        /* If no parameter is specified, Creatio will use BaseSchemaModuleV2 for loading. */        \"moduleName\": \"MyTestModule\",              /* Configuration object. When the module is loaded, the object is passed as instanceConfig. The object stores a set of initial parameter values \u200b\u200bfor the module. */        \"config\": {             \"isSchemaConfigInitialized\": true,            \"schemaName\": \"MyTestSchema\",            \"useHistoryState\": false,            /* Additional module parameters. */            \"parameters\": {                 /* Parameters passed to the schema during the initialization. */                \"viewModelConfigDiff\": {                     masterColumnName: \"PrimaryContact\"                }            }        }    },        /* Load the detail.    Detail name. */    \"Project\": {            /* Detail schema name. */            \"schemaName\": \"ProjectDetailV2\",            \"filter\": {            /* The column of the section object schema. */            \"masterColumn\": \"Id\",            /* The column of a detail object schema. */            \"detailColumn\": \"Opportunity\"        }    }}/**SCHEMA_MODULES*/",
+      "language": "js",
+      "context": "Thedetailsproperty loads a detail to a page. Since a detail is also a module, we recommend using themodulesproperty instead.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "diff: [    {        \"operation\": \"insert\",        \"parentName\": \"CombinedModeActionButtonsCardLeftContainer\",        \"propertyName\": \"items\",        \"name\": \"MainContactButton\",        /* Properties passed to the component\u2019s constructor. */        \"values\": {            /* Set the type of the added element to button. */            \"itemType\": Terrasoft.ViewItemType.BUTTON,            /* Bind the button title to the localizable schema string. */            \"caption\": {bindTo: \"Resources.Strings.OpenPrimaryContactButtonCaption\"},            /* Bind the button click handler method. */            \"click\": {bindTo: \"onOpenPrimaryContactClick\"},            /* The display style of the button. */            \"style\": Terrasoft.controls.ButtonEnums.style.GREEN,            /* Bind the button availability property. */            \"enabled\": {bindTo: \"ButtonEnabled\"}        }    }]",
+      "language": "js",
+      "context": "View an example that uses thebindToproperty below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "...{    \"operation\": \"insert\",    \"name\": \"GeneralInfoTab\",    \"parentName\": \"Tabs\",    /* Imply that the object is a tab. */    \"propertyName\": \"tabs\",    \"index\": 0,    \"values\": {        /* $ replaces usage of bindTo: {...}. */        \"caption\": \"$Resources.Strings.GeneralInfoTabCaption\",        \"items\": []    }},...",
+      "language": "js",
+      "context": "Creatio implements an alternative way to use thebindToproperty fortab titles.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "diff: /**SCHEMA_DIFF*/[    {        /* ... */        \"bindConfig\": {            \"converter\": function(val) {            /* ... */            }        }    }]/**SCHEMA_DIFF*/",
+      "language": "js",
+      "context": "Aconverteris a function executed in theviewModelenvironment. A converter accepts the values \u200b\u200bof theviewModelproperty and returns a result of the corresponding type. To ensure that Wizards operate cor",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "methods: {    someFunction: function(val) {        /* ... */    }},diff: /**SCHEMA_DIFF*/[  {      /* ... */      \"values\": {          \"generator\": \"someFunction\"      }      /* ... */  }]/**SCHEMA_DIFF*/",
+      "language": "js",
+      "context": "Aconverteris a function executed in theviewModelenvironment. A converter accepts the values \u200b\u200bof theviewModelproperty and returns a result of the corresponding type. To ensure that Wizards operate cor",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "diff: /**SCHEMA_DIFF*/[    {        /* ... */        \"values\": {            \"generator\": function(val) {                /* ... */            }        }    }]/**SCHEMA_DIFF*/",
+      "language": "js",
+      "context": "Aconverteris a function executed in theviewModelenvironment. A converter accepts the values \u200b\u200bof theviewModelproperty and returns a result of the corresponding type. To ensure that Wizards operate cor",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<div id=\"OpportunityPageV2Container\" class=\"schema-wrap one-el\" data-item-marker=\"OpportunityPageV2Container\">    <div id=\"CardContentWrapper\" class=\"card-content-container page-with-left-el\" data-item-marker=\"EntityLoaded\"></div></div>",
+      "language": "html",
+      "context": "Theparent element (container)is the DOM element where the module renders its view. To ensure that the Wizards operate as intended, place a single child element in the parent container.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<div id=\"OpportunityPageV2Container\" class=\"schema-wrap one-el\" data-item-marker=\"OpportunityPageV2Container\">    <div id=\"CardContentWrapper\" class=\"card-content-container page-with-left-el\" data-item-marker=\"EntityLoaded\"></div>    <div id=\"DuplicateContainer\" class=\"DuplicateContainer\"></div></div>",
+      "language": "jhtml",
+      "context": "Theparent element (container)is the DOM element where the module renders its view. To ensure that the Wizards operate as intended, place a single child element in the parent container.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{  \"operation\": \"insert\",  \"name\": \"SomeName\",  \"propertyName\": \"items\",  \"parentName\": \"SomeContainer\",  \"values\": {}}",
+      "language": "js",
+      "context": "When you add, change, move an element (insert,merge,moveoperations), specify theparentNameproperty (the parent element\u2019s name) in thediffproperty.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{  \"operation\": \"insert\",  \"name\": \"SomeName\",  \"propertyName\": \"items\",  \"values\": {}}",
+      "language": "js",
+      "context": "When you add, change, move an element (insert,merge,moveoperations), specify theparentNameproperty (the parent element\u2019s name) in thediffproperty.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{  \"operation\": \"insert\",  \"name\": \"SomeName\",  \"values\": { }},{  \"operation\": \"insert\",  \"name\": \"SomeSecondName\",  \"values\": { }}",
+      "language": "js",
+      "context": "Each element in thediffarray must have a unique name.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{  \"operation\": \"insert\",  \"name\": \"SomeName\",  \"values\": { }},{  \"operation\": \"insert\",  \"name\": \"SomeName\",  \"values\": { }}",
+      "language": "js",
+      "context": "Each element in thediffarray must have a unique name.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{  \"operation\": \"insert\",  \"parentName\": \"ParentContainerName\",  \"propertyName\": \"items\",  \"name\": \"ItemName\",  \"values\": {    /* Element placement. */    \"layout\": {        /* Start at column zero. */        \"column\": 0,        /* Place in the fifth row of the grid. */        \"row\": 5,        /* Span 12 columns wide. */        \"colSpan\": 12,        /* Occupy one row. */        \"rowSpan\": 1    },    \"contentType\": Terrasoft.ContentType.ENUM  }}",
+      "language": "js",
+      "context": "Grid elementproperties:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"SectionTabsSchema\", [], function() {    return {        ...        /* Declare the properties property. */        properties: {            /* The parameters property. Array. */            parameters: [],            /* modulesContainer property. Entity. */            modulesContainer: {}        },        methods: {            ...            /* Initialization method. Always executed first. */            init: function(callback, scope) {                ...                /* Call the method uses the view model properties. */                this.initContainers();                ...            },            ...            /* The method where to use the properties. */            initContainers: function() {                /* Use the modulesContainer property. */                this.modulesContainer.items = [];                ...                /* Use the parameters property. */                this.Terrasoft.each(this.parameters, function(config) {                    config = this.applyConfigs(config);                    var moduleConfig = this.getModuleContainerConfig(config);                    var initConfig = this.getInitConfig();                    var container = viewGenerator.generatePartial(moduleConfig, initConfig)[0];                    this.modulesContainer.items.push(container);                }, this);            },            ...        },    ...    }});",
+      "language": "js",
+      "context": "View an example that uses thepropertiesproperty in theSectionTabsSchemaschema of theNUIpackage below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Schema type",
+          "Required marker comments"
+        ],
+        [
+          "EditViewModelSchemamodel view schema of a record page",
+          "details:/**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,modules:/**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,diff:/**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/,businessRules:/**SCHEMA_BUSINESS_RULES*/{}/**SCHEMA_BUSINESS_RULES*/"
+        ],
+        [
+          "ModuleViewModelSchemamodel view schema of a section",
+          "modules:/**SCHEMA_MODULES*/{}/**SCHEMA_MODULES*/,diff:/**SCHEMA_DIFF*/[]/**SCHEMA_DIFF*/"
+        ],
+        [
+          "EditControlsDetailViewModelSchemamodel view schema of a detail with fields"
+        ],
+        [
+          "DetailViewModelSchemamodel view schema of a detail"
+        ],
+        [
+          "GridDetailViewModelSchemamodel view schema of a detail that has a list"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Schema type</p></th><th><p>Required marker comments</p></th></tr><tr><td><p><code>EditViewModelSchema</code> model view schema of a record page</p></td><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">details</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_DETAILS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_DETAILS*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">modules</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_MODULES*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_MODULES*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">diff</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_DIFF*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_DIFF*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">businessRules</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_BUSINESS_RULES*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_BUSINESS_RULES*/</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td></tr><tr><td><p><code>ModuleViewModelSchema</code> model view schema of a section</p></td><td rowspan=\"4\"><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">modules</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_MODULES*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_MODULES*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">diff</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_DIFF*/</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token doc-comment comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/**SCHEMA_DIFF*/</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td></tr><tr><td><p><code>EditControlsDetailViewModelSchema</code> model view schema of a detail with fields</p></td></tr><tr><td><p><code>DetailViewModelSchema</code> model view schema of a detail</p></td></tr><tr><td><p><code>GridDetailViewModelSchema</code> model view schema of a detail that has a list</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Message mode",
+          "Description",
+          "Connection"
+        ],
+        [
+          "Address",
+          "Address messages are only received by the last subscriber.",
+          "To switch to address mode, set themodeproperty tothis.Terrasoft.MessageMode.PTP."
+        ],
+        [
+          "Broadcasting",
+          "Broadcasting messages are received by all subscribers.",
+          "To switch to broadcastingmode, set the mode property tothis.Terrasoft.MessageMode.BROADCAST."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Message mode</p></th><th><p>Description</p></th><th><p>Connection</p></th></tr><tr><td><p>Address</p></td><td><p>Address messages are only received by the last subscriber.</p></td><td><p>To switch to address mode, set the <code>mode</code> property to <code>this.Terrasoft.MessageMode.PTP</code>.</p></td></tr><tr><td><p>Broadcasting</p></td><td><p>Broadcasting messages are received by all subscribers.</p></td><td><p>To switch to broadcasting <code>mode</code>, set the mode property to <code>this.Terrasoft.MessageMode.BROADCAST</code>.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Message direction",
+          "Description",
+          "Connection"
+        ],
+        [
+          "Publishing",
+          "The message can only be published, i.\u00a0e., it is anoutboundmessage.",
+          "To set the message direction to publishing, set thedirectionproperty tothis.Terrasoft.MessageDirectionType.PUBLISH."
+        ],
+        [
+          "Subscription",
+          "The message can only be subscribed to, i.\u00a0e., it is aninboundmessage.",
+          "To set the message direction to subscription, set thedirectionproperty tothis.Terrasoft.MessageDirectionType.SUBSCRIBE."
+        ],
+        [
+          "Bidirectional",
+          "The bidirectional mode enables publishing of and subscription to the same message in different instances of a single class or within a single schema inheritance hierarchy. The same message cannot be announced with different directions in a single schema inheritance hierarchy. Learn more about using bidirectional messages in cases where that is a requirement in a separate article:Sandbox.",
+          "Corresponds tothe Terrasoft.MessageDirectionType.BIDIRECTIONALenumeration value."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Message direction</p></th><th><p>Description</p></th><th><p>Connection</p></th></tr><tr><td><p>Publishing</p></td><td><p>The message can only be published, i.\u00a0e., it is an <strong>outbound</strong> message.</p></td><td><p>To set the message direction to publishing, set the <code>direction</code> property to <code>this.Terrasoft.MessageDirectionType.PUBLISH</code>.</p></td></tr><tr><td><p>Subscription</p></td><td><p>The message can only be subscribed to, i.\u00a0e., it is an <strong>inbound</strong> message.</p></td><td><p>To set the message direction to subscription, set the <code>direction</code> property to <code>this.Terrasoft.MessageDirectionType.SUBSCRIBE</code>.</p></td></tr><tr><td><p>Bidirectional</p></td><td><p>The bidirectional mode enables publishing of and subscription to the same message in different instances of a single class or within a single schema inheritance hierarchy. The same message cannot be announced with different directions in a single schema inheritance hierarchy. Learn more about using bidirectional messages in cases where that is a requirement in a separate article: <a href=\"https://academy.creatio.com/documents?ver=8.1&amp;id=15321\" rel=\"noopener noreferrer\" target=\"_blank\">Sandbox</a>.</p></td><td><p>Corresponds to <code>the Terrasoft.MessageDirectionType.BIDIRECTIONAL</code> enumeration value.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThedetailsproperty loads a detail to a page. Since a detail is also a module, we recommend using themodulesproperty instead.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The <code>details</code> property loads a detail to a page. Since a detail is also a module, we recommend using the <code>modules</code> property instead.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Thedetailsproperty loads a detail to a page. Since a detail is also a module, we recommend using themodulesproperty instead.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The <code>details</code> property loads a detail to a page. Since a detail is also a module, we recommend using the <code>modules</code> property instead.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantDo not use words likeUtilities,Extension,Tools, or similar in the names. They make the purpose of the mixin impossible to discern based on the mixin name.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Do not use words like <code>Utilities</code>, <code>Extension</code>, <code>Tools</code>, or similar in the names. They make the purpose of the mixin impossible to discern based on the mixin name.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Do not use words likeUtilities,Extension,Tools, or similar in the names. They make the purpose of the mixin impossible to discern based on the mixin name.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Do not use words like <code>Utilities</code>, <code>Extension</code>, <code>Tools</code>, or similar in the names. They make the purpose of the mixin impossible to discern based on the mixin name.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteTo overload a mixin function, create a function with the same name in the client schema. As a result, Creatio will use the function of the schema, and not that of the mixin, when calling.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>To overload a mixin function, create a function with the same name in the client schema. As a result, Creatio will use the function of the schema, and not that of the mixin, when calling.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To overload a mixin function, create a function with the same name in the client schema. As a result, Creatio will use the function of the schema, and not that of the mixin, when calling.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To overload a mixin function, create a function with the same name in the client schema. As a result, Creatio will use the function of the schema, and not that of the mixin, when calling.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "address",
+      "content": "ImportantMessage publishing can return the handler function results only in theaddressmode.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Message publishing can return the handler function results only in the <strong>address</strong> mode.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "address",
+      "content": "Message publishing can return the handler function results only in theaddressmode.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Message publishing can return the handler function results only in the <strong>address</strong> mode.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWe do not recommend editing thebusinessRulesproperty of the client schema.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We do not recommend editing the <code>businessRules</code> property of the client schema.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We do not recommend editing thebusinessRulesproperty of the client schema.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We do not recommend editing the <code>businessRules</code> property of the client schema.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteChanges made to the configuration object of thebusinessRulesproperty take precedence when you delete or disable a business rule.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>Changes made to the configuration object of the <code>businessRules</code> property take precedence when you delete or disable a business rule.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Changes made to the configuration object of thebusinessRulesproperty take precedence when you delete or disable a business rule.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Changes made to the configuration object of the <code>businessRules</code> property take precedence when you delete or disable a business rule.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThedetailsproperty loads a detail to a page. Since a detail is also a module, we recommend using themodulesproperty instead.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The <code>details</code> property loads a detail to a page. Since a detail is also a module, we recommend using the <code>modules</code> property instead.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Thedetailsproperty loads a detail to a page. Since a detail is also a module, we recommend using themodulesproperty instead.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The <code>details</code> property loads a detail to a page. Since a detail is also a module, we recommend using the <code>modules</code> property instead.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkMixinPackage_2021-02-02_09.44.04.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkMixinPackage_2021-02-02_09.44.04.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/c397dacc4f3af1af_-on-creatio-platform_8.1_front-end-development_classic-ui_client-schema_overview_sdkMixinPackage_2021-02-02_09.44.04.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Client schema (Classic UI)",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Develop a client schema\u200b",
+      "anchor": "title-3051-1"
+    },
+    {
+      "level": 2,
+      "text": "Client schema properties\u200b",
+      "anchor": "title-3051-2"
+    },
+    {
+      "level": 3,
+      "text": "Schema name (entitySchemaName)\u200b",
+      "anchor": "title-3051-3"
+    },
+    {
+      "level": 3,
+      "text": "Mixins (mixins)\u200b",
+      "anchor": "title-3051-4"
+    },
+    {
+      "level": 4,
+      "text": "Create a mixin\u200b",
+      "anchor": "title-3051-5"
+    },
+    {
+      "level": 4,
+      "text": "Assign a name to the mixin\u200b",
+      "anchor": "title-3051-6"
+    },
+    {
+      "level": 4,
+      "text": "Connect the namespace\u200b",
+      "anchor": "title-3051-7"
+    },
+    {
+      "level": 4,
+      "text": "Implement the mixin functionality\u200b",
+      "anchor": "title-3051-8"
+    },
+    {
+      "level": 4,
+      "text": "Use the mixin\u200b",
+      "anchor": "title-3051-9"
+    },
+    {
+      "level": 3,
+      "text": "Attributes (attributes)\u200b",
+      "anchor": "title-3051-10"
+    },
+    {
+      "level": 3,
+      "text": "Messages (messages)\u200b",
+      "anchor": "title-3051-11"
+    },
+    {
+      "level": 4,
+      "text": "Message publication\u200b",
+      "anchor": "title-3051-12"
+    },
+    {
+      "level": 4,
+      "text": "Message subscription\u200b",
+      "anchor": "title-3051-13"
+    },
+    {
+      "level": 3,
+      "text": "Methods (methods)\u200b",
+      "anchor": "title-3051-14"
+    },
+    {
+      "level": 3,
+      "text": "Business rules (rules and businessRules)\u200b",
+      "anchor": "title-3051-15"
+    },
+    {
+      "level": 4,
+      "text": "Specifics of business rules\u200b",
+      "anchor": "title-3051-16"
+    },
+    {
+      "level": 4,
+      "text": "Edit an existing business rule\u200b",
+      "anchor": "title-3051-17"
+    },
+    {
+      "level": 3,
+      "text": "Modules (modules)\u200b",
+      "anchor": "title-3051-18"
+    },
+    {
+      "level": 3,
+      "text": "Array of modifications (diff)\u200b",
+      "anchor": "title-3051-19"
+    },
+    {
+      "level": 4,
+      "text": "Alias mechanism\u200b",
+      "anchor": "title-3051-20"
+    },
+    {
+      "level": 4,
+      "text": "Relationship between a view and model\u200b",
+      "anchor": "title-3051-48"
+    },
+    {
+      "level": 4,
+      "text": "diffproperty declaration rules\u200b",
+      "anchor": "title-3051-21"
+    },
+    {
+      "level": 3,
+      "text": "Properties (properties)\u200b",
+      "anchor": "title-3051-27"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CREATE",
+        "path": "("
+      },
+      {
+        "method": "PUBLISH",
+        "path": "("
+      },
+      {
+        "method": "SUBSCRIBE",
+        "path": "("
+      },
+      {
+        "method": "INITCONTAINERS",
+        "path": "("
+      },
+      {
+        "method": "EACH",
+        "path": "("
+      },
+      {
+        "method": "APPLYCONFIGS",
+        "path": "("
+      },
+      {
+        "method": "GETMODULECONTAINERCONFIG",
+        "path": "("
+      },
+      {
+        "method": "GETINITCONFIG",
+        "path": "("
+      },
+      {
+        "method": "GENERATEPARTIAL",
+        "path": "("
+      },
+      {
+        "method": "PUSH",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/classic-ui/client-schema/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/classic-ui/client-schema/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/client-schema/overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/creatio-devkit-common",
+      "text": "@creatio-devkit/common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/module-basics",
+      "text": "Module basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/types",
+      "text": "Types",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/modules/overview",
+      "text": "Class",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema",
+      "text": "PreviousClient schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/examples/overload-a-mixin-method",
+      "text": "Overload a mixin method",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/examples/method-declaration-example",
+      "text": "Method declaration example",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/examples/array-of-modifications-usage-example",
+      "text": "Array of modifications usage example",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/examples/alias-property-usage-example",
+      "text": "alias property usage example",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/references/attributes",
+      "text": "attributes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/references/messages",
+      "text": "messages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/references/rules-and-businessrules",
+      "text": "rules and businessRules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/client-schema/references/diff",
+      "text": "diff",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/controls/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/controls-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/sandbox/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sandbox-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sandbox-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/websocket-messages/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/websocket-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/websocket-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/data-operations-front-end/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:13:10.679479"
+}

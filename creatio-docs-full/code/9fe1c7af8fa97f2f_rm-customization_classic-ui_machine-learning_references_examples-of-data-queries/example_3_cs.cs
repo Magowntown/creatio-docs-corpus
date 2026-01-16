@@ -1,0 +1,1 @@
+static Select Count(    this Select select,    object sourceColumn)

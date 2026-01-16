@@ -1,0 +1,1 @@
+IsInUpdating bool

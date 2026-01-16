@@ -1,0 +1,1 @@
+EntitySchemaLengthQueryFunction CreateLengthFunction(string columnPath)EntitySchemaLengthQueryFunction CreateLengthFunction(params EntitySchemaQueryExpression[] expressions)

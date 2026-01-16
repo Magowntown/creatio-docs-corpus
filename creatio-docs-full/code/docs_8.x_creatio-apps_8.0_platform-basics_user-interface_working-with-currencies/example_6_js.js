@@ -1,0 +1,1 @@
+Product price * Ratio / Exchange rate – 14.6*100/1.5092=967.40

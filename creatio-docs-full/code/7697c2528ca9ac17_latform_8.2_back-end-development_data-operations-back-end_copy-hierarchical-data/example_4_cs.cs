@@ -1,0 +1,1 @@
+var entityCollectionMappingHandler = ClassFactory.Get<IEntityCollectionMappingHandler>(new ConstructorArgument("userConnection", UserConnection));

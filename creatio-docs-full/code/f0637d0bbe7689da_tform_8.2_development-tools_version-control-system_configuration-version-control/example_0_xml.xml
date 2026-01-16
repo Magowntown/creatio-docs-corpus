@@ -1,0 +1,1 @@
+<add name="defPackagesWorkingCopyPath" connectionString="TEMP\APPLICATION\WORKSPACE\TerrasoftPackages" >

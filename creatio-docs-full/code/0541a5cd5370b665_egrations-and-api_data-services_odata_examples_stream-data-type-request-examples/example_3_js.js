@@ -1,0 +1,1 @@
+// Add the contact to the "Contact" database table.POST CreatioURL/0/odata/ContactAccept: application/json; odata=verboseContent-Type: application/json; odata=verbose; IEEE754Compatible=true// Specify "BPMCSRF" header when using cookie-based authentication.BPMCSRF: SomeBPMCSRFToken{    // Set the "John Best" contact name to the "Name" field.    "Name": "John Best"}

@@ -1,0 +1,835 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/examples/open-a-record-page",
+  "title": "Open a Classic UI page from a custom request handler",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization"
+    },
+    {
+      "text": "Open page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/open-page-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: intermediate\nTo implement the example:\n1. Set up the page UI. Read more >>>\n2. Set up how to open Classic UI pages. Read more >>>\nExample\nAdd the following buttons to the custom request page:\n* **Edit event**. Must open the \"Networking Day\" event page.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result.gif)\n* **Create FAQ**. Must open the new knowledge base page that has \"New FAQ\" name and \"FAQ\" type.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result_01.gif)\n## 1\\. Set up the page UI\u200b\n1. **Create an app** based on the **Records & business processes** template. Instructions: [Create an app manually](https://academy.creatio.com/documents?ver=8.1&id=2377&anchor=title-2232-6) (user documentation).\nFor this example, create a **Requests** app.\n2. **Open the form page**.\nFor this example, open the **Requests form page**.\n3. **Add a button**.\nFor this example, add the following buttons:\n* button that opens the \"Networking Day\" event page\n* button that opens the new knowledge base page\nTo do this:\n1. Add a **Button** type component to the toolbar of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the button properties.\nElement| Property| Property value  \n---|---|---  \nButton that opens the \"Networking Day\" event page| Title| Edit event  \nButton that opens the new knowledge base page| Title| Create FAQ  \nStyle| Primary  \n4. **Save the changes**.\n## 2\\. Set up how to open Classic UI pages\u200b\nConfigure the business logic in the Client Module Designer. For this example, set up how to open Classic UI pages.\n1. **Open the source code** of the Freedom UI page. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png).\n2. **Add the dependencies**. To do this, add `@creatio-devkit/common` library as a dependency. The library includes the `HandlerChainService` service that opens pages.\nAMD module dependencies\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \n...  \n}  \n});  \n3. **Set up how to handle the action** executed on button click.\n1. Go to the `viewConfigDiff` schema section \u2192 `EditEventButton` element.\n2. Bind the sending of the custom `usr.EditEventRequest` request to the `clicked` button event.\n3. Go to the `CreateFaqButton` element.\n4. Bind the sending of the custom `usr.CreateFaqRequest` request to the `clicked` button event.\nviewConfigDiff schema section\nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n/* Button that opens the \"Networking Day\" event page. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"EditEventButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the \"clicked\" button event. */  \n\"request\": \"usr.EditEventRequest\"  \n}  \n},  \n...  \n},  \n/* Button that opens the new knowledge base page. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"CreateFaqButton\",  \n\"values\": {  \n...,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the \"clicked\" button event. */  \n\"request\": \"usr.CreateFaqRequest\"  \n}  \n},  \n...  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \n4. **Implement the custom request handlers**.\n1. Go to the `handlers` schema section.\n2. Implement the `usr.EditEventRequest` custom request handler.\n1. Retrieve the instance of the HTTP client from `@creatio-devkit/common`.\n2. Send the `crt.UpdateRecordRequest` base request handler that opens the \"Networking Day\" event page using the specified ID. View the ID of the \"Networking Day\" event page in the browser address bar. For this example, the ID is \"60cb269d-7447-4347-b657-63030cbd810e.\"\n3. Implement the `usr.CreateFaqRequest` request handler.\n1. Retrieve the instance of the HTTP client from `@creatio-devkit/common`.\n2. Send the `crt.CreateRecordRequest` base request handler that opens the new knowledge base page. Both Freedom UI and Classic UI open record pages in a similar way. When Creatio adds a record, you can pass the needed column values. Fill out the **Name** and **Type** fields using the \"New FAQ\" and \"FAQ,\" respectively. View the ID of the FAQ type in the **Knowledge base article types** lookup. For this example, the ID is \"80bb327e-f36b-1410-a29d-001d60e938c6.\"\nhandlers schema section\nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.EditEventRequest\",  \n/* The implementation of the custom request handler. */  \nhandler: async (request, next) => {  \n/* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */  \nconst handlerChain = sdk.HandlerChainService.instance;  \n/* Send the base request handler to open the event page that has the specified ID. */  \nawait handlerChain.process({  \ntype: 'crt.UpdateRecordRequest',  \nentityName: 'Event',  \nrecordId: '60cb269d-7447-4347-b657-63030cbd810e',  \n$context: request.$context,  \nscopes: [...request.scopes]  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n},  \n{  \nrequest: \"usr.CreateFaqRequest\",  \n/* The implementation of the custom request handler. */  \nhandler: async (request, next) => {  \n/* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */  \nconst handlerChain = sdk.HandlerChainService.instance;  \n/* Send the base request handler to open the new knowledge base page. Fill out the \"Name\" and \"Type\" fields using the specified values. */  \nawait handlerChain.process({  \ntype: 'crt.CreateRecordRequest',  \nentityName: 'KnowledgeBase',  \ndefaultValues: [  \n{  \nattributeName: 'Name',  \nvalue: 'New FAQ'  \n},  \n{  \nattributeName: 'Type',  \nvalue: '80bb327e-f36b-1410-a29d-001d60e938c6'  \n}  \n],  \n$context: request.$context,  \nscopes: [...request.scopes]  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \n5. **Save the changes**.\n## View the result\u200b\nTo view the outcome of the example that **opens the \"Networking Day\" event page** :\n1. **Open the Requests section**.\n2. **Create a request**.\n3. Click **Edit event**.\n**As a result** , Creatio will open the \"Networking Day\" event page whose ID is \"60cb269d-7447-4347-b657-63030cbd810e.\" [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=15365&anchor=view-result-1)\nTo view the outcome of the example that **opens the new knowledge base page and populates fields** :\n1. **Open the Requests section**.\n2. **Create a request** that has an arbitrary name. For example, \"Vacation.\"\n3. Click **Create FAQ**.\n**As a result** , Creatio will open the new knowledge base page and populate the **Name** and **Type** fields using \"New FAQ\" and \"FAQ,\" respectively. [View the result >>>](https://academy.creatio.com/documents?ver=8.1&id=15365&anchor=view-result-2)\n## Source code\u200b\nUsrRequests_FormPage\n/* Declare the AMD module. */  \ndefine(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {  \nreturn {  \nviewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"name\": \"SaveButton\",  \n\"values\": {  \n\"size\": \"large\",  \n\"iconPosition\": \"only-text\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"Feed\",  \n\"values\": {  \n\"dataSourceName\": \"PDS\",  \n\"entitySchemaName\": \"UsrRequests\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"name\": \"AttachmentList\",  \n\"values\": {  \n\"columns\": [  \n{  \n\"id\": \"9de1e677-a3a9-433a-b40c-955bb81b095e\",  \n\"code\": \"AttachmentListDS_Name\",  \n\"caption\": \"#ResourceString(AttachmentListDS_Name)#\",  \n\"dataValueType\": 28,  \n\"width\": 200  \n}  \n]  \n}  \n},  \n/* Button that opens the \"Networking Day\" event page. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"EditEventButton\",  \n\"values\": {  \n\"type\": \"crt.Button\",  \n\"caption\": \"#ResourceString(EditEventButton_caption)#\",  \n\"color\": \"default\",  \n\"disabled\": false,  \n\"size\": \"large\",  \n\"iconPosition\": \"only-text\",  \n\"layoutConfig\": {},  \n\"visible\": true,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the \"clicked\" button event. */  \n\"request\": \"usr.EditEventRequest\"  \n},  \n\"clickMode\": \"default\"  \n},  \n\"parentName\": \"CardToolsContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n},  \n/* Button that opens the new knowledge base page. */  \n{  \n\"operation\": \"insert\",  \n\"name\": \"CreateFaqButton\",  \n\"values\": {  \n\"type\": \"crt.Button\",  \n\"caption\": \"#ResourceString(CreateFaqButton_caption)#\",  \n\"color\": \"primary\",  \n\"disabled\": false,  \n\"size\": \"large\",  \n\"iconPosition\": \"only-text\",  \n\"visible\": true,  \n\"clicked\": {  \n/* Bind the sending of the custom request to the \"clicked\" button event. */  \n\"request\": \"usr.CreateFaqRequest\"  \n}  \n},  \n\"parentName\": \"CardToolsContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 1  \n},  \n{  \n\"operation\": \"insert\",  \n\"name\": \"UsrName\",  \n\"values\": {  \n\"layoutConfig\": {  \n\"column\": 1,  \n\"row\": 1,  \n\"colSpan\": 1,  \n\"rowSpan\": 1  \n},  \n\"type\": \"crt.Input\",  \n\"label\": \"$Resources.Strings.UsrName\",  \n\"control\": \"$UsrName\",  \n\"labelPosition\": \"auto\",  \n\"multiline\": false  \n},  \n\"parentName\": \"SideAreaProfileContainer\",  \n\"propertyName\": \"items\",  \n\"index\": 0  \n}  \n]/**SCHEMA_VIEW_CONFIG_DIFF*/,  \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"UsrName\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.UsrName\"  \n}  \n}  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\",  \n\"Id\",  \n\"modelConfig\"  \n],  \n\"values\": {  \n\"path\": \"PDS.Id\"  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [],  \n\"values\": {  \n\"primaryDataSourceName\": \"PDS\"  \n}  \n},  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"PDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"UsrRequests\"  \n},  \n\"scope\": \"page\"  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nhandlers: /**SCHEMA_HANDLERS*/[  \n{  \nrequest: \"usr.EditEventRequest\",  \n/* The implementation of the custom request handler. */  \nhandler: async (request, next) => {  \n/* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */  \nconst handlerChain = sdk.HandlerChainService.instance;  \n/* Send the base request handler to open the event page that has the specified ID. */  \nawait handlerChain.process({  \ntype: 'crt.UpdateRecordRequest',  \nentityName: 'Event',  \nrecordId: '60cb269d-7447-4347-b657-63030cbd810e',  \n$context: request.$context,  \nscopes: [...request.scopes]  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n},  \n{  \nrequest: \"usr.CreateFaqRequest\",  \n/* The implementation of the custom request handler. */  \nhandler: async (request, next) => {  \n/* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */  \nconst handlerChain = sdk.HandlerChainService.instance;  \n/* Send the base request handler to open the new knowledge base page. Fill out the \"Name\" and \"Type\" fields using the specified values. */  \nawait handlerChain.process({  \ntype: 'crt.CreateRecordRequest',  \nentityName: 'KnowledgeBase',  \ndefaultValues: [  \n{  \nattributeName: 'Name',  \nvalue: 'New FAQ'  \n},  \n{  \nattributeName: 'Type',  \nvalue: '80bb327e-f36b-1410-a29d-001d60e938c6'  \n}  \n],  \n$context: request.$context,  \nscopes: [...request.scopes]  \n});  \n/* Call the next handler if it exists and return its result. */  \nreturn next?.handle(request);  \n}  \n}  \n]/**SCHEMA_HANDLERS*/,  \nconverters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,  \nvalidators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/  \n};  \n});  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/OpenAClassicUIPage/8.1/UsrRequests_2023-12-08_11.44.49.zip)",
+  "code_examples": [
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        ...    }});",
+      "language": "js",
+      "context": "Add the dependencies. To do this, add@creatio-devkit/commonlibrary as a dependency. The library includes theHandlerChainServiceservice that opens pages.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    /* Button that opens the \"Networking Day\" event page. */    {        \"operation\": \"insert\",        \"name\": \"EditEventButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the custom request to the \"clicked\" button event. */                \"request\": \"usr.EditEventRequest\"            }        },        ...    },    /* Button that opens the new knowledge base page. */    {        \"operation\": \"insert\",        \"name\": \"CreateFaqButton\",        \"values\": {            ...,            \"clicked\": {                /* Bind the sending of the custom request to the \"clicked\" button event. */                \"request\": \"usr.CreateFaqRequest\"            }        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Set up how to handle the actionexecuted on button click.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "handlers: /**SCHEMA_HANDLERS*/[    {        request: \"usr.EditEventRequest\",        /* The implementation of the custom request handler. */        handler: async (request, next) => {            /* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */            const handlerChain = sdk.HandlerChainService.instance;            /* Send the base request handler to open the event page that has the specified ID. */            await handlerChain.process({                type: 'crt.UpdateRecordRequest',                entityName: 'Event',                recordId: '60cb269d-7447-4347-b657-63030cbd810e',                $context: request.$context,                scopes: [...request.scopes]            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    },    {        request: \"usr.CreateFaqRequest\",        /* The implementation of the custom request handler. */        handler: async (request, next) => {            /* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */            const handlerChain = sdk.HandlerChainService.instance;            /* Send the base request handler to open the new knowledge base page. Fill out the \"Name\" and \"Type\" fields using the specified values. */            await handlerChain.process({                type: 'crt.CreateRecordRequest',                entityName: 'KnowledgeBase',                defaultValues: [                    {                        attributeName: 'Name',                        value: 'New FAQ'                    },                    {                        attributeName: 'Type',                        value: '80bb327e-f36b-1410-a29d-001d60e938c6'                    }                ],                $context: request.$context,                scopes: [...request.scopes]            });            /* Call the next handler if it exists and return its result. */            return next?.handle(request);        }    }]/**SCHEMA_HANDLERS*/,",
+      "language": "js",
+      "context": "Implement theusr.CreateFaqRequestrequest handler.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Declare the AMD module. */define(\"UsrRequests_FormPage\", /**SCHEMA_DEPS*/[\"@creatio-devkit/common\"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {    return {        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"name\": \"SaveButton\",                \"values\": {                    \"size\": \"large\",                    \"iconPosition\": \"only-text\"                }            },            {                \"operation\": \"merge\",                \"name\": \"Feed\",                \"values\": {                    \"dataSourceName\": \"PDS\",                    \"entitySchemaName\": \"UsrRequests\"                }            },            {                \"operation\": \"merge\",                \"name\": \"AttachmentList\",                \"values\": {                    \"columns\": [                        {                            \"id\": \"9de1e677-a3a9-433a-b40c-955bb81b095e\",                            \"code\": \"AttachmentListDS_Name\",                            \"caption\": \"#ResourceString(AttachmentListDS_Name)#\",                            \"dataValueType\": 28,                            \"width\": 200                        }                    ]                }            },            /* Button that opens the \"Networking Day\" event page. */            {                \"operation\": \"insert\",                \"name\": \"EditEventButton\",                \"values\": {                    \"type\": \"crt.Button\",                    \"caption\": \"#ResourceString(EditEventButton_caption)#\",                    \"color\": \"default\",                    \"disabled\": false,                    \"size\": \"large\",                    \"iconPosition\": \"only-text\",                    \"layoutConfig\": {},                    \"visible\": true,                    \"clicked\": {                        /* Bind the sending of the custom request to the \"clicked\" button event. */                        \"request\": \"usr.EditEventRequest\"                    },                    \"clickMode\": \"default\"                },                \"parentName\": \"CardToolsContainer\",                \"propertyName\": \"items\",                \"index\": 0            },            /* Button that opens the new knowledge base page. */            {                \"operation\": \"insert\",                \"name\": \"CreateFaqButton\",                \"values\": {                    \"type\": \"crt.Button\",                    \"caption\": \"#ResourceString(CreateFaqButton_caption)#\",                    \"color\": \"primary\",                    \"disabled\": false,                    \"size\": \"large\",                    \"iconPosition\": \"only-text\",                    \"visible\": true,                    \"clicked\": {                        /* Bind the sending of the custom request to the \"clicked\" button event. */                        \"request\": \"usr.CreateFaqRequest\"                    }                },                \"parentName\": \"CardToolsContainer\",                \"propertyName\": \"items\",                \"index\": 1            },            {                \"operation\": \"insert\",                \"name\": \"UsrName\",                \"values\": {                    \"layoutConfig\": {                        \"column\": 1,                        \"row\": 1,                        \"colSpan\": 1,                        \"rowSpan\": 1                    },                    \"type\": \"crt.Input\",                    \"label\": \"$Resources.Strings.UsrName\",                    \"control\": \"$UsrName\",                    \"labelPosition\": \"auto\",                    \"multiline\": false                },                \"parentName\": \"SideAreaProfileContainer\",                \"propertyName\": \"items\",                \"index\": 0            }        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\"                ],                \"values\": {                    \"UsrName\": {                        \"modelConfig\": {                            \"path\": \"PDS.UsrName\"                        }                    }                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"attributes\",                    \"Id\",                    \"modelConfig\"                ],                \"values\": {                    \"path\": \"PDS.Id\"                }            }        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[            {                \"operation\": \"merge\",                \"path\": [],                \"values\": {                    \"primaryDataSourceName\": \"PDS\"                }            },            {                \"operation\": \"merge\",                \"path\": [                    \"dataSources\"                ],                \"values\": {                    \"PDS\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"UsrRequests\"                        },                        \"scope\": \"page\"                    }                }            }        ]/**SCHEMA_MODEL_CONFIG_DIFF*/,        handlers: /**SCHEMA_HANDLERS*/[            {                request: \"usr.EditEventRequest\",                /* The implementation of the custom request handler. */                handler: async (request, next) => {                    /* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */                    const handlerChain = sdk.HandlerChainService.instance;                    /* Send the base request handler to open the event page that has the specified ID. */                    await handlerChain.process({                        type: 'crt.UpdateRecordRequest',                        entityName: 'Event',                        recordId: '60cb269d-7447-4347-b657-63030cbd810e',                        $context: request.$context,                        scopes: [...request.scopes]                    });                    /* Call the next handler if it exists and return its result. */                    return next?.handle(request);                }            },            {                request: \"usr.CreateFaqRequest\",                /* The implementation of the custom request handler. */                handler: async (request, next) => {                    /* Retrieve the instance of the HTTP client from \"@creatio-devkit/common.\" */                    const handlerChain = sdk.HandlerChainService.instance;                    /* Send the base request handler to open the new knowledge base page. Fill out the \"Name\" and \"Type\" fields using the specified values. */                    await handlerChain.process({                        type: 'crt.CreateRecordRequest',                        entityName: 'KnowledgeBase',                        defaultValues: [                            {                                attributeName: 'Name',                                value: 'New FAQ'                            },                            {                                attributeName: 'Type',                                value: '80bb327e-f36b-1410-a29d-001d60e938c6'                            }                        ],                        $context: request.$context,                        scopes: [...request.scopes]                    });                    /* Call the next handler if it exists and return its result. */                    return next?.handle(request);                }            }        ]/**SCHEMA_HANDLERS*/,        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/    };});",
+      "language": "js",
+      "context": "Source code\u200b",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Button that opens the \"Networking Day\" event page",
+          "Title",
+          "Edit event"
+        ],
+        [
+          "Button that opens the new knowledge base page",
+          "Title",
+          "Create FAQ"
+        ],
+        [
+          "Style",
+          "Primary"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><p>Button that opens the \"Networking Day\" event page</p></td><td><center><p>Title</p></center></td><td><center><p>Edit event</p></center></td></tr><tr><td rowspan=\"2\"><p>Button that opens the new knowledge base page</p></td><td><center><p>Title</p></center></td><td><center><p>Create FAQ</p></center></td></tr><tr><td><center><p>Style</p></center></td><td><center><p>Primary</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Edit event",
+      "content": "ExampleAdd the following buttons to the custom request page:Edit event. Must open the \"Networking Day\" event page.Create FAQ. Must open the new knowledge base page that has \"New FAQ\" name and \"FAQ\" type.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add the following buttons to the custom request page:</p><ul>\n<li>\n<p><strong>Edit event</strong>. Must open the \"Networking Day\" event page.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result.gif\"/></div></figure>\n</li>\n<li>\n<p><strong>Create FAQ</strong>. Must open the new knowledge base page that has \"New FAQ\" name and \"FAQ\" type.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result_01.gif\"/></div></figure>\n</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Edit event",
+      "content": "Add the following buttons to the custom request page:Edit event. Must open the \"Networking Day\" event page.Create FAQ. Must open the new knowledge base page that has \"New FAQ\" name and \"FAQ\" type.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add the following buttons to the custom request page:</p><ul>\n<li>\n<p><strong>Edit event</strong>. Must open the \"Networking Day\" event page.</p>\n<figure><figcaption> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result.gif\"/></div></figure>\n</li>\n<li>\n<p><strong>Create FAQ</strong>. Must open the new knowledge base page that has \"New FAQ\" name and \"FAQ\" type.</p>\n<figure><figcaption> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result_01.gif\"/></div></figure>\n</li>\n</ul></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result.gif",
+      "alt": "",
+      "title": "",
+      "context": "Edit event. Must open the \"Networking Day\" event page.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/69c16f9ba09ac9af_ization_freedom-ui_open-a-page-from-a-custom-handler_examples_open-a-record-page_320d987a4e74.gif"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/OpenAClassicUIPage/8.1/scr_result_01.gif",
+      "alt": "",
+      "title": "",
+      "context": "Create FAQ. Must open the new knowledge base page that has \"New FAQ\" name and \"FAQ\" type.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/69c16f9ba09ac9af_ization_freedom-ui_open-a-page-from-a-custom-handler_examples_open-a-record-page_7b3eb947c816.gif"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the button properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/69c16f9ba09ac9af_ization_freedom-ui_open-a-page-from-a-custom-handler_examples_open-a-record-page_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_SourceCode_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the source codeof the Freedom UI page. To do this, click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/69c16f9ba09ac9af_ization_freedom-ui_open-a-page-from-a-custom-handler_examples_open-a-record-page_0022b8eb0588.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/OpenAClassicUIPage/8.1/UsrRequests_2023-12-08_11.44.49.zip",
+      "text": "Package with example implementation",
+      "filename": "UsrRequests_2023-12-08_11.44.49.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/69c16f9ba09ac9af_ization_freedom-ui_open-a-page-from-a-custom-handler_examples_open-a-record-page_UsrRequests_2023-12-08_11.44.49.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Open a Classic UI page from a custom request handler",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Set up the page UI\u200b",
+      "anchor": "title-3828-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Set up how to open Classic UI pages\u200b",
+      "anchor": "title-3828-2"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-3828-3"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-3828-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      },
+      {
+        "method": "PROCESS",
+        "path": "("
+      },
+      {
+        "method": "HANDLE",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/examples/open-a-record-page",
+      "text": "Open a Classic UI page from a custom handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/examples/open-a-record-page",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/examples/open-a-record-page",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/examples/open-a-record-page",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/examples/open-a-freedom-ui-page",
+      "text": "Open a Freedom UI page from a custom handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/examples/open-a-typified-freedom-ui-page",
+      "text": "PreviousCreate records of a specific type from a typified Freedom UI page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "NextBusiness rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:44:00.583516"
+}

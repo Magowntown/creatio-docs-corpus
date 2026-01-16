@@ -1,0 +1,612 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+  "title": "File management API",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development"
+    },
+    {
+      "text": "File management API",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: intermediate\nView a list of namespaces for file management API in the table below.\nNamespace| Description  \n---|---  \nTerrasoft.File.Abstractions| Determines the file management logic in Creatio.  \nTerrasoft.File| Implements the abstractions used in Creatio.  \n## File locators\u200b\nA **file locator** determines the file location and implements the `Terrasoft.File.Abstractions.IFileLocator` interface. A file locator must contain a unique file identifier: `RecordId`.\nCreatio lets you create different file locators for different file storages. Depending on the file storage, the file locator might have extra properties to identify the file location. For example, the `Terrasoft.File.EntityFileLocator` class implements the file locator for the current file storage. View the properties of the `EntityFileLocator` object in the table below.\nProperty| Description  \n---|---  \nRecordId| Includes a unique file identifier.  \nEntitySchemaName| Includes the name of the object schema where the file is stored. For example, \"ActivityFile,\" \"CaseFile.\"  \n## File structure\u200b\n**File** in Creatio implements the `Terrasoft.File.Abstractions.IFile` interface whose methods let you manage files asynchronously, regardless of the file storage type. The `Terrasoft.File.Abstractions.FileUtils` class implements methods to manage files synchronously.\nView the file structure supported by Creatio in the table below.\nStructure element| Description| Storage  \n---|---|---  \nMetadata| File metadata includes file properties, such as file name, file size in bytes, file creation date. File metadata is based on the `Terrasoft.File.Abstractions.Metadata.FileMetadata` abstract class. For example, the `Terrasoft.File.Metadata.EntityFileMetadata` class implements the file metadata for files uploaded to the file storage.| The storage that implements the `Terrasoft.File.Abstractions.Metadata.IFileMetadataStorage` interface.  \nContent| File content.| The storage that implements the `Terrasoft.File.Abstractions.Metadata.IFileContentStorage` interface.  \nThe implementations of the `Terrasoft.File.Abstractions.Metadata.IFileMetadataStorage` and `Terrasoft.File.Abstractions.Metadata.IFileContentStorage` interfaces include specific features to interact with different file storages, such as server's file system, S3 file storage, Azure Blob file storage, Google Drive, etc.\n## Operations with files\u200b\n### Access an existing file and create a new file\u200b\nThe `Terrasoft.File.Abstractions.IFileFactory` interface implements methods to create and retrieve objects of a class that implements the `Terrasoft.File.Abstractions.IFile` interface. To access the `Terrasoft.File.Abstractions.IFileFactory` interface, use the methods of the `Terrasoft.File.File.FileFactoryUtils` class that extends the `UserConnection` class. Therefore, file management requires an instance of the `UserConnection` or `SystemUserConnection` class.\nSince the file locator determines the file location, specify the `RecordId` file identifier to **access an existing file**.\nView the examples that access existing files below.\n* Access the existing file (option 1)\n* Access the existing file (option 2)\n/* Retrieve the instance of the file factory. */  \nIFileFactory fileFactory = UserConnection.GetFileFactory();  \n/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */  \nvar fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);  \n/* Pass the created locator to the factory method. */  \nIFile file = fileFactory.Get(fileLocator);  \n/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */  \n...;  \n/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */  \nvar fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);  \n/* Pass the created locator to the method of the \"UserConnection\" class. */  \nIFile file = UserConnection.GetFile(fileLocator);  \n/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */  \n...;  \nTo **create a new file** :\n1. **Create a** `RecordId` **file identifier**.\n2. **Specify the file identifier** in the method that creates the file locator.\nView the examples that create new files below.\n* Create a new file (option 1)\n* Create a new file (option 2)\n/* Retrieve the instance of the file factory. */  \nIFileFactory fileFactory = UserConnection.GetFileFactory();  \n/* Create a unique ID for the new file. */  \nGuid recordId = Guid.NewGuid();  \n/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */  \nvar fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);  \n/* Pass the created locator to the factory method. */  \nIFile file = fileFactory.Create(fileLocator);  \n/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */  \n...;  \n/* Create a unique ID for the new file. */  \nGuid recordId = Guid.NewGuid();  \n/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */  \nvar fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);  \n/* Pass the created locator to the method of the \"UserConnection\" class. */  \nIFile file = UserConnection.CreateFile(fileLocator);  \n/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */  \n...;  \nView the examples that execute CRUD operations with the files below.\nCreate a new file bound to a single activity\n/* Create a unique ID for the new file. */  \nGuid recordId = Guid.NewGuid();  \n/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */  \nvar fileLocator= new EntityFileLocator(\"ActivityFile\", recordId);  \n/* Pass the created locator to the method of the \"UserConnection\" class. */  \nIFile file = UserConnection.CreateFile(fileLocator);  \n/* Specify the file name to determine the file in the file storage. */  \nfile.Name = \"Some name of a new\";  \n/* Bind the file to a single activity using \"activityId.\" */  \nfile.SetAttribute(\"ActivityId\", activityId);  \n/* Save the file metadata before saving the file content. */  \nfile.Save();  \n/* Specify the file content. */  \nvar content = new byte[] {0x12, 0x34, 0x56};  \nusing (var stream = new MemoryStream(content)) {  \n/* Save the file content to the database. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */  \nfile.Write(stream, FileWriteOptions.SinglePart);  \n}  \nRetrieve the file content\n/* The file content. */  \nvar content = new byte[]();  \n/* Create a unique ID for the new file. */  \nGuid recordId = Guid.NewGuid();  \n/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */  \nvar fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);  \n/* Pass the created locator to the method of the \"UserConnection\" class. */  \nIFile file = UserConnection.GetFile(fileLocator);  \nusing (Stream stream = file.Read()) {  \n/* Retrieve the file content and save it to the array. */  \ncontent = stream.ReadToEnd();  \n}  \nCopy a file from the original file storage, paste the file to a new file storage, and delete the file from the original file storage\n/* The file content. */  \nvar content = new byte[]();  \n/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */  \nvar fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);  \n/* Pass the created locator to the method of the \"UserConnection\" class. */  \nIFile file = UserConnection.GetFile(fileLocator);  \n/* Retrieve the file content and save it to the array. */  \nusing (Stream stream = file.Read()) {  \ncontent = stream.ReadToEnd();  \n}  \n/* Create a unique ID to copy the current file. */  \nGuid copyFileId = Guid.NewGuid();  \n/* Create the \"EntityFileLocator\" instance identified by \"copyFileId\" and stored in the \"ActivityFile\" database table. */  \nvar copyFileLocator = new EntityFileLocator(\"ActivityFile\", copyFileId);  \n/* Pass the created locator to the method of the \"UserConnection\" class. */  \nIFile copyFile = UserConnection.CreateFile(copyFileLocator);  \n/* Specify the file name to determine the file in a new file storage. */  \ncopyFile.Name = file.Name + \" - Copy\";  \n/* Save the file metadata before saving the file content. */  \ncopyFile.Save();  \n/* Copy the file content from the original file using one of the options.  \nOption 1. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */  \ncopyFile.Write(new MemoryStream(content), FileWriteOptions.SinglePart);  \n/* Option 2. */  \nfile.Copy(copyFile); */  \n/* Create a unique ID to paste the copied file. */  \nGuid moveFileId = Guid.NewGuid();  \n/* Create the \"EntityFileLocator\" instance identified by \"moveFileId\" and stored in the \"ContactFile\" database table. */  \nvar moveFileLocator = new EntityFileLocator(\"ContactFile\", moveFileId);  \n/* Pass the created locator to the method of the \"UserConnection\" class. */  \nIFile moveFile = UserConnection.CreateFile(moveFileLocator);  \n/* Save the file metadata before saving the file content. */  \nmoveFile.Save();  \n/* Paste the copied file to a new file storage. */  \nfile.Move(moveFile);  \n/* Delete the file from original file storage. */  \nfile.Delete();  \n### Implement a custom file storage\u200b\nImplement custom file storage if the current file metadata storage is insufficient for your business goals. To do this:\n1. **Implement the** `Terrasoft.File.Abstractions.Content.IFileContentStorage` **interface** that describes the API required for working with the file storage.\n2. **Implement a custom metadata storage** that implements the `Terrasoft.File.Abstractions.Metadata.IFileMetadataStorage` interface.\n3. **Inherit the metadata class** from the `Terrasoft.File.Abstractions.Metadata.FileMetadata` class.\n4. **Implement a custom file locator** that implements the `Terrasoft.File.Abstractions.IFileLocator` interface.\n5. **Register a custom metadata storage** in the **SysFileMetadataStorage** lookup.\n6. **Register a custom content storage** in the **SysFileContentStorage** lookup.\nView the example that creates file content storage in the file system below.\nFsFileBlobStorage\nnamespace Terrasoft.Configuration {  \nusing System.IO;  \nusing System.Threading.Tasks;  \nusing Terrasoft.File.Abstractions;  \nusing Terrasoft.File.Abstractions.Content;  \nusing Terrasoft.File.Abstractions.Metadata;  \nusing Terrasoft.File.Metadata;  \n/* Class that implements the \"IFileContentStorage\" interface. */   \npublic class FsFileBlobStorage: IFileContentStorage {  \n/* A root path to the storage. */  \nprivate const string BaseFsPath = \"C:\\\\FsStore\\\\\";  \nprivate static string GetPath(FileMetadata fileMetadata) {  \nvar md = (EntityFileMetadata)fileMetadata;  \nstring key = $\"{md.EntitySchemaName}\\\\{md.RecordId}_{fileMetadata.Name}\";  \nreturn Path.Combine(BaseFsPath, key);  \n}  \npublic Task<Stream> ReadAsync(IFileContentReadContext context) {  \nstring filePath = GetPath(context.FileMetadata);  \nStream stream = System.IO.File.OpenRead(filePath);  \nreturn Task.FromResult(stream);  \n}  \npublic async Task WriteAsync(IFileContentWriteContext context) {  \nstring filePath = GetPath(context.FileMetadata);  \nFileMode flags = context.WriteOptions != FileWriteOptions.SinglePart  \n? FileMode.Append  \n: FileMode.OpenOrCreate;  \nstring dirPath = Path.GetDirectoryName(filePath);  \nif (!Directory.Exists(dirPath)) {  \nDirectory.CreateDirectory(dirPath);  \n}  \nusing (var fileStream = System.IO.File.Open(filePath, flags)) {  \ncontext.Stream.CopyToAsync(fileStream);  \n}  \n}  \npublic Task DeleteAsync(IFileContentDeleteContext context) {  \nstring filePath = GetPath(context.FileMetadata);  \nSystem.IO.File.Delete(filePath);  \nreturn Task.CompletedTask;  \n}  \npublic Task CopyAsync(IFileContentCopyMoveContext context) {  \nstring sourceFilePath = GetPath(context.SourceMetadata);  \nstring targetFilePath = GetPath(context.TargetMetadata);  \nSystem.IO.File.Copy(sourceFilePath, targetFilePath);  \nreturn Task.CompletedTask;  \n}  \npublic Task MoveAsync(IFileContentCopyMoveContext context) {  \nstring sourceFilePath = GetPath(context.SourceMetadata);  \nstring targetFilePath = GetPath(context.TargetMetadata);  \nSystem.IO.File.Move(sourceFilePath, targetFilePath);  \nreturn Task.CompletedTask;  \n}  \n}  \n}  \n## File management exceptions\u200b\nException type| Message| Exception conditions  \n---|---|---  \nTerrasoft.File.Abstractions.FileNotFoundByLocatorException| File not found by locator `{locator_type}{locator.ToString}`| When accessing any properties or methods of the `IFile` interface if file metadata is not found.  \nSystem.InvalidOperationException| Can't delete new file: `{locator_type}{locator.ToString}`| When deleting a newly created file. I. e., `FileMetadata.StoringState == FileStoringState.New`  \nTerrasoft.Common.NullOrEmptyException| File name cannot be null or empty| When saving a file that has the `Name` field value omitted.  \nSystem.InvalidOperationException| Can't find a metadata storage for the `{locator_type}` locator type| If a file metadata storage corresponding to the locator type is not found.  \nSystem.InvalidOperationException| Can't find a content storage for the `{metadata_type}` metadata type| If a file content storage corresponding to the file metadata storage is not found.  \nContent storage `{content_storage_name}` with Id `{content_storage_is}` is not active| If a selected content storage is disabled.",
+  "code_examples": [
+    {
+      "code": "/* Retrieve the instance of the file factory. */IFileFactory fileFactory = UserConnection.GetFileFactory();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */var fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);/* Pass the created locator to the factory method. */IFile file = fileFactory.Get(fileLocator);/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */...;",
+      "language": "cs",
+      "context": "View the examples that access existing files below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */var fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFile file = UserConnection.GetFile(fileLocator);/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */...;",
+      "language": "cs",
+      "context": "View the examples that access existing files below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Retrieve the instance of the file factory. */IFileFactory fileFactory = UserConnection.GetFileFactory();/* Create a unique ID for the new file. */Guid recordId = Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */var fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);/* Pass the created locator to the factory method. */IFile file = fileFactory.Create(fileLocator);/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */...;",
+      "language": "cs",
+      "context": "View the examples that create new files below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a unique ID for the new file. */Guid recordId = Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */var fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFile file = UserConnection.CreateFile(fileLocator);/* Implement the business logic that works with the file and its contents using instance of a class that implements the \"IFile\" interface. */...;",
+      "language": "cs",
+      "context": "View the examples that create new files below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Create a unique ID for the new file. */Guid recordId = Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */var fileLocator= new EntityFileLocator(\"ActivityFile\", recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFile file = UserConnection.CreateFile(fileLocator);/* Specify the file name to determine the file in the file storage. */file.Name = \"Some name of a new\";/* Bind the file to a single activity using \"activityId.\" */file.SetAttribute(\"ActivityId\", activityId);/* Save the file metadata before saving the file content. */file.Save();/* Specify the file content. */var content = new byte[] {0x12, 0x34, 0x56};using (var stream = new MemoryStream(content)) {    /* Save the file content to the database. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */    file.Write(stream, FileWriteOptions.SinglePart);}",
+      "language": "cs",
+      "context": "View the examples that execute CRUD operations with the files below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* The file content. */var content = new byte[]();/* Create a unique ID for the new file. */Guid recordId = Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */var fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFile file = UserConnection.GetFile(fileLocator);using (Stream stream = file.Read()) {    /* Retrieve the file content and save it to the array. */    content = stream.ReadToEnd();}",
+      "language": "cs",
+      "context": "View the examples that execute CRUD operations with the files below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* The file content. */var content = new byte[]();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */var fileLocator = new EntityFileLocator(\"ActivityFile\", recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFile file = UserConnection.GetFile(fileLocator);/* Retrieve the file content and save it to the array. */using (Stream stream = file.Read()) {    content = stream.ReadToEnd();}/* Create a unique ID to copy the current file. */Guid copyFileId = Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"copyFileId\" and stored in the \"ActivityFile\" database table. */var copyFileLocator = new EntityFileLocator(\"ActivityFile\", copyFileId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFile copyFile = UserConnection.CreateFile(copyFileLocator);/* Specify the file name to determine the file in a new file storage. */copyFile.Name = file.Name + \" - Copy\";/* Save the file metadata before saving the file content. */copyFile.Save();/* Copy the file content from the original file using one of the options.Option 1. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */copyFile.Write(new MemoryStream(content), FileWriteOptions.SinglePart);/* Option 2. */file.Copy(copyFile); */\u00a0/* Create a unique ID to paste the copied file. */Guid moveFileId = Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"moveFileId\" and stored in the \"ContactFile\" database table. */var moveFileLocator = new EntityFileLocator(\"ContactFile\", moveFileId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFile moveFile = UserConnection.CreateFile(moveFileLocator);/* Save the file metadata before saving the file content. */moveFile.Save();\u00a0/* Paste the copied file to a new file storage. */file.Move(moveFile);\u00a0/* Delete the file from original file storage. */file.Delete();",
+      "language": "cs",
+      "context": "View the examples that execute CRUD operations with the files below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration {    using System.IO;    using System.Threading.Tasks;    using Terrasoft.File.Abstractions;    using Terrasoft.File.Abstractions.Content;    using Terrasoft.File.Abstractions.Metadata;    using Terrasoft.File.Metadata;    /* Class that implements the \"IFileContentStorage\" interface. */     public class FsFileBlobStorage: IFileContentStorage {        /* A root path to the storage. */        private const string BaseFsPath = \"C:\\\\FsStore\\\\\";        private static string GetPath(FileMetadata fileMetadata) {            var md = (EntityFileMetadata)fileMetadata;            string key = $\"{md.EntitySchemaName}\\\\{md.RecordId}_{fileMetadata.Name}\";            return Path.Combine(BaseFsPath, key);        }        public Task<Stream> ReadAsync(IFileContentReadContext context) {            string filePath = GetPath(context.FileMetadata);            Stream stream = System.IO.File.OpenRead(filePath);            return Task.FromResult(stream);        }        public async Task WriteAsync(IFileContentWriteContext context) {            string filePath = GetPath(context.FileMetadata);            FileMode flags = context.WriteOptions != FileWriteOptions.SinglePart                ? FileMode.Append                : FileMode.OpenOrCreate;            string dirPath = Path.GetDirectoryName(filePath);            if (!Directory.Exists(dirPath)) {                Directory.CreateDirectory(dirPath);            }            using (var fileStream = System.IO.File.Open(filePath, flags)) {                context.Stream.CopyToAsync(fileStream);            }        }        public Task DeleteAsync(IFileContentDeleteContext context) {            string filePath = GetPath(context.FileMetadata);            System.IO.File.Delete(filePath);            return Task.CompletedTask;        }        public Task CopyAsync(IFileContentCopyMoveContext context) {            string sourceFilePath = GetPath(context.SourceMetadata);            string targetFilePath = GetPath(context.TargetMetadata);            System.IO.File.Copy(sourceFilePath, targetFilePath);            return Task.CompletedTask;        }        public Task MoveAsync(IFileContentCopyMoveContext context) {            string sourceFilePath = GetPath(context.SourceMetadata);            string targetFilePath = GetPath(context.TargetMetadata);            System.IO.File.Move(sourceFilePath, targetFilePath);            return Task.CompletedTask;        }    }}",
+      "language": "cs",
+      "context": "View the example that creates file content storage in the file system below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Namespace",
+          "Description"
+        ],
+        [
+          "Terrasoft.File.Abstractions",
+          "Determines the file management logic in Creatio."
+        ],
+        [
+          "Terrasoft.File",
+          "Implements the abstractions used in Creatio."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Namespace</p></th><th><p>Description</p></th></tr><tr><td><p>Terrasoft.File.Abstractions</p></td><td><p>Determines the file management logic in Creatio.</p></td></tr><tr><td><p>Terrasoft.File</p></td><td><p>Implements the abstractions used in Creatio.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Description"
+        ],
+        [
+          "RecordId",
+          "Includes a unique file identifier."
+        ],
+        [
+          "EntitySchemaName",
+          "Includes the name of the object schema where the file is stored. For example, \"ActivityFile,\" \"CaseFile.\""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Description</p></th></tr><tr><td><p>RecordId</p></td><td><p>Includes a unique file identifier.</p></td></tr><tr><td><p>EntitySchemaName</p></td><td><p>Includes the name of the object schema where the file is stored. For example, \"ActivityFile,\" \"CaseFile.\"</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Structure element",
+          "Description",
+          "Storage"
+        ],
+        [
+          "Metadata",
+          "File metadata includes file properties, such as file name, file size in bytes, file creation date. File metadata is based on theTerrasoft.File.Abstractions.Metadata.FileMetadataabstract class. For example, theTerrasoft.File.Metadata.EntityFileMetadataclass implements the file metadata for files uploaded to the file storage.",
+          "The storage that implements theTerrasoft.File.Abstractions.Metadata.IFileMetadataStorageinterface."
+        ],
+        [
+          "Content",
+          "File content.",
+          "The storage that implements theTerrasoft.File.Abstractions.Metadata.IFileContentStorageinterface."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Structure element</p></th><th><p>Description</p></th><th><p>Storage</p></th></tr><tr><td><p>Metadata</p></td><td><p>File metadata includes file properties, such as file name, file size in bytes, file creation date. File metadata is based on the <code>Terrasoft.File.Abstractions.Metadata.FileMetadata</code> abstract class. For example, the <code>Terrasoft.File.Metadata.EntityFileMetadata</code> class implements the file metadata for files uploaded to the file storage.</p></td><td><p>The storage that implements the <code>Terrasoft.File.Abstractions.Metadata.IFileMetadataStorage</code> interface.</p></td></tr><tr><td><p>Content</p></td><td><p>File content.</p></td><td><p>The storage that implements the <code>Terrasoft.File.Abstractions.Metadata.IFileContentStorage</code> interface.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Exception type",
+          "Message",
+          "Exception conditions"
+        ],
+        [
+          "Terrasoft.File.Abstractions.FileNotFoundByLocatorException",
+          "File not found by locator{locator_type}{locator.ToString}",
+          "When accessing any properties or methods of theIFileinterface if file metadata is not found."
+        ],
+        [
+          "System.InvalidOperationException",
+          "Can't delete new file:{locator_type}{locator.ToString}",
+          "When deleting a newly created file. I. e.,FileMetadata.StoringState == FileStoringState.New"
+        ],
+        [
+          "Terrasoft.Common.NullOrEmptyException",
+          "File name cannot be null or empty",
+          "When saving a file that has theNamefield value omitted."
+        ],
+        [
+          "System.InvalidOperationException",
+          "Can't find a metadata storage for the{locator_type}locator type",
+          "If a file metadata storage corresponding to the locator type is not found."
+        ],
+        [
+          "System.InvalidOperationException",
+          "Can't find a content storage for the{metadata_type}metadata type",
+          "If a file content storage corresponding to the file metadata storage is not found."
+        ],
+        [
+          "Content storage{content_storage_name}with Id{content_storage_is}is not active",
+          "If a selected content storage is disabled."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Exception type</p></th><th><p>Message</p></th><th><p>Exception conditions</p></th></tr><tr><td><p>Terrasoft.File.Abstractions.FileNotFoundByLocatorException</p></td><td><p>File not found by locator <code>{locator_type}{locator.ToString}</code></p></td><td><p>When accessing any properties or methods of the <code>IFile</code> interface if file metadata is not found.</p></td></tr><tr><td><p>System.InvalidOperationException</p></td><td><p>Can't delete new file: <code>{locator_type}{locator.ToString}</code></p></td><td><p>When deleting a newly created file. I. e., <code>FileMetadata.StoringState == FileStoringState.New</code></p></td></tr><tr><td><p>Terrasoft.Common.NullOrEmptyException</p></td><td><p>File name cannot be null or empty</p></td><td><p>When saving a file that has the <code>Name</code> field value omitted.</p></td></tr><tr><td><p>System.InvalidOperationException</p></td><td><p>Can't find a metadata storage for the <code>{locator_type}</code> locator type</p></td><td><p>If a file metadata storage corresponding to the locator type is not found.</p></td></tr><tr><td rowspan=\"2\"><p>System.InvalidOperationException</p></td><td><p>Can't find a content storage for the <code>{metadata_type}</code> metadata type</p></td><td><p>If a file content storage corresponding to the file metadata storage is not found.</p></td></tr><tr><td><p>Content storage <code>{content_storage_name}</code> with Id <code>{content_storage_is}</code> is not active</p></td><td><p>If a selected content storage is disabled.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Create a new file bound to a single activity/* Create a unique ID for the new file. */GuidrecordId=Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */varfileLocator=newEntityFileLocator(\"ActivityFile\",recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFilefile=UserConnection.CreateFile(fileLocator);/* Specify the file name to determine the file in the file storage. */file.Name=\"Some name of a new\";/* Bind the file to a single activity using \"activityId.\" */file.SetAttribute(\"ActivityId\",activityId);/* Save the file metadata before saving the file content. */file.Save();/* Specify the file content. */varcontent=newbyte[]{0x12,0x34,0x56};using(varstream=newMemoryStream(content)){/* Save the file content to the database. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */file.Write(stream,FileWriteOptions.SinglePart);}",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Create a new file bound to a single activity</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 333ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-cs codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-cs codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create a unique ID for the new file. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">Guid</span><span class=\"token plain\"> recordId </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> Guid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">NewGuid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> fileLocator</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">EntityFileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ActivityFile\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> recordId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Pass the created locator to the method of the \"UserConnection\" class. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">IFile</span><span class=\"token plain\"> file </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> UserConnection</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">CreateFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">fileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Specify the file name to determine the file in the file storage. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token plain\">Name </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Some name of a new\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Bind the file to a single activity using \"activityId.\" */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">SetAttribute</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ActivityId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> activityId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Save the file metadata before saving the file content. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Save</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Specify the file content. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> content </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name keyword\" style=\"color: rgb(0, 0, 159);\">byte</span><span class=\"token constructor-invocation class-name punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token constructor-invocation class-name punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">0x12</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">0x34</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">0x56</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">using</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> stream </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">MemoryStream</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">content</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Save the file content to the database. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Write</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">stream</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> FileWriteOptions</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token plain\">SinglePart</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Retrieve the file content/* The file content. */varcontent=newbyte[]();/* Create a unique ID for the new file. */GuidrecordId=Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */varfileLocator=newEntityFileLocator(\"ActivityFile\",recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFilefile=UserConnection.GetFile(fileLocator);using(Streamstream=file.Read()){/* Retrieve the file content and save it to the array. */content=stream.ReadToEnd();}",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Retrieve the file content</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 333ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-cs codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-cs codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* The file content. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> content </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name keyword\" style=\"color: rgb(0, 0, 159);\">byte</span><span class=\"token constructor-invocation class-name punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token constructor-invocation class-name punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create a unique ID for the new file. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">Guid</span><span class=\"token plain\"> recordId </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> Guid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">NewGuid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> fileLocator </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">EntityFileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ActivityFile\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> recordId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Pass the created locator to the method of the \"UserConnection\" class. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">IFile</span><span class=\"token plain\"> file </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> UserConnection</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">GetFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">fileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">using</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token class-name\">Stream</span><span class=\"token plain\"> stream </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Read</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Retrieve the file content and save it to the array. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    content </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> stream</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">ReadToEnd</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Copy a file from the original file storage, paste the file to a new file storage, and delete the file from the original file storage/* The file content. */varcontent=newbyte[]();/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */varfileLocator=newEntityFileLocator(\"ActivityFile\",recordId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFilefile=UserConnection.GetFile(fileLocator);/* Retrieve the file content and save it to the array. */using(Streamstream=file.Read()){content=stream.ReadToEnd();}/* Create a unique ID to copy the current file. */GuidcopyFileId=Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"copyFileId\" and stored in the \"ActivityFile\" database table. */varcopyFileLocator=newEntityFileLocator(\"ActivityFile\",copyFileId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFilecopyFile=UserConnection.CreateFile(copyFileLocator);/* Specify the file name to determine the file in a new file storage. */copyFile.Name=file.Name+\" - Copy\";/* Save the file metadata before saving the file content. */copyFile.Save();/* Copy the file content from the original file using one of the options.Option 1. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */copyFile.Write(newMemoryStream(content),FileWriteOptions.SinglePart);/* Option 2. */file.Copy(copyFile);*//* Create a unique ID to paste the copied file. */GuidmoveFileId=Guid.NewGuid();/* Create the \"EntityFileLocator\" instance identified by \"moveFileId\" and stored in the \"ContactFile\" database table. */varmoveFileLocator=newEntityFileLocator(\"ContactFile\",moveFileId);/* Pass the created locator to the method of the \"UserConnection\" class. */IFilemoveFile=UserConnection.CreateFile(moveFileLocator);/* Save the file metadata before saving the file content. */moveFile.Save();/* Paste the copied file to a new file storage. */file.Move(moveFile);/* Delete the file from original file storage. */file.Delete();",
+      "html": "<details class=\"details_lb9f isBrowser_bmU9 alert alert--info details_b_Ee\" data-collapsed=\"false\" open=\"\"><summary>Copy a file from the original file storage, paste the file to a new file storage, and delete the file from the original file storage</summary><div style=\"display: block; overflow: visible; height: auto; will-change: height; transition: height 333ms ease-in-out;\"><div class=\"collapsibleContent_i85q\"><div><div class=\"language-cs codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-cs codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* The file content. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> content </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name keyword\" style=\"color: rgb(0, 0, 159);\">byte</span><span class=\"token constructor-invocation class-name punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token constructor-invocation class-name punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create the \"EntityFileLocator\" instance identified by \"recordId\" and stored in the \"ActivityFile\" database table. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> fileLocator </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">EntityFileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ActivityFile\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> recordId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Pass the created locator to the method of the \"UserConnection\" class. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">IFile</span><span class=\"token plain\"> file </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> UserConnection</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">GetFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">fileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Retrieve the file content and save it to the array. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">using</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token class-name\">Stream</span><span class=\"token plain\"> stream </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Read</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    content </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> stream</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">ReadToEnd</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create a unique ID to copy the current file. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">Guid</span><span class=\"token plain\"> copyFileId </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> Guid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">NewGuid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create the \"EntityFileLocator\" instance identified by \"copyFileId\" and stored in the \"ActivityFile\" database table. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> copyFileLocator </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">EntityFileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ActivityFile\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> copyFileId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Pass the created locator to the method of the \"UserConnection\" class. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">IFile</span><span class=\"token plain\"> copyFile </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> UserConnection</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">CreateFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">copyFileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Specify the file name to determine the file in a new file storage. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">copyFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token plain\">Name </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token plain\">Name </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">+</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\" - Copy\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Save the file metadata before saving the file content. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">copyFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Save</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Copy the file content from the original file using one of the options.</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">Option 1. Specify \"FileWriteOptions.SinglePart\" to save the content without breaking it into multiple parts. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">copyFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Write</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">MemoryStream</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">content</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> FileWriteOptions</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token plain\">SinglePart</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Option 2. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Copy</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">copyFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"> </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">*</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">/</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">\u00a0</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create a unique ID to paste the copied file. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">Guid</span><span class=\"token plain\"> moveFileId </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> Guid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">NewGuid</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Create the \"EntityFileLocator\" instance identified by \"moveFileId\" and stored in the \"ContactFile\" database table. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name keyword\" style=\"color: rgb(0, 0, 159);\">var</span><span class=\"token plain\"> moveFileLocator </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> </span><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">EntityFileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"ContactFile\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> moveFileId</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Pass the created locator to the method of the \"UserConnection\" class. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token class-name\">IFile</span><span class=\"token plain\"> moveFile </span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">=</span><span class=\"token plain\"> UserConnection</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">CreateFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">moveFileLocator</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\" style=\"display: inline-block;\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Save the file metadata before saving the file content. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">moveFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Save</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">\u00a0</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Paste the copied file to a new file storage. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Move</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">moveFile</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">\u00a0</span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">/* Delete the file from original file storage. */</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">file</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Delete</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">;</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></div></div></div></details>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "File management API",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "File locators\u200b",
+      "anchor": "title-1982-1"
+    },
+    {
+      "level": 2,
+      "text": "File structure\u200b",
+      "anchor": "title-1982-2"
+    },
+    {
+      "level": 2,
+      "text": "Operations with files\u200b",
+      "anchor": "title-15282-1"
+    },
+    {
+      "level": 3,
+      "text": "Access an existing file and create a new file\u200b",
+      "anchor": "title-1982-7"
+    },
+    {
+      "level": 3,
+      "text": "Implement a custom file storage\u200b",
+      "anchor": "title-1982-3"
+    },
+    {
+      "level": 2,
+      "text": "File management exceptions\u200b",
+      "anchor": "title-1982-8"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/api-for-file-management/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/api-for-file-management/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/web-services/migrating",
+      "text": "Migrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "PreviousFile management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/file-management-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/ifile",
+      "text": "IFile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/ifilecontentstorage",
+      "text": "IFileContentStorage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/ifilefactory",
+      "text": "IFileFactory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/entityfilelocator",
+      "text": "EntityFileLocator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/entityfilemetadata",
+      "text": "EntityFileMetadata",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/filefactoryutils",
+      "text": "FileFactoryUtils",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/filemetadata",
+      "text": "FileMetadata",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/fileutils",
+      "text": "FileUtils",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/api-for-file-management/references/endpoints",
+      "text": "Endpoints",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:03:52.836103"
+}

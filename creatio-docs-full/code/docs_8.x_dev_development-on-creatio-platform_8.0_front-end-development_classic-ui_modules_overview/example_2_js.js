@@ -1,0 +1,1 @@
+/* Create a class instance using the alias (the short name). */ var exampleObject = Ext.create("Terrasoft.ExampleClass");

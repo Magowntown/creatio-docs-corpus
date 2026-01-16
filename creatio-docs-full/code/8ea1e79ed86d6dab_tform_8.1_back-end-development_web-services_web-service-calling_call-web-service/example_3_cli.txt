@@ -1,0 +1,1 @@
+http://mycreatio.com/0/ServiceModel/UsrCustomConfigurationService.svc/GetContactIdByName?Name=User1

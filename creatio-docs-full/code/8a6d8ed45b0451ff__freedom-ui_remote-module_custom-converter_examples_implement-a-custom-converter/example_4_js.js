@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    {        "operation": "insert",        "name": "Label",        "values": {            ...,            /* Apply the usr.ConcatConverter converter to the $UsrName attribute. */            "caption": "$UsrName | usr.ConcatConverter : 'is the request name'",            ...        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,

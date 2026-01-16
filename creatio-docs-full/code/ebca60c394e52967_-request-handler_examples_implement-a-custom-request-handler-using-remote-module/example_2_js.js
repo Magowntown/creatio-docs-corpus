@@ -1,0 +1,1 @@
+viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "attributes"        ],        "values": {            ...,            /* The attribute that stores the current date and time. */            "CurrentDateTime": {}        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,

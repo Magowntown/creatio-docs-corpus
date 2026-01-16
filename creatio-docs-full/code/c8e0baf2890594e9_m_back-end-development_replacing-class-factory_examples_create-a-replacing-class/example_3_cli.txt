@@ -1,0 +1,1 @@
+http://mycreatio.com/0/rest/UsrAmountService/GetAmount?value1=25&value2=125

@@ -1,0 +1,1 @@
+/* Create an instance of the EntitySchemaQuery class with the Contact root schema. */var esq = this.Ext.create("Terrasoft.EntitySchemaQuery", {    rootSchemaName: "Contact"});/* Add an Address column, set its alias to Address. */esq.addColumn("Address", "Address");

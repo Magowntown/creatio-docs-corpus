@@ -1,0 +1,1 @@
+(decimal)RoundOff(([#System variable.Current date and time#]-[#Read lead data.First element of the resulting collection.Creation date#]).TotalHours) > 12

@@ -1,0 +1,1 @@
+EntityCollection GetEntityCollection(UserConnection userConnection, EntitySchemaQueryOptions options)EntityCollection GetEntityCollection(UserConnection userConnection)

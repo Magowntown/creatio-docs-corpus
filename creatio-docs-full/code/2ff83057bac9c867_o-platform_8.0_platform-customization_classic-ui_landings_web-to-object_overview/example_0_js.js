@@ -1,0 +1,1 @@
+[Creatio application path]/0/ServiceModel/GeneratedObjectWebFormService.svc/SaveWebFormObjectData

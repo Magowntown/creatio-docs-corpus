@@ -1,0 +1,1 @@
+namespace Terrasoft.Core.Tasks {    public interface IBackgroundTask <in TParameters> {        void Run(TParameters parameters);    }}

@@ -1,0 +1,1 @@
+UpperQueryFunction(UpperQueryFunction source)

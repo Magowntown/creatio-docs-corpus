@@ -1,0 +1,1 @@
+new Select(userConnection)    .Column("L", "Id")    .Column("L", "QualifyStatusId")    .Column("L", "LeadTypeId")    .Column("L", "LeadSourceId")    .Column("L", "LeadMediumId")        .As("LeadChannel")    .Column("L", "BusinessPhone")        .As("KnownBusinessPhone")    .From("Lead").As("L");

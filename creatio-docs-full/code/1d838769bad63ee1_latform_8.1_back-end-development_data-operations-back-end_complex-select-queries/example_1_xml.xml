@@ -1,0 +1,1 @@
+<add name="db" connectionString="App=creatio; Data Source=dbserver\mssql2016; Initial Catalog=BpmonlineSolution; Persist Security Info=True; MultipleActiveResultSets=True; Integrated Security=SSPI; Pooling = true; Max Pool Size = 100; Async = true; Connection Timeout=500" />

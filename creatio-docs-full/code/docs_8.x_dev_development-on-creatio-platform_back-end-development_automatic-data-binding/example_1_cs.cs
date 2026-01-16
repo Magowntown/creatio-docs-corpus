@@ -1,0 +1,1 @@
+ServiceHelper.callService("SchemaDataBindingService",    "GenerateBindings",    callback, {        "schemaName": this.entitySchemaName,        "sysPackageUId": sysPackageUId        "recordIds": ["...", "..."]    },    this);

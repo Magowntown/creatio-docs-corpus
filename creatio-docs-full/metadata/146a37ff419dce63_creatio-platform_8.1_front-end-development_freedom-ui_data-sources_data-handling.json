@@ -1,0 +1,629 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/data-sources/data-handling",
+  "title": "Data handling basics",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui"
+    },
+    {
+      "text": "Data sources",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-sources"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nData handling in Creatio 8.x is based on the **DAO (Data Access Object)** pattern. Learn more about the DAO pattern in [Wikipedia](https://en.wikipedia.org/w/index.php?title=Data_access_object&oldid=1063130973).\nThe DAO pattern has the following **layers** :\n* `BusinessObject`. Implements the business logic.\n* `DataAccessObject`. Enables Creatio to access data. The business logic and data source are separated from each other. The DataAccessObject layer can create a **DTO (Data Transfer Object)**. The DTO can use the `BusinessObject` layer to save DTOs and return them to the DataAccessObject layer. Learn more about the DTO pattern in [Wikipedia](https://en.wikipedia.org/w/index.php?title=Data_transfer_object&oldid=1015254260).\n* `DataStorage`. Organizes various data repositories.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Client_ESQ/8.0/scr_DAOpattern.png)\nView the detailed data storage diagram in the figure below.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_DAO.png)\n## DataStorage layer\u200b\nThe `DataStorage` layer is linked to a particular data source.\nThe **types** of storage are as follows: \n* Creatio database\n* web service\n* file system\n## DataAccessObject layer\u200b\nThe `DataAccessObject` layer contains data sources (Data Source). Each data source is linked to the corresponding model within the business logic layer.\nThe `DataAccessObject` layer performs the following **functions** :\n* Enable users to perform CRUD operations (`load`, `save`, `insert`, `delete`).\n* Provide permissions for data operations (`canEdit`, `canCreate`, `canDelete`).\n* Provide data structure (`getSchema`).\nData schema describes the structure of data managed by Creatio.\nData schema includes the following **components:**\n* name\n* title\n* attributes\nImportant structural elements of attributes are validators. Learn more about validators in a separate article: [Freedom UI page customization basics](https://academy.creatio.com/documents?ver=8.1&id=15370&anchor=title-3836-7).\nLearn more about the **classes** that describe the data schema and attribute structure below.\n* Data schema structure\n* Attribute structure\nexport class DataSchema {  \npublic name: string;  \npublic caption: LocalizableString;  \npublic attributes: DataSchemaAttribute[];  \npublic primaryAttributeName?: string;  \npublic primaryDisplayAttributeName?: string;  \n}  \nexport class DataSchemaAttribute {  \npublic name: string;  \npublic caption: string;  \npublic path: string;  \npublic dataValueType: DataValueType;  \npublic validators: DataSchemaValidatorConfig;  \npublic defaultValue: JsonData;  \npublic isValueCloneable: boolean;  \npublic attributeType: DataSchemaAttributeType;  \npublic referenceSchemaName?: string;  \n}  \n## BusinessObject layer\u200b\nThe `BusinessObject` layer contains the view model (`View model`), which, in turn, can contain several models (`Model`). Learn more about the `View model` and `Model` layers in a separate article: [Creatio front-end architecture](https://academy.creatio.com/documents?ver=8.1&id=15343).\n### Model\u200b\nThe `modelConfigDiff` section of the client schema describes data models. The model contains the data source description. Creatio implements `EntityDataSource` that lets you manage the Creatio database. \nUse the data source to perform various **data actions** , for example: \n* Add new and existing data source elements to the canvas of the Freedom UI Designer.\n* Edit the data source elements.\n* Bind the controls to the data source elements on the canvas.\nView an example that registers a model in the client schema below.\nExample that registers a model in the client schema\nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n/* Unique names of data sources. */  \n\"ContactDS\": {  \n/* Data source type. */  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n/* Data schema code. */  \n\"entitySchemaName\": \"Contact\"  \n}  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nLearn more about the client schema structure in a separate article: [Client Schema](https://academy.creatio.com/documents?ver=8.1&id=15342).\n### View model\u200b\nThe **view model** handles the `ViewModel` layer that contains the business logic of the interaction between the `View` and `Model` layers.\nConfigure the view model in the `viewModelConfigDiff` section of the client schema. For each view model attribute, specify the corresponding model attribute in the `modelConfigDiff` schema section. \nView an example that describes a view model in the client schema below. \nExample that describes a view model in the client schema\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n/* Bind the ContactName view model attribute to the Name attribute of the ContactDS model.*/  \n\"ContactName\": {  \n\"modelConfigDiff\": {  \n\"path\": \"ContactDS.Name\"  \n}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nThe view model can have the following **attribute types** :\n* simple type columns\n* collection columns\n* direct link columns\n#### Attributes for columns that contain simple data types\u200b\n**Simple data types** can include the following data source elements:\n* string\n* number\n* boolean\n* date/time\nTo create an **attribute for a column that contains a simple data type** :\n1. Register the data source in the schema of the Freedom UI page.\nRegister the data source\nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"ContactDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"Contact\",  \n}  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \n2. Create an attribute in the `attributes` property of the `viewModelConfigDiff` schema section.\nCreate an attribute \nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"StringAttribute_jghoo32\": {  \n\"modelConfigDiff\": {  \n\"path\": \"ContactDS.Name\"  \n}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nImportant\nUse a unique attribute name.\nThe base attribute property is `modelConfigDiff`. This property describes the link to the data source element using the `path` property. The `path` property value must have the following format: `[Data Source Name].[Column Code]`. For this example, the `path` property value is `ContactDS.Name`. \n#### Attributes for collections\u200b\nThe view model lets you bind attributes that are data collections. To bind a collection type attribute, set the `isCollection` attribute property to `true`.\nExample that binds a collection type attribute to a data model\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n/* Bind a collection type attribute of the AccountList view model to the AccountDS model.*/  \n\"AccountList\": {  \n\"isCollection\": true,  \n\"modelConfigDiff\": {  \n\"path\": \"AccountDS\",  \n\"pagingConfig\": {},  \n\"sortingConfig\": {},  \n\"filterAttributes\": {}  \n},  \n\"viewModelConfigDiff\": {  \n\"attributes\": {  \n\"value\": {  \n\"modelConfigDiff\": {  \n\"path\": \"AccountDS.Id\"  \n}  \n},  \n\"displayValue\": {  \n\"modelConfigDiff\": {  \n\"path\": \"AccountDS.Name\"  \n}  \n}  \n}  \n},  \n\"embeddedModel\": {  \n\"name\": \"AccountDS\",  \n\"config\": {   \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"Account\"  \n}  \n}  \n}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nThe advanced settings of the collection type attribute let you configure data pagination and sorting. \nExample of advanced settings of a collection type attribute\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"AccountList\": {  \n\"isCollection\": true,  \n\"modelConfigDiff\": {  \n\"path\": \"AccountDS\",  \n/* Set up pagination.*/  \n\"pagingConfig\": {  \n\"rowsOffset\"?: \"<OffsetAttributeName>\",  \n\"rowCount\": 5 | \"<RowCountAttributeName>\"  \n},  \n/* Set up collection sorting.*/  \n\"sortingConfig\": {  \n\"attributeName\": \"AccountsSorting\",  \n\"default\": [{  \n\"columnName\": \"Name\",  \n\"direction\": \"Asc\"  \n}]  \n}  \n},  \n\"viewModelConfigDiff\": {...}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \n#### Attributes for direct link columns\u200b\n**Direct link columns** are columns that contain objects linked to the current data source. For example, the `[Contact]` object contains the `[Account]` property, which is also an object. Register the attribute in the `[Name]` column of the linked `[Account]` object. \nTo create an attribute for a direct link column:\n1. Register the data source in the page schema.\nExample that registers a data source\nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"ContactDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"Contact\",  \n}  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \n2. Create a page schema attribute in the `attributes` property of the `viewModelConfigDiff` schema section.\nExample that creates an attribute\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"AccountName\": {  \n\"modelConfigDiff\": {  \n\"path\": \"ContactDS.AccountName\"  \n}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,  \nThe `path` property stores not the path to the column, but the path to the data source attribute that will be created on the next step. The `path` property value must have the following format: `[Data Source Name].[Data Source Attribute Name]`, for example, `ContactDS.AccountName`. \n3. Create an attribute in the `modelConfigDiff` schema section.\nExample that creates a data source attribute\nmodelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"dataSources\"  \n],  \n\"values\": {  \n\"ContactDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"Contact\",  \n\"attributes\": {  \n\"AccountName\": {  \n\"path\": \"Account.Name\",  \n\"type\": \"ForwardReference\"  \n}  \n}  \n}  \n}  \n}  \n}  \n]/**SCHEMA_MODEL_CONFIG_DIFF*/,  \nImportant\nThe name of the data source attribute must match the attribute name specified in the `path` property of the `viewModelConfigDiff` schema section on step 2.\nYou can create a direct link attribute that has multiple nesting levels. For example, you can display the city name of the account linked to the current contact. In this case, the data source attribute can look like this: \nExample that creates an attribute that has multiple nesting levels\n\"dataSources\": {  \n\"ContactDS\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"Contact\",  \n\"attributes\": {  \n\"AccountCityName\": {  \n\"path\": \"Account.City.Name\",  \n\"type\": \"ForwardReference\"  \n},  \n}  \n}  \n}  \n}  \n### Embedded model\u200b\nThe **Embedded Model** is a data model embedded into the view model without being connected to the data source.\nCreatio lets you use the embedded model for various **collection type elements** , for example:\n* index of list values\n* drop-down list generated from a lookup\nCreatio does not display embedded data models in the Freedom UI Designer, nor does it let you bind embedded models to controls on the canvas.\nExample that sets up an embedded model\nviewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[  \n{  \n\"operation\": \"merge\",  \n\"path\": [  \n\"attributes\"  \n],  \n\"values\": {  \n\"LookupAttributeCityList\": {  \n\"isCollection\": true,  \n\"modelConfigDiff\": {  \n\"path\": \"EmbeddedDS\"  \n},  \n\"embeddedModel\" {  \n\"name\": \"EmbeddedDS\",  \n\"config\": {  \n\"type\": \"crt.EntityDataSource\",  \n\"config\": {  \n\"entitySchemaName\": \"City\"  \n}  \n}  \n}  \n\"viewModelConfigDiff\": {  \n\"attributes\": {  \n\"value\": {  \n\"modelConfigDiff\": {  \n\"path\": \"EmbeddedDS.Id\"  \n}  \n},  \n\"displayValue\": {  \n\"modelConfigDiff\": {  \n\"path\": \"EmbeddedDS.Name\"  \n}  \n}  \n}  \n}  \n}  \n}  \n}  \n]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+  "code_examples": [
+    {
+      "code": "export class DataSchema {    public name: string;    public caption: LocalizableString;    public attributes: DataSchemaAttribute[];    public primaryAttributeName?: string;    public primaryDisplayAttributeName?: string;}",
+      "language": "js",
+      "context": "Learn more about theclassesthat describe the data schema and attribute structure below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "export class DataSchemaAttribute {    public name: string;    public caption: string;    public path: string;    public dataValueType: DataValueType;    public validators: DataSchemaValidatorConfig;    public defaultValue: JsonData;    public isValueCloneable: boolean;    public attributeType: DataSchemaAttributeType;    public referenceSchemaName?: string;}",
+      "language": "js",
+      "context": "Learn more about theclassesthat describe the data schema and attribute structure below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"dataSources\"        ],        \"values\": {            /* Unique names of data sources. */            \"ContactDS\": {                /* Data source type. */                \"type\": \"crt.EntityDataSource\",                \"config\": {                    /* Data schema code. */                    \"entitySchemaName\": \"Contact\"                }            }        }    }]/**SCHEMA_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that registers a model in the client schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            /* Bind the ContactName view model attribute to the Name attribute of the ContactDS model.*/            \"ContactName\": {                \"modelConfigDiff\": {                    \"path\": \"ContactDS.Name\"                }            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "View an example that describes a view model in the client schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"dataSources\"        ],        \"values\": {            \"ContactDS\": {                \"type\": \"crt.EntityDataSource\",                \"config\": {                    \"entitySchemaName\": \"Contact\",                }            }        }    }]/**SCHEMA_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Register the data source in the schema of the Freedom UI page.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            \"StringAttribute_jghoo32\": {                \"modelConfigDiff\": {                    \"path\": \"ContactDS.Name\"                }            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Create an attribute in theattributesproperty of theviewModelConfigDiffschema section.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            /* Bind a collection type attribute of the AccountList view model to the AccountDS model.*/            \"AccountList\": {                \"isCollection\": true,                \"modelConfigDiff\": {                    \"path\": \"AccountDS\",                    \"pagingConfig\": {},                    \"sortingConfig\": {},                    \"filterAttributes\": {}                },                \"viewModelConfigDiff\": {                    \"attributes\": {                        \"value\": {                            \"modelConfigDiff\": {                                \"path\": \"AccountDS.Id\"                            }                        },                        \"displayValue\": {                            \"modelConfigDiff\": {                                \"path\": \"AccountDS.Name\"                            }                        }                    }                },                \"embeddedModel\": {                    \"name\": \"AccountDS\",                    \"config\": {                         \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"Account\"                        }                    }                }            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "The view model lets you bind attributes that are data collections. To bind a collection type attribute, set theisCollectionattribute property totrue.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            \"AccountList\": {                \"isCollection\": true,                \"modelConfigDiff\": {                    \"path\": \"AccountDS\",                    /* Set up pagination.*/                    \"pagingConfig\": {                        \"rowsOffset\"?: \"<OffsetAttributeName>\",                        \"rowCount\": 5 | \"<RowCountAttributeName>\"                    },                    /* Set up collection sorting.*/                    \"sortingConfig\": {                        \"attributeName\": \"AccountsSorting\",                        \"default\": [{                            \"columnName\": \"Name\",                            \"direction\": \"Asc\"                        }]                    }                },                \"viewModelConfigDiff\": {...}            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "The advanced settings of the collection type attribute let you configure data pagination and sorting.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            \"AccountName\": {                \"modelConfigDiff\": {                    \"path\": \"ContactDS.AccountName\"                }            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Create a page schema attribute in theattributesproperty of theviewModelConfigDiffschema section.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"dataSources\"        ],        \"values\": {            \"ContactDS\": {                \"type\": \"crt.EntityDataSource\",                \"config\": {                    \"entitySchemaName\": \"Contact\",                    \"attributes\": {                        \"AccountName\": {                            \"path\": \"Account.Name\",                            \"type\": \"ForwardReference\"                        }                    }                }            }        }    }]/**SCHEMA_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Create an attribute in themodelConfigDiffschema section.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "\"dataSources\": {    \"ContactDS\": {        \"type\": \"crt.EntityDataSource\",        \"config\": {            \"entitySchemaName\": \"Contact\",            \"attributes\": {                \"AccountCityName\": {                    \"path\": \"Account.City.Name\",                    \"type\": \"ForwardReference\"                },            }        }    }}",
+      "language": "js",
+      "context": "You can create a direct link attribute that has multiple nesting levels. For example, you can display the city name of the account linked to the current contact. In this case, the data source attribut",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        \"operation\": \"merge\",        \"path\": [            \"attributes\"        ],        \"values\": {            \"LookupAttributeCityList\": {                \"isCollection\": true,                \"modelConfigDiff\": {                    \"path\": \"EmbeddedDS\"                },                \"embeddedModel\" {                    \"name\": \"EmbeddedDS\",                    \"config\": {                        \"type\": \"crt.EntityDataSource\",                        \"config\": {                            \"entitySchemaName\": \"City\"                        }                    }                }                \"viewModelConfigDiff\": {                    \"attributes\": {                        \"value\": {                            \"modelConfigDiff\": {                                \"path\": \"EmbeddedDS.Id\"                            }                        },                        \"displayValue\": {                            \"modelConfigDiff\": {                                \"path\": \"EmbeddedDS.Name\"                            }                        }                    }                }            }        }    }]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,",
+      "language": "js",
+      "context": "Creatio does not display embedded data models in the Freedom UI Designer, nor does it let you bind embedded models to controls on the canvas.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantUse a unique attribute name.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Use a unique attribute name.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Use a unique attribute name.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Use a unique attribute name.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThe name of the data source attribute must match the attribute name specified in thepathproperty of theviewModelConfigDiffschema section on step 2.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The name of the data source attribute must match the attribute name specified in the <code>path</code> property of the <code>viewModelConfigDiff</code> schema section on step 2.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The name of the data source attribute must match the attribute name specified in thepathproperty of theviewModelConfigDiffschema section on step 2.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The name of the data source attribute must match the attribute name specified in the <code>path</code> property of the <code>viewModelConfigDiff</code> schema section on step 2.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/Client_ESQ/8.0/scr_DAOpattern.png",
+      "alt": "",
+      "title": "",
+      "context": "The DAO pattern has the followinglayers:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/146a37ff419dce63_creatio-platform_8.1_front-end-development_freedom-ui_data-sources_data-handling_86f503785941.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/FrontEndBasics/8.0/scr_DAO.png",
+      "alt": "",
+      "title": "",
+      "context": "View the detailed data storage diagram in the figure below.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/146a37ff419dce63_creatio-platform_8.1_front-end-development_freedom-ui_data-sources_data-handling_c8dcecd7284f.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Data handling basics",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "DataStorage layer\u200b",
+      "anchor": "title-2428-1"
+    },
+    {
+      "level": 2,
+      "text": "DataAccessObject layer\u200b",
+      "anchor": "title-2428-2"
+    },
+    {
+      "level": 2,
+      "text": "BusinessObject layer\u200b",
+      "anchor": "title-2428-3"
+    },
+    {
+      "level": 3,
+      "text": "Model\u200b",
+      "anchor": "title-2428-4"
+    },
+    {
+      "level": 3,
+      "text": "View model\u200b",
+      "anchor": "title-2428-5"
+    },
+    {
+      "level": 4,
+      "text": "Attributes for columns that contain simple data types\u200b",
+      "anchor": "title-2428-6"
+    },
+    {
+      "level": 4,
+      "text": "Attributes for collections\u200b",
+      "anchor": "title-2428-7"
+    },
+    {
+      "level": 4,
+      "text": "Attributes for direct link columns\u200b",
+      "anchor": "title-2428-8"
+    },
+    {
+      "level": 3,
+      "text": "Embedded model\u200b",
+      "anchor": "title-2428-9"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "Data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/client-schema-freedomui/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/schema-freedomui-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui-component",
+      "text": "Freedom UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/validator",
+      "text": "Validator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/converter",
+      "text": "Converter",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/request-handler",
+      "text": "Request handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/localize-remote-module",
+      "text": "Localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/overview",
+      "text": "Asserts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-component",
+      "text": "Classic UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/requirements-for-icons",
+      "text": "Requirements for icons",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-sources",
+      "text": "PreviousData sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/crud-operations",
+      "text": "NextCRUD operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/data-sources/crud-operations/crud-operations-with-data-sources",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/crud-operations-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/data-sources/data-processing",
+      "text": "Additional data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/creatio-devkit-common",
+      "text": "@creatio-devkit/common library",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/classic-client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:39:43.674947"
+}

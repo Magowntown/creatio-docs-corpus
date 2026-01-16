@@ -1,0 +1,1 @@
+{  "operation": "insert",  "name": "SomeName",  "values": { }},{  "operation": "insert",  "name": "SomeSecondName",  "values": { }}

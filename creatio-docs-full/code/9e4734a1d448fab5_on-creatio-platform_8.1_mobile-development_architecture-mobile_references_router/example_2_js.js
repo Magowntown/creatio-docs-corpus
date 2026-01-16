@@ -1,0 +1,1 @@
+route(name, scope, args, config)

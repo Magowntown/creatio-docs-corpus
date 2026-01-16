@@ -1,0 +1,1 @@
+/* Define the configuration object. */var config = {    /* The entity schema name. */    entitySchemaName: "Contact",    /* The column values. */    columnValues: {        Id: "00000000-0000-0000-0000-000000000001",        Name: "Name1"    }};/* Create a new record. */Terrasoft.DataManager.createItem(config, function (item) {    Terrasoft.DataManager.addItem(item);}, this);

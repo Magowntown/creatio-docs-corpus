@@ -1,0 +1,1 @@
+/* Retrieve the record. */var item = Terrasoft.DataManager.findItem("Contact",     "00000000-0000-0000-0000-000000000001");/* Discard the changes to the record. */     Terrasoft.DataManager.discardItem(item);

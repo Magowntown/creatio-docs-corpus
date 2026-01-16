@@ -1,0 +1,1 @@
+abstract void SetAttribute<TValue>(string name, TValue value)

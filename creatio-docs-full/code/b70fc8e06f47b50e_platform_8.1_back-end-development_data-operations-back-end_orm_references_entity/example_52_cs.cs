@@ -1,0 +1,1 @@
+byte[] GetBytesValue(string valueName)

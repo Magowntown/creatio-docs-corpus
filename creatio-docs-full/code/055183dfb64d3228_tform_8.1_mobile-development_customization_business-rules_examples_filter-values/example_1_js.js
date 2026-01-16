@@ -1,0 +1,1 @@
+Terrasoft.sdk.Model.addBusinessRule("Invoice", {    ruleType: Terrasoft.RuleTypes.Filtration,    events: [Terrasoft.BusinessRuleEvents.Load, Terrasoft.BusinessRuleEvents.ValueChanged],    triggeredByColumns: ["Account"],    filteredColumn: "Contact",    filters: Ext.create("Terrasoft.Filter", {        property: "Account"    })});

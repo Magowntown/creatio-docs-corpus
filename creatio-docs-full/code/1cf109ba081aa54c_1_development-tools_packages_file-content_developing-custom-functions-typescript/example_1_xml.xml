@@ -1,0 +1,1 @@
+<filedesignmode enabled="true"/>...<add key="UseStaticFileContent" value="false"/>

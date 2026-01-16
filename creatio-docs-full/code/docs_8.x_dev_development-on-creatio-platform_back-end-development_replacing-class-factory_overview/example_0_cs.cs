@@ -1,0 +1,1 @@
+[Override]public class ReplacingClassName : ReplacedClassName{    /* Implement the class. */}

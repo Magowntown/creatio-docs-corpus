@@ -1,0 +1,1 @@
+static IFile GetFile(this UserConnection source, IFileLocator fileLocator)

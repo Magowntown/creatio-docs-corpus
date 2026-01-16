@@ -1,0 +1,1 @@
+CastQueryFunction(CastQueryFunction source)

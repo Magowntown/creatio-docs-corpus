@@ -1,0 +1,1 @@
+var localizableImages = {    AddButtonImage: {        source: 3,        params: {            schemaName: "ActivityMiniPage",            resourceItemName: "AddButtonImage",            hash: "c15d635407f524f3bbe4f1810b82d315",            resourceItemExtension: ".png",        },    },};

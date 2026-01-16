@@ -1,0 +1,1 @@
+var copyController = ClassFactory.Get<HierarchyDataCopyingController>(new ConstructorArgument("UserConnection", UserConnection));

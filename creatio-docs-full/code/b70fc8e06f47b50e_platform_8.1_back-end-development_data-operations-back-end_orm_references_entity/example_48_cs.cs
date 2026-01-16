@@ -1,0 +1,1 @@
+bool ExistInDB(EntitySchemaColumn conditionColumn, object conditionValue)bool ExistInDB(string conditionColumnName, object conditionValue)bool ExistInDB(object keyValue)bool ExistInDB(Dictionary<string,object> conditions)

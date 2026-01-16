@@ -1,0 +1,1 @@
+public List <Guid> GetOperatorIds(string chatId, Guid queueId) {    var parsedChatId = Guid.Parse(chatId);    var chatOperator = GetChatOperator(parsedChatId);    return chatOperator.IsNotEmpty() ? new List <Guid> {        chatOperator    }: PickUpFreeQueueOperators(parsedChatId, queueId);}

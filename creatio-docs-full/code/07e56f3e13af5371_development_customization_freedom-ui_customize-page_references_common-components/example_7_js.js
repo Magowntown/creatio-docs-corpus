@@ -1,0 +1,1 @@
+{    "type": "crt.Detail",    "items": "ItemAttribute",    "title": "Contact in opportunity",    "itemLayout": {        "type": "crt.ListItem",        "body": [{"value": "\$Contact"}]    },    "editColumns": [{"columnName": "Contact"}]}

@@ -1,0 +1,578 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/nlog",
+  "title": "NLog",
+  "breadcrumbs": [
+    {
+      "text": "Development tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools"
+    },
+    {
+      "text": "Logging tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: intermediate\nWe recommend enabling logging to verify that the new functionality operates as expected. For optimal performance, enable logging only while testing and debugging Creatio. Creatio can log all primary operations. This is achieved using the [NLog](https://github.com/nlog/nlog/wiki/Configuration-file) library, a free .NET logging library that supports routing features and log management. NLog is suitable for any Creatio instance regardless of size or complexity.\nThe library lets you perform the following **actions** :\n* handle diagnostic messages sent in any .NET language\n* enrich logs with contextual data\n* format logs based on user preferences\n* send logs to one or more message receivers, such as a file or database\nLearn more about the NLog on the [GitHub website](https://github.com/nlog/nlog/wiki/Configuration-file).\n## Set up logging for Creatio on-site\u200b\nCreatio logs events for the loader and `Default` configuration separately.\nYou can set up logging for Creatio on-site in the following **ways** :\n* via the configuration file\n* via the `LoggingConfiguration` configuration object\nView an example that sets up logging in a separate article: [Implement a modal box](https://academy.creatio.com/documents?ver=8.0&id=15596).\n### Set up logging for Creatio on-site via the configuration file\u200b\n#### 1\\. Set the path to the log configuration file\u200b\nYou can set up logging in the following configuration **files** of the `..\\Terrasoft.WebApp` directory:\n* `nlog.config`\n* `nlog.targets.config`\nSet the path to the `nlog.config` file in the `..\\Terrasoft.WebApp\\Web.config` configuration file.\nExample of the nlog.config file\n<common>  \n<logging>  \n<factoryAdapter type=\"Common.Logging.NLog.NLogLoggerFactoryAdapter, Common.Logging.NLog45\">  \n<arg key=\"configType\" value=\"FILE\" />  \n<arg key=\"configFile\" value=\"~/nlog.config\" />  \n</factoryAdapter>  \n</logging>  \n</common>  \n#### 2\\. Specify the log receivers\u200b\nLog receivers display, store and transfer the log messages to other receivers.\nLog receivers have the following **types** :\n* Receivers that receive and handle messages\n* receivers that buffer or forward messages to another receiver\nSpecify the log receivers in the `<target>` XML element of the `...\\Terrasoft.WebApp\\nlog.targets.config` file.\nThe configuration **attributes** of log receivers are as follows:\n* `name`. Receiver name.\n* `xsi:type`. Receiver type. Available values: \"File,\" \"Database,\" \"Mail.\"\n* `fileName`. Log file and path to the log file. The log file location depends on the values of Windows system variables.\n* Default path to the application loader log files\n* Path example\n[TEMP]\\Creatio\\Site_[SiteId][ApplicationName]\\Log[DateTime.Today]  \nC:\\Windows\\Temp\\Creatio\\Site_1\\creatio806\\Log\\2022_05_22  \n* Path to the Default configuration log files\n* Path example\n[TEMP]\\Creatio\\Site_[SiteId][ApplicationName][ConfigurationNumber]\\Log[DateTime.Today]  \nC:\\Windows\\Temp\\Creatio\\Site_1\\creatio806\\0\\Log\\2022_05_22  \n* `[TEMP]`. Base directory. By default, IIS uses the `C:\\Windows\\Temp` directory. Visual Studio (IIS Express) uses the `C:\\Users[User name]\\AppData\\Local\\Temp` directory.\n* `[SiteId]`. Website number. For IIS, find the website number in the advanced website settings. For Visual Studio, the number is 2.\n* `[ApplicationName]`. Creatio name.\n* `[ConfigurationNumber]`. Configuration number. The number for the `Default` configuration is usually 0.\n* `[DateTime.Today]`. Log date.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/NLogLogging/scr_nlog_IIS_advanced.png)\n* `layout`. Template for populating the log file.\nExample of the nlog.targets.config file\n<target name=\"universalAppender\" xsi:type=\"File\"  \nlayout=\"${DefaultLayout}\"  \nfileName=\"${LogDir}${LogDay}${logger:shortName=True}.log\" />  \nLearn more about log receivers in the official [NLog documentation](https://nlog-project.org/config/?tab=targets).\n#### 3\\. Define the log rules\u200b\nYou can define the log rules in the `nlog.config` file.\nThe configuration **attributes** of log rules are as follows:\n* `name`. Log name.\n* `minlevel`. Minimum logging level. The default logging level for Creatio components is set to ensure the highest performance.\nAvailable **logging levels** in ascending priority:\n* `Trace`. Log all events during setup. Set the initial and final methods.\n* `Debug`. Log all events during debugging.\n* `Info`. Log regular Creatio activity.\n* `Warn`. Log warnings. Creatio continues to operate after logging.\n* `Error`. Log errors that might crash Creatio.\n* `Fatal`. Log errors that inevitably crash Creatio.\n* `Off`. Disable logging.\n* `maxlevel`. Maximum logging level.\n* `level`. Log events of a specific logging level.\n* `levels`. Log events of multiple logging levels, separated by commas.\n* `writeTo`. The name of the log receiver.\n* `final`. Whether to handle subsequent rules.\n* `enabled`. Disable the log rule (set to `false`) without deleting it.\n* `ruleName`. The log rule ID.\nNLog handles logging rule attributes in the following **order** :\n1. `level`\n2. `levels`\n3. `minlevel` and `maxlevel`\nIf `minLevel = \"Warn\" level = \"Info\"`, only the `Info` logging level is used, because the handling priority of the `level` attribute is higher than `minLevel`.\nExample of a log rule that writes a log to the database\n<logger name=\"IncidentRegistration\" writeTo=\"AdoNetBufferedAppender\" minlevel=\"Trace\" final=\"true\" />  \n### Set up logging for Creatio on-site via the LoggingConfiguration configuration object\u200b\n1. Create a `LoggingConfiguration` object that describes the configuration.\n2. Create the log receivers.\n3. Set up the properties of the log receivers.\n4. Define the logging rules using `LoggingRule` objects.\n5. Add the logging rules to the `LoggingRules` configuration objects.\n6. Activate the configuration. To do this, specify the created configuration object in `LogManager.Configuration`.\n## Set up logging for Creatio in the cloud\u200b\nTo **set up logging for Creatio in the cloud** , contact Creatio support.\nImportant\nIt is impossible to add an additional log receiver when setting up logging for Creatio in the cloud.\n* * *\n## See also\u200b\n[Modal box](https://academy.creatio.com/documents?ver=8.0&id=15595)",
+  "code_examples": [
+    {
+      "code": "<common>    <logging>        <factoryAdapter type=\"Common.Logging.NLog.NLogLoggerFactoryAdapter, Common.Logging.NLog45\">            <arg key=\"configType\" value=\"FILE\" />            <arg key=\"configFile\" value=\"~/nlog.config\" />        </factoryAdapter>    </logging></common>",
+      "language": "js",
+      "context": "Set the path to thenlog.configfile in the..\\Terrasoft.WebApp\\Web.configconfiguration file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[TEMP]\\Creatio\\Site_[SiteId][ApplicationName]\\Log[DateTime.Today]",
+      "language": "js",
+      "context": "fileName. Log file and path to the log file. The log file location depends on the values of Windows system variables.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "C:\\Windows\\Temp\\Creatio\\Site_1\\creatio806\\Log\\2022_05_22",
+      "language": "js",
+      "context": "fileName. Log file and path to the log file. The log file location depends on the values of Windows system variables.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[TEMP]\\Creatio\\Site_[SiteId][ApplicationName][ConfigurationNumber]\\Log[DateTime.Today]",
+      "language": "js",
+      "context": "fileName. Log file and path to the log file. The log file location depends on the values of Windows system variables.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "C:\\Windows\\Temp\\Creatio\\Site_1\\creatio806\\0\\Log\\2022_05_22",
+      "language": "js",
+      "context": "fileName. Log file and path to the log file. The log file location depends on the values of Windows system variables.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<target name=\"universalAppender\" xsi:type=\"File\"    layout=\"${DefaultLayout}\"    fileName=\"${LogDir}${LogDay}${logger:shortName=True}.log\" />",
+      "language": "js",
+      "context": "layout. Template for populating the log file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "<logger name=\"IncidentRegistration\" writeTo=\"AdoNetBufferedAppender\" minlevel=\"Trace\" final=\"true\" />",
+      "language": "js",
+      "context": "IfminLevel = \"Warn\" level = \"Info\", only theInfologging level is used, because the handling priority of thelevelattribute is higher thanminLevel.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIt is impossible to add an additional log receiver when setting up logging for Creatio in the cloud.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>It is impossible to add an additional log receiver when setting up logging for Creatio in the cloud.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "It is impossible to add an additional log receiver when setting up logging for Creatio in the cloud.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>It is impossible to add an additional log receiver when setting up logging for Creatio in the cloud.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/NLogLogging/scr_nlog_IIS_advanced.png",
+      "alt": "",
+      "title": "",
+      "context": "[DateTime.Today]. Log date.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/docs_8.x_dev_development-on-creatio-platform_8.0_development-tools_logging_nlog_967eed206fa9.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "NLog",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up logging for Creatio on-site\u200b",
+      "anchor": "title-2121-1"
+    },
+    {
+      "level": 3,
+      "text": "Set up logging for Creatio on-site via the configuration file\u200b",
+      "anchor": "title-2121-6"
+    },
+    {
+      "level": 4,
+      "text": "1. Set the path to the log configuration file\u200b",
+      "anchor": "title-2121-2"
+    },
+    {
+      "level": 4,
+      "text": "2. Specify the log receivers\u200b",
+      "anchor": "title-2121-3"
+    },
+    {
+      "level": 4,
+      "text": "3. Define the log rules\u200b",
+      "anchor": "title-2121-4"
+    },
+    {
+      "level": 3,
+      "text": "Set up logging for Creatio on-site via the LoggingConfiguration configuration object\u200b",
+      "anchor": "title-2121-7"
+    },
+    {
+      "level": 2,
+      "text": "Set up logging for Creatio in the cloud\u200b",
+      "anchor": "title-2121-5"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/nlog",
+      "text": "NLog",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/development-tools/logging/nlog",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/development-tools/logging/nlog",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/development-tools/logging/nlog",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/overview-creatio-ide",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-elements",
+      "text": "Configuration elements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/creatio-ide/replace-configuration-elements",
+      "text": "Replacement",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/external-ides/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/functionality-development",
+      "text": "Functionality development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/composable-architecture",
+      "text": "Composable architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/packages-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/simple-package",
+      "text": "Regular package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/project-package",
+      "text": "Project package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/assembly-package",
+      "text": "Assembly package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/automatically-activated-package",
+      "text": "Smart activation package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/create-a-package",
+      "text": "Create a package",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/bind-data",
+      "text": "Bind data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/packages/package-conversion",
+      "text": "\u0421onversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-content",
+      "text": "File content",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/install-clio",
+      "text": "Install Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/set-up-creatio-instance",
+      "text": "Set up Creatio instance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/clio/use-clio",
+      "text": "Use Clio",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/configuration-version-control",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/subversion",
+      "text": "Subversion",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/version-control-system/git",
+      "text": "Git",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/testing/nunit",
+      "text": "NUnit",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/testing-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/postgresql-features",
+      "text": "PostgreSQL features",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/database-tools/backward-compatible-sql-scripts",
+      "text": "Backward compatible scripts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "PreviousLogging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/logging/logging-of-http-requests-net-core",
+      "text": "NextHTTP requests logging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-debugging",
+      "text": "Back-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-debugging",
+      "text": "Front-end debugging",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/environments",
+      "text": "Environments",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/development-tools/delivery/delivery-management-process",
+      "text": "Delivery management process",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/configuration-section",
+      "text": "Configuration section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/workspaceconsole-utility",
+      "text": "WorkspaceConsole utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-process-customization",
+      "text": "Delivery process customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:07:09.456760"
+}

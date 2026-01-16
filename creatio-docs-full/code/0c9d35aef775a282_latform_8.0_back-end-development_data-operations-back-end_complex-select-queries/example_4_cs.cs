@@ -1,0 +1,1 @@
+using (DBExecutor executor = userConnection.EnsureDBConnection(QueryKind)) {    /* ... */};

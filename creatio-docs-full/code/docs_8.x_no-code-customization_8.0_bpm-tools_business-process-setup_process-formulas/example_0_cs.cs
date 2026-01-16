@@ -1,0 +1,1 @@
+"Compile bundle" + [#Read products.First element of the resulting collection.Name#] + "for customer" + [#Read account data.First element of the resulting collection.Name#]

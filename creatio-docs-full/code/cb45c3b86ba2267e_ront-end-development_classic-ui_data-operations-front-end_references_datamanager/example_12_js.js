@@ -1,0 +1,1 @@
+{Terrasoft.BaseViewMode} viewModel

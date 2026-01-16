@@ -1,0 +1,1 @@
+UPDATE WebFormProcessHandlersSET IsActive = 0WHERE FullClassName = 'Terrasoft.Configuration.WebFormEventTargetPreProcessHandler, Terrasoft.Configuration'

@@ -1,0 +1,1 @@
+{    "TabletViewMode": "SinglePage",    "CustomSchemas": [],    "SyncOptions": {        "SysSettingsImportConfig": [],        "ModelDataImportConfig": []    },    "Modules": {},    "Models": {}}

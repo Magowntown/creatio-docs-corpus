@@ -1,0 +1,1 @@
+EntitySchemaCoalesceQueryFunction(EntitySchemaCoalesceQueryFunction source)

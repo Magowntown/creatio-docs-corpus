@@ -1,0 +1,1 @@
+{    "CustomSchemas": [        "UsrCustomRecordPanelItem.js"    ],    "SyncOptions": {},    "Modules": {},    "Models": {        "Contact": {            "RequiredModels": [],            "ModelExtensions": [],            "PagesExtensions": [                "UsrMobileContactModuleConfigDefaultWorkplace.js"            ]        }    }}

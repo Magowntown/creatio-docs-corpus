@@ -1,0 +1,592 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/administration/creatio-maintenance/manage-resource-intensive-queries",
+  "title": "Manage resource-intensive queries",
+  "breadcrumbs": [
+    {
+      "text": "Administration",
+      "href": "/docs/8.x/setup-and-administration/category/administration"
+    },
+    {
+      "text": "Creatio maintenance",
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance"
+    }
+  ],
+  "content_markdown": "Version: 8.3\nOn this page\nExecution of resource-intensive business operations (queries) can utilize a significant amount of database resources, which often leads to lower Creatio performance for all users. Such operations include:\n* **Queries that filter strings by the \"contains\" mask**. For example, standard filter that has the \"Name contains %Jane%\" condition in the **Contacts** section.\n* **Unfiltered, non-paginated queries** generated using OData service or server-side Creatio development tools. For example, \"get all contacts\" query executed when you have more than 20,000 contact records.\n* **Queries sorted by a non-indexed column**.For example, **Contacts** section records sorted by the custom **Account country** column, for which no index has been created in the database.\n* **Queries sorted by complex columns that contain a subquery** For example, **Accounts** section records sorted by the column with feedback: the sum of sales for the last year for sales related to the account.\nTo detect such queries, Creatio uses templates stored in the **Query detector** lookup.\nYou can apply multiple actions to resource-intensive queries to reduce the load on the database significantly and free up resources for user activity and operation of other Creatio elements. These actions are listed in the **Query action** lookup.\n* **Limit query execution time**. Cancel the query after the time limit specified in the \"Query execution timeout\" (\"QueryExecutionTimeout\" code) system setting passes.\n* **Logging**. Log only query data to the **Query rule apply log** lookup. This helps to track the problematic queries.\n* **Limit the number of threads**. Limit the number of threads to execute the request to the value specified in the \"MaxDopQueryHint thread count\" (\"MaxDopHintThreadsCount\" code) system setting. We recommend using a quarter to a half of total available threads, assuming one thread corresponds to one CPU core. This way, resource-intensive operations will be unable to take all available threads.\n* **Cancel execution**. Cancel the query immediately.\nImportant\nWe do not recommend changing the contents of the **Query detector** and **Query action** lookups. This can lead to violations of query handling rules.\n## Configure query handling rules\u200b\nYou can restrict the handling of heavy queries to improve database performance. To do this, define the type of the heaviest queries in your Creatio application and set rules that restrict their execution.\nnote\nA system administrator or user who has permissions to execute the \"Can manage query rules\" (\"CanManageQueryRules\" code) system operation can configure the rules.\nThe basic rule structure looks as follows:\nIf the query goes to the <name> table, the table contains more than <n> rows, and the query matches the <query detector> template, then the <query action> action must be applied to the query.  \nTo set up a rule:\n1. Click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/business_rules/btn_system_designer.png) \u2192 System Designer.\n2. Click **Lookups**.\n3. Open the **Query handle rule** lookup.\n4. Click **Add**.\n5. Fill out the rule parameters:\n1. Enter a unique rule name in the **Name** parameter. Required.\n2. Specify the schema (database table) to which the query must be executed in the **Entity schema** parameter. If no schema is specified, Creatio applies the rule to all schemas.\n3. Set the minimum number of table rows required for the rule to apply in the **Min row count** parameter. Minimum value: 1000. Required.\n4. Select the template of the query type to which to apply the rule in the **Query Detector** parameter. Available values are stored in the **Query Detector** lookup. Required.\n5. Select the action to apply to the query in the **Query Action** parameter. Available values are stored in the [Query Action] lookup. Required.\nnote\n**System** checkbox determines the rule editability and priority. System rules can be configured only by cloud administrators in accordance with the cloud policies and restrictions. These rules are mandatory and cannot be modified or deleted by Creatio users.\n6. Specify the rule availability in the **Active** \u2014 determines whether the rule is used or not.\n7. Specify whether to log the Stack trace of the call of the operation that executes the query to which the rule was applied in the **Log stack trace** parameter. Logs are saved to the **Query rule apply log** lookup.\n8. Specify whether to log the query execution time in the **Log query execution time** parameter.\n6. Save the changes.\n7. Repeat steps 4\u20136 for other needed rules.\n## Execute rules\u200b\nRule priorities are based on the detector, system character, schema (table), and number of table rows. When the query is executed, Creatio checks the following:\n* query detectors used\n* entity schema and row number\n* whether **System** checkbox is set\nIf multiple rules apply to the same query detector and entity schema, Creatio applies only one system and one regular rule that match the most closely.\nThe examples below explain how rules affect the execution of resource-intensive queries. In the examples, the following set of rules is configured in Creatio.\nEntity schema| Min number of rows| Query detector| Query action| Is System| Is Active  \n---|---|---|---|---|---  \nLike 1 rule  \nNot set| 20000| Text filter detector by pattern \"%...\"| Limit query execution time| No| Yes  \nLike 2 rule  \nNot set| 500000| Text filter detector by pattern \"%...\"| Cancel execution| No| Yes  \nIndex 1 rule  \nNot set| 10000| Not indexed column sorting detector| Limit query execution time| No| Yes  \nIndex 2 rule  \nNot set| 500000| Not indexed column sorting detector| Cancel execution| No| Yes  \nActivity Like 1 rule  \nActivity| 20000| Text filter detector by pattern \"%...\"| Limit query execution time| No| Yes  \nActivity Like rule  \nActivity| 1000000| Text filter detector by pattern \"%...\"| Cancel execution| No| Yes  \nActivity Like sys rule  \nActivity| 10000| Text filter detector by pattern \"%...\"| Limit the number of threads| Yes| Yes  \nActivity no fil no pag sys rule  \nActivity| 10000| Not indexed column sorting detector| Limit the number of threads| Yes| Yes  \nnote\nThe user searches in the **Contacts** section by filtering \"**Full name** contains `<Jane>`\" and sorting by the non-indexed column **Date of birth**. The \"Contacts\" table has 100,000 entries.\nThe rule selection logic works as follows:\n* The query fits two detectors: \"Text filter detector by pattern \"%...\" and \"Not indexed column sorting detector.\"\n* \"Contact\" entity schema has no specific rules.\n* Fitting rules have no system rules.\nAs a result, the most suitable rule will be executed for each query detector.\nEntity schema| Min number of rows| Query detector| Query action| Is System| Is Active  \n---|---|---|---|---|---  \nLike 1 rule  \nNot set| 20000| Text filter detector by pattern \"%...\"| Limit query execution time| No| Yes  \nIndex 1 rule  \nNot set| 10000| Not indexed column sorting detector| Limit query execution time| No| Yes  \nnote\nThe user searches in the **Activities** section using the filter \"**Name** contains `<account>`\" and sorting by the non-indexed **Created Date** column. The \"Activity\" table has 120,000 entries.\nThe rule selection logic works as follows:\n* The query fits two detectors: \"Text filter detector by pattern \"%...\" and \"Not indexed column sorting detector\".\n* \"Activity\" entity schema has specific rules.\n* Fitting rules include system rules.\nAs a result, the most suitable system rule and common rule will be executed for \"Text filter detector by pattern \"%...\" query detector. Only the most suitable system rule will be executed for \"Not indexed column sorting detector\" because no common rules for this query detector were configured.\nEntity schema| Min number of rows| Query detector| Query action| Is System| Is Active  \n---|---|---|---|---|---  \nActivity Like 1 rule  \nActivity| 20000| Text filter detector by pattern \"%...\"| Limit query execution time| No| Yes  \nActivity Like sys rule  \nActivity| 10000| Text filter detector by pattern \"%...\"| Limit the number of threads| Yes| Yes  \nActivity no fil no pag sys rule  \nActivity| 10000| Not indexed column sorting detector| Limit the number of threads| Yes| Yes  \n## Analyze rules execution\u200b\nCreatio stores the logged query execution data in the **Query rule apply log** lookup. For each of the configured rules, only the first operation for each of the users during the day is logged. This enables the administrator to identify Creatio bottlenecks and make appropriate changes based on the rules that are used most often.\nIn the log you can find the following information:\n* **Schema name**. The root schema (database table) to which the request is made.\n* **User login**. The user who initiated the request.\n* **Last detection date**. Date of the last rule triggering on request.\n* **Query detector**. Query type template for which the rule was applied.\n* **Query action**. The action that was applied to the request.\n* **Message**. Information that additionally reveals the reasons for triggering the rules: the number of records in the table, as well as by what criterion the trigger was triggered (for example, which heavy filter for which column).\n* **Recommendation**. A recommendation to the system administrator how to reduce the impact of the query (for example, depending on the detector, add an index to the column, clear irrelevant/historical data in the table, strengthen the filter, etc.).\n* **Execution time, sec**. A query execution time in database (to log this parameter, column **Log query execution time** of Query handle rule must be set up to \"Yes\").\nTo view the SQL text and stack trace of the query, you can use the **Show SQL text** and **Show stack trace** buttons, which are available after clicking on the log entry. This information may be needed to analyze the request in more detail and determine the functionality that generated it. Stack trace logging is off by default. But you can turn it on in the **Query handle rule** lookup.\n* * *\n## See also\u200b\n[System requirements calculator](https://academy.creatio.com/docs/calculator)\n[Limit the number of simultaneous DB queries](https://academy.creatio.com/documents?id=2407)",
+  "code_examples": [
+    {
+      "code": "If the query goes to the <name> table, the table contains more than <n> rows, and the query matches the <query detector> template, then the <query action> action must be applied to the query.",
+      "language": "cli",
+      "context": "The basic rule structure looks as follows:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Entity schema",
+          "Min number of rows",
+          "Query detector",
+          "Query action",
+          "Is System",
+          "Is Active"
+        ],
+        [
+          "Like 1 rule"
+        ],
+        [
+          "Not set",
+          "20000",
+          "Text filter detector by pattern \"%...\"",
+          "Limit query execution time",
+          "No",
+          "Yes"
+        ],
+        [
+          "Like 2 rule"
+        ],
+        [
+          "Not set",
+          "500000",
+          "Text filter detector by pattern \"%...\"",
+          "Cancel execution",
+          "No",
+          "Yes"
+        ],
+        [
+          "Index 1 rule"
+        ],
+        [
+          "Not set",
+          "10000",
+          "Not indexed column sorting detector",
+          "Limit query execution time",
+          "No",
+          "Yes"
+        ],
+        [
+          "Index 2 rule"
+        ],
+        [
+          "Not set",
+          "500000",
+          "Not indexed column sorting detector",
+          "Cancel execution",
+          "No",
+          "Yes"
+        ],
+        [
+          "Activity Like 1 rule"
+        ],
+        [
+          "Activity",
+          "20000",
+          "Text filter detector by pattern \"%...\"",
+          "Limit query execution time",
+          "No",
+          "Yes"
+        ],
+        [
+          "Activity Like rule"
+        ],
+        [
+          "Activity",
+          "1000000",
+          "Text filter detector by pattern \"%...\"",
+          "Cancel execution",
+          "No",
+          "Yes"
+        ],
+        [
+          "Activity Like sys rule"
+        ],
+        [
+          "Activity",
+          "10000",
+          "Text filter detector by pattern \"%...\"",
+          "Limit the number of threads",
+          "Yes",
+          "Yes"
+        ],
+        [
+          "Activity no fil no pag sys rule"
+        ],
+        [
+          "Activity",
+          "10000",
+          "Not indexed column sorting detector",
+          "Limit the number of threads",
+          "Yes",
+          "Yes"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Entity schema</p></center></th><th><center><p>Min number of rows</p></center></th><th><center><p>Query detector</p></center></th><th><center><p>Query action</p></center></th><th><center><p>Is System</p></center></th><th><center><p>Is Active</p></center></th></tr><tr><th colspan=\"6\"><center><p>Like 1 rule</p></center></th></tr><tr><td><p>Not set</p></td><td><p>20000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Limit query execution time</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Like 2 rule</p></center></th></tr><tr><td><p>Not set</p></td><td><p>500000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Cancel execution</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Index 1 rule</p></center></th></tr><tr><td><p>Not set</p></td><td><p>10000</p></td><td><p>Not indexed column sorting detector</p></td><td><p>Limit query execution time</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Index 2 rule</p></center></th></tr><tr><td><p>Not set</p></td><td><p>500000</p></td><td><p>Not indexed column sorting detector</p></td><td><p>Cancel execution</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Activity Like 1 rule</p></center></th></tr><tr><td><p>Activity</p></td><td><p>20000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Limit query execution time</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Activity Like rule</p></center></th></tr><tr><td><p>Activity</p></td><td><p>1000000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Cancel execution</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Activity Like sys rule</p></center></th></tr><tr><td><p>Activity</p></td><td><p>10000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Limit the number of threads</p></td><td><p>Yes</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Activity no fil no pag sys rule</p></center></th></tr><tr><td><p>Activity</p></td><td><p>10000</p></td><td><p>Not indexed column sorting detector</p></td><td><p>Limit the number of threads</p></td><td><p>Yes</p></td><td><p>Yes</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Entity schema",
+          "Min number of rows",
+          "Query detector",
+          "Query action",
+          "Is System",
+          "Is Active"
+        ],
+        [
+          "Like 1 rule"
+        ],
+        [
+          "Not set",
+          "20000",
+          "Text filter detector by pattern \"%...\"",
+          "Limit query execution time",
+          "No",
+          "Yes"
+        ],
+        [
+          "Index 1 rule"
+        ],
+        [
+          "Not set",
+          "10000",
+          "Not indexed column sorting detector",
+          "Limit query execution time",
+          "No",
+          "Yes"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Entity schema</p></center></th><th><center><p>Min number of rows</p></center></th><th><center><p>Query detector</p></center></th><th><center><p>Query action</p></center></th><th><center><p>Is System</p></center></th><th><center><p>Is Active</p></center></th></tr><tr><th colspan=\"6\"><center><p>Like 1 rule</p></center></th></tr><tr><td><p>Not set</p></td><td><p>20000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Limit query execution time</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Index 1 rule</p></center></th></tr><tr><td><p>Not set</p></td><td><p>10000</p></td><td><p>Not indexed column sorting detector</p></td><td><p>Limit query execution time</p></td><td><p>No</p></td><td><p>Yes</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Entity schema",
+          "Min number of rows",
+          "Query detector",
+          "Query action",
+          "Is System",
+          "Is Active"
+        ],
+        [
+          "Activity Like 1 rule"
+        ],
+        [
+          "Activity",
+          "20000",
+          "Text filter detector by pattern \"%...\"",
+          "Limit query execution time",
+          "No",
+          "Yes"
+        ],
+        [
+          "Activity Like sys rule"
+        ],
+        [
+          "Activity",
+          "10000",
+          "Text filter detector by pattern \"%...\"",
+          "Limit the number of threads",
+          "Yes",
+          "Yes"
+        ],
+        [
+          "Activity no fil no pag sys rule"
+        ],
+        [
+          "Activity",
+          "10000",
+          "Not indexed column sorting detector",
+          "Limit the number of threads",
+          "Yes",
+          "Yes"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Entity schema</p></center></th><th><center><p>Min number of rows</p></center></th><th><center><p>Query detector</p></center></th><th><center><p>Query action</p></center></th><th><center><p>Is System</p></center></th><th><center><p>Is Active</p></center></th></tr><tr></tr><tr><th colspan=\"6\"><center><p>Activity Like 1 rule</p></center></th></tr><tr><td><p>Activity</p></td><td><p>20000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Limit query execution time</p></td><td><p>No</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Activity Like sys rule</p></center></th></tr><tr><td><p>Activity</p></td><td><p>10000</p></td><td><p>Text filter detector by pattern \"%...\"</p></td><td><p>Limit the number of threads</p></td><td><p>Yes</p></td><td><p>Yes</p></td></tr><tr><th colspan=\"6\"><center><p>Activity no fil no pag sys rule</p></center></th></tr><tr><td><p>Activity</p></td><td><p>10000</p></td><td><p>Not indexed column sorting detector</p></td><td><p>Limit the number of threads</p></td><td><p>Yes</p></td><td><p>Yes</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Query detector",
+      "content": "ImportantWe do not recommend changing the contents of theQuery detectorandQuery actionlookups. This can lead to violations of query handling rules.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We do not recommend changing the contents of the <strong>Query detector</strong> and <strong>Query action</strong> lookups. This can lead to violations of query handling rules.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Query detector",
+      "content": "We do not recommend changing the contents of theQuery detectorandQuery actionlookups. This can lead to violations of query handling rules.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We do not recommend changing the contents of the <strong>Query detector</strong> and <strong>Query action</strong> lookups. This can lead to violations of query handling rules.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteA system administrator or user who has permissions to execute the \"Can manage query rules\" (\"CanManageQueryRules\" code) system operation can configure the rules.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>A system administrator or user who has permissions to execute the \"Can manage query rules\" (\"CanManageQueryRules\" code) system operation can configure the rules.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "A system administrator or user who has permissions to execute the \"Can manage query rules\" (\"CanManageQueryRules\" code) system operation can configure the rules.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>A system administrator or user who has permissions to execute the \"Can manage query rules\" (\"CanManageQueryRules\" code) system operation can configure the rules.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "System",
+      "content": "noteSystemcheckbox determines the rule editability and priority. System rules can be configured only by cloud administrators in accordance with the cloud policies and restrictions. These rules are mandatory and cannot be modified or deleted by Creatio users.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p><strong>System</strong> checkbox determines the rule editability and priority. System rules can be configured only by cloud administrators in accordance with the cloud policies and restrictions. These rules are mandatory and cannot be modified or deleted by Creatio users.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "System",
+      "content": "Systemcheckbox determines the rule editability and priority. System rules can be configured only by cloud administrators in accordance with the cloud policies and restrictions. These rules are mandatory and cannot be modified or deleted by Creatio users.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p><strong>System</strong> checkbox determines the rule editability and priority. System rules can be configured only by cloud administrators in accordance with the cloud policies and restrictions. These rules are mandatory and cannot be modified or deleted by Creatio users.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Contacts",
+      "content": "noteThe user searches in theContactssection by filtering \"Full namecontains<Jane>\" and sorting by the non-indexed columnDate of birth. The \"Contacts\" table has 100,000 entries.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The user searches in the <strong>Contacts</strong> section by filtering \"<strong>Full name</strong> contains  <code>&lt;Jane&gt;</code>\" and sorting by the non-indexed column <strong>Date of birth</strong>. The \"Contacts\" table has 100,000 entries.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Contacts",
+      "content": "The user searches in theContactssection by filtering \"Full namecontains<Jane>\" and sorting by the non-indexed columnDate of birth. The \"Contacts\" table has 100,000 entries.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The user searches in the <strong>Contacts</strong> section by filtering \"<strong>Full name</strong> contains  <code>&lt;Jane&gt;</code>\" and sorting by the non-indexed column <strong>Date of birth</strong>. The \"Contacts\" table has 100,000 entries.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Activities",
+      "content": "noteThe user searches in theActivitiessection using the filter \"Namecontains<account>\" and sorting by the non-indexedCreated Datecolumn. The \"Activity\" table has 120,000 entries.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The user searches in the <strong>Activities</strong> section using the filter \"<strong>Name</strong> contains  <code>&lt;account&gt;</code>\" and sorting by the non-indexed <strong>Created Date</strong> column. The \"Activity\" table has 120,000 entries.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Activities",
+      "content": "The user searches in theActivitiessection using the filter \"Namecontains<account>\" and sorting by the non-indexedCreated Datecolumn. The \"Activity\" table has 120,000 entries.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The user searches in the <strong>Activities</strong> section using the filter \"<strong>Name</strong> contains  <code>&lt;account&gt;</code>\" and sorting by the non-indexed <strong>Created Date</strong> column. The \"Activity\" table has 120,000 entries.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/business_rules/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Click\u2192 System Designer.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/c57f6fd41395fb96_inistration_administration_creatio-maintenance_manage-resource-intensive-queries_8afe3f5a3011.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Manage resource-intensive queries",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Configure query handling rules\u200b",
+      "anchor": "title-2516-1"
+    },
+    {
+      "level": 2,
+      "text": "Execute rules\u200b",
+      "anchor": "title-2516-2"
+    },
+    {
+      "level": 2,
+      "text": "Analyze rules execution\u200b",
+      "anchor": "title-2516-3"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/manage-resource-intensive-queries",
+      "text": "Query management rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/manage-resource-intensive-queries",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/creatio-maintenance/manage-resource-intensive-queries",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/user-access-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/synchronize-users-with-ldap",
+      "text": "Synchronize users with LDAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-management",
+      "text": "User management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/access-management",
+      "text": "Access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/creatio-licensing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/manage-user-licenses",
+      "text": "Manage licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/licensing/creatio-licensing-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/change-log",
+      "text": "Change log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/audit-log",
+      "text": "Audit log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/secure-file-upload",
+      "text": "Secure file upload",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/recommended-information-security-settings",
+      "text": "Information security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/content-security-policy",
+      "text": "Content security policy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/store-secrets-in-vault",
+      "text": "Sensitive data security",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/host-header-protection",
+      "text": "Host header protection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/limit-ip-for-login",
+      "text": "IP restrictions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/platform-cookies",
+      "text": "Platform cookies",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/security-settings/remote-access-for-creatio-support",
+      "text": "Remote access for Creatio support",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/creatio-cloud-ips",
+      "text": "Creatio cloud IP addresses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/clean-up-the-drive-space",
+      "text": "Clean up the drive space",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/process-complex-database-queries-faster",
+      "text": "Improve page loading time",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/limit-DB-thread-count",
+      "text": "PreviousLimit thread count for DB queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/backup-datadase",
+      "text": "NextBack up database",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/manage-site",
+      "text": "Maintain Creatio website",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/creatio-maintenance/compile-app-on-web-farm",
+      "text": "Compile an app on a web farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/calculator",
+      "text": "System requirements calculator",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:26:19.159778"
+}

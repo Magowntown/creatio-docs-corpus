@@ -1,0 +1,1 @@
+{    "bootstraps": [        ... // The string array that contains relative paths to bootstrap files.    ]}

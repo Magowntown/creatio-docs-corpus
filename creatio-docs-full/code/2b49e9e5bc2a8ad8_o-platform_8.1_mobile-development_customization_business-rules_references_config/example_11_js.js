@@ -1,0 +1,1 @@
+Terrasoft.sdk.Model.addBusinessRule("Activity", {    ruleType: Terrasoft.RuleTypes.MutualFiltration,    triggeredByColumns: ["Contact", "Account"],    connections: [        {            parent: "Contact",            child: "Account",            connectedBy: "PrimaryContact"        }    ]});

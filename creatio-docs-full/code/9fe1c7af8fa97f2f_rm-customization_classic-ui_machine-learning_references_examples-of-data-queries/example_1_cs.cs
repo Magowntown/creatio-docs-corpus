@@ -1,0 +1,1 @@
+new Select(userConnection)    .Cols(        "L.Id",        "L.QualifyStatusId",        "L.LeadTypeId",        "L.LeadSourceId",        "L.LeadMediumId AS LeadChannel",        "L.BusinessPhone AS KnownBusinessPhone")    .From("Lead").As("L");

@@ -1,0 +1,1 @@
+IsEntityInitialized BOOLEAN

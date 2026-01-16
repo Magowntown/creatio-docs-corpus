@@ -1,0 +1,1 @@
+addMacrosColumn(macrosType, [columnAlias])

@@ -1,0 +1,549 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/synchronize-users-with-ldap/set-up-active-directory-filters",
+  "title": "Set up Active Directory filters",
+  "breadcrumbs": [
+    {
+      "text": "Administration",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/administration"
+    },
+    {
+      "text": "User and access management",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/user-and-access-management"
+    },
+    {
+      "text": "Synchronize users with LDAP",
+      "href": "/docs/8.x/setup-and-administration/8.2/category/synchronize-users-with-ldap"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nConfigure Active Directory filters to set the synchronization parameters for users, groups, and users of a specific group.\n## The filter format\u200b\nIn general, the Active Directory filter format is as follows:\n(<operator><filter1><filter2>)  \nWhere `<filter1>` is as follows:\n(<attribute><operator><value>)  \nYou can use any number of filters and operators during the setup. Use the following operators to add and set up filters:\n`=` \u2013 equal to\n`~=` \u2013 approximately equal to\n`=>` \u2013 greater than or equal to\n`<=` \u2013 less than or equal to\n`&` \u2013 \"AND\"\n`|` \u2013 \"OR\"\n`!` \u2013 \"NOT\"\nThe values represent the actual values of Active Directory attributes. The values are not case-sensitive and should not be enclosed in quotes. You can also use the wildcard character \"*****.\" For example, this condition will retrieve all elements: `(objectClass=*)`.\nEnclose each logical expression in brackets \"()\" to ensure the filter works correctly both on Windows and Linux.\n* A correctly set up filter\n* An incorrectly setup filter\n(&(objectClass=group)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(|(cn=szgroup)(cn=CoreCC*)(cn=GroupCoreCC3)))  \n(&(objectClass=group)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(|(cn=szgroup)(cn=CoreCC*)(cn=GroupCoreCC3)))  \n## Filter users\u200b\nIf your company uses the Active Directory service, we recommend the standard active user synchronization filter:\n(&(objectClass=user)(objectClass=person)(!(objectClass=computer))(!(isDeleted=TRUE)))  \nWhere:\n`&` \u2013 the \"AND\" operator. Indicates that all filter conditions must be met.\n`objectClass=user` \u2013 selects all \"user\" objects in the array.\n`objectClass=person` \u2013 selects all \"person\" objects in the array.\n`!(objectClass=computer)` \u2013 excludes all \"computer\" objects.\n`!(isDeleted=TRUE)` \u2013 specifies that the objects are not deleted.\n## Filter groups\u200b\nSet up group filtering to synchronize Active Directory users with Creatio organizational structure. The standard user group filter for all active users is as follows:\n(&(objectClass=group)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))  \nWhere:\n`&` \u2013 the \"AND\" operator. Indicates that all filter conditions must be met.\n`objectClass=group` \u2013 selects all \"group\" objects in the array.\n`userAccountControl` \u2013 user account control flags, in numerical format.\n`:1.2.840.113556.1.4.803:` \u2013 the bitwise \"AND\" in LDAP format.\n`2` \u2013 the \"ACCOUNTDISABLE\" flag.\nAs such, the `(!(userAccountControl:1.2.840.113556.1.4.803:=2))` filter excludes deactivated (inactive) user accounts. Read more in the [Microsoft Docs](https://support.microsoft.com/en-us/kb/305144) article.\n## Standard Active Directory group user filters\u200b\nBesides user and organizational structure filters, you also need to retrieve a list of users included in the Active Directory group and therefore in LDAP. The standard filter that retrieves a list of all group users is as follows:\n(memberOf=[#LDAPGroupDN#])  \nWhere:\n`memberOf` \u2013 standard Active Directory object attribute that determines the object group.\n`#LDAPGroupDN#` \u2013 Creatio macro used to retrieve the list of group users with unique DN (Distinguished Name) attribute values.\nThe macros are not a standard LDAP attribute. Creatio only uses them to form an object selection request. Depending on the AD settings, you can also use the following parameters:\n`#LDAPGroupName#` \u2013 the name of the group specified in the **LDAP group name** field of LDAP integration settings.\n`#LDAPGroupIdentity#` \u2013 the unique group Id specified in the **Group Id** field of LDAP integration settings.\n## Set up user/group synchronization filters\u200b\nYou can create custom user and group synchronization filters depending on your business needs.\nExample\nDistinguish between employees with identical full names during the Active Directory synchronization.\nTo do this, make changes to the user synchronization filter. By default, Creatio uses the CN (Common Name) attribute to select objects. This attribute is required for correct operation as it is connected with the **User name** field. You can also include the \"displayName\" attribute in the filter conditions. This attribute will be unique for each user. As such, you need to synchronize users with the \"displayName\" attribute. To do this:\n1. Open the LDAP synchronization settings.\n2. Add the \"(displayName=*)\" condition to the default user list filter. This condition requires the \"displayName\" attribute to contain data. The filter will look as follows:\n(displayName=*)(&(objectClass=user)(objectClass=person)(!(objectClass=computer))(!(isDeleted=TRUE)))  \n3. Add the logical \"AND\" operator to make both filter conditions required:\n(&(displayName=*)(&(objectClass=user)(objectClass=person)(!(objectClass=computer))(!(isDeleted=TRUE))))  \n4. Replace the standard filter in the **List of users** field with the new filter.\n5. Save the settings and run the LDAP synchronization.\n* * *\n## See also\u200b\n[Set up LDAP synchronization](https://academy.creatio.com/documents?id=513)\n[Set up LDAP authentication](https://academy.creatio.com/documents?id=2367)\n[Import new users and roles from Active Directory](https://academy.creatio.com/documents?id=1996)",
+  "code_examples": [
+    {
+      "code": "(<operator><filter1><filter2>)",
+      "language": "cli",
+      "context": "In general, the Active Directory filter format is as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(<attribute><operator><value>)",
+      "language": "cli",
+      "context": "Where<filter1>is as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(&(objectClass=group)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(|(cn=szgroup)(cn=CoreCC*)(cn=GroupCoreCC3)))",
+      "language": "cli",
+      "context": "Enclose each logical expression in brackets \"()\" to ensure the filter works correctly both on Windows and Linux.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(&(objectClass=user)(objectClass=person)(!(objectClass=computer))(!(isDeleted=TRUE)))",
+      "language": "cli",
+      "context": "If your company uses the Active Directory service, we recommend the standard active user synchronization filter:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(&(objectClass=group)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))",
+      "language": "cli",
+      "context": "Set up group filtering to synchronize Active Directory users with Creatio organizational structure. The standard user group filter for all active users is as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(memberOf=[#LDAPGroupDN#])",
+      "language": "cli",
+      "context": "Besides user and organizational structure filters, you also need to retrieve a list of users included in the Active Directory group and therefore in LDAP. The standard filter that retrieves a list of ",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(displayName=*)(&(objectClass=user)(objectClass=person)(!(objectClass=computer))(!(isDeleted=TRUE)))",
+      "language": "cli",
+      "context": "Add the \"(displayName=*)\" condition to the default user list filter. This condition requires the \"displayName\" attribute to contain data. The filter will look as follows:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "(&(displayName=*)(&(objectClass=user)(objectClass=person)(!(objectClass=computer))(!(isDeleted=TRUE))))",
+      "language": "cli",
+      "context": "Add the logical \"AND\" operator to make both filter conditions required:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleDistinguish between employees with identical full names during the Active Directory synchronization.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Distinguish between employees with identical full names during the Active Directory synchronization.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Distinguish between employees with identical full names during the Active Directory synchronization.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Distinguish between employees with identical full names during the Active Directory synchronization.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Set up Active Directory filters",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "The filter format\u200b",
+      "anchor": "title-2018-10"
+    },
+    {
+      "level": 2,
+      "text": "Filter users\u200b",
+      "anchor": "title-2018-11"
+    },
+    {
+      "level": 2,
+      "text": "Filter groups\u200b",
+      "anchor": "title-2018-12"
+    },
+    {
+      "level": 2,
+      "text": "Standard Active Directory group user filters\u200b",
+      "anchor": "title-2018-13"
+    },
+    {
+      "level": 2,
+      "text": "Set up user/group synchronization filters\u200b",
+      "anchor": "title-2018-14"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/synchronize-users-with-ldap/set-up-active-directory-filters",
+      "text": "Set up AD filters",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/user-and-access-management/synchronize-users-with-ldap/set-up-active-directory-filters",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/administration/user-and-access-management/synchronize-users-with-ldap/set-up-active-directory-filters",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/synchronize-users-with-ldap/set-up-active-directory-filters",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-access-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/single-sign-on",
+      "text": "Single Sign-On",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/single-sign-on-via-adfs",
+      "text": "Set up SSO via AD FS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/set-up-sso-via-azure-ad",
+      "text": "Set up SSO via Microsoft Entra AD",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/set-up-sso-via-okta",
+      "text": "Set up SSO via Okta",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/single-sign-on-via-custom-provider",
+      "text": "Set up SSO via OneLogin",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/single-sign-on-via-google",
+      "text": "Set up SSO via Google",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/single-sign-on-via-cognito",
+      "text": "Set up SSO via Cognito AWS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/jit-up",
+      "text": "JIT UP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/windows-authentication",
+      "text": "Windows authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/authentication/set-up-two-factor-authentication",
+      "text": "Set up two-factor authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/synchronize-users-with-ldap",
+      "text": "Synchronize users with LDAP",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-synchronization",
+      "text": "PreviousSet up LDAP synchronization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/synchronize-users-with-ldap/import-new-users-and-roles-from-active-directory",
+      "text": "NextImport users from AD",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/synchronize-users-with-ldap/set-up-ldap-authentication",
+      "text": "Set up LDAP authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/synchronize-users-with-ldap/ldap-synchronization-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/user-management",
+      "text": "User management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/organizational-roles",
+      "text": "Organizational roles",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/functional-roles",
+      "text": "Functional roles",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/add-users",
+      "text": "Add users",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/import-users-from-excel",
+      "text": "Import users from Excel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/assign-a-user-role",
+      "text": "Assign a user role",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/change-the-system-user-supervisor",
+      "text": "The system user (Supervisor)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/technical-user",
+      "text": "Technical user",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/password-recovery",
+      "text": "Password recovery",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/user-management/unblock-a-user",
+      "text": "Unblock a user",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/access-management",
+      "text": "Access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/object-operation-permissions",
+      "text": "Operation permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/column-permissions",
+      "text": "Column permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/record-permissions",
+      "text": "Record permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/page-permissions",
+      "text": "Page permission checks",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/creatio-ai-permissions",
+      "text": "Creatio.ai permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/export-permissions",
+      "text": "Export permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/system-operation-permissions",
+      "text": "System operation permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/object-permissions-by-system-operations",
+      "text": "Object permissions by system operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/system-operation-reference",
+      "text": "System operation reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/user-and-access-management/access-management/delegate-permissions",
+      "text": "Delegate permissions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/licensing/creatio-licensing",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/licensing/manage-user-licenses",
+      "text": "Manage licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/licensing/creatio-licensing-faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/change-log",
+      "text": "Change log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/audit-log",
+      "text": "Audit log",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/secure-file-upload",
+      "text": "Secure file upload",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/recommended-information-security-settings",
+      "text": "Information security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/content-security-policy",
+      "text": "Content security policy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/store-secrets-in-vault",
+      "text": "Sensitive data security",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/host-header-protection",
+      "text": "Host header protection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/limit-ip-for-login",
+      "text": "IP restrictions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/platform-cookies",
+      "text": "Platform Cookies",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/security-settings/remote-access-for-creatio-support",
+      "text": "Remote access for Creatio support",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/creatio-cloud-ips",
+      "text": "Creatio cloud IP addresses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/clean-up-the-drive-space",
+      "text": "Clean up the drive space",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/process-complex-database-queries-faster",
+      "text": "Improve page loading time",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/limit-DB-thread-count",
+      "text": "Limit thread count for DB queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/manage-resource-intensive-queries",
+      "text": "Query management rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/backup-datadase",
+      "text": "Back up database",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/manage-site",
+      "text": "Maintain Creatio website",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/administration/creatio-maintenance/compile-app-on-web-farm",
+      "text": "Compile an app on a web farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/category/faq",
+      "text": "FAQ",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:14:48.068470"
+}

@@ -1,0 +1,1 @@
+[    {        "operation": "merge",        "name": "settings",        "values": {"modelViewConfig":"{\"controllers\":{\"Case\":{\"model\":{\"config\":{\"columns\":[{\"alias\":\"Case.RegisteredOn\",\"expression\":{\"columnPath\":\"RegisteredOn\",\"expressionType\": 0},\"orderDirection\":1,\"orderPosition\":0}]}}}}}"        }    }    ...]

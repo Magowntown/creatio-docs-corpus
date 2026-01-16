@@ -1,0 +1,1 @@
+Task<Stream> ReadAsync(IFileContentReadContext context)

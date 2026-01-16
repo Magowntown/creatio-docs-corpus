@@ -1,0 +1,1 @@
+config: {    params: {        schemaName: "",        resourceItemName: "",        hash: "",        resourceItemExtension: ""    }}

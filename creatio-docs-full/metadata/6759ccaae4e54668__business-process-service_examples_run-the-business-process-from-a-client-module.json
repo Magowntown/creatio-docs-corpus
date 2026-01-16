@@ -1,0 +1,550 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-from-a-client-module",
+  "title": "Run the business process from a client module",
+  "breadcrumbs": [
+    {
+      "text": "Integrations tools",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools"
+    },
+    {
+      "text": "Business process service",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nExample\nAdd the **Schedule a meeting** custom action to the account page and **Accounts** section list. The action must run the **Holding a meeting** custom business process. The action must be active if the account has a primary contact, i. e., the **Primary contact** field of the account page is filled out. Pass the primary contact of the account to the business process as a parameter.\n## 1\\. Implement the Holding a meeting custom business process\u200b\n1. Create the **Holding a meeting** business process. To do this, implement the example from a separate article: [Send emails via business processes](https://academy.creatio.com/documents?ver=8.1&id=7066).\n2. Add the business process parameter.\nFill out the values of the **business process parameter**.\n* Set **Title** to \"Meeting contact.\"\n* Set **Code** to \"ProcessSchemaContactParameter.\"\n* Set **Data type** to \"Unique identifier.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_process_parameter.png)\n3. Add the \"[#Meeting contact#]\" incoming parameter to the **Contact** property of the **Call customer** process action.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_add_task_parameter.png)\n## 2\\. Implement the custom action on the account page\u200b\n1. Create a replacing view model schema of the account page To do this, follow the guide in a separate article: [Add an action to the record page](https://academy.creatio.com/documents?ver=8.1&id=15522).\n2. Add a **localizable string** that contains the menu item caption.\n1. Click the ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema\\(7.17\\)/scr_add_button.png) button in the context menu of the **Localizable strings** node.\n2. Fill out the **localizable string properties**.\n* Set **Code** to \"CallProcessCaption.\"\n* Set **Value** to \"Schedule a meeting.\"\n3. Click **Add** to add a localizable string.\n3. Implement the **menu item behavior**.\n1. Add the `ProcessModuleUtilities` module as a dependency.\n2. Implement the following **methods** in the `methods` property:\n* `callCustomProcess()`. Action handler method. Implements the `executeProcess()` method of the `ProcessModuleUtilities` module. Pass the name of the business process and object that contains the initialized incoming process parameters to the module as a parameter.\n* `isAccountPrimaryContactSet()`. Checks whether the primary contact of the account is filled out.\n* `getActions()`. An overloaded base method. Returns the action collection of the replacing page.\nView the source code of the replacing view model schema of the account page below.\nAccountPageV2\ndefine(\"AccountPageV2\", [\"ProcessModuleUtilities\"], function(ProcessModuleUtilities) {   \nreturn {   \n/* The name of the record page object\u2019s schema. */   \nentitySchemaName: \"Account\",   \n/* The methods of the record page\u2019s view model. */   \nmethods: {   \n/* Verifies the [Primary contact] field of the record page is filled in. */   \nisAccountPrimaryContactSet: function() {   \nreturn this.get(\"PrimaryContact\") ? true : false;   \n},   \n/* Overrides the base virtual method that returns the action collection of the record page. */   \ngetActions: function() {   \n/* Calls the parent method implementation to retrieve the collection of the base page\u2019s initialized actions. */   \nvar actionMenuItems = this.callParent(arguments);   \n/* Adds a separator line. */   \nactionMenuItems.addItem(this.getActionsMenuItem({   \nType: \"Terrasoft.MenuSeparator\",   \nCaption: \"\"   \n}));   \n/* Adds a menu item to the action list of the record page. */  \nactionMenuItems.addItem(this.getActionsMenuItem({   \n/* Binds the menu item caption to the localizable schema string. */   \n\"Caption\": {   \nbindTo: \"Resources.Strings.CallProcessCaption\"   \n},   \n/* Binds the action handler method. */   \n\"Tag\": \"callCustomProcess\",   \n/* Binds the property of the menu item visibility to the value returned by the isAccountPrimaryContactSet() method. */   \n\"Visible\": {   \nbindTo: \"isAccountPrimaryContactSet\"   \n}   \n}));   \nreturn actionMenuItems;   \n},   \n/* The action handler method. */   \ncallCustomProcess: function() {   \n/* Receives the ID of the account primary contact. */   \nvar contactParameter = this.get(\"PrimaryContact\");   \n/* The object that transferred to the executeProcess() method as a parameter. */   \nvar args = {   \n/* The name of the process that needs to be run. */   \nsysProcessName: \"UsrCustomProcess\",  \n/* The object with the ContactParameter incoming parameter value for the CustomProcess process. */  \nparameters: {   \nProcessSchemaContactParameter: contactParameter.value   \n}   \n};   \n/* Runs the custom business process. */   \nProcessModuleUtilities.executeProcess(args);   \n}   \n}   \n};   \n});  \n4. Click **Save** on the Module Designer\u2019s toolbar.\n## 3\\. Implement the custom action of the section page\u200b\n1. Create a replacing view model schema of the section. To do this, follow the guide in a separate article: [Add an action to the record page](https://academy.creatio.com/documents?ver=8.1&id=15522).\n2. Add a **localizable string** that contains the menu item caption. To do this, take step 2 of the [procedure to implement a custom action of the account page](https://academy.creatio.com/documents?ver=8.1&id=15443&anchor=localizable-string).\n3. Implement the **menu item behavior**. To do this, implement the `isAccountPrimaryContactSet()` method in the `methods` property. The method checks whether the primary contact of the account is filled out.\nView the source code of the replacing view model schema of the section page below.\nAccountSectionV2\ndefine(\"AccountSectionV2\", [], function() {   \nreturn {   \n/* The name of the section page schema. */   \nentitySchemaName: \"Account\",   \n/* The methods of the section page\u2019s view model. */   \nmethods: {   \n/* Verifies the [Primary contact] field of the selected account is filled in. */   \nisAccountPrimaryContactSet: function() {   \n/* Defines the active record. */   \nvar activeRowId = this.get(\"ActiveRow\");   \nif (!activeRowId) {   \nreturn false;   \n}   \n/* Retrieves the data collection of the section list\u2019s list view. Retrieves the selected account model by the specified primary column value. */   \nvar selectedAccount = this.get(\"GridData\").get(activeRowId);   \nif (selectedAccount) {   \n/* Receives the model property \u2013 the primary contact. */   \nvar selectedPrimaryContact = selectedAccount.get(\"PrimaryContact\");   \n/* Returns true if the primary contact is filled in, return false otherwise. */   \nreturn selectedPrimaryContact ? true : false;   \n}   \nreturn false;   \n}   \n}   \n};   \n});  \n4. Click **Save** on the Module Designer\u2019s toolbar.\n## Outcome of the example\u200b\nTo **view the outcome of the example** :\n1. Clear the browser cache.\n2. Refresh the **Accounts** section page.\nAs a result, Creatio will add the **Schedule a meeting** action to the account page. This action will be active if the primary contact of the account is filled out.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_result01.png)\nSelect the action to run the **Holding a meeting** custom business process . The primary contact of the account will be passed to the business process as a parameter.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_result02.png)\n* * *\n## Resources\u200b\n[Package with example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkExecuteProcess_18.06.18_03.33.16.zip)",
+  "code_examples": [
+    {
+      "code": "define(\"AccountPageV2\", [\"ProcessModuleUtilities\"], function(ProcessModuleUtilities) {     return {         /* The name of the record page object\u2019s schema. */         entitySchemaName: \"Account\",         /* The methods of the record page\u2019s view model. */         methods: {             /* Verifies the [Primary contact] field of the record page is filled in. */             isAccountPrimaryContactSet: function() {                 return this.get(\"PrimaryContact\") ? true : false;             },             /* Overrides the base virtual method that returns the action collection of the record page. */             getActions: function() {                 /* Calls the parent method implementation to retrieve the collection of the base page\u2019s initialized actions. */                 var actionMenuItems = this.callParent(arguments);                 /* Adds a separator line. */                 actionMenuItems.addItem(this.getActionsMenuItem({                     Type: \"Terrasoft.MenuSeparator\",                     Caption: \"\"                 }));                 /* Adds a menu item to the action list of the record page. */                actionMenuItems.addItem(this.getActionsMenuItem({                     /* Binds the menu item caption to the localizable schema string. */                     \"Caption\": {                         bindTo: \"Resources.Strings.CallProcessCaption\"                     },                     /* Binds the action handler method. */                     \"Tag\": \"callCustomProcess\",                     /* Binds the property of the menu item visibility to the value returned by the isAccountPrimaryContactSet() method. */                     \"Visible\": {                         bindTo: \"isAccountPrimaryContactSet\"                     }                 }));                 return actionMenuItems;             },             /* The action handler method. */             callCustomProcess: function() {                 /* Receives the ID of the account primary contact. */                 var contactParameter = this.get(\"PrimaryContact\");                 /* The object that transferred to the executeProcess() method as a parameter. */                 var args = {                     /* The name of the process that needs to be run. */                     sysProcessName: \"UsrCustomProcess\",                    /* The object with the ContactParameter incoming parameter value for the CustomProcess process. */                    parameters: {                         ProcessSchemaContactParameter: contactParameter.value                     }                 };                 /* Runs the custom business process. */                 ProcessModuleUtilities.executeProcess(args);             }         }     }; });",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the account page below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"AccountSectionV2\", [], function() {     return {         /* The name of the section page schema. */         entitySchemaName: \"Account\",         /* The methods of the section page\u2019s view model. */         methods: {             /* Verifies the [Primary contact] field of the selected account is filled in. */             isAccountPrimaryContactSet: function() {                 /* Defines the active record. */                 var activeRowId = this.get(\"ActiveRow\");                 if (!activeRowId) {                     return false;                 }                 /* Retrieves the data collection of the section list\u2019s list view. Retrieves the selected account model by the specified primary column value. */                 var selectedAccount = this.get(\"GridData\").get(activeRowId);                 if (selectedAccount) {                     /* Receives the model property \u2013 the primary contact. */                     var selectedPrimaryContact = selectedAccount.get(\"PrimaryContact\");                     /* Returns true if the primary contact is filled in, return false otherwise. */                     return selectedPrimaryContact ? true : false;                 }                 return false;             }         }     }; });",
+      "language": "js",
+      "context": "View the source code of the replacing view model schema of the section page below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Schedule a meeting",
+      "content": "ExampleAdd theSchedule a meetingcustom action to the account page andAccountssection list. The action must run theHolding a meetingcustom business process. The action must be active if the account has a primary contact, i.\u00a0e., thePrimary contactfield of the account page is filled out. Pass the primary contact of the account to the business process as a parameter.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Add the <strong>Schedule a meeting</strong> custom action to the account page and <strong>Accounts</strong> section list. The action must run the <strong>Holding a meeting</strong> custom business process. The action must be active if the account has a primary contact, i.\u00a0e., the <strong>Primary contact</strong> field of the account page is filled out. Pass the primary contact of the account to the business process as a parameter.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Schedule a meeting",
+      "content": "Add theSchedule a meetingcustom action to the account page andAccountssection list. The action must run theHolding a meetingcustom business process. The action must be active if the account has a primary contact, i.\u00a0e., thePrimary contactfield of the account page is filled out. Pass the primary contact of the account to the business process as a parameter.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Add the <strong>Schedule a meeting</strong> custom action to the account page and <strong>Accounts</strong> section list. The action must run the <strong>Holding a meeting</strong> custom business process. The action must be active if the account has a primary contact, i.\u00a0e., the <strong>Primary contact</strong> field of the account page is filled out. Pass the primary contact of the account to the business process as a parameter.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_process_parameter.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the values of thebusiness process parameter.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6759ccaae4e54668__business-process-service_examples_run-the-business-process-from-a-client-module_c4d059960aff.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_add_task_parameter.png",
+      "alt": "",
+      "title": "",
+      "context": "Add the \"[#Meeting contact#]\" incoming parameter to theContactproperty of theCall customerprocess ac",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6759ccaae4e54668__business-process-service_examples_run-the-business-process-from-a-client-module_bc15eaafae9b.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/CreateClientSchema(7.17)/scr_add_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Click thebutton in the context menu of theLocalizable stringsnode.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6759ccaae4e54668__business-process-service_examples_run-the-business-process-from-a-client-module_2bc54520fe09.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_result01.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add theSchedule a meetingaction to the account page. This action will be a",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6759ccaae4e54668__business-process-service_examples_run-the-business-process-from-a-client-module_a7b6a68f9c32.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ExecuteProcess/scr_result02.png",
+      "alt": "",
+      "title": "",
+      "context": "Select the action to run theHolding a meetingcustom business process . The primary contact of the ac",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/6759ccaae4e54668__business-process-service_examples_run-the-business-process-from-a-client-module_e34cd780d383.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkExecuteProcess_18.06.18_03.33.16.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkExecuteProcess_18.06.18_03.33.16.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/6759ccaae4e54668__business-process-service_examples_run-the-business-process-from-a-client-module_sdkExecuteProcess_18.06.18_03.33.16.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Run the business process from a client module",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement the Holding a meeting custom business process\u200b",
+      "anchor": "title-2256-5"
+    },
+    {
+      "level": 2,
+      "text": "2. Implement the custom action on the account page\u200b",
+      "anchor": "title-2256-6"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement the custom action of the section page\u200b",
+      "anchor": "title-2256-7"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-2256-8"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETACTIONSMENUITEM",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "GETACTIONSMENUITEM",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "EXECUTEPROCESS",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-from-a-client-module",
+      "text": "Run the business process (client module)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/business-process-service/examples/run-the-business-process-from-a-client-module",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication-basics",
+      "text": "Authentication basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/oauth-20",
+      "text": "OAuth 2.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/authentication/cell-connection-provider-2fa",
+      "text": "Integrate the cell connection provider (2FA via SMS)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dataservice",
+      "text": "DataService",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/odata",
+      "text": "OData",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-web-service",
+      "text": "Run the business process from the browser address bar (business process service)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-from-console-app",
+      "text": "PreviousRun the business process from the C# console app (business process service)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/examples/run-the-business-process-that-receives-parameters-from-a-client-module",
+      "text": "NextRun the business process that receives parameters from a client module",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/process-service-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/business-process-service/references/processengineservice-svc",
+      "text": "ProcessEngineService.svc",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/working-with-requests",
+      "text": "Requests",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/using-postman/working-with-request-collections",
+      "text": "Request collections",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:40:18.324772"
+}

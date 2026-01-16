@@ -1,0 +1,1 @@
+[{    //Element type (Terrasoft.ViewItemType).    itemType: "4",    // Element name.    name: "SomeInvoiceChart",    // View configuration.    layout: {        columns: 4,        rows: 4,        colspan: 4,        rowspan: 4    }},{...}]

@@ -1,0 +1,1 @@
+CanDelete BOOLEAN

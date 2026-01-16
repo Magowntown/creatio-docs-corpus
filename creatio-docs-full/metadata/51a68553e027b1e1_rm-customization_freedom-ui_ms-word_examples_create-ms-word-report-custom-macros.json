@@ -1,0 +1,1214 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/examples/create-ms-word-report-custom-macros",
+  "title": "Implement Word report using custom macros",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization"
+    },
+    {
+      "text": "Word reports",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ms-word-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\nTo implement the example:\n1. Implement custom macros. Read more >>>\n2. Create a report. Read more >>>\n3. Set up the report columns. Read more >>>\n4. Set up the report template. Read more >>>\n5. Upload the file of report template to Creatio. Read more >>>\n6. Set up how to display the report. Read more >>>\nExample\nGenerate the custom \"Account summary\" Word report from the account page. The report must include the following account fields:\n* **Name**.\n* **Type**.\n* **Primary contact**.\n* **Additional information**.\n* Display the annual revenue for \"Customer\" account type.\n* Display the number of employees for \"Partner\" account type.\n* Display an empty string for other account types.\n* **Date of report generation**.\n* **Employee who generated the report**.\nReport for Customer account type\n![Report for Customer account type](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Customer.png)\nReport for Partner account type\n![Report for Partner account type](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Partner.png)\nReport for other account type\n![Report for other account type](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_other_account_type.png)\n## 1\\. Implement custom macros\u200b\nFor this example, implement the following custom macros:\n* Macro that receives additional information about the account depending on the account type.\n* Macro that receives date of report generation.\n* Macro that receives the name of the employee who generated the report.\n### Additional account information\u200b\n1. **Open the Customer 360 app** in the No-Code Designer.\n2. **Open the Advanced settings tab** in the No-Code Designer. To do this, click ![](https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 \"Application management\" \u2192 \"Application Hub\" \u2192 **Customer 360** app \u2192 \"Advanced settings.\"\n3. **Create a user-made package** to add the schema. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png) \u2192 **Create new package** \u2192 fill out the package properties \u2192 **Save**.\nFor this example, create the `sdkMsWordReportCustomMacros` user-made package.\n4. **Add the package properties**.\n1. Open the package properties. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png) \u2192 **Properties**. This opens the **Dependencies** tab on the **Package properties** page.\n2. Click **Add** in the **Depends on Packages** block. This opens the **Select package** window.\n3. Select the checkbox for the `CrtNUI` package. The `CrtNUI` package includes the `ExpressionConverterHelper` schema that implements the basic `IExpressionConverter` interface.\n4. Click **Select**.\n5. Apply the changes.\n5. **Change the current package**. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.2&id=15072&anchor=change-the-current-package).\nFor this example, change the current package to `sdkMsWordReportCustomMacros` user-made package.\n6. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n7. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrAccountInfoByAccountType  \nTitle| AccountInfoByAccountType  \n8. **Apply the changes**.\n9. **Add localizable strings**.\nFor this example, add the following localizable strings:\n* Localizable string that stores the text to be displayed in the report for the \"Customer\" account type.\n* Localizable string that stores the text to be displayed in the report for the \"Partner\" account type.\nTo do this:\n1. Create a localizable string. To do this, go the **Localizable strings** additional property node and click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/btn_add.png).\n2. Fill out the localizable string properties.\nElement| Property| Property value  \n---|---|---  \nLocalizable string that stores the text to be displayed in the report for the \"Customer\" account type| Code| CustomerAccountType  \nValue| Annual turnover {0}  \nLocalizable string that stores the text to be displayed in the report for the \"Partner\" account type.| Code| PartnerAccountType  \nValue| Number of employees {0} persons  \n3. Save the changes.\n10. **Implement the business logic** of receiving additional account information depending on the account type.\nUsrAccountInfoByAccountType\nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing System.CodeDom.Compiler;  \nusing System.Collections.Generic;  \nusing System.Data;  \nusing System.Linq;  \nusing System.Runtime.Serialization;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Text;  \nusing System.Text.RegularExpressions;  \nusing System.Web;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Core.Entities;  \nusing Terrasoft.Core.Packages;  \nusing Terrasoft.Core.Factories;  \n/* Attribute that stores the macro name. */  \n[ExpressionConverterAttribute(\"AccountInfoByAccountType\")]  \n/* Class that implements the \"IExpressionConverter\" interface. */  \nclass UsrAccountInfoByAccountType : IExpressionConverter  \n{  \nprivate UserConnection _userConnection;  \nprivate string _customerAdditional;  \nprivate string _partnerAdditional;  \n/* Call localizable string values. */  \nprivate void SetResources() {  \nstring sourceCodeName = \"UsrAccountInfoByAccountType\";  \n_customerAdditional = new LocalizableString(_userConnection.ResourceStorage, sourceCodeName, \"LocalizableStrings.CustomerAccountType.Value\");  \n_partnerAdditional =  new LocalizableString(_userConnection.ResourceStorage, sourceCodeName, \"LocalizableStrings.PartnerAccountType.Value\");  \n}  \n/* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */  \npublic string Evaluate(object value, string arguments = \"\")  \n{  \ntry  \n{  \n_userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];  \nGuid accountId = new Guid(value.ToString());  \nreturn getAccountInfo(accountId);  \n}  \ncatch (Exception err)  \n{  \nreturn err.Message;  \n}  \n}  \n/* Receive additional information based on the account type ID. */  \nprivate string getAccountInfo(Guid accountId)  \n{  \nSetResources();  \ntry  \n{  \n/* Create an \"EntitySchemaQuery\" instance that has the \"Account\" root schema. */  \nEntitySchemaQuery esq = new EntitySchemaQuery(_userConnection.EntitySchemaManager, \"Account\");  \n/* Add columns to the query. */  \nvar columnType = esq.AddColumn(\"Type.Name\").Name;  \nvar columnNumber = esq.AddColumn(\"EmployeesNumber.Name\").Name;  \nvar columnRevenue = esq.AddColumn(\"AnnualRevenue.Name\").Name;  \n/* Filter records by the account ID. */  \nvar accountFilter = esq.CreateFilterWithParameters(  \nFilterComparisonType.Equal,  \n\"Id\",  \naccountId  \n);  \nesq.Filters.Add(accountFilter);  \n/* Retrieve an entity collection. */  \nEntityCollection entities = esq.GetEntityCollection(_userConnection);  \n/* If the collection includes entities, the method returns data depending on the account type. */  \nif (entities.Count > 0)  \n{  \nEntity entity = entities[0];  \nvar type = entity.GetTypedColumnValue<string>(columnType);  \nswitch (type)  \n{  \ncase \"Customer\":  \nreturn String.Format(_customerAdditional, entity.GetTypedColumnValue<string>(columnRevenue));  \ncase \"Partner\":  \nreturn String.Format(_partnerAdditional, entity.GetTypedColumnValue<string>(columnNumber));  \ndefault:  \nreturn String.Empty;  \n}  \n}  \nreturn String.Empty;  \n}  \ncatch (Exception err)  \n{  \nthrow err;  \n}  \n}  \n}  \n}  \n11. **Publish the schema**.\n### Date of report generation\u200b\n1. **Select a user-made package** to add the schema.\nFor this example, select the `sdkMsWordReportCustomMacros` user-made package.\n2. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n3. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrCurrentDate  \nTitle| CurrentDate  \n4. **Apply the changes**.\n5. **Implement the business logic** of receiving date of report generation.\nUsrCurrentDate\nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing System.CodeDom.Compiler;  \nusing System.Collections.Generic;  \nusing System.Data;  \nusing System.Linq;  \nusing System.Runtime.Serialization;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Text;  \nusing System.Text.RegularExpressions;  \nusing System.Web;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Core.Entities;  \nusing Terrasoft.Core.Packages;  \nusing Terrasoft.Core.Factories;  \n/* Attribute that stores the macro name. */  \n[ExpressionConverterAttribute(\"CurrentDate\")]  \n/* Class that implements the \"IExpressionConverter\" interface. */  \nclass UsrCurrentDate : IExpressionConverter  \n{  \nprivate UserConnection _userConnection;  \n/* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */  \npublic string Evaluate(object value, string arguments = \"\")  \n{  \ntry  \n{  \n_userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];  \n/* Return current date. */  \nreturn _userConnection.CurrentUser.GetCurrentDateTime().Date.ToString(\"dd MMM yyyy\");  \n}  \ncatch (Exception err)  \n{  \nreturn err.Message;  \n}  \n}  \n}  \n}  \n6. **Publish the schema**.\n### Employee who generated the report\u200b\n1. **Select a user-made package** to add the schema.\nFor this example, select the `sdkMsWordReportCustomMacros` user-made package.\n2. **Create the source code schema**. To do this, click **Add** \u2192 **Source code**.\n3. **Fill out the schema properties**.\nFor this example, use the following schema properties.\nProperty| Property value  \n---|---  \nCode| UsrCurrentUser  \nTitle| CurrentUser  \n4. **Apply the changes**.\n5. **Implement the business logic** of receiving the name of the employee who generated the report.\nUsrCurrentUser\nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing System.CodeDom.Compiler;  \nusing System.Collections.Generic;  \nusing System.Data;  \nusing System.Linq;  \nusing System.Runtime.Serialization;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Text;  \nusing System.Text.RegularExpressions;  \nusing System.Web;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Core.Entities;  \nusing Terrasoft.Core.Packages;  \nusing Terrasoft.Core.Factories;  \n/* Attribute that stores the macro name. */  \n[ExpressionConverterAttribute(\"CurrentUser\")]  \n/* Class that implements the \"IExpressionConverter\" interface. */  \nclass UsrCurrentUser : IExpressionConverter  \n{  \nprivate UserConnection _userConnection;  \n/* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */  \npublic string Evaluate(object value, string arguments = \"\")  \n{  \ntry  \n{  \n_userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];  \n/* Return the contact of current user. */  \nreturn _userConnection.CurrentUser.ContactName;  \n}  \ncatch (Exception err)  \n{  \nreturn err.Message;  \n}  \n}  \n}  \n}  \n6. **Publish the schema**.\n## 2\\. Create a report\u200b\n1. **Open the Report setup section**. To do this, click ![](https://academy.creatio.com/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 **System setup** \u2192 **Report setup**.\n2. **Click New report**.\n3. **Fill out the report properties**.\nProperty| Property value  \n---|---  \nReport name| Account summary  \nObject| Account  \nShow in the list view| Clear the checkbox  \nShow in the record page| Select the checkbox  \n4. **Apply the changes**.\n**As a result** , Creatio will add the \"Account summary\" report to the **Report setup** section.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_in_the_report_list.png)\n## 3\\. Set up the report columns\u200b\n1. **Add the report columns**.\n1. Go to the **Set up report data** block.\n2. Add the column of account name. To do this, click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BasicMacros/scr_AddButton.png) \u2192 open the **Column** field \u2192 select **Id** \u2192 click **Select**.\nThe **Id** column is an input parameter for a custom macro.\n3. Add the **Id** , **Name** , **Type** , **Primary contact** and **Id** columns similarly.\nAs a result, the \"Account summary\" report data will be as follows.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_data.png)\n2. **Add the macro tag** to the column.\nFor this example, add the macro tags to the different **Id** columns. To do this:\n1. Open the setting page of the **Id** column. To do this, go to the **Set up report data** block and double-click the column or click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BasicMacros/8.1/btn_edit.png) in the column row.\n2. Go to the **Title** property.\n3. Add the `[#CurrentDate#]` macro tag to the **Name** column. The `[#CurrentDate#]` macro receives date of report generation.\n4. Add the `[#CurrentUser#]` and `[#AccountInfoByAccountType#]` macro tags to the different **Id** columns similarly.\nThe `[#CurrentUser#]` macro receives the name of the employee who generated the report.\nThe `[#AccountInfoByAccountType#]` macro receives additional information of the account depending on the account type.\n5. Save the changes.\n3. **Apply the changes**.\n**As a result** , the \"Account summary\" report data will be as follows.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_resulted_report_data.png)\n## 4\\. Set up the report template\u200b\n1. **Install the Creatio plug-in for Microsoft Word**. Instructions: [Install Creatio plug-in for Microsoft Word](https://academy.creatio.com/documents?ver=8.2&id=1412) (user documentation). This is a one-time procedure.\n2. **Run the Microsoft Word app**.\n3. **Connect to the Creatio instance** that includes the created report.\n1. Open the **Creatio** tab.\n2. Click **Connect**. This opens the **Login** window.\n3. Enter the Creatio user credentials.\n4. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BasicMacros/scr_PlusButton.png). This opens the **Available Servers** window.\n5. Click **New**. This opens the **Server Connection Setup** window.\n6. Fill out the server properties.\nProperty| Property value  \n---|---  \nName| An arbitrary server name. For example, \"Creatio.\"  \nLink| URL of the Creatio instance that includes the created report. For example, `https://mycreatio.com/`.  \n7. Click **OK**. This closes the **Server Connection Setup** window.\n8. Click **OK**. This closes the **Available Servers** window and adds the server name to the **Server** field of the **Login** window.\n9. Click **OK**. This closes the **Login** window and connects to the Creatio instance.\n4. **Select the report** to set up the template.\n1. Open the **Creatio** tab.\n2. Click **Select report**. This opens the **Creatio Word reports** window.\n3. Select \"Account summary\" report.\n4. Click **OK**. This closes the **Creatio Word reports** window and opens the **Word report data** panel that includes the \"Account summary\" report data set up in the Creatio instance.\n5. **Set up the template layout** based on your business goals.\n**As a result** , the template of the \"Account summary\" report will look as follows.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_template.png)\n## 5\\. Upload the file of report template to Creatio\u200b\n1. **Open the Creatio tab**.\n2. **Click Save to Creatio**.\n**As a result** , the template file of the \"Account summary\" report will be uploaded to the report page in Creatio.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_template_in_Creatio.png)\n## 6\\. Set up how to display the report\u200b\nAdd the report to the account page. To do this:\n1. **Open the Accounts form page**. To do this, click ![](https://academy.creatio.com/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png) in the top right \u2192 **Application management** \u2192 **Application Hub** \u2192 **Customer 360** \u2192 **Accounts form page**.\n2. **Add a button** that opens the \"Account summary\" report.\n1. Add a **Button** type component to the toolbar of the Freedom UI Designer.\n2. Click ![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png) and fill out the button properties.\nElement| Property| Property value  \n---|---|---  \nButton that opens the \"Account summary\" report| Title| Print report  \nAction| Print report  \nPrint settings| Print report for the current record  \n3. **Save the changes**.\n**As a result** , Creatio will add the **Print report** button that lets you open the \"Account summary\" report from the account page.\n![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_Print_button_on_the_account_page.png)\n## View the result\u200b\n1. **Open the Accounts section**.\n2. **Open the page of an arbitrary account**.\n3. **Generate the report**. To do this, click **Print report** \u2192 **Account summary**.\n4. **Save the report file** to your device.\n5. **Open the report file**.\n**As a result** , Creatio will generate the \"Account summary\" report from the account page. The **Additional information** field value differs for different account types:\n* For the \"Customer\" account type, the field will include the annual revenue. [View the result >>>](https://academy.creatio.com/documents?ver=8.2&id=15703&anchor=view-result)\n* For the \"Partner\" account type, the field will include the number of employees. [View the result >>>](https://academy.creatio.com/documents?ver=8.2&id=15703&anchor=view-result-1)\n* For other account types, the field will include empty string. [View the result >>>](https://academy.creatio.com/documents?ver=8.2&id=15703&anchor=view-result-2)\n## Source code\u200b\n* UsrAccountInfoByAccountType\n* UsrCurrentDate\n* UsrCurrentUser\nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing System.CodeDom.Compiler;  \nusing System.Collections.Generic;  \nusing System.Data;  \nusing System.Linq;  \nusing System.Runtime.Serialization;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Text;  \nusing System.Text.RegularExpressions;  \nusing System.Web;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Core.Entities;  \nusing Terrasoft.Core.Packages;  \nusing Terrasoft.Core.Factories;  \n/* Attribute that stores the macro name. */  \n[ExpressionConverterAttribute(\"AccountInfoByAccountType\")]  \n/* Class that implements the \"IExpressionConverter\" interface. */  \nclass UsrAccountInfoByAccountType : IExpressionConverter  \n{  \nprivate UserConnection _userConnection;  \nprivate string _customerAdditional;  \nprivate string _partnerAdditional;  \n/* Call localizable string values. */  \nprivate void SetResources() {  \nstring sourceCodeName = \"UsrAccountInfoByAccountType\";  \n_customerAdditional = new LocalizableString(_userConnection.ResourceStorage, sourceCodeName, \"LocalizableStrings.CustomerAccountType.Value\");  \n_partnerAdditional =  new LocalizableString(_userConnection.ResourceStorage, sourceCodeName, \"LocalizableStrings.PartnerAccountType.Value\");  \n}  \n/* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */  \npublic string Evaluate(object value, string arguments = \"\")  \n{  \ntry  \n{  \n_userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];  \nGuid accountId = new Guid(value.ToString());  \nreturn getAccountInfo(accountId);  \n}  \ncatch (Exception err)  \n{  \nreturn err.Message;  \n}  \n}  \n/* Receive additional information based on the account type ID. */  \nprivate string getAccountInfo(Guid accountId)  \n{  \nSetResources();  \ntry  \n{  \n/* Create an \"EntitySchemaQuery\" instance that has the \"Account\" root schema. */  \nEntitySchemaQuery esq = new EntitySchemaQuery(_userConnection.EntitySchemaManager, \"Account\");  \n/* Add columns to the query. */  \nvar columnType = esq.AddColumn(\"Type.Name\").Name;  \nvar columnNumber = esq.AddColumn(\"EmployeesNumber.Name\").Name;  \nvar columnRevenue = esq.AddColumn(\"AnnualRevenue.Name\").Name;  \n/* Filter records by the account ID. */  \nvar accountFilter = esq.CreateFilterWithParameters(  \nFilterComparisonType.Equal,  \n\"Id\",  \naccountId  \n);  \nesq.Filters.Add(accountFilter);  \n/* Retrieve an entity collection. */  \nEntityCollection entities = esq.GetEntityCollection(_userConnection);  \n/* If the collection includes entities, the method returns data depending on the account type. */  \nif (entities.Count > 0)  \n{  \nEntity entity = entities[0];  \nvar type = entity.GetTypedColumnValue<string>(columnType);  \nswitch (type)  \n{  \ncase \"Customer\":  \nreturn String.Format(_customerAdditional, entity.GetTypedColumnValue<string>(columnRevenue));  \ncase \"Partner\":  \nreturn String.Format(_partnerAdditional, entity.GetTypedColumnValue<string>(columnNumber));  \ndefault:  \nreturn String.Empty;  \n}  \n}  \nreturn String.Empty;  \n}  \ncatch (Exception err)  \n{  \nthrow err;  \n}  \n}  \n}  \n}  \nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing System.CodeDom.Compiler;  \nusing System.Collections.Generic;  \nusing System.Data;  \nusing System.Linq;  \nusing System.Runtime.Serialization;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Text;  \nusing System.Text.RegularExpressions;  \nusing System.Web;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Core.Entities;  \nusing Terrasoft.Core.Packages;  \nusing Terrasoft.Core.Factories;  \n/* Attribute that stores the macro name. */  \n[ExpressionConverterAttribute(\"CurrentDate\")]  \n/* Class that implements the \"IExpressionConverter\" interface. */  \nclass UsrCurrentDate : IExpressionConverter  \n{  \nprivate UserConnection _userConnection;  \n/* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */  \npublic string Evaluate(object value, string arguments = \"\")  \n{  \ntry  \n{  \n_userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];  \n/* Return current date. */  \nreturn _userConnection.CurrentUser.GetCurrentDateTime().Date.ToString(\"dd MMM yyyy\");  \n}  \ncatch (Exception err)  \n{  \nreturn err.Message;  \n}  \n}  \n}  \n}  \nnamespace Terrasoft.Configuration  \n{  \nusing System;  \nusing System.CodeDom.Compiler;  \nusing System.Collections.Generic;  \nusing System.Data;  \nusing System.Linq;  \nusing System.Runtime.Serialization;  \nusing System.ServiceModel;  \nusing System.ServiceModel.Web;  \nusing System.ServiceModel.Activation;  \nusing System.Text;  \nusing System.Text.RegularExpressions;  \nusing System.Web;  \nusing Terrasoft.Common;  \nusing Terrasoft.Core;  \nusing Terrasoft.Core.DB;  \nusing Terrasoft.Core.Entities;  \nusing Terrasoft.Core.Packages;  \nusing Terrasoft.Core.Factories;  \n/* Attribute that stores the macro name. */  \n[ExpressionConverterAttribute(\"CurrentUser\")]  \n/* Class that implements the \"IExpressionConverter\" interface. */  \nclass UsrCurrentUser : IExpressionConverter  \n{  \nprivate UserConnection _userConnection;  \n/* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */  \npublic string Evaluate(object value, string arguments = \"\")  \n{  \ntry  \n{  \n_userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];  \n/* Return the contact of current user. */  \nreturn _userConnection.CurrentUser.ContactName;  \n}  \ncatch (Exception err)  \n{  \nreturn err.Message;  \n}  \n}  \n}  \n}  \n* * *\n## Resources\u200b\n[Package with example implementation](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CustomMacros/8.1/sdkMsWordReportCustomMacros_2024-09-20_08.40.40.zip)",
+  "code_examples": [
+    {
+      "code": "namespace Terrasoft.Configuration{    using System;    using System.CodeDom.Compiler;    using System.Collections.Generic;    using System.Data;    using System.Linq;    using System.Runtime.Serialization;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using System.Text;    using System.Text.RegularExpressions;    using System.Web;    using Terrasoft.Common;    using Terrasoft.Core;    using Terrasoft.Core.DB;    using Terrasoft.Core.Entities;    using Terrasoft.Core.Packages;    using Terrasoft.Core.Factories;    /* Attribute that stores the macro name. */    [ExpressionConverterAttribute(\"AccountInfoByAccountType\")]    /* Class that implements the \"IExpressionConverter\" interface. */    class UsrAccountInfoByAccountType : IExpressionConverter    {        private UserConnection _userConnection;        private string _customerAdditional;        private string _partnerAdditional;        /* Call localizable string values. */        private void SetResources() {            string sourceCodeName = \"UsrAccountInfoByAccountType\";            _customerAdditional = new LocalizableString(_userConnection.ResourceStorage, sourceCodeName, \"LocalizableStrings.CustomerAccountType.Value\");            _partnerAdditional =  new LocalizableString(_userConnection.ResourceStorage, sourceCodeName, \"LocalizableStrings.PartnerAccountType.Value\");        }        /* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */        public string Evaluate(object value, string arguments = \"\")        {            try            {                _userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];                Guid accountId = new Guid(value.ToString());                return getAccountInfo(accountId);            }            catch (Exception err)            {                return err.Message;            }        }        /* Receive additional information based on the account type ID. */        private string getAccountInfo(Guid accountId)        {            SetResources();            try            {                /* Create an \"EntitySchemaQuery\" instance that has the \"Account\" root schema. */                EntitySchemaQuery esq = new EntitySchemaQuery(_userConnection.EntitySchemaManager, \"Account\");                /* Add columns to the query. */                var columnType = esq.AddColumn(\"Type.Name\").Name;                var columnNumber = esq.AddColumn(\"EmployeesNumber.Name\").Name;                var columnRevenue = esq.AddColumn(\"AnnualRevenue.Name\").Name;                /* Filter records by the account ID. */                var accountFilter = esq.CreateFilterWithParameters(                    FilterComparisonType.Equal,                    \"Id\",                    accountId                );                esq.Filters.Add(accountFilter);                /* Retrieve an entity collection. */                EntityCollection entities = esq.GetEntityCollection(_userConnection);                /* If the collection includes entities, the method returns data depending on the account type. */                if (entities.Count > 0)                {                    Entity entity = entities[0];                    var type = entity.GetTypedColumnValue<string>(columnType);                    switch (type)                    {                        case \"Customer\":                            return String.Format(_customerAdditional, entity.GetTypedColumnValue<string>(columnRevenue));                        case \"Partner\":                            return String.Format(_partnerAdditional, entity.GetTypedColumnValue<string>(columnNumber));                        default:                            return String.Empty;                    }                }                return String.Empty;            }            catch (Exception err)            {                throw err;            }        }    }}",
+      "language": "cs",
+      "context": "Implement the business logicof receiving additional account information depending on the account type.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration{    using System;    using System.CodeDom.Compiler;    using System.Collections.Generic;    using System.Data;    using System.Linq;    using System.Runtime.Serialization;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using System.Text;    using System.Text.RegularExpressions;    using System.Web;    using Terrasoft.Common;    using Terrasoft.Core;    using Terrasoft.Core.DB;    using Terrasoft.Core.Entities;    using Terrasoft.Core.Packages;    using Terrasoft.Core.Factories;    /* Attribute that stores the macro name. */    [ExpressionConverterAttribute(\"CurrentDate\")]    /* Class that implements the \"IExpressionConverter\" interface. */    class UsrCurrentDate : IExpressionConverter    {        private UserConnection _userConnection;        /* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */        public string Evaluate(object value, string arguments = \"\")        {            try            {                _userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];                /* Return current date. */                return _userConnection.CurrentUser.GetCurrentDateTime().Date.ToString(\"dd MMM yyyy\");            }            catch (Exception err)            {                return err.Message;            }        }    }}",
+      "language": "cs",
+      "context": "Implement the business logicof receiving date of report generation.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "namespace Terrasoft.Configuration{    using System;    using System.CodeDom.Compiler;    using System.Collections.Generic;    using System.Data;    using System.Linq;    using System.Runtime.Serialization;    using System.ServiceModel;    using System.ServiceModel.Web;    using System.ServiceModel.Activation;    using System.Text;    using System.Text.RegularExpressions;    using System.Web;    using Terrasoft.Common;    using Terrasoft.Core;    using Terrasoft.Core.DB;    using Terrasoft.Core.Entities;    using Terrasoft.Core.Packages;    using Terrasoft.Core.Factories;    /* Attribute that stores the macro name. */    [ExpressionConverterAttribute(\"CurrentUser\")]    /* Class that implements the \"IExpressionConverter\" interface. */    class UsrCurrentUser : IExpressionConverter    {        private UserConnection _userConnection;        /* Implement the \"Evaluate()\" method of the \"IExpressionConverter\" interface. */        public string Evaluate(object value, string arguments = \"\")        {            try            {                _userConnection = (UserConnection)HttpContext.Current.Session[\"UserConnection\"];                /* Return the contact of current user. */                return _userConnection.CurrentUser.ContactName;            }            catch (Exception err)            {                return err.Message;            }        }    }}",
+      "language": "cs",
+      "context": "Implement the business logicof receiving the name of the employee who generated the report.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrAccountInfoByAccountType"
+        ],
+        [
+          "Title",
+          "AccountInfoByAccountType"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrAccountInfoByAccountType</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>AccountInfoByAccountType</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Localizable string that stores the text to be displayed in the report for the \"Customer\" account type",
+          "Code",
+          "CustomerAccountType"
+        ],
+        [
+          "Value",
+          "Annual turnover {0}"
+        ],
+        [
+          "Localizable string that stores the text to be displayed in the report for the \"Partner\" account type.",
+          "Code",
+          "PartnerAccountType"
+        ],
+        [
+          "Value",
+          "Number of employees {0} persons"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"2\"><p>Localizable string that stores the text to be displayed in the report for the \"Customer\" account type</p></td><td><p>Code</p></td><td><p>CustomerAccountType</p></td></tr><tr><td><p>Value</p></td><td><p>Annual turnover {0}</p></td></tr><tr><td rowspan=\"2\"><p>Localizable string that stores the text to be displayed in the report for the \"Partner\" account type.</p></td><td><p>Code</p></td><td><p>PartnerAccountType</p></td></tr><tr><td><p>Value</p></td><td><p>Number of employees {0} persons</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrCurrentDate"
+        ],
+        [
+          "Title",
+          "CurrentDate"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrCurrentDate</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>CurrentDate</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Code",
+          "UsrCurrentUser"
+        ],
+        [
+          "Title",
+          "CurrentUser"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrCurrentUser</p></center></td></tr><tr><td><center><p>Title</p></center></td><td><center><p>CurrentUser</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Report name",
+          "Account summary"
+        ],
+        [
+          "Object",
+          "Account"
+        ],
+        [
+          "Show in the list view",
+          "Clear the checkbox"
+        ],
+        [
+          "Show in the record page",
+          "Select the checkbox"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Report name</p></center></td><td><center><p>Account summary</p></center></td></tr><tr><td><center><p>Object</p></center></td><td><center><p>Account</p></center></td></tr><tr><td><center><p>Show in the list view</p></center></td><td><center><p>Clear the checkbox</p></center></td></tr><tr><td><center><p>Show in the record page</p></center></td><td><center><p>Select the checkbox</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Name",
+          "An arbitrary server name. For example, \"Creatio.\""
+        ],
+        [
+          "Link",
+          "URL of the Creatio instance that includes the created report. For example,https://mycreatio.com/."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Name</p></center></td><td><center><p>An arbitrary server name. For example, \"Creatio.\"</p></center></td></tr><tr><td><center><p>Link</p></center></td><td><center><p>URL of the Creatio instance that includes the created report. For example, <code>https://mycreatio.com/</code>.</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Button that opens the \"Account summary\" report",
+          "Title",
+          "Print report"
+        ],
+        [
+          "Action",
+          "Print report"
+        ],
+        [
+          "Print settings",
+          "Print report for the current record"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"3\"><p>Button that opens the \"Account summary\" report</p></td><td><center><p>Title</p></center></td><td><center><p>Print report</p></center></td></tr><tr><td><center><p>Action</p></center></td><td><center><p>Print report</p></center></td></tr><tr><td><center><p>Print settings</p></center></td><td><center><p>Print report for the current record</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Name",
+      "content": "ExampleGenerate the custom \"Account summary\" Word report from the account page. The report must include the following account fields:Name.Type.Primary contact.Additional information.Display the annual revenue for \"Customer\" account type.Display the number of employees for \"Partner\" account type.Display an empty string for other account types.Date of report generation.Employee who generated the report.Report for Customer account typeReport for Partner account typeReport for other account type",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Generate the custom \"Account summary\" Word report from the account page. The report must include the following account fields:</p><ul>\n<li>\n<p><strong>Name</strong>.</p>\n</li>\n<li>\n<p><strong>Type</strong>.</p>\n</li>\n<li>\n<p><strong>Primary contact</strong>.</p>\n</li>\n<li>\n<p><strong>Additional information</strong>.</p>\n<ul>\n<li>Display the annual revenue for \"Customer\" account type.</li>\n<li>Display the number of employees for \"Partner\" account type.</li>\n<li>Display an empty string for other account types.</li>\n</ul>\n</li>\n<li>\n<p><strong>Date of report generation</strong>.</p>\n</li>\n<li>\n<p><strong>Employee who generated the report</strong>.</p>\n</li>\n</ul><figure><figcaption>Report for Customer account type<!-- --> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"Report for Customer account type\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Customer.png\"/></div></figure><figure><figcaption>Report for Partner account type<!-- --> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"Report for Partner account type\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Partner.png\"/></div></figure><figure><figcaption>Report for other account type<!-- --> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"Report for other account type\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_other_account_type.png\"/></div></figure></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Name",
+      "content": "Generate the custom \"Account summary\" Word report from the account page. The report must include the following account fields:Name.Type.Primary contact.Additional information.Display the annual revenue for \"Customer\" account type.Display the number of employees for \"Partner\" account type.Display an empty string for other account types.Date of report generation.Employee who generated the report.Report for Customer account typeReport for Partner account typeReport for other account type",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Generate the custom \"Account summary\" Word report from the account page. The report must include the following account fields:</p><ul>\n<li>\n<p><strong>Name</strong>.</p>\n</li>\n<li>\n<p><strong>Type</strong>.</p>\n</li>\n<li>\n<p><strong>Primary contact</strong>.</p>\n</li>\n<li>\n<p><strong>Additional information</strong>.</p>\n<ul>\n<li>Display the annual revenue for \"Customer\" account type.</li>\n<li>Display the number of employees for \"Partner\" account type.</li>\n<li>Display an empty string for other account types.</li>\n</ul>\n</li>\n<li>\n<p><strong>Date of report generation</strong>.</p>\n</li>\n<li>\n<p><strong>Employee who generated the report</strong>.</p>\n</li>\n</ul><figure><figcaption>Report for Customer account type<!-- --> <a id=\"view-result\" name=\"view-result\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"Report for Customer account type\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Customer.png\"/></div></figure><figure><figcaption>Report for Partner account type<!-- --> <a id=\"view-result-1\" name=\"view-result-1\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"Report for Partner account type\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Partner.png\"/></div></figure><figure><figcaption>Report for other account type<!-- --> <a id=\"view-result-2\" name=\"view-result-2\"></a></figcaption><div class=\"img-cotainer\"><img alt=\"Report for other account type\" class=\"medium-zoom-image\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_other_account_type.png\"/></div></figure></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Customer.png",
+      "alt": "Report for Customer account type",
+      "title": "",
+      "context": "Employee who generated the report.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_88f053b8caff.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_Partner.png",
+      "alt": "Report for Partner account type",
+      "title": "",
+      "context": "Employee who generated the report.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_558362fe6387.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_result_for_other_account_type.png",
+      "alt": "Report for other account type",
+      "title": "",
+      "context": "Employee who generated the report.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_21b7d3839d50.png"
+    },
+    {
+      "src": "https://academy.creatio.com/docs/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Advanced settings tabin the No-Code Designer. To do this, clickin the top right \u2192 \"Applicat",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_822ea55f9414.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CreateConfigurationWebService/8.1/btn_create_a_package.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a user-made packageto add the schema. To do this, click\u2192Create new package\u2192 fill out the pack",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_520896d23b28.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/PopulateDeliveryType/8.1/scr_open_properties.png",
+      "alt": "",
+      "title": "",
+      "context": "Report for Customer account type",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_ed23817c05b1.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/btn_add.png",
+      "alt": "",
+      "title": "",
+      "context": "Create a localizable string. To do this, go theLocalizable stringsadditional property node and click",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_932cb94aa09c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Report setup section. To do this, clickin the top right \u2192System setup\u2192Report setup.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_cee82ad814f6.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_in_the_report_list.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add the \"Account summary\" report to theReport setupsection.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_002809026147.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BasicMacros/scr_AddButton.png",
+      "alt": "",
+      "title": "",
+      "context": "Add the column of account name. To do this, click\u2192 open theColumnfield \u2192 selectId\u2192 clickSelect.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_cb9f50371ad4.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_data.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the \"Account summary\" report data will be as follows.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_2e5c1251f0f7.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/BasicMacros/8.1/btn_edit.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the setting page of theIdcolumn. To do this, go to theSet up report datablock and double-click ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_c5a5e60cd6a0.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_resulted_report_data.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the \"Account summary\" report data will be as follows.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_d91349358cd7.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/BasicMacros/scr_PlusButton.png",
+      "alt": "",
+      "title": "",
+      "context": "Click. This opens theAvailable Serverswindow.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_07f72b92ba99.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_template.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the template of the \"Account summary\" report will look as follows.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_a6dbc4e61728.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_report_template_in_Creatio.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, the template file of the \"Account summary\" report will be uploaded to the report page i",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_24d056cd69ea.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/images/NoCodePlatform/Manage_Apps/btn_system_designer_8_shell.png",
+      "alt": "",
+      "title": "",
+      "context": "Open the Accounts form page. To do this, clickin the top right \u2192Application management\u2192Application H",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_cee82ad814f6.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/ClientModule/8.0/scr_Settings_button.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickand fill out the button properties.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_c3fad8f4efa5.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/CustomMacros/8.1/scr_Print_button_on_the_account_page.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will add thePrint reportbutton that lets you open the \"Account summary\" report ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_0f11c14462a8.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/packages/CustomMacros/8.1/sdkMsWordReportCustomMacros_2024-09-20_08.40.40.zip",
+      "text": "Package with example implementation",
+      "filename": "sdkMsWordReportCustomMacros_2024-09-20_08.40.40.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/51a68553e027b1e1_rm-customization_freedom-ui_ms-word_examples_create-ms-word-report-custom-macros_sdkMsWordReportCustomMacros_2024-09-20_08.40.40.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement Word report using custom macros",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Implement custom macros\u200b",
+      "anchor": "title-1696-7"
+    },
+    {
+      "level": 3,
+      "text": "Additional account information\u200b",
+      "anchor": "title-15703-1"
+    },
+    {
+      "level": 3,
+      "text": "Date of report generation\u200b",
+      "anchor": "title-15703-2"
+    },
+    {
+      "level": 3,
+      "text": "Employee who generated the report\u200b",
+      "anchor": "title-15703-3"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a report\u200b",
+      "anchor": "title-1696-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Set up the report columns\u200b",
+      "anchor": "title-1696-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Set up the report template\u200b",
+      "anchor": "title-1696-4"
+    },
+    {
+      "level": 2,
+      "text": "5. Upload the file of report template to Creatio\u200b",
+      "anchor": "title-1696-1"
+    },
+    {
+      "level": 2,
+      "text": "6. Set up how to display the report\u200b",
+      "anchor": "title-1696-5"
+    },
+    {
+      "level": 2,
+      "text": "View the result\u200b",
+      "anchor": "title-1696-8"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15703-4"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GETTYPEDCOLUMNVALUE",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "string"
+      },
+      {
+        "method": "STRING",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/examples/create-ms-word-report-custom-macros",
+      "text": "Implement Word report (custom macros)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/freedom-ui/ms-word/examples/create-ms-word-report-custom-macros",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/page-customization-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-customization-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-ai/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-ai-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/customize-page-fields/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/page-fields-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/\u0441ommunication-option",
+      "text": "\u0421ommunication option",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-type",
+      "text": "Communication type",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/custom-action-menu",
+      "text": "Custom action menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sidebar/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/sidebar-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/selection-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/lookup-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/dialog-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/dialog-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/display-the-value-of-a-system-variable/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-variable-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/system-setting/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/system-setting-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/examples/create-ms-word-report-basic-macros",
+      "text": "PreviousImplement Word report (basic macros)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/word-report-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/ms-word/references/basic-macros",
+      "text": "Basic macros",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/sending-emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-sending-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/send-a-web-service-request/web-service",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/web-service-request-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/hide-functionality-on-a-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/hide-functionality-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/open-a-page-from-a-custom-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/open-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/creatio-zone/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-zone-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:53:55.637146"
+}

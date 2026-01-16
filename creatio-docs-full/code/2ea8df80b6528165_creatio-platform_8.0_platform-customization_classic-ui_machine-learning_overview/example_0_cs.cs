@@ -1,0 +1,1 @@
+RegisterConfigurationType("ActivityConsts");new Select(userConnection)    .Column("Id")    .Column("Body")    .From("Activity")    .Where("TypeId")        .IsEqual(Column.Parameter(ActivityConsts.EmailTypeUId));

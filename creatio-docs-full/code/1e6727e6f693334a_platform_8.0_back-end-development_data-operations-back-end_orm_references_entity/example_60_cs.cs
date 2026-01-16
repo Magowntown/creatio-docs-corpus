@@ -1,0 +1,1 @@
+TResult GetTypedColumnValue<tresult>(EntitySchemaColumn column)

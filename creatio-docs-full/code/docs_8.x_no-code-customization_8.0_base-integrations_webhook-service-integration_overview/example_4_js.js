@@ -1,0 +1,1 @@
+POST https://webhooks.creatio.com/get_entity_description/[API_KEY]/[SOME_OBJECT_NAME]{    "apiKey": "string",    "entityName": "string"}

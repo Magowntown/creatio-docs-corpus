@@ -1,0 +1,860 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/create-a-mini-page-that-adds-records",
+  "title": "Create a mini page that adds records",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Mini page",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\nExample\nCreate a custom mini page that adds a new record to the **Products** section. The mini page must contain the base set of **Name** and **Code** fields.\n## 1\\. Create a view model schema of the mini page\u200b\n1. [Go to the **Configuration** section](https://academy.creatio.com/documents?ver=8.0&id=15101&anchor=title-2093-2) and select a user-made [package](https://academy.creatio.com/documents?ver=8.0&id=15121) to add the schema.\n2. Click **Add** \u2192 **Page view model** on the section list toolbar.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardCreating\\(7.17\\)/scr_minicard_creating_1.png)\n3. Fill out the schema properties in the Schema Designer:\n* Set **Code** to \"UsrProductMiniPage.\"\n* Set **Title** to \"Product Mini Page.\"\n* Set **Parent object** to \"BaseMiniPage.\"\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding\\(7.17\\)/scr_props.png)\nClick **Apply** to apply the properties.\n## 2\\. Display the fields of the primary object\u200b\nAdd the needed source code in the Schema Designer.\n1. Specify the `Product` schema as the object schema.\n2. Declare the `MiniPageModes` attribute. Assign the array that has the collection of the needed mini page operations to the attribute.\nnote\nIf you also need to display the mini page on the section page (see [Create a custom mini page](https://academy.creatio.com/documents?ver=8.0&id=15592)), add `this.Terrasoft.ConfigurationEnums.CardOperation.VIEW` to the array assigned to the `MiniPageModes` attribute\n3. Add the needed modifications to the `diff` array of view model modifications.\nThe **view model elements** of the base mini page are as follows:\n* `MiniPage` is the page field.\n* `HeaderContainer` is the page heading. By default, the mini page places it in the first row of the field.\nIn this example, the `diff` modification array contains two new objects that configure the **Name** and **Code** fields.\nView the source code of the view model schema below.\nUsrProductMiniPage.js file that displays the object fields\ndefine(\"UsrProductMiniPage\", [\"UsrProductMiniPageResources\"], function(resources) {  \nreturn {  \nentitySchemaName: \"Product\",  \ndetails: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,  \nattributes: {  \n\"MiniPageModes\": {  \n\"value\": [this.Terrasoft.ConfigurationEnums.CardOperation.ADD]  \n}  \n},  \ndiff: /**SCHEMA_DIFF*/[  \n{  \n\"operation\": \"insert\",  \n\"parentName\": \"MiniPage\",  \n\"propertyName\": \"items\",  \n\"name\": \"Name\",  \n\"values\": {  \n\"isMiniPageModelItem\": true,  \n\"layout\": {  \n\"column\": 0,  \n\"row\": 1,  \n\"colSpan\": 24  \n},  \n\"controlConfig\": {  \n\"focused\": true  \n}  \n}  \n},  \n{  \n\"operation\": \"insert\",  \n\"parentName\": \"MiniPage\",  \n\"propertyName\": \"items\",  \n\"name\": \"Code\",  \n\"values\": {  \n\"isMiniPageModelItem\": true,  \n\"layout\": {  \n\"column\": 0,  \n\"row\": 2,  \n\"colSpan\": 24  \n}  \n}  \n}  \n]/**SCHEMA_DIFF*/  \n};  \n});  \n## 3\\. Register the mini page in the database\u200b\nRegister new mini pages in the database. Run the following SQL query to do that.\nQuery to create a mini page\nDECLARE   \n-- The name of the mini page view schema.  \n@ClientUnitSchemaName NVARCHAR(100) = 'UsrProductMiniPage',  \n-- The name of the object schema to bind the mini page.  \n@EntitySchemaName NVARCHAR(100) = 'Product'  \nUPDATE SysModuleEdit  \nSET MiniPageSchemaUId = (  \nSELECT TOP 1 UId  \nFROM SysSchema  \nWHERE Name = @ClientUnitSchemaName  \n)  \nWHERE SysModuleEntityId = (  \nSELECT TOP 1 Id  \nFROM SysModuleEntity  \nWHERE SysEntitySchemaUId = (  \nSELECT TOP 1 UId  \nFROM SysSchema  \nWHERE Name = @EntitySchemaName  \nAND ExtendParent = 0  \n)  \n);  \nAs a result of the query, Creatio will add the unique mini page identifier to the `[MiniPageSchemaUId]` field of the `[SysModuleEdit]` table record that corresponds to the **Products** section.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_table.png)\n## 4\\. Add the system setting\u200b\nAdd the system setting that has the following properties to the **System settings** section of the System Designer:\n* Set **Name** to \"HasProductMiniPageAddMode.\"\n* Set **Code** to \"HasProductMiniPageAddMode.\"\n* Set **Type** to \"Boolean.\"\n* Set **Default value** to selected checkbox.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_syssetting.png)\n## Outcome of the example\u200b\nAs a result, Creatio will display the mini page with two fields when you add a new product.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_result-01.png)\nAfter you save the mini page, the corresponding record will appear in the section list.\n![](https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_result-02.png)\nImportant\nCreatio will display the record in the section list only after you refresh the browser page. If you want Creatio to display the record immediately after you save the mini page, add the corresponding functionality to the mini page and section page schemas via the message mechanism. Learn more in a separate article: [Module message exchange](https://academy.creatio.com/documents?ver=8.0&id=15321).\n* * *\n## Resources\u200b\n[Package example implementation](https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkMiniCardAdding_18.02.05_17.42.48.zip)",
+  "code_examples": [
+    {
+      "code": "define(\"UsrProductMiniPage\", [\"UsrProductMiniPageResources\"], function(resources) {    return {        entitySchemaName: \"Product\",        details: /**SCHEMA_DETAILS*/{}/**SCHEMA_DETAILS*/,        attributes: {            \"MiniPageModes\": {                \"value\": [this.Terrasoft.ConfigurationEnums.CardOperation.ADD]            }        },        diff: /**SCHEMA_DIFF*/[            {                \"operation\": \"insert\",                \"parentName\": \"MiniPage\",                \"propertyName\": \"items\",                \"name\": \"Name\",                \"values\": {                    \"isMiniPageModelItem\": true,                    \"layout\": {                        \"column\": 0,                        \"row\": 1,                        \"colSpan\": 24                    },                    \"controlConfig\": {                        \"focused\": true                    }                }            },            {                \"operation\": \"insert\",                \"parentName\": \"MiniPage\",                \"propertyName\": \"items\",                \"name\": \"Code\",                \"values\": {                    \"isMiniPageModelItem\": true,                    \"layout\": {                        \"column\": 0,                        \"row\": 2,                        \"colSpan\": 24                    }                }            }        ]/**SCHEMA_DIFF*/    };});",
+      "language": "js",
+      "context": "View the source code of the view model schema below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "DECLARE     -- The name of the mini page view schema.@ClientUnitSchemaName NVARCHAR(100) = 'UsrProductMiniPage',    -- The name of the object schema to bind the mini page.@EntitySchemaName NVARCHAR(100) = 'Product'UPDATE SysModuleEditSET MiniPageSchemaUId = (    SELECT TOP 1 UId    FROM SysSchema    WHERE Name = @ClientUnitSchemaName)WHERE SysModuleEntityId = (    SELECT TOP 1 Id    FROM SysModuleEntity    WHERE SysEntitySchemaUId = (        SELECT TOP 1 UId        FROM SysSchema        WHERE Name = @EntitySchemaName            AND ExtendParent = 0    ));",
+      "language": "js",
+      "context": "Register new mini pages in the database. Run the following SQL query to do that.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "info",
+      "title": "Products",
+      "content": "ExampleCreate a custom mini page that adds a new record to theProductssection. The mini page must contain the base set ofNameandCodefields.",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Create a custom mini page that adds a new record to the <strong>Products</strong> section. The mini page must contain the base set of <strong>Name</strong> and <strong>Code</strong> fields.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Products",
+      "content": "Create a custom mini page that adds a new record to theProductssection. The mini page must contain the base set ofNameandCodefields.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Create a custom mini page that adds a new record to the <strong>Products</strong> section. The mini page must contain the base set of <strong>Name</strong> and <strong>Code</strong> fields.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteIf you also need to display the mini page on the section page (seeCreate a custom mini page), addthis.Terrasoft.ConfigurationEnums.CardOperation.VIEWto the array assigned to theMiniPageModesattribute",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>If you also need to display the mini page on the section page (see <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15592\" rel=\"noopener noreferrer\" target=\"_blank\">Create a custom mini page</a>), add <code>this.Terrasoft.ConfigurationEnums.CardOperation.VIEW</code> to the array assigned to the <code>MiniPageModes</code> attribute</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you also need to display the mini page on the section page (seeCreate a custom mini page), addthis.Terrasoft.ConfigurationEnums.CardOperation.VIEWto the array assigned to theMiniPageModesattribute",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you also need to display the mini page on the section page (see <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15592\" rel=\"noopener noreferrer\" target=\"_blank\">Create a custom mini page</a>), add <code>this.Terrasoft.ConfigurationEnums.CardOperation.VIEW</code> to the array assigned to the <code>MiniPageModes</code> attribute</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantCreatio will display the record in the section list only after you refresh the browser page. If you want Creatio to display the record immediately after you save the mini page, add the corresponding functionality to the mini page and section page schemas via the message mechanism. Learn more in a separate article:Module message exchange.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Creatio will display the record in the section list only after you refresh the browser page. If you want Creatio to display the record immediately after you save the mini page, add the corresponding functionality to the mini page and section page schemas via the message mechanism. Learn more in a separate article: <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15321\" rel=\"noopener noreferrer\" target=\"_blank\">Module message exchange</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio will display the record in the section list only after you refresh the browser page. If you want Creatio to display the record immediately after you save the mini page, add the corresponding functionality to the mini page and section page schemas via the message mechanism. Learn more in a separate article:Module message exchange.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio will display the record in the section list only after you refresh the browser page. If you want Creatio to display the record immediately after you save the mini page, add the corresponding functionality to the mini page and section page schemas via the message mechanism. Learn more in a separate article: <a href=\"https://academy.creatio.com/documents?ver=8.0&amp;id=15321\" rel=\"noopener noreferrer\" target=\"_blank\">Module message exchange</a>.</p></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardCreating(7.17)/scr_minicard_creating_1.png",
+      "alt": "",
+      "title": "",
+      "context": "ClickAdd\u2192Page view modelon the section list toolbar.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/70fb136aae7dd75a_customization_classic-ui_mini-page_examples_create-a-mini-page-that-adds-records_96b77460b5a0.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding(7.17)/scr_props.png",
+      "alt": "",
+      "title": "",
+      "context": "Fill out the schema properties in the Schema Designer:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/70fb136aae7dd75a_customization_classic-ui_mini-page_examples_create-a-mini-page-that-adds-records_b323e35524f3.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_table.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result of the query, Creatio will add the unique mini page identifier to the[MiniPageSchemaUId]",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/70fb136aae7dd75a_customization_classic-ui_mini-page_examples_create-a-mini-page-that-adds-records_dd5bc11c68b6.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_syssetting.png",
+      "alt": "",
+      "title": "",
+      "context": "Add the system setting that has the following properties to theSystem settingssection of the System ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/70fb136aae7dd75a_customization_classic-ui_mini-page_examples_create-a-mini-page-that-adds-records_92e2f73b492c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_result-01.png",
+      "alt": "",
+      "title": "",
+      "context": "As a result, Creatio will display the mini page with two fields when you add a new product.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/70fb136aae7dd75a_customization_classic-ui_mini-page_examples_create-a-mini-page-that-adds-records_8d5c1ec9ab38.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/default/files/documentation/sdk/ru/BPMonlineWebSDK/Screenshots/MiniCardAdding/scr_result-02.png",
+      "alt": "",
+      "title": "",
+      "context": "After you save the mini page, the corresponding record will appear in the section list.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/70fb136aae7dd75a_customization_classic-ui_mini-page_examples_create-a-mini-page-that-adds-records_f133a74ada54.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/SDK/Packages/sdkMiniCardAdding_18.02.05_17.42.48.zip",
+      "text": "Package example implementation",
+      "filename": "sdkMiniCardAdding_18.02.05_17.42.48.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/70fb136aae7dd75a_customization_classic-ui_mini-page_examples_create-a-mini-page-that-adds-records_sdkMiniCardAdding_18.02.05_17.42.48.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Create a mini page that adds records",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create a view model schema of the mini page\u200b",
+      "anchor": "title-1944-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Display the fields of the primary object\u200b",
+      "anchor": "title-1944-2"
+    },
+    {
+      "level": 2,
+      "text": "3. Register the mini page in the database\u200b",
+      "anchor": "title-1944-3"
+    },
+    {
+      "level": 2,
+      "text": "4. Add the system setting\u200b",
+      "anchor": "title-1944-4"
+    },
+    {
+      "level": 2,
+      "text": "Outcome of the example\u200b",
+      "anchor": "title-1944-5"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": null,
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/create-a-mini-page-that-adds-records",
+      "text": "Create a mini page that adds records",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/examples/create-a-mini-page-that-adds-records",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/create-a-mini-page",
+      "text": "PreviousCreate a mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/examples/add-a-mini-page-to-a-module",
+      "text": "NextAdd a mini page to a module",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:43:24.232129"
+}

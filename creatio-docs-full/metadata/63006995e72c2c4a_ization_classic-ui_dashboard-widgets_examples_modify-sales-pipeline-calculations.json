@@ -1,0 +1,943 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/examples/modify-sales-pipeline-calculations",
+  "title": "Modify sales pipeline calculations",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1"
+    },
+    {
+      "text": "Dashboard widgets",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nYou can modify the way values are calculated for the sales pipeline dashboard element in the **Opportunities section**. To do this, you need to create a new module for calculations and replace the sales pipeline display client schema.\n## To modify the sales pipeline calculations:\u200b\n1. Create a new class inherited from `FunnelBaseDataProvider` and specify the calculation logic.\n2. Create a replacing `FunnelChartSchema` client schema and use the new calculation class in it.\n## Example of modifying the calculations displayed in the \"Number of opportunities\" view of the sales pipeline\u200b\n### Case description\u200b\nModify the sales pipeline calculation algorithms by replacing the number of opportunities with the number of products added to opportunities.\n### Case implementation algorithm\u200b\n### 1\\. Create a new module in the user-made package\u200b\nCreate a new calculation provider client module in the user-made package. _Calculation provider_ is a class responsible for selecting, filtering and processing data for sales pipeline chart.\nSpecify a name and caption for the new module, for example, `UsrFunnelByProductCountDataProvider` (Fig. 1).\nFig. 1. Calculation provider module properties\n![Fig. 1. Calculation provider module properties](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_dataprovider.png)\n### 2\\. Add localizable strings\u200b\nAdd a string with the `Number of products` value to the collection of localizable strings of the created module. To do this, right-click the **LocalizableStrings** structure node and select **Add** from the context menu. Set the properties for the new string as shown on Fig. 2.\nFig. 2. Localizable string properties\n![Fig. 2. Localizable string properties](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_products_caption.png)\nAdd `CntOpportunity` localizable string with the `Number of opportunities` value in the similar way.\n### 3\\. Add implementation to the provider module\u200b\nTo modify sales pipeline calculations, override the following methods:\n* `addQueryColumns` column generation method for data selection\n* methods for selection data processing.\nTo process one record from the selection, define the `getSeriesDataConfigByItem` method. To process the whole collection, define the `prepareFunnelResponseCollection` method. To filter the records, define the `applyFunnelPeriodFilters` method.\nBelow is the source code of the new calculation provider module for the sales pipeline.\ndefine(\"UsrFunnelByProductCountDataProvider\", [\"ext-base\", \"terrasoft\", \"UsrFunnelByProductCountDataProviderResources\", \"FunnelBaseDataProvider\"], function(Ext, Terrasoft, resources) {  \n// Defining a new calculation provider.  \nExt.define(\"Terrasoft.configuration.UsrFunnelByProductCountDataProvider\", {  \n// Inheriting from the basic provider.  \nextend: \"Terrasoft.FunnelBaseDataProvider\",  \n// New provider short name  \nalternateClassName: \"Terrasoft.UsrFunnelByProductCountDataProvider\",  \n// Collection processing method  \nprepareFunnelResponseCollection: function(collection) {  \nthis.callParent(arguments);  \n},  \n// Extending the FunnelBaseDataProvider base model method.   \n// Sets the column number of products for data sampling  \naddQueryColumns: function(entitySchemaQuery) {  \n// Parent method calling  \nthis.callParent(arguments);  \n// Adds the number of products column to the sample  \nentitySchemaQuery.addAggregationSchemaColumn(\"[OpportunityProductInterest:Opportunity].Quantity\",  \nTerrasoft.AggregationType.SUM, \"ProductsAmount\");  \n},  \n// Extending the FunnelBaseDataProvider base class method.  \n// Sets sample filtration  \napplyFunnelPeriodFilters: function(filterGroup) {  \n// Parent method calling  \nthis.callParent(arguments);  \n// Creates a filter group.  \nvar endStageFilterGroup = Terrasoft.createFilterGroup();  \n// Sets the group operator type.  \nendStageFilterGroup.logicalOperation = Terrasoft.LogicalOperatorType.OR;  \n// Sets the filter that shows whether the sale stage is over yet.  \nendStageFilterGroup.addItem(  \nTerrasoft.createColumnIsNullFilter(this.getDetailColumnPath(\"DueDate\")));  \n// Sets the filter that shows whether the sale stage is final.  \nendStageFilterGroup.addItem(  \nTerrasoft.createColumnFilterWithParameter(Terrasoft.ComparisonType.EQUAL,  \nthis.getDetailColumnPath(\"Stage.End\"), true, Terrasoft.DataValueType.BOOLEAN));  \nfilterGroup.addItem(endStageFilterGroup);  \n},  \n// Extending the FunnelBaseDataProvider base model method.   \n// Processes data for the stages in the pipeline.  \ngetSeriesDataConfigByItem: function(responseItem) {  \n// Object that stores localizable strings.  \nvar lcz = resources.localizableStrings;  \n// Receives a stage data object from the parent method.  \nvar config = this.callParent(arguments);  \n// Receives data about the number of products in an opportunity from the sample result.  \nvar products = responseItem.get(\"ProductsAmount\");  \nproducts = Ext.isNumber(products) ? products : 0;  \n// Formats the strings.  \nvar name = Ext.String.format(\"{0}<br/>{1}: {2}<br/>{3}: {4}\",  \nconfig.menuHeaderValue, lcz.CntOpportunity, config.y, lcz.FunnelProductsCaption, products);  \nvar displayValue = Ext.String.format(\"<br/>{0}: {1}\", lcz.FunnelProductsCaption, products);  \n// Installs new data in the data object and returns it.   \nreturn Ext.apply(config, {  \nname: name,  \ndisplayValue: displayValue  \n});  \n}  \n});  \n});  \n### 4\\. Create a sales pipeline replacing schema\u200b\nTo use the new provider module in the calculations, override the sales pipeline calculation provider generator method.\nTo do this, create a replacing client module and specify `FunnelChartSchema` as a parent (Fig. 3).\nFig. 3. Properties of the replacing module\n![Fig. 3. Properties of the replacing module](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_schema.png)\nAdd the new calculation module to dependencies (the `Dependencies` section), by specifying its name in the **Dependency** field and the `UsrFunnelByProductCountDataProvider` value in the **Name** field (Fig. 4).\nFig. 4. Sales pipeline schema dependency properties\n![Fig. 4. Sales pipeline schema dependency properties](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_schema_dependencies.png)\n### 5\\. Specify the new calculation provider in the sales pipeline replacing schema\u200b\nTo do this, override the getProvidersCollectionConfig method in the replacing schema that gets the configuration object with the collection of providers.\ndefine(\"FunnelChartSchema\", [\"UsrFunnelByProductCountDataProvider\"], function() {  \nreturn {  \nentitySchemaName: \"Opportunity\",  \nmethods: {  \ngetProvidersCollectionConfig: function() {  \n// Calls parent method.  \n// Gets array of providers.  \nvar config = this.callParent();  \n// Searches data provider in the measurement by the number of opportunities.  \nvar byCount = Terrasoft.findItem(config, {tag: \"byNumberConversion\"});  \n// Replaces with new class.  \nbyCount.item.className = \"Terrasoft.UsrFunnelByProductCountDataProvider\";  \nreturn config;  \n}  \n}  \n};  \n});  \nAfter saving the schema, the new calculation module will be used in the sales pipeline and the sales pipeline itself will display the total number of products by stages (Fig. 5).\nFig. 5. Sales pipeline displaying the number of products added to opportunities\n![Fig. 5. Sales pipeline displaying the number of products added to opportunities](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_graph.png)",
+  "code_examples": [
+    {
+      "code": "define(\"UsrFunnelByProductCountDataProvider\", [\"ext-base\", \"terrasoft\", \"UsrFunnelByProductCountDataProviderResources\", \"FunnelBaseDataProvider\"], function(Ext, Terrasoft, resources) {    // Defining a new calculation provider.    Ext.define(\"Terrasoft.configuration.UsrFunnelByProductCountDataProvider\", {        // Inheriting from the basic provider.        extend: \"Terrasoft.FunnelBaseDataProvider\",        // New provider short name        alternateClassName: \"Terrasoft.UsrFunnelByProductCountDataProvider\",        // Collection processing method        prepareFunnelResponseCollection: function(collection) {            this.callParent(arguments);        },        // Extending the FunnelBaseDataProvider base model method.         // Sets the column number of products for data sampling        addQueryColumns: function(entitySchemaQuery) {            // Parent method calling            this.callParent(arguments);            // Adds the number of products column to the sample            entitySchemaQuery.addAggregationSchemaColumn(\"[OpportunityProductInterest:Opportunity].Quantity\",                    Terrasoft.AggregationType.SUM, \"ProductsAmount\");        },        // Extending the FunnelBaseDataProvider base class method.        // Sets sample filtration        applyFunnelPeriodFilters: function(filterGroup) {            // Parent method calling            this.callParent(arguments);            // Creates a filter group.            var endStageFilterGroup = Terrasoft.createFilterGroup();            // Sets the group operator type.            endStageFilterGroup.logicalOperation = Terrasoft.LogicalOperatorType.OR;            // Sets the filter that shows whether the sale stage is over yet.            endStageFilterGroup.addItem(                Terrasoft.createColumnIsNullFilter(this.getDetailColumnPath(\"DueDate\")));            // Sets the filter that shows whether the sale stage is final.            endStageFilterGroup.addItem(                Terrasoft.createColumnFilterWithParameter(Terrasoft.ComparisonType.EQUAL,                    this.getDetailColumnPath(\"Stage.End\"), true, Terrasoft.DataValueType.BOOLEAN));            filterGroup.addItem(endStageFilterGroup);        },        // Extending the FunnelBaseDataProvider base model method.         // Processes data for the stages in the pipeline.        getSeriesDataConfigByItem: function(responseItem) {            // Object that stores localizable strings.            var lcz = resources.localizableStrings;            // Receives a stage data object from the parent method.            var config = this.callParent(arguments);            // Receives data about the number of products in an opportunity from the sample result.            var products = responseItem.get(\"ProductsAmount\");            products = Ext.isNumber(products) ? products : 0;            // Formats the strings.            var name = Ext.String.format(\"{0}<br/>{1}: {2}<br/>{3}: {4}\",                config.menuHeaderValue, lcz.CntOpportunity, config.y, lcz.FunnelProductsCaption, products);            var displayValue = Ext.String.format(\"<br/>{0}: {1}\", lcz.FunnelProductsCaption, products);            // Installs new data in the data object and returns it.             return Ext.apply(config, {                name: name,                displayValue: displayValue            });        }    });});",
+      "language": "js",
+      "context": "Below is the source code of the new calculation provider module for the sales pipeline.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "define(\"FunnelChartSchema\", [\"UsrFunnelByProductCountDataProvider\"], function() {    return {        entitySchemaName: \"Opportunity\",        methods: {            getProvidersCollectionConfig: function() {                // Calls parent method.                // Gets array of providers.                var config = this.callParent();                // Searches data provider in the measurement by the number of opportunities.                var byCount = Terrasoft.findItem(config, {tag: \"byNumberConversion\"});                // Replaces with new class.                byCount.item.className = \"Terrasoft.UsrFunnelByProductCountDataProvider\";                return config;            }        }    };});",
+      "language": "js",
+      "context": "To do this, override the getProvidersCollectionConfig method in the replacing schema that gets the configuration object with the collection of providers.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_dataprovider.png",
+      "alt": "Fig. 1. Calculation provider module properties",
+      "title": "",
+      "context": "Specify a name and caption for the new module, for example,UsrFunnelByProductCountDataProvider(Fig. ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/63006995e72c2c4a_ization_classic-ui_dashboard-widgets_examples_modify-sales-pipeline-calculations_3e93e1a1a9d2.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_products_caption.png",
+      "alt": "Fig. 2. Localizable string properties",
+      "title": "",
+      "context": "Add a string with theNumber of productsvalue to the collection of localizable strings of the created",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/63006995e72c2c4a_ization_classic-ui_dashboard-widgets_examples_modify-sales-pipeline-calculations_ee33326c030f.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_schema.png",
+      "alt": "Fig. 3. Properties of the replacing module",
+      "title": "",
+      "context": "To do this, create a replacing client module and specifyFunnelChartSchemaas a parent (Fig. 3).",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/63006995e72c2c4a_ization_classic-ui_dashboard-widgets_examples_modify-sales-pipeline-calculations_84ed7481a852.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_schema_dependencies.png",
+      "alt": "Fig. 4. Sales pipeline schema dependency properties",
+      "title": "",
+      "context": "Add the new calculation module to dependencies (theDependenciessection), by specifying its name in t",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/63006995e72c2c4a_ization_classic-ui_dashboard-widgets_examples_modify-sales-pipeline-calculations_68d8133a867c.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/TypicalCustomizations/FunnelChart/scr_funnelchart_graph.png",
+      "alt": "Fig. 5. Sales pipeline displaying the number of products added to opportunities",
+      "title": "",
+      "context": "After saving the schema, the new calculation module will be used in the sales pipeline and the sales",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/63006995e72c2c4a_ization_classic-ui_dashboard-widgets_examples_modify-sales-pipeline-calculations_336f8e53125b.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Modify sales pipeline calculations",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "To modify the sales pipeline calculations:\u200b",
+      "anchor": "title-1359-1"
+    },
+    {
+      "level": 2,
+      "text": "Example of modifying the calculations displayed in the \"Number of opportunities\" view of the sales pipeline\u200b",
+      "anchor": "title-1359-2"
+    },
+    {
+      "level": 3,
+      "text": "Case description\u200b",
+      "anchor": "title-1359-3"
+    },
+    {
+      "level": 3,
+      "text": "Case implementation algorithm\u200b",
+      "anchor": "title-1359-4"
+    },
+    {
+      "level": 3,
+      "text": "1. Create a new module in the user-made package\u200b",
+      "anchor": "title-1359-5"
+    },
+    {
+      "level": 3,
+      "text": "2. Add localizable strings\u200b",
+      "anchor": "title-1359-6"
+    },
+    {
+      "level": 3,
+      "text": "3. Add implementation to the provider module\u200b",
+      "anchor": "title-1359-7"
+    },
+    {
+      "level": 3,
+      "text": "4. Create a sales pipeline replacing schema\u200b",
+      "anchor": "title-1359-8"
+    },
+    {
+      "level": 3,
+      "text": "5. Specify the new calculation provider in the sales pipeline replacing schema\u200b",
+      "anchor": "title-1359-9"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "DEFINE",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "ADDAGGREGATIONSCHEMACOLUMN",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "CREATEFILTERGROUP",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "CREATECOLUMNISNULLFILTER",
+        "path": "("
+      },
+      {
+        "method": "GETDETAILCOLUMNPATH",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "CREATECOLUMNFILTERWITHPARAMETER",
+        "path": "("
+      },
+      {
+        "method": "GETDETAILCOLUMNPATH",
+        "path": "("
+      },
+      {
+        "method": "ADDITEM",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "("
+      },
+      {
+        "method": "ISNUMBER",
+        "path": "("
+      },
+      {
+        "method": "FORMAT",
+        "path": "("
+      },
+      {
+        "method": "FORMAT",
+        "path": "("
+      },
+      {
+        "method": "APPLY",
+        "path": "("
+      },
+      {
+        "method": "CALLPARENT",
+        "path": "("
+      },
+      {
+        "method": "FINDITEM",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/examples/modify-sales-pipeline-calculations",
+      "text": "Modify sales pipeline calculations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/examples/modify-sales-pipeline-calculations",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/dashboard-widgets",
+      "text": "Dashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/examples/enable-additional-filtering-in-a-sales-pipeline",
+      "text": "NextEnable additional filtering in a sales pipeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/examples/add-a-dashboard-widget",
+      "text": "Add a dashboard widget",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/references/basewidgetdesigner",
+      "text": "BaseWidgetDesigner",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/references/dashboardenums",
+      "text": "DashboardEnums",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:26:10.374606"
+}

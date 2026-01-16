@@ -1,0 +1,1048 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+  "title": "Implement custom prediction model",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1"
+    },
+    {
+      "text": "Machine learning",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning"
+    },
+    {
+      "text": "Examples",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-examples"
+    }
+  ],
+  "content_markdown": "Version: 8.2\nOn this page\nLevel: advanced\nnote\nThe functionality is relevant to Classic UI.\nTo implement the example:\n1. Add an ML model. Read more >>>\n2. Train the model. Read more >>>\n3. Implement prediction business logic. Read more >>>\nExample\nImplement automatic prediction for the **Category** account field based on the values of the **Country** , **No. of employees** and **Industry** fields while saving the account record. Implement the following prediction conditions:\n* Create a model that learns from account records for last 90 days.\n* Re-train the model every 30 days.\n* Set permissible prediction accuracy for the model to \"0.6.\"\nTo implement the example, you can also use page fields and filters, as well as the **Predict data** system action element in the business process. Learn more: [Predictive data analysis](https://academy.creatio.com/documents?ver=8.2&id=1825) (user documentation).\n## 1\\. Add an ML model\u200b\n1. **Open the Configuration section**. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.2&id=15101&anchor=title-2093-2).\n2. **Create a** `sdkCustomPredictionModel` **package**. Instructions: [Create a user-made package using **Configuration** section](https://academy.creatio.com/documents?ver=8.2&id=15122).\n3. **Change the current package** to `sdkCustomPredictionModel`. Instructions: [Change the current package](https://academy.creatio.com/documents?ver=8.2&id=15072&anchor=change-the-current-package).\n4. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png) in the top right \u2192 **System setup** \u2192 **Lookups**.\n5. **Open the ML model (**`MLModel` **code) lookup**.\n6. **Click New** \u2192 **Lookup prediction** to add the lookup value.\n7. **Fill out the properties** of the lookup value.\nProperty| Property value  \n---|---  \nName| Predict account category  \nType| Lookup prediction  \nObject| Category of Account  \n8. **Click Next**. This opens the **Predict account category** page.\n9. **Fill out the parameters** of the prediction model.\nProperty| Property value  \n---|---  \nPrediction enabled| Select the checkbox  \nParameters \u2192 Automatic model training settings  \nQuality metric lower limit| 0.60  \nRetrain after, days| 30  \nAdvanced settings \u2192 Advanced tools to add columns  \nQuery for selecting additional training data| \nnew Select(userConnection)  \n.Column(\"a\", \"Id\")  \n.Column(\"a\", \"CountryId\")  \n.Column(\"a\", \"EmployeesNumberId\")  \n.Column(\"a\", \"IndustryId\")  \n.Column(\"a\", \"AccountCategoryId\")  \n.Column(\"c\", \"Name\").As(\"AccountCategory\")  \n.From(\"Account\").As(\"a\")  \n.InnerJoin(\"AccountCategory\").As(\"c\")  \n.On(\"a\", \"AccountCategoryId\").IsEqual(\"c\", \"Id\")  \n.Where(\"a\", \"CreatedOn\")  \n.IsGreater(Func.DateAddDay(-90, Func.CurrentDateTime()))  \nQuery metadata for selecting additional training data| \n{  \n\"inputs\": [  \n{  \n\"name\": \"CountryId\",  \n\"type\": \"Lookup\",  \n\"isRequired\": true  \n},  \n{  \n\"name\": \"EmployeesNumberId\",  \n\"type\": \"Lookup\",  \n\"isRequired\": true  \n},  \n{  \n\"name\": \"IndustryId\",  \n\"type\": \"Lookup\",  \n\"isRequired\": true  \n}  \n],  \n\"output\": {  \n\"name\": \"AccountCategoryId\",  \n\"type\": \"Lookup\",  \n\"displayName\": \"AccountCategory\"  \n}  \n}  \n10. **Click Save**.\n11. **Click Close**. This opens the page of the **ML model** (`MLModel` code) lookup.\n## 2\\. Train the model\u200b\n1. **Select the Predict account category**.\n2. **Click Actions** \u2192 **Execute model training job**.\nWait until the **Status** field value is set to \"Done.\" The process might take several hours. It depends on the amount of passed data and general workload of the predictive service.\n## 3\\. Implement prediction business logic\u200b\n### 1\\. Create a business process\u200b\n1. **Open the Configuration section**. Instructions: [Open the **Configuration** section](https://academy.creatio.com/documents?ver=8.2&id=15101&anchor=title-2093-2).\n2. **Select the** `sdkCustomPredictionModel` package.\n3. **Click Add** \u2192 **Business process**.\n4. **Open the Settings tab**.\n5. **Fill out the schema properties**.\nProperty| Property value  \n---|---  \nTitle| Predict account category  \nCode| UsrPredictAccountCategory  \n6. **Click Save**.\n**As a result** :\n* The \"Predict account category\" business process will be created.\n* Creatio will add the \"Predict account category\" business process to the **Process library** section.\n### 2\\. Set up the business process parameters\u200b\n1. **Click an arbitrary place** in the working area of the Process Designer.\n2. **Open the Parameters tab**.\n3. **Add the business process parameter**.\n1. Click **Add parameter** \u2192 **Lookup**.\n2. Fill out the parameter properties.\nElement| Element type| Property| Property value  \n---|---|---|---  \nParameter that contains the model ID| Lookup| Title| ML model ID  \nCode| MLModelID  \nData type| Lookup  \nLookup| ML model  \nValue| Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_value.png) \u2192 **Lookup value** \u2192 **Predict account category** \u2192 **Select**. This populates the property using the \"[#Lookup.ML model.Predict account category.99402097-a6ac-4930-9540-6a5cb8d6d9b2#]\" value.  \nParameter that contains the account ID| Lookup| Title| Account ID  \nCode| AccountID  \nData type| Lookup  \nLookup| Account  \n4. **Click Save**.\n### 3\\. Set up running the business process\u200b\n1. **Delete the Simple page element**.\n2. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Throw_signal.png).\n3. **Place the Throw signal element** in the working area.\n4. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_flow.png) \u2192 connect the elements.\n5. **Click** ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Change_type.png) \u2192 **Wait for signal**.\n6. **Fill out the element properties**.\nProperty| Property value  \n---|---  \nTitle| Run the process  \n7. **Fill out the element properties**.\nProperty| Property value  \n---|---  \nWhich type of signal is received?| Record signal  \nRecord Id| Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_value.png) \u2192 **Process parameter** \u2192 **Process parameters** tab \u2192 **Account ID** \u2192 **Select**.  \nWhich event should trigger the signal?| Record added  \nThe added record must meet filter conditions| \n1. Click **Add condition**. This opens the **Select column** window.\n2. Select \"Country\" in the **Column** property.\n3. Click **Select**.\n4. Click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_is_equal.png) \u2192 \"is filled in.\"\n5. Repeat steps 1\u20134 for both **No. of employees** and **Industry** columns.  \n8. **Click Save**.\n### 4\\. Implement populating the Category account field\u200b\n1. **Add a Script task element**. To do this, click ![](https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SendEmailFromExistingAccount/8.1/btn_System_actions.png) \u2192 place the **Script task** element between the **Throw signal** and **Terminate** page elements.\n2. **Fill out the element properties**.\nProperty| Property value  \n---|---  \nTitle| Call the automatic prediction  \n3. **Implement the logic of working with process parameters**. To do this, go to the element setup area and add the source code.\nCall the automatic prediction script task\n// IMPORTANT: When implementing  \n// long-running operations,  \n// it is crucial to enable timely and  \n// responsive cancellation. To achieve  \n// this, ensure that your code  \n// is designed to respond appropriately  \n// to cancellation requests using  \n// the context.CancellationToken  \n// mechanism. For more detailed  \n// information and examples,  \n// please, refer to our documentation.  \n/* Get an instance of the \"UserConnection.\" */  \nvar userConnection = Get<UserConnection>(\"UserConnection\");  \n/* ID of selected account. */  \nGuid entityId = Get<Guid>(\"RecordId\");  \n/* ID of selected ML model. */  \nvar modelId = Get<Guid>(\"MLModelID\");  \nvar connectionArg = new ConstructorArgument(\"userConnection\", userConnection);  \n/* Create an instance of the \"MLEntityPredictor.\" */  \nvar predictor = ClassFactory.Get<MLEntityPredictor>(connectionArg);  \n/* Call the prediction service. Creatio saves data to the \"MLPrediction\"  \ndatabase table. If high probability is predicted, Creatio saves data  \nto the required field on the account page. */  \npredictor.PredictEntityValueAndSaveResult(modelId, entityId);  \nreturn true;  \n4. **Click Save**.\n**As a result** , the prediction will be performed for new accounts and displayed on the account edit page.\nThis implementation of the prediction slows down saving an account record because because calling the prediction service is executed in 2 seconds. This can reduce the performance of bulk operations with data saving, like Excel import.\n## Source code\u200b\nCall the automatic prediction script task\n// IMPORTANT: When implementing  \n// long-running operations,  \n// it is crucial to enable timely and  \n// responsive cancellation. To achieve  \n// this, ensure that your code  \n// is designed to respond appropriately  \n// to cancellation requests using  \n// the context.CancellationToken  \n// mechanism. For more detailed  \n// information and examples,  \n// please, refer to our documentation.  \n/* Get an instance of the \"UserConnection.\" */  \nvar userConnection = Get<UserConnection>(\"UserConnection\");  \n/* ID of selected account. */  \nGuid entityId = Get<Guid>(\"RecordId\");  \n/* ID of selected ML model. */  \nvar modelId = Get<Guid>(\"MLModelID\");  \nvar connectionArg = new ConstructorArgument(\"userConnection\", userConnection);  \n/* Create an instance of the \"MLEntityPredictor.\" */  \nvar predictor = ClassFactory.Get<MLEntityPredictor>(connectionArg);  \n/* Call the prediction service. Creatio saves data to the \"MLPrediction\"  \ndatabase table. If high probability is predicted, Creatio saves data  \nto the required field on the account page. */  \npredictor.PredictEntityValueAndSaveResult(modelId, entityId);  \nreturn true;",
+  "code_examples": [
+    {
+      "code": "new Select(userConnection)    .Column(\"a\", \"Id\")    .Column(\"a\", \"CountryId\")    .Column(\"a\", \"EmployeesNumberId\")    .Column(\"a\", \"IndustryId\")    .Column(\"a\", \"AccountCategoryId\")    .Column(\"c\", \"Name\").As(\"AccountCategory\")    .From(\"Account\").As(\"a\")    .InnerJoin(\"AccountCategory\").As(\"c\")        .On(\"a\", \"AccountCategoryId\").IsEqual(\"c\", \"Id\")    .Where(\"a\", \"CreatedOn\")        .IsGreater(Func.DateAddDay(-90, Func.CurrentDateTime()))",
+      "language": "cs",
+      "context": "Query for selecting additional training data",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    \"inputs\": [        {            \"name\": \"CountryId\",            \"type\": \"Lookup\",            \"isRequired\": true        },        {            \"name\": \"EmployeesNumberId\",            \"type\": \"Lookup\",            \"isRequired\": true        },        {            \"name\": \"IndustryId\",            \"type\": \"Lookup\",            \"isRequired\": true        }    ],    \"output\": {        \"name\": \"AccountCategoryId\",        \"type\": \"Lookup\",        \"displayName\": \"AccountCategory\"    }}",
+      "language": "json",
+      "context": "Query metadata for selecting additional training data",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "// IMPORTANT: When implementing// long-running operations,// it is crucial to enable timely and// responsive cancellation. To achieve// this, ensure that your code// is designed to respond appropriately// to cancellation requests using// the context.CancellationToken// mechanism. For more detailed// information and examples,// please, refer to our documentation./* Get an instance of the \"UserConnection.\" */var userConnection = Get<UserConnection>(\"UserConnection\");/* ID of selected account. */Guid entityId = Get<Guid>(\"RecordId\");/* ID of selected ML model. */var modelId = Get<Guid>(\"MLModelID\");var connectionArg = new ConstructorArgument(\"userConnection\", userConnection);/* Create an instance of the \"MLEntityPredictor.\" */var predictor = ClassFactory.Get<MLEntityPredictor>(connectionArg);/* Call the prediction service. Creatio saves data to the \"MLPrediction\"database table. If high probability is predicted, Creatio saves datato the required field on the account page. */predictor.PredictEntityValueAndSaveResult(modelId, entityId);return true;",
+      "language": "cs",
+      "context": "Implement the logic of working with process parameters. To do this, go to the element setup area and add the source code.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Name",
+          "Predict account category"
+        ],
+        [
+          "Type",
+          "Lookup prediction"
+        ],
+        [
+          "Object",
+          "Category of Account"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Name</p></center></td><td><center><p>Predict account category</p></center></td></tr><tr><td><center><p>Type</p></center></td><td><center><p>Lookup prediction</p></center></td></tr><tr><td><center><p>Object</p></center></td><td><center><p>Category of Account</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Prediction enabled",
+          "Select the checkbox"
+        ],
+        [
+          "Parameters \u2192 Automatic model training settings"
+        ],
+        [
+          "Quality metric lower limit",
+          "0.60"
+        ],
+        [
+          "Retrain after, days",
+          "30"
+        ],
+        [
+          "Advanced settings \u2192 Advanced tools to add columns"
+        ],
+        [
+          "Query for selecting additional training data",
+          "newSelect(userConnection).Column(\"a\",\"Id\").Column(\"a\",\"CountryId\").Column(\"a\",\"EmployeesNumberId\").Column(\"a\",\"IndustryId\").Column(\"a\",\"AccountCategoryId\").Column(\"c\",\"Name\").As(\"AccountCategory\").From(\"Account\").As(\"a\").InnerJoin(\"AccountCategory\").As(\"c\").On(\"a\",\"AccountCategoryId\").IsEqual(\"c\",\"Id\").Where(\"a\",\"CreatedOn\").IsGreater(Func.DateAddDay(-90,Func.CurrentDateTime()))"
+        ],
+        [
+          "Query metadata for selecting additional training data",
+          "{\"inputs\":[{\"name\":\"CountryId\",\"type\":\"Lookup\",\"isRequired\":true},{\"name\":\"EmployeesNumberId\",\"type\":\"Lookup\",\"isRequired\":true},{\"name\":\"IndustryId\",\"type\":\"Lookup\",\"isRequired\":true}],\"output\":{\"name\":\"AccountCategoryId\",\"type\":\"Lookup\",\"displayName\":\"AccountCategory\"}}"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><p>Prediction enabled</p></td><td><center><p>Select the checkbox</p></center></td></tr><tr><th colspan=\"2\"><p>Parameters \u2192 Automatic model training settings</p></th></tr><tr><td><center><p>Quality metric lower limit</p></center></td><td><center><p>0.60</p></center></td></tr><tr><td><center><p>Retrain after, days</p></center></td><td><center><p>30</p></center></td></tr><tr><th colspan=\"2\"><p>Advanced settings \u2192 Advanced tools to add columns</p></th></tr><tr><td><center><p>Query for selecting additional training data</p></center></td><td><div class=\"language-cs codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-cs codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token keyword\" style=\"color: rgb(0, 0, 159);\">new</span><span class=\"token plain\"> </span><span class=\"token constructor-invocation class-name\">Select</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">userConnection</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Column</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Id\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Column</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"CountryId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Column</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"EmployeesNumberId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Column</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"IndustryId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Column</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"AccountCategoryId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Column</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"c\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Name\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">As</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"AccountCategory\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">From</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Account\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">As</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">InnerJoin</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"AccountCategory\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">As</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"c\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">On</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"AccountCategoryId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">IsEqual</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"c\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Id\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">Where</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"a\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"CreatedOn\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">IsGreater</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token plain\">Func</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">DateAddDay</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">-</span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">90</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"> Func</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">.</span><span class=\"token function\" style=\"color: rgb(215, 58, 73);\">CurrentDateTime</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">(</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">)</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td></tr><tr><td><center><p>Query metadata for selecting additional training data</p></center></td><td><div class=\"language-json codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-json codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"inputs\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"name\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"CountryId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"type\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Lookup\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"isRequired\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"name\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"EmployeesNumberId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"type\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Lookup\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"isRequired\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"name\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"IndustryId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"type\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Lookup\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"isRequired\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token boolean\" style=\"color: rgb(54, 172, 170);\">true</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"output\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"name\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"AccountCategoryId\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"type\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Lookup\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token property\" style=\"color: rgb(54, 172, 170);\">\"displayName\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"AccountCategory\"</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Title",
+          "Predict account category"
+        ],
+        [
+          "Code",
+          "UsrPredictAccountCategory"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Title</p></center></td><td><center><p>Predict account category</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>UsrPredictAccountCategory</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Element",
+          "Element type",
+          "Property",
+          "Property value"
+        ],
+        [
+          "Parameter that contains the model ID",
+          "Lookup",
+          "Title",
+          "ML model ID"
+        ],
+        [
+          "Code",
+          "MLModelID"
+        ],
+        [
+          "Data type",
+          "Lookup"
+        ],
+        [
+          "Lookup",
+          "ML model"
+        ],
+        [
+          "Value",
+          "Click\u2192Lookup value\u2192Predict account category\u2192Select. This populates the property using the \"[#Lookup.ML model.Predict account category.99402097-a6ac-4930-9540-6a5cb8d6d9b2#]\" value."
+        ],
+        [
+          "Parameter that contains the account ID",
+          "Lookup",
+          "Title",
+          "Account ID"
+        ],
+        [
+          "Code",
+          "AccountID"
+        ],
+        [
+          "Data type",
+          "Lookup"
+        ],
+        [
+          "Lookup",
+          "Account"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Element</p></th><th><p>Element type</p></th><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td rowspan=\"5\"><p>Parameter that contains the model ID</p></td><td rowspan=\"5\"><center><p>Lookup</p></center></td><td><center><p>Title</p></center></td><td><center><p>ML model ID</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>MLModelID</p></center></td></tr><tr><td><center><p>Data type</p></center></td><td><center><p>Lookup</p></center></td></tr><tr><td><center><p>Lookup</p></center></td><td><center><p>ML model</p></center></td></tr><tr><td><center><p>Value</p></center></td><td><p>Click <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_value.png\"/> \u2192 <strong>Lookup value</strong> \u2192 <strong>Predict account category</strong> \u2192 <strong>Select</strong>. This populates the property using the \"[#Lookup.ML model.Predict account category.99402097-a6ac-4930-9540-6a5cb8d6d9b2#]\" value.</p></td></tr><tr><td rowspan=\"4\"><p>Parameter that contains the account ID</p></td><td rowspan=\"4\"><center><p>Lookup</p></center></td><td><center><p>Title</p></center></td><td><center><p>Account ID</p></center></td></tr><tr><td><center><p>Code</p></center></td><td><center><p>AccountID</p></center></td></tr><tr><td><center><p>Data type</p></center></td><td><center><p>Lookup</p></center></td></tr><tr><td><center><p>Lookup</p></center></td><td><center><p>Account</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Title",
+          "Run the process"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Title</p></center></td><td><center><p>Run the process</p></center></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Which type of signal is received?",
+          "Record signal"
+        ],
+        [
+          "Record Id",
+          "Click\u2192Process parameter\u2192Process parameterstab \u2192Account ID\u2192Select."
+        ],
+        [
+          "Which event should trigger the signal?",
+          "Record added"
+        ],
+        [
+          "The added record must meet filter conditions",
+          "ClickAdd condition. This opens theSelect columnwindow.Select \"Country\" in theColumnproperty.ClickSelect.Click\u2192 \"is filled in.\"Repeat steps\u00a01\u20134 for bothNo. of employeesandIndustrycolumns."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Which type of signal is received?</p></center></td><td><center><p>Record signal</p></center></td></tr><tr><td><center><p>Record Id</p></center></td><td><center><p>Click <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_value.png\"/> \u2192 <strong>Process parameter</strong> \u2192 <strong>Process parameters</strong> tab \u2192 <strong>Account ID</strong> \u2192 <strong>Select</strong>.</p></center></td></tr><tr><td><center><p>Which event should trigger the signal?</p></center></td><td><center><p>Record added</p></center></td></tr><tr><td><center><p>The added record must meet filter conditions</p></center></td><td><ol>\n<li>Click <strong>Add condition</strong>. This opens the <strong>Select column</strong> window.</li>\n<li>Select \"Country\" in the <strong>Column</strong> property.</li>\n<li>Click <strong>Select</strong>.</li>\n<li>Click <img alt=\"\" class=\"img_ev3q\" decoding=\"async\" loading=\"lazy\" src=\"https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_is_equal.png\"/> \u2192 \"is filled in.\"</li>\n<li>Repeat steps\u00a01\u20134 for both <strong>No. of employees</strong> and <strong>Industry</strong> columns.</li>\n</ol></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Property",
+          "Property value"
+        ],
+        [
+          "Title",
+          "Call the automatic prediction"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Property</p></th><th><p>Property value</p></th></tr><tr><td><center><p>Title</p></center></td><td><center><p>Call the automatic prediction</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe functionality is relevant to Classic UI.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The functionality is relevant to Classic UI.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The functionality is relevant to Classic UI.</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Category",
+      "content": "ExampleImplement automatic prediction for theCategoryaccount field based on the values of theCountry,No. of employeesandIndustryfields while saving the account record. Implement the following prediction conditions:Create a model that learns from account records for last 90\u00a0days.Re-train the model every 30\u00a0days.Set permissible prediction accuracy for the model to \"0.6.\"",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>Implement automatic prediction for the <strong>Category</strong> account field based on the values of the <strong>Country</strong>, <strong>No. of employees</strong> and <strong>Industry</strong> fields while saving the account record. Implement the following prediction conditions:</p><ul>\n<li>Create a model that learns from account records for last 90\u00a0days.</li>\n<li>Re-train the model every 30\u00a0days.</li>\n<li>Set permissible prediction accuracy for the model to \"0.6.\"</li>\n</ul></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Category",
+      "content": "Implement automatic prediction for theCategoryaccount field based on the values of theCountry,No. of employeesandIndustryfields while saving the account record. Implement the following prediction conditions:Create a model that learns from account records for last 90\u00a0days.Re-train the model every 30\u00a0days.Set permissible prediction accuracy for the model to \"0.6.\"",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Implement automatic prediction for the <strong>Category</strong> account field based on the values of the <strong>Country</strong>, <strong>No. of employees</strong> and <strong>Industry</strong> fields while saving the account record. Implement the following prediction conditions:</p><ul>\n<li>Create a model that learns from account records for last 90\u00a0days.</li>\n<li>Re-train the model every 30\u00a0days.</li>\n<li>Set permissible prediction accuracy for the model to \"0.6.\"</li>\n</ul></div>"
+    }
+  ],
+  "images": [
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/icons/8.2/btn_system_designer.png",
+      "alt": "",
+      "title": "",
+      "context": "Clickin the top right \u2192System setup\u2192Lookups.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_36ee376043a2.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_value.png",
+      "alt": "",
+      "title": "",
+      "context": "Click\u2192Lookup value\u2192Predict account category\u2192Select. This populates the property using the \"[#Lookup.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_0b818858500d.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Throw_signal.png",
+      "alt": "",
+      "title": "",
+      "context": "Click.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_5b119f66b53d.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_flow.png",
+      "alt": "",
+      "title": "",
+      "context": "Click\u2192 connect the elements.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_0f0dbc154c69.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Change_type.png",
+      "alt": "",
+      "title": "",
+      "context": "Click\u2192Wait for signal.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_66762503b4b5.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_Add_value.png",
+      "alt": "",
+      "title": "",
+      "context": "Click\u2192Process parameter\u2192Process parameterstab \u2192Account ID\u2192Select.",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_0b818858500d.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AddCustomPredictionModel/8.3/btn_is_equal.png",
+      "alt": "",
+      "title": "",
+      "context": "The added record must meet filter conditions",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_cdae51b83c67.png"
+    },
+    {
+      "src": "https://d3a7ykdi65m4cy.cloudfront.net/ac-en/s3fs-public/documentation/sdk/en/BPMonlineWebSDK/Screenshots/SendEmailFromExistingAccount/8.1/btn_System_actions.png",
+      "alt": "",
+      "title": "",
+      "context": "Add a Script task element. To do this, click\u2192 place theScript taskelement between theThrow signaland",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/7e4a333a1675dd23_rm-customization_classic-ui_machine-learning_examples_implement-prediction-model_003913ec9e7e.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Implement custom prediction model",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Add an ML model\u200b",
+      "anchor": "title-1387-2"
+    },
+    {
+      "level": 2,
+      "text": "2. Train the model\u200b",
+      "anchor": "title-1387-3"
+    },
+    {
+      "level": 2,
+      "text": "3. Implement prediction business logic\u200b",
+      "anchor": "title-1387-4"
+    },
+    {
+      "level": 3,
+      "text": "1. Create a business process\u200b",
+      "anchor": "title-1387-5"
+    },
+    {
+      "level": 3,
+      "text": "2. Set up the business process parameters\u200b",
+      "anchor": "title-15759-1"
+    },
+    {
+      "level": 3,
+      "text": "3. Set up running the business process\u200b",
+      "anchor": "title-15759-2"
+    },
+    {
+      "level": 3,
+      "text": "4. Implement populating the Category account field\u200b",
+      "anchor": "title-15759-3"
+    },
+    {
+      "level": 2,
+      "text": "Source code\u200b",
+      "anchor": "title-15759-4"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "UserConnection"
+      },
+      {
+        "method": "USERCONNECTION",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "MLEntityPredictor"
+      },
+      {
+        "method": "MLENTITYPREDICTOR",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "UserConnection"
+      },
+      {
+        "method": "USERCONNECTION",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "Guid"
+      },
+      {
+        "method": "GUID",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      },
+      {
+        "method": "GET",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "MLEntityPredictor"
+      },
+      {
+        "method": "MLENTITYPREDICTOR",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+      "text": "Implement prediction model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/examples/implement-prediction-model",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/redistribute-licenses",
+      "text": "Redistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatioai",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/sidebar",
+      "text": "Sidebar",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/selection-window",
+      "text": "Selection window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/dialog-window",
+      "text": "Dialog window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/user-consents",
+      "text": "User consent storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-rules-of-collection-records",
+      "text": "Business rules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/creatio-zone",
+      "text": "Creatio zone",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/render-repeated-ui-components",
+      "text": "Render repeated components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-examples",
+      "text": "PreviousExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/ml-references",
+      "text": "NextReferences",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlmodeltrainerjob",
+      "text": "IMLModelTrainerJob",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlmodeltrainer",
+      "text": "IMLModelTrainer",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlserviceproxy",
+      "text": "IMLServiceProxy",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlentitypredictor",
+      "text": "IMLEntityPredictor",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/imlpredictionsaver",
+      "text": "IMLPredictionSaver",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/machine-learning/references/examples-of-data-queries",
+      "text": "QueryExtensions",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/emails-1",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/emails/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/emails-customization-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/work-with-mobile-app",
+      "text": "Work with mobile app",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T01:17:40.276653"
+}

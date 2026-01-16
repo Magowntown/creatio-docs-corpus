@@ -1,0 +1,1617 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+  "title": "Customize dashboard widgets",
+  "breadcrumbs": [
+    {
+      "text": "Platform customization",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization"
+    },
+    {
+      "text": "Classic UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1"
+    },
+    {
+      "text": "Dashboard widgets",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets"
+    }
+  ],
+  "content_markdown": "Version: 8.0\nOn this page\nLevel: advanced\n[Dashboard widgets](https://academy.creatio.com/docs/8.x/no-code-customization/8.0/category/analytics) (analytic elements) are used for data analysis of sections. Go to the **Dashboards** view of the required section to work with its analytics. Use the **Dashboards** section to work with the entirety of Creatio section data analytics.\n## Data storage structure of dashboards\u200b\nThe dashboards section is a user-defined set of tab elements. The mechanism for working with dashboards is implemented with the help of the `DashboardManager` dashboard client manager and the `DashboardManagerItem` element client manager, which represents the tabs. The `SysDashboard` object is responsible for dashboards in the system. The `SysDashboard` object properties are described in the table.\n`SysDashboard` object properties\nName| Header| Type| Details  \n---|---|---|---  \n`Caption`| Header| String| This information is displayed in the tab header.  \n`Position`| Position| Number| If a position is not specified, the elements are displayed in alphabetical order.  \n`Section`| Section| Lookup| System section.  \n`ViewConfig`| Element (widget) view configuration| Array| \n[{  \n//Element type (Terrasoft.ViewItemType).  \nitemType: \"4\",  \n// Element name.  \nname: \"SomeInvoiceChart\",  \n// View configuration.  \nlayout: {  \ncolumns: 4,  \nrows: 4,  \ncolspan: 4,  \nrowspan: 4  \n}  \n},  \n{...}]  \n`Items`| Element (widget) module configuration| JSON Object| \n{  \n// The name of the element for which the module settings are defined.  \n\"SomeInvoiceChart\": {  \n// Name of the \"DashboardItem\" view element.  \n\"widgetType\": \"Chart\",  \n// Parameters required to display data for a particular \"DashboardItem\" element.  \n\"parameters\": {  \n\"caption\": \"some caption\",  \n...  \n},  \n},  \n{...}  \n}  \n## Implementing functionality in the dashboards view mode\u200b\nThe hierarchy of classes that implement functionality in the dashboards view mode:\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AnalyticsElements/scr_dashboards_runtime.png)\nThe `SectionDashboardModule` module:\n* `SectionDashboardBuilder` encapsulates the view generation logic and view model class for the **Dashboards** section module.\n* `SectionDashboardsViewModel` \u2013 the model class of the **Dashboards** section view model.\n* `SectionDashboardsModule` \u2013 **Dashboards** section class module.\nThe `DashboardModule` module:\n* `DashboardViewConfig` \u2013 a class that generates the view configuration for the dashboards page view module.\n* `BaseDashboardViewModel` \u2013 a base class for the dashboards page view model.\n* `DashboardModule` \u2013 a class that contains functionality for working with dashboard modules.\nThe `DashboardBuilder` module:\n* `DashboardsViewConfig` \u2013 a class that generates a dashboards module view configuration.\n* `BaseDashboardsViewModel` \u2013 a base class of the dashboards section view model.\n* `DashboardBuilder` \u2013 a class for dashboards module construction.\n## Implementing functionality in the dashboards view mode\u200b\nThe hierarchy of classes that implement the functionality in the dashboards view mode:\n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AnalyticsElements/scr_dashboards_designtime.png)\nThe `DashboardDesigner` module:\n* `DashboardDesignerViewConfig` \u2013 a class that generates the view configuration for the dashboards designer module.\n* `DashboardDesignerViewModel` \u2013 a class of the dashboards designer view model.\n* `DashboardDesigner` \u2013 dashboard visual module class.\n## Base classes that implement widget functionality\u200b\n`BaseWidgetViewModelClass` \u2013 a base class of the dashboards section view model. To use this class, register the following messages in the module:\n* `GetHistoryState (publish; ptp)`;\n* `ReplaceHistoryState (publish; broadcast)`;\n* `HistoryStateChanged (subscribe; broadcast)`;\n* `GetWidgetParameters (subscribe; ptp)`;\n* `PushWidgetParameters (subscribe; ptp)` \u2013 if the parameters are drawn from modules (`useCustomParameterMethods = true`).\n`BaseWidgetDesigner` \u2013 base widget settings view schema.\n`BaseAggregationWidgetDesigner` \u2013 contains methods for working with aggregate columns and aggregation types.\n`DashboardEnums` \u2013 contains an enumeration of widget properties.\n`Terrasoft.DashboardEnums.WidgetType` \u2013 contains the widget view mode and design mode configuration of the dashboards.\n## Dashboard widget types\u200b\n### Chart\u200b\n[Charts](https://academy.creatio.com/documents?ver=8.0&id=2144&anchor=title-184-1) display multiple system records in the form of diagrams of different types. For example, you can display a pie chart of accounts distributed by type. Charts display information in the form of different diagram types or in a data list form. \n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_chart.png)\n#### Charts functionality implementation classes\u200b\n`ChartViewModel` \u2013 chart view model.\n`ChartViewConfig` \u2013 generates the chart view model.\n`ChartModule` \u2013 a module designed to work with charts.\n`ChartDesigner` \u2013 view model schema of a chart.\n`ChartModuleHelper` \u2013 generates a query using the `Terrasoft.EntitySchemaQuery` object.\n`ChartDrillDownProvider` \u2013 contains methods for working with the \"Show data\" function (used for working with chart series).\n#### Chart setup parameters\u200b\nTo configure a chart, you need to add the JSON configuration object with the chart properties to the widget module configuration. The widget module configuration is defined by the `Items` property of the `SysDashboard` object. \nSet the \"Chart\" value to the `widgetType` property in the JSON configuration object with widget settings. In addition, assign the `parameters` property to the object with necessary parameters. Possible chart parameters are listed in the table.\nChart setup parameters\nName| Type| Details  \n---|---|---  \n`seriesConfig`| `object`| The settings of an embedded chart in a series.  \n`orderBy`| `string`| Sorting field.  \n`orderDirection`| `string`| Sorting direction.  \n`caption`| `string`| Chart header.  \n`sectionId`| `string`| Section id.  \n`xAxisDefaultCaption`| `string`| Default X-axis header.  \n`yAxisDefaultCaption`| `string`| Default Y-axis header.  \n`primaryColumnName`| `string`| Name of initial column. The **Id** column is the default one.  \n`yAxisConfig`| `object`| Array of the Y-axis name settings.  \n`schemaName`| `string`| Chart object.  \n`sectionBindingColumn`| `string`| Section link column.  \n`func`| `string`| Aggregate function.  \n`type`| `string`| Chart type.  \n`XAxisCaption`| `string`| X-axis caption.  \n`YAxisCaption`| `string`| Y-axis caption.  \n`xAxisColumn`| `string`| The X-axis grouping column.  \n`yAxisColumn`| `string`| The Y-axis grouping column.  \n`styleColor`| `string`| Chart color.  \n`filterData`| `object`| Filter settings.  \n### Metric\u200b\n[The \"Metric\" dashboard](https://academy.creatio.com/documents?ver=8.0&id=2144&anchor=title-184-4) displays the number (or date) received by inquiring system data, for example, a total number of company\u2019s employees. \n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_metric.png)\n#### Functionality implementation classes of the \"Metric\" dashboard\u200b\n`IndicatorViewModel` \u2013 metric view model.\n`IndicatorViewConfig` \u2013 generates the configuration of the metric view model.\n`IndicatorModule` \u2013 a module designed to work with metrics.\n`IndicatorDesigner` \u2013 view model schema of the metric edit page.\n#### Metric settings\u200b\nTo configure a metric, you need to add the JSON configuration object with Metric properties to the widget module configuration. The widget module configuration is defined by the `Items` property of the `SysDashboard` object. \nSet the \"Metric\" value to the `widgetType` property in the JSON configuration object with widget settings. In addition, assign the `parameters` property to the object with necessary parameters. Possible metric parameters are listed in the table.\nMetric settings\nName| Type| Details  \n---|---|---  \n`caption`| `string`| Metric header.  \n`sectionId`| `string`| Section id.  \n`entitySchemaName`| `string`| Metric object.  \n`sectionBindingColumn`| `string`| Section link column.  \n`columnName`| `string`| Name of aggregating column.  \n`format`| `object`| Metric format.  \n`filterData`| `object`| Filter settings.  \n`aggregationType`| `number`| Type of aggregating function.  \n`style`| `string`| Metric color.  \n### Gaude\u200b\n[A gauge](https://academy.creatio.com/documents?ver=8.0&id=2144&anchor=title-184-5) dashboard element displays aggregate data from multiple system records in the form of a dial with green, yellow, and red areas on its scale. For example, you may use this dashboard to display a number of performed activities and compare it to a desired rate. \n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_speedometer.png)\n#### Gauge functionality implementation classes\u200b\n`GaugeViewModel` \u2013 gauge view model.\n`GaugeViewConfig` \u2013 generates the gauge view model.\n`GaugeModule` \u2013 module designed to work with gauges.\n`GaugeChart` \u2013 implements a gauge chart component.\n`GaugeDesigner` \u2013 view model schema of a gauge.\n#### Gauge settings\u200b\nTo configure a gauge, you need to add the JSON configuration object with the gauge properties to the widget module configuration. The widget module configuration is defined by the `Items` property of the `SysDashboard` object. \nSet the \"Gauge\" value to the `widgetType` property in the JSON configuration object with widget settings. In addition, assign the `parameters` property to the object with necessary parameters. Possible gauge parameters are listed in the table.\nGauge settings\nName| Type| Details  \n---|---|---  \n`caption`| `string`| Gauge header.  \n`sectionId`| `string`| Section id.  \n`entitySchemaName`| `string`| Gauge object.  \n`sectionBindingColumn`| `string`| Section link column.  \n### List\u200b\n[A list](https://academy.creatio.com/documents?ver=8.0&id=2144&anchor=title-184-6) displays multiple system records in a unified visual form. Lists enable you to limit the number of records displayed to create such dashboards as the \"Top ten most productive managers by the number of closed deals\", for example. \n![](https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_list.png)\n#### List functional classes\u200b\n`DashboardGridViewModel` \u2013 list view model.\n`DashboardGridViewConfig` \u2013 generates list view configuration.\n`DashboardGridModule` \u2013 module designed to work with lists.\n`DashboardGridDesigner` \u2013 list editing page schema.\n#### List settings\u200b\nTo configure a list, you need to add the JSON configuration object with list properties to the widget module configuration. The widget module configuration is defined by the `Items` property of the `SysDashboard` object. \nSet the \"DashboardGrid\" value to the `widgetType` property in the JSON configuration object with widget settings. In addition, assign the `parameters` property to the object with necessary parameters. Possible list parameters are listed in the table.\nList settings\nName| Type| Details  \n---|---|---  \n`caption`| `string`| List header.  \n`sectionBindingColumn`| `string`| Section link column.  \n`filterData`| `object`| Filter settings.  \n`sectionId`| `string`| Section id.  \n`entitySchemaName`| `string`| List object.  \n`style`| `string`| List color.  \n`orderDirection`| `number`| Sorting options (1 - ascending, 2 - descending).  \n`orderColumn`| `string`| List sorting column.  \n`rowCount`| `number`| The number of rows to display.  \n`gridConfig`| `object`| List configuration.  \n### Web-page\u200b\n[The web-page dashboard](https://academy.creatio.com/documents?ver=8.0&id=2144&anchor=title-184-13) is used to display web pages on the dashboard panel. It may be an online currency calculator, your corporate website, etc. \n#### Web-page functionality implementation classes\u200b\n`WebPageViewModel` \u2013 web-page view model.\n`WebPageViewConfig` \u2013 generates the web-page view model configuration.\n`WebPageModule` \u2013 module used to work with web pages.\n`WebPageDesigner` \u2013 web-page widget view schema.\n#### Web-page settings parameters\u200b\nTo configure a web page, you need to add the JSON configuration object with web page properties to the widget module configuration. Widget module configuration is defined by the `Items` property of the `SysDashboard` object. \nSet the \"WebPage\" value to the `widgetType` property in the JSON configuration object with widget settings. In addition, assign the `parameters` property to the object with necessary parameters. Possible web-page parameters are listed in the table.\nWeb-page settings\nName| Type| Details  \n---|---|---  \n`caption`| `string`| Web-page widget title.  \n`sectionId`| `string`| Section id.  \n`url`| `string`| Web-page link.  \n`style`| `string`| Web-page widget CSS-styles  \n### Sales pipeline\u200b\n[The \"Sales pipeline\" dashboard](https://academy.creatio.com/documents?ver=8.0&id=2144&anchor=title-184-11) is used to analyze sales dynamics by stages.\n#### Sales pipeline functionality implementation classes\u200b\n`OpportunityFunnelChart` \u2013 a class inherited from `Chart`.\n#### Sales pipeline settings\u200b\nTo configure a sales pipeline, you need to add the JSON configuration object with sales pipeline properties to the widget module configuration. Widget module configuration is defined by the `Items` property of the `SysDashboard` object. \nSet the \"OpportunityFunnel\" value to the `widgetType` property in the JSON configuration object with widget settings. In addition, assign the `parameters` property to the object with necessary parameters. Possible sales pipeline parameters are listed in the table.\nSales pipeline settings\nName| Type| Details  \n---|---|---  \n`caption`| `string`| Sales pipeline header.  \n`sectionId`| `string`| Section id.  \n`defPeriod`| `string`| Pipeline period (last week by default).  \n`sectionBindingColumn`| `string`| Section link column.  \n`type`| `string`| Chart type (\"funnel\").  \n`filterData`| `object`| Filter settings.",
+  "code_examples": [
+    {
+      "code": "[{    //Element type (Terrasoft.ViewItemType).    itemType: \"4\",    // Element name.    name: \"SomeInvoiceChart\",    // View configuration.    layout: {        columns: 4,        rows: 4,        colspan: 4,        rowspan: 4    }},{...}]",
+      "language": "js",
+      "context": "Array",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "{    // The name of the element for which the module settings are defined.    \"SomeInvoiceChart\": {        // Name of the \"DashboardItem\" view element.        \"widgetType\": \"Chart\",        // Parameters required to display data for a particular \"DashboardItem\" element.        \"parameters\": {            \"caption\": \"some caption\",            ...        },    },    {...}}",
+      "language": "js",
+      "context": "JSON Object",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Header",
+          "Type",
+          "Details"
+        ],
+        [
+          "Caption",
+          "Header",
+          "String",
+          "This information is displayed in the tab header."
+        ],
+        [
+          "Position",
+          "Position",
+          "Number",
+          "If a position is not specified, the elements are displayed in alphabetical order."
+        ],
+        [
+          "Section",
+          "Section",
+          "Lookup",
+          "System section."
+        ],
+        [
+          "ViewConfig",
+          "Element (widget) view configuration",
+          "Array",
+          "[{//Element type (Terrasoft.ViewItemType).itemType:\"4\",// Element name.name:\"SomeInvoiceChart\",// View configuration.layout:{columns:4,rows:4,colspan:4,rowspan:4}},{...}]"
+        ],
+        [
+          "Items",
+          "Element (widget) module configuration",
+          "JSON Object",
+          "{// The name of the element for which the module settings are defined.\"SomeInvoiceChart\":{// Name of the \"DashboardItem\" view element.\"widgetType\":\"Chart\",// Parameters required to display data for a particular \"DashboardItem\" element.\"parameters\":{\"caption\":\"some caption\",...},},{...}}"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Header</p></th><th><p>Type</p></th><th><p>Details</p></th></tr><tr><td><p><code>Caption</code></p></td><td><p>Header</p></td><td><p>String</p></td><td><p>This information is displayed in the tab header.</p></td></tr><tr><td><p><code>Position</code></p></td><td><p>Position</p></td><td><p>Number</p></td><td><p>If a position is not specified, the elements are displayed in alphabetical order.</p></td></tr><tr><td><p><code>Section</code></p></td><td><p>Section</p></td><td><p>Lookup</p></td><td><p>System section.</p></td></tr><tr><td><p><code>ViewConfig</code></p></td><td><p>Element (widget) view configuration</p></td><td><p>Array</p></td><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">[</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">//Element type (Terrasoft.ViewItemType).</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">itemType</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"4\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// Element name.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">name</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"SomeInvoiceChart\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// View configuration.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">layout</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">columns</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">4</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">rows</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">4</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">colspan</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">4</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token literal-property property\" style=\"color: rgb(54, 172, 170);\">rowspan</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token number\" style=\"color: rgb(54, 172, 170);\">4</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">]</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td></tr><tr><td><p><code>Items</code></p></td><td><p>Element (widget) module configuration</p></td><td><p>JSON Object</p></td><td><div class=\"language-js codeBlockContainer_Ckt0 theme-code-block\" style=\"--prism-color: #393A34; --prism-background-color: #f6f8fa;\"><div class=\"codeBlockContent_bxn0\"><pre class=\"prism-code language-js codeBlock_qGQc thin-scrollbar\" style=\"color: rgb(57, 58, 52); background-color: rgb(246, 248, 250);\" tabindex=\"0\"><code class=\"codeBlockLines_p187\"><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// The name of the element for which the module settings are defined.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"SomeInvoiceChart\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// Name of the \"DashboardItem\" view element.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"widgetType\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"Chart\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token comment\" style=\"color: rgb(153, 153, 136); font-style: italic;\">// Parameters required to display data for a particular \"DashboardItem\" element.</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"parameters\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token string-property property\" style=\"color: rgb(54, 172, 170);\">\"caption\"</span><span class=\"token operator\" style=\"color: rgb(57, 58, 52);\">:</span><span class=\"token plain\"> </span><span class=\"token string\" style=\"color: rgb(227, 17, 108);\">\"some caption\"</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">            </span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">        </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">,</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\">    </span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">{</span><span class=\"token spread operator\" style=\"color: rgb(57, 58, 52);\">...</span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><span class=\"token plain\"></span><br/></span><span class=\"token-line\" style=\"color: rgb(57, 58, 52);\"><span class=\"token plain\"></span><span class=\"token punctuation\" style=\"color: rgb(57, 58, 52);\">}</span><br/></span></code></pre><div class=\"buttonGroup_M5ko\"><button aria-label=\"Copy code to clipboard\" class=\"clean-btn\" title=\"Copy\" type=\"button\"><span aria-hidden=\"true\" class=\"copyButtonIcons_IEyt\"><svg class=\"copyButtonIcon_TrPX\" viewbox=\"0 0 24 24\"><path d=\"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z\" fill=\"currentColor\"></path></svg><svg class=\"copyButtonSuccessIcon_cVMy\" viewbox=\"0 0 24 24\"><path d=\"M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z\" fill=\"currentColor\"></path></svg></span></button></div></div></div></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Details"
+        ],
+        [
+          "seriesConfig",
+          "object",
+          "The settings of an embedded chart in a series."
+        ],
+        [
+          "orderBy",
+          "string",
+          "Sorting field."
+        ],
+        [
+          "orderDirection",
+          "string",
+          "Sorting direction."
+        ],
+        [
+          "caption",
+          "string",
+          "Chart header."
+        ],
+        [
+          "sectionId",
+          "string",
+          "Section id."
+        ],
+        [
+          "xAxisDefaultCaption",
+          "string",
+          "Default X-axis header."
+        ],
+        [
+          "yAxisDefaultCaption",
+          "string",
+          "Default Y-axis header."
+        ],
+        [
+          "primaryColumnName",
+          "string",
+          "Name of initial column. TheIdcolumn is the default one."
+        ],
+        [
+          "yAxisConfig",
+          "object",
+          "Array of the Y-axis name settings."
+        ],
+        [
+          "schemaName",
+          "string",
+          "Chart object."
+        ],
+        [
+          "sectionBindingColumn",
+          "string",
+          "Section link column."
+        ],
+        [
+          "func",
+          "string",
+          "Aggregate function."
+        ],
+        [
+          "type",
+          "string",
+          "Chart type."
+        ],
+        [
+          "XAxisCaption",
+          "string",
+          "X-axis caption."
+        ],
+        [
+          "YAxisCaption",
+          "string",
+          "Y-axis caption."
+        ],
+        [
+          "xAxisColumn",
+          "string",
+          "The X-axis grouping column."
+        ],
+        [
+          "yAxisColumn",
+          "string",
+          "The Y-axis grouping column."
+        ],
+        [
+          "styleColor",
+          "string",
+          "Chart color."
+        ],
+        [
+          "filterData",
+          "object",
+          "Filter settings."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Details</p></th></tr><tr><td><p><code>seriesConfig</code></p></td><td><p><code>object</code></p></td><td><p>The settings of an embedded chart in a series.</p></td></tr><tr><td><p><code>orderBy</code></p></td><td><p><code>string</code></p></td><td><p>Sorting field.</p></td></tr><tr><td><p><code>orderDirection</code></p></td><td><p><code>string</code></p></td><td><p>Sorting direction.</p></td></tr><tr><td><p><code>caption</code></p></td><td><p><code>string</code></p></td><td><p>Chart header.</p></td></tr><tr><td><p><code>sectionId</code></p></td><td><p><code>string</code></p></td><td><p>Section id.</p></td></tr><tr><td><p><code>xAxisDefaultCaption</code></p></td><td><p><code>string</code></p></td><td><p>Default X-axis header.</p></td></tr><tr><td><p><code>yAxisDefaultCaption</code></p></td><td><p><code>string</code></p></td><td><p>Default Y-axis header.</p></td></tr><tr><td><p><code>primaryColumnName</code></p></td><td><p><code>string</code></p></td><td><p>Name of initial column. The <strong>Id</strong> column is the default one.</p></td></tr><tr><td><p><code>yAxisConfig</code></p></td><td><p><code>object</code></p></td><td><p>Array of the Y-axis name settings.</p></td></tr><tr><td><p><code>schemaName</code></p></td><td><p><code>string</code></p></td><td><p>Chart object.</p></td></tr><tr><td><p><code>sectionBindingColumn</code></p></td><td><p><code>string</code></p></td><td><p>Section link column.</p></td></tr><tr><td><p><code>func</code></p></td><td><p><code>string</code></p></td><td><p>Aggregate function.</p></td></tr><tr><td><p><code>type</code></p></td><td><p><code>string</code></p></td><td><p>Chart type.</p></td></tr><tr><td><p><code>XAxisCaption</code></p></td><td><p><code>string</code></p></td><td><p>X-axis caption.</p></td></tr><tr><td><p><code>YAxisCaption</code></p></td><td><p><code>string</code></p></td><td><p>Y-axis caption.</p></td></tr><tr><td><p><code>xAxisColumn</code></p></td><td><p><code>string</code></p></td><td><p>The X-axis grouping column.</p></td></tr><tr><td><p><code>yAxisColumn</code></p></td><td><p><code>string</code></p></td><td><p>The Y-axis grouping column.</p></td></tr><tr><td><p><code>styleColor</code></p></td><td><p><code>string</code></p></td><td><p>Chart color.</p></td></tr><tr><td><p><code>filterData</code></p></td><td><p><code>object</code></p></td><td><p>Filter settings.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Details"
+        ],
+        [
+          "caption",
+          "string",
+          "Metric header."
+        ],
+        [
+          "sectionId",
+          "string",
+          "Section id."
+        ],
+        [
+          "entitySchemaName",
+          "string",
+          "Metric object."
+        ],
+        [
+          "sectionBindingColumn",
+          "string",
+          "Section link column."
+        ],
+        [
+          "columnName",
+          "string",
+          "Name of aggregating column."
+        ],
+        [
+          "format",
+          "object",
+          "Metric format."
+        ],
+        [
+          "filterData",
+          "object",
+          "Filter settings."
+        ],
+        [
+          "aggregationType",
+          "number",
+          "Type of aggregating function."
+        ],
+        [
+          "style",
+          "string",
+          "Metric color."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Details</p></th></tr><tr><td><p><code>caption</code></p></td><td><p><code>string</code></p></td><td><p>Metric header.</p></td></tr><tr><td><p><code>sectionId</code></p></td><td><p><code>string</code></p></td><td><p>Section id.</p></td></tr><tr><td><p><code>entitySchemaName</code></p></td><td><p><code>string</code></p></td><td><p>Metric object.</p></td></tr><tr><td><p><code>sectionBindingColumn</code></p></td><td><p><code>string</code></p></td><td><p>Section link column.</p></td></tr><tr><td><p><code>columnName</code></p></td><td><p><code>string</code></p></td><td><p>Name of aggregating column.</p></td></tr><tr><td><p><code>format</code></p></td><td><p><code>object</code></p></td><td><p>Metric format.</p></td></tr><tr><td><p><code>filterData</code></p></td><td><p><code>object</code></p></td><td><p>Filter settings.</p></td></tr><tr><td><p><code>aggregationType</code></p></td><td><p><code>number</code></p></td><td><p>Type of aggregating function.</p></td></tr><tr><td><p><code>style</code></p></td><td><p><code>string</code></p></td><td><p>Metric color.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Details"
+        ],
+        [
+          "caption",
+          "string",
+          "Gauge header."
+        ],
+        [
+          "sectionId",
+          "string",
+          "Section id."
+        ],
+        [
+          "entitySchemaName",
+          "string",
+          "Gauge object."
+        ],
+        [
+          "sectionBindingColumn",
+          "string",
+          "Section link column."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Details</p></th></tr><tr><td><p><code>caption</code></p></td><td><p><code>string</code></p></td><td><p>Gauge header.</p></td></tr><tr><td><p><code>sectionId</code></p></td><td><p><code>string</code></p></td><td><p>Section id.</p></td></tr><tr><td><p><code>entitySchemaName</code></p></td><td><p><code>string</code></p></td><td><p>Gauge object.</p></td></tr><tr><td><p><code>sectionBindingColumn</code></p></td><td><p><code>string</code></p></td><td><p>Section link column.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Details"
+        ],
+        [
+          "caption",
+          "string",
+          "List header."
+        ],
+        [
+          "sectionBindingColumn",
+          "string",
+          "Section link column."
+        ],
+        [
+          "filterData",
+          "object",
+          "Filter settings."
+        ],
+        [
+          "sectionId",
+          "string",
+          "Section id."
+        ],
+        [
+          "entitySchemaName",
+          "string",
+          "List object."
+        ],
+        [
+          "style",
+          "string",
+          "List color."
+        ],
+        [
+          "orderDirection",
+          "number",
+          "Sorting options (1 - ascending, 2 - descending)."
+        ],
+        [
+          "orderColumn",
+          "string",
+          "List sorting column."
+        ],
+        [
+          "rowCount",
+          "number",
+          "The number of rows to display."
+        ],
+        [
+          "gridConfig",
+          "object",
+          "List configuration."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Details</p></th></tr><tr><td><p><code>caption</code></p></td><td><p><code>string</code></p></td><td><p>List header.</p></td></tr><tr><td><p><code>sectionBindingColumn</code></p></td><td><p><code>string</code></p></td><td><p>Section link column.</p></td></tr><tr><td><p><code>filterData</code></p></td><td><p><code>object</code></p></td><td><p>Filter settings.</p></td></tr><tr><td><p><code>sectionId</code></p></td><td><p><code>string</code></p></td><td><p>Section id.</p></td></tr><tr><td><p><code>entitySchemaName</code></p></td><td><p><code>string</code></p></td><td><p>List object.</p></td></tr><tr><td><p><code>style</code></p></td><td><p><code>string</code></p></td><td><p>List color.</p></td></tr><tr><td><p><code>orderDirection</code></p></td><td><p><code>number</code></p></td><td><p>Sorting options (1 - ascending, 2 - descending).</p></td></tr><tr><td><p><code>orderColumn</code></p></td><td><p><code>string</code></p></td><td><p>List sorting column.</p></td></tr><tr><td><p><code>rowCount</code></p></td><td><p><code>number</code></p></td><td><p>The number of rows to display.</p></td></tr><tr><td><p><code>gridConfig</code></p></td><td><p><code>object</code></p></td><td><p>List configuration.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Details"
+        ],
+        [
+          "caption",
+          "string",
+          "Web-page widget title."
+        ],
+        [
+          "sectionId",
+          "string",
+          "Section id."
+        ],
+        [
+          "url",
+          "string",
+          "Web-page link."
+        ],
+        [
+          "style",
+          "string",
+          "Web-page widget CSS-styles"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Details</p></th></tr><tr><td><p><code>caption</code></p></td><td><p><code>string</code></p></td><td><p>Web-page widget title.</p></td></tr><tr><td><p><code>sectionId</code></p></td><td><p><code>string</code></p></td><td><p>Section id.</p></td></tr><tr><td><p><code>url</code></p></td><td><p><code>string</code></p></td><td><p>Web-page link.</p></td></tr><tr><td><p><code>style</code></p></td><td><p><code>string</code></p></td><td><p>Web-page widget CSS-styles</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Name",
+          "Type",
+          "Details"
+        ],
+        [
+          "caption",
+          "string",
+          "Sales pipeline header."
+        ],
+        [
+          "sectionId",
+          "string",
+          "Section id."
+        ],
+        [
+          "defPeriod",
+          "string",
+          "Pipeline period (last week by default)."
+        ],
+        [
+          "sectionBindingColumn",
+          "string",
+          "Section link column."
+        ],
+        [
+          "type",
+          "string",
+          "Chart type (\"funnel\")."
+        ],
+        [
+          "filterData",
+          "object",
+          "Filter settings."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Name</p></th><th><p>Type</p></th><th><p>Details</p></th></tr><tr><td><p><code>caption</code></p></td><td><p><code>string</code></p></td><td><p>Sales pipeline header.</p></td></tr><tr><td><p><code>sectionId</code></p></td><td><p><code>string</code></p></td><td><p>Section id.</p></td></tr><tr><td><p><code>defPeriod</code></p></td><td><p><code>string</code></p></td><td><p>Pipeline period (last week by default).</p></td></tr><tr><td><p><code>sectionBindingColumn</code></p></td><td><p><code>string</code></p></td><td><p>Section link column.</p></td></tr><tr><td><p><code>type</code></p></td><td><p><code>string</code></p></td><td><p>Chart type (\"funnel\").</p></td></tr><tr><td><p><code>filterData</code></p></td><td><p><code>object</code></p></td><td><p>Filter settings.</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [],
+  "images": [
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AnalyticsElements/scr_dashboards_runtime.png",
+      "alt": "",
+      "title": "",
+      "context": "The hierarchy of classes that implement functionality in the dashboards view mode:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/148cc7beed7e44b6_reatio-platform_8.0_platform-customization_classic-ui_dashboard-widgets_overview_e6433a91cbde.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots/AnalyticsElements/scr_dashboards_designtime.png",
+      "alt": "",
+      "title": "",
+      "context": "The hierarchy of classes that implement the functionality in the dashboards view mode:",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/148cc7beed7e44b6_reatio-platform_8.0_platform-customization_classic-ui_dashboard-widgets_overview_f074577916a5.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_chart.png",
+      "alt": "",
+      "title": "",
+      "context": "Chartsdisplay multiple system records in the form of diagrams of different types. For example, you c",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/148cc7beed7e44b6_reatio-platform_8.0_platform-customization_classic-ui_dashboard-widgets_overview_2f9b5d6d8d75.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_metric.png",
+      "alt": "",
+      "title": "",
+      "context": "The \"Metric\" dashboarddisplays the number (or date) received by inquiring system data, for example, ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/148cc7beed7e44b6_reatio-platform_8.0_platform-customization_classic-ui_dashboard-widgets_overview_7fa1182473cf.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_speedometer.png",
+      "alt": "",
+      "title": "",
+      "context": "A gaugedashboard element displays aggregate data from multiple system records in the form of a dial ",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/148cc7beed7e44b6_reatio-platform_8.0_platform-customization_classic-ui_dashboard-widgets_overview_a9a4ff840bb9.png"
+    },
+    {
+      "src": "https://academy.creatio.com/sites/en/files/documentation/sdk/en/BPMonlineWebSDK/Screenshots.en/AnalyticsElements/scr_dashboards_list.png",
+      "alt": "",
+      "title": "",
+      "context": "A listdisplays multiple system records in a unified visual form. Lists enable you to limit the numbe",
+      "width": "",
+      "height": "",
+      "local_path": "creatio-docs-full/images/148cc7beed7e44b6_reatio-platform_8.0_platform-customization_classic-ui_dashboard-widgets_overview_c03360670672.png"
+    }
+  ],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Customize dashboard widgets",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Data storage structure of dashboards\u200b",
+      "anchor": "title-1438-1"
+    },
+    {
+      "level": 2,
+      "text": "Implementing functionality in the dashboards view mode\u200b",
+      "anchor": "title-1438-2"
+    },
+    {
+      "level": 2,
+      "text": "Implementing functionality in the dashboards view mode\u200b",
+      "anchor": "title-1438-2"
+    },
+    {
+      "level": 2,
+      "text": "Base classes that implement widget functionality\u200b",
+      "anchor": "title-1438-4"
+    },
+    {
+      "level": 2,
+      "text": "Dashboard widget types\u200b",
+      "anchor": "title-1438-5"
+    },
+    {
+      "level": 3,
+      "text": "Chart\u200b",
+      "anchor": "title-1438-6"
+    },
+    {
+      "level": 4,
+      "text": "Charts functionality implementation classes\u200b",
+      "anchor": "title-1438-7"
+    },
+    {
+      "level": 4,
+      "text": "Chart setup parameters\u200b",
+      "anchor": "title-1438-8"
+    },
+    {
+      "level": 3,
+      "text": "Metric\u200b",
+      "anchor": "title-1438-9"
+    },
+    {
+      "level": 4,
+      "text": "Functionality implementation classes of the \"Metric\" dashboard\u200b",
+      "anchor": "title-1438-10"
+    },
+    {
+      "level": 4,
+      "text": "Metric settings\u200b",
+      "anchor": "title-1438-11"
+    },
+    {
+      "level": 3,
+      "text": "Gaude\u200b",
+      "anchor": "title-1438-12"
+    },
+    {
+      "level": 4,
+      "text": "Gauge functionality implementation classes\u200b",
+      "anchor": "title-1438-13"
+    },
+    {
+      "level": 4,
+      "text": "Gauge settings\u200b",
+      "anchor": "title-1438-14"
+    },
+    {
+      "level": 3,
+      "text": "List\u200b",
+      "anchor": "title-1438-15"
+    },
+    {
+      "level": 4,
+      "text": "List functional classes\u200b",
+      "anchor": "title-1438-16"
+    },
+    {
+      "level": 4,
+      "text": "List settings\u200b",
+      "anchor": "title-1438-17"
+    },
+    {
+      "level": 3,
+      "text": "Web-page\u200b",
+      "anchor": "title-1438-18"
+    },
+    {
+      "level": 4,
+      "text": "Web-page functionality implementation classes\u200b",
+      "anchor": "title-1438-19"
+    },
+    {
+      "level": 4,
+      "text": "Web-page settings parameters\u200b",
+      "anchor": "title-1438-20"
+    },
+    {
+      "level": 3,
+      "text": "Sales pipeline\u200b",
+      "anchor": "title-1438-21"
+    },
+    {
+      "level": 4,
+      "text": "Sales pipeline functionality implementation classes\u200b",
+      "anchor": "title-1438-22"
+    },
+    {
+      "level": 4,
+      "text": "Sales pipeline settings\u200b",
+      "anchor": "title-1438-23"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "Caption",
+        "type": "Header",
+        "description": "String",
+        "required": false
+      },
+      {
+        "name": "Position",
+        "type": "Position",
+        "description": "Number",
+        "required": false
+      },
+      {
+        "name": "Section",
+        "type": "Section",
+        "description": "Lookup",
+        "required": false
+      },
+      {
+        "name": "ViewConfig",
+        "type": "Element (widget) view configuration",
+        "description": "Array",
+        "required": false
+      },
+      {
+        "name": "Items",
+        "type": "Element (widget) module configuration",
+        "description": "JSON Object",
+        "required": true
+      },
+      {
+        "name": "seriesConfig",
+        "type": "object",
+        "description": "The settings of an embedded chart in a series.",
+        "required": false
+      },
+      {
+        "name": "orderBy",
+        "type": "string",
+        "description": "Sorting field.",
+        "required": false
+      },
+      {
+        "name": "orderDirection",
+        "type": "string",
+        "description": "Sorting direction.",
+        "required": false
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "description": "Chart header.",
+        "required": false
+      },
+      {
+        "name": "sectionId",
+        "type": "string",
+        "description": "Section id.",
+        "required": false
+      },
+      {
+        "name": "xAxisDefaultCaption",
+        "type": "string",
+        "description": "Default X-axis header.",
+        "required": false
+      },
+      {
+        "name": "yAxisDefaultCaption",
+        "type": "string",
+        "description": "Default Y-axis header.",
+        "required": false
+      },
+      {
+        "name": "primaryColumnName",
+        "type": "string",
+        "description": "Name of initial column. TheIdcolumn is the default one.",
+        "required": false
+      },
+      {
+        "name": "yAxisConfig",
+        "type": "object",
+        "description": "Array of the Y-axis name settings.",
+        "required": false
+      },
+      {
+        "name": "schemaName",
+        "type": "string",
+        "description": "Chart object.",
+        "required": false
+      },
+      {
+        "name": "sectionBindingColumn",
+        "type": "string",
+        "description": "Section link column.",
+        "required": false
+      },
+      {
+        "name": "func",
+        "type": "string",
+        "description": "Aggregate function.",
+        "required": false
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "description": "Chart type.",
+        "required": false
+      },
+      {
+        "name": "XAxisCaption",
+        "type": "string",
+        "description": "X-axis caption.",
+        "required": false
+      },
+      {
+        "name": "YAxisCaption",
+        "type": "string",
+        "description": "Y-axis caption.",
+        "required": false
+      },
+      {
+        "name": "xAxisColumn",
+        "type": "string",
+        "description": "The X-axis grouping column.",
+        "required": false
+      },
+      {
+        "name": "yAxisColumn",
+        "type": "string",
+        "description": "The Y-axis grouping column.",
+        "required": false
+      },
+      {
+        "name": "styleColor",
+        "type": "string",
+        "description": "Chart color.",
+        "required": false
+      },
+      {
+        "name": "filterData",
+        "type": "object",
+        "description": "Filter settings.",
+        "required": false
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "description": "Metric header.",
+        "required": false
+      },
+      {
+        "name": "sectionId",
+        "type": "string",
+        "description": "Section id.",
+        "required": false
+      },
+      {
+        "name": "entitySchemaName",
+        "type": "string",
+        "description": "Metric object.",
+        "required": false
+      },
+      {
+        "name": "sectionBindingColumn",
+        "type": "string",
+        "description": "Section link column.",
+        "required": false
+      },
+      {
+        "name": "columnName",
+        "type": "string",
+        "description": "Name of aggregating column.",
+        "required": false
+      },
+      {
+        "name": "format",
+        "type": "object",
+        "description": "Metric format.",
+        "required": false
+      },
+      {
+        "name": "filterData",
+        "type": "object",
+        "description": "Filter settings.",
+        "required": false
+      },
+      {
+        "name": "aggregationType",
+        "type": "number",
+        "description": "Type of aggregating function.",
+        "required": false
+      },
+      {
+        "name": "style",
+        "type": "string",
+        "description": "Metric color.",
+        "required": false
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "description": "Gauge header.",
+        "required": false
+      },
+      {
+        "name": "sectionId",
+        "type": "string",
+        "description": "Section id.",
+        "required": false
+      },
+      {
+        "name": "entitySchemaName",
+        "type": "string",
+        "description": "Gauge object.",
+        "required": false
+      },
+      {
+        "name": "sectionBindingColumn",
+        "type": "string",
+        "description": "Section link column.",
+        "required": false
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "description": "List header.",
+        "required": false
+      },
+      {
+        "name": "sectionBindingColumn",
+        "type": "string",
+        "description": "Section link column.",
+        "required": false
+      },
+      {
+        "name": "filterData",
+        "type": "object",
+        "description": "Filter settings.",
+        "required": false
+      },
+      {
+        "name": "sectionId",
+        "type": "string",
+        "description": "Section id.",
+        "required": false
+      },
+      {
+        "name": "entitySchemaName",
+        "type": "string",
+        "description": "List object.",
+        "required": false
+      },
+      {
+        "name": "style",
+        "type": "string",
+        "description": "List color.",
+        "required": false
+      },
+      {
+        "name": "orderDirection",
+        "type": "number",
+        "description": "Sorting options (1 - ascending, 2 - descending).",
+        "required": false
+      },
+      {
+        "name": "orderColumn",
+        "type": "string",
+        "description": "List sorting column.",
+        "required": false
+      },
+      {
+        "name": "rowCount",
+        "type": "number",
+        "description": "The number of rows to display.",
+        "required": false
+      },
+      {
+        "name": "gridConfig",
+        "type": "object",
+        "description": "List configuration.",
+        "required": false
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "description": "Web-page widget title.",
+        "required": false
+      },
+      {
+        "name": "sectionId",
+        "type": "string",
+        "description": "Section id.",
+        "required": false
+      },
+      {
+        "name": "url",
+        "type": "string",
+        "description": "Web-page link.",
+        "required": false
+      },
+      {
+        "name": "style",
+        "type": "string",
+        "description": "Web-page widget CSS-styles",
+        "required": false
+      },
+      {
+        "name": "caption",
+        "type": "string",
+        "description": "Sales pipeline header.",
+        "required": false
+      },
+      {
+        "name": "sectionId",
+        "type": "string",
+        "description": "Section id.",
+        "required": false
+      },
+      {
+        "name": "defPeriod",
+        "type": "string",
+        "description": "Pipeline period (last week by default).",
+        "required": false
+      },
+      {
+        "name": "sectionBindingColumn",
+        "type": "string",
+        "description": "Section link column.",
+        "required": false
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "description": "Chart type (\"funnel\").",
+        "required": false
+      },
+      {
+        "name": "filterData",
+        "type": "object",
+        "description": "Filter settings.",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/getting-started/development-recommendations",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/getting-started/development-recommendations",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/platform-customization/classic-ui/dashboard-widgets/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/page-customization",
+      "text": "Page customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/toggle-panel",
+      "text": "Toggle panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/overview",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-options",
+      "text": "Communication options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-variable",
+      "text": "System variable",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/system-setting",
+      "text": "System setting",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/web-service",
+      "text": "Web service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/additional-feature",
+      "text": "Additional feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/open-page",
+      "text": "Open page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/business-processes",
+      "text": "Business processes",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/freedom-ui/close-the-websocket",
+      "text": "Closing the WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/overview",
+      "text": "Main menu",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/section",
+      "text": "Section",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/section/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/section-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page",
+      "text": "Record page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/record-page-basics",
+      "text": "Record page basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/field-1",
+      "text": "Field",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/button",
+      "text": "Button",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/action-dashboard",
+      "text": "Action dashboard",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/timeline",
+      "text": "Timeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/connected-entity-profile",
+      "text": "Connected entity profile",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/detail",
+      "text": "Detail",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/detail/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/detail-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mini-page",
+      "text": "Mini page",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/mini-page/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/mini-page-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modal-window",
+      "text": "Modal window",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/modal-window/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/modal-window-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/communication-panel",
+      "text": "Communication panel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/communication-panel/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/communication-panel-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/command-line",
+      "text": "Command line",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/dashboard-widgets",
+      "text": "PreviousDashboard widgets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/examples/modify-sales-pipeline-calculations",
+      "text": "Modify sales pipeline calculations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/examples/enable-additional-filtering-in-a-sales-pipeline",
+      "text": "Enable additional filtering in a sales pipeline",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/examples/add-a-dashboard-widget",
+      "text": "Add a dashboard widget",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/dashboard-widgets-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/references/basewidgetdesigner",
+      "text": "BaseWidgetDesigner",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/dashboard-widgets/references/dashboardenums",
+      "text": "DashboardEnums",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/chats",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/chat-management-api/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-management-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/chat-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/word-reports",
+      "text": "Word reports",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/ms-word/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ms-word-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/word-report-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/marketing-campaigns",
+      "text": "Marketing campaigns",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/marketing-campaigns-basics/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/campaigns-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/cases",
+      "text": "Cases",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/cases/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/cases-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/portal",
+      "text": "Portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/portal/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/self-service-portal",
+      "text": "Self-service portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/landings",
+      "text": "Landings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-object",
+      "text": "Web-To-Object",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-to-case",
+      "text": "Web-to-Case",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/telephony",
+      "text": "Telephony",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/webitel",
+      "text": "Webitel",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/telephony-integration/asterisk",
+      "text": "Asterisk",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/machine-learning",
+      "text": "Machine learning",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/machine-learning/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/ml-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails",
+      "text": "Emails",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/emails-customization",
+      "text": "Emails customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sending",
+      "text": "Sending",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/emails/overview",
+      "text": "Contact data enrichment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/classic-ui/task-scheduler",
+      "text": "Task scheduler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/existing-feature",
+      "text": "Existing feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/platform-customization/interface-control-tools/overview",
+      "text": "Custom feature",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/no-code-customization/8.0/category/analytics",
+      "text": "Dashboard widgets",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:25:57.476208"
+}

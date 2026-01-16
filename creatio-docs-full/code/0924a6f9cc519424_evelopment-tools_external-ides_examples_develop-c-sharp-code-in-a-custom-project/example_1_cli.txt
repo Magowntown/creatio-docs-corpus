@@ -1,0 +1,1 @@
+-filename="C:\Projects\CreatioCustomServerLogic\CreatioCustomServerLogic\bin\Debug\CreatioCustomServerLogic.dll" -typeName=CreatioCustomServerLogic.MyContactCreator -operation=ExecuteScript -workspaceName=Default -logPath=C:\Projects\Logs -confRuntimeParentDirectory=C:\creatio\Terrasoft.WebApp -autoExit=true

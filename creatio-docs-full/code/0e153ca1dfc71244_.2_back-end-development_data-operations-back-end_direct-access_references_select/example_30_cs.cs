@@ -1,0 +1,1 @@
+TResult ExecuteScalar<tresult>()

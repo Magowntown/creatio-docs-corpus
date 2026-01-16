@@ -1,0 +1,1 @@
+Join Join(JoinType joinType, string schemaName)Join Join(JoinType joinType, Select subSelect)Join Join(JoinType joinType, Query subSelectQuery)Join Join(JoinType joinType, QuerySourceExpression sourceExpression)

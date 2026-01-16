@@ -1,0 +1,1 @@
+virtual object GetColumnValue(string valueName)virtual object GetColumnValue(EntitySchemaColumn column)

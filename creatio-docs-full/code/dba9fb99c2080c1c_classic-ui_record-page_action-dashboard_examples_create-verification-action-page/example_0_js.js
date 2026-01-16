@@ -1,0 +1,1 @@
+define("UsrCommentlessAppValidationPage", [], function() {    return {        entitySchemaName: "AppValidation",        diff: [{            "operation": "remove",            "name": "CommentContainer"        }]    };});

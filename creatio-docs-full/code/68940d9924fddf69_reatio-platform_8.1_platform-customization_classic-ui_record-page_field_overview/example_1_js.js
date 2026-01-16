@@ -1,0 +1,1 @@
+"IsModelItemsEnabled": {    dataValueType: Terrasoft.DataValueType.BOOLEAN,    value: true,    dependencies: [{        columns: ["PaymentStatus"],        methodName: "setCardLockoutStatus"    }]}

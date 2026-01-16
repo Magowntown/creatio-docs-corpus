@@ -1,0 +1,1 @@
+var esq = Ext.create("Terrasoft.EntitySchemaQuery", {    rootSchemaName: "MyCustomLookup",    useRecordDeactivation: true,});

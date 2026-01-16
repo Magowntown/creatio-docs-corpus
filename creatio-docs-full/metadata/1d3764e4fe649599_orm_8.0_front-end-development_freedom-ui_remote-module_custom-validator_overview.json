@@ -1,0 +1,565 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+  "title": "Custom validator implemented using remote module",
+  "breadcrumbs": [
+    {
+      "text": "Front-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development"
+    },
+    {
+      "text": "Freedom UI",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui"
+    },
+    {
+      "text": "Custom components",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/custom-components"
+    },
+    {
+      "text": "Validator",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/validator"
+    }
+  ],
+  "content_markdown": "Version: 8.0  \nOn this page\nLevel: intermediate\nImportant\nYou can implement a custom validator using remote module in Creatio version 8.0.8 Atlas and later.\nCreatio lets you implement the business logic of the Freedom UI page using validators. **Validators** are functions that check whether the value of the `ViewModel` attribute is correct. For example, they can check the value of a record field for compliance with specified conditions.\nYou can implement a custom validator in the following **ways** :\n* Use the `validators` section of the Freedom UI page schema. Supported in Creatio 8.0 Atlas and later. View example that implements validator in a separate article: [Implement the field value validation on a page](https://academy.creatio.com/documents?ver=8.0&id=15361).\n* Use a remote module. Supported in Creatio 8.0.8 Atlas and later.\nTo **implement a custom validator using remote module** :\n1. Create an Angular project to develop a custom validator using remote module.\n2. Create a custom validator using remote module.\n3. Add the validator implemented using remote module to the Freedom UI page.\n## 1\\. Create an Angular project to develop a custom validator using remote module\u200b\nDevelop a custom validator in a dedicated `npm` package using an external IDE. This example covers the custom validator development in Microsoft Visual Studio Code.\nYou can create an Angular project to develop a custom validator in multiple ways, similarly to creating an Angular project to develop a custom UI component using remote module. To do this, follow the instruction in a separate article: [Custom UI component implemented using remote module](https://academy.creatio.com/documents?ver=8.0&id=15017&anchor=title-3971-2).\n## 2\\. Create a custom validator using remote module\u200b\n1. Create an Angular class in the project. To do this, run the `ng g class some-validator-name.validator` command at the command line terminal of Microsoft Visual Studio Code.\nAs a result, Microsoft Visual Studio Code will add the `SomeValidatorNameValidator` class files to the `src/app/` project directory.\n2. Implement the validator.\n1. Open the `some-validator-name.validator.ts` file.\n2. Flag the `SomeValidatorNameValidator` class using the `@CrtValidator` decorator.\n3. Inherit the `BaseValidator` class from the `@creatio-devkit/common` library.\n4. Implement the field `async`.\n5. Implement the abstract method `validate()` that validates data in the field.\n6. Import the required functionality from the libraries into the class.\n7. Save the file.\nsome-validator-name.validator.ts file\n/* Import the required functionality from the libraries. */  \nimport { BaseValidator, CrtControlState, CrtInject, CrtValidationErrors, CrtValidator, ValidatorParametersValues } from \"@creatio-devkit/common\";  \n@CrtValidator({  \ntype: 'usr.SomeValidatorNameValidator',  \n})  \nexport class SomeValidatorNameValidator extends BaseValidator {  \nconstructor(private _name: string) {  \nsuper();  \n}  \n/* Implement a field async. */  \nprotected override async = false;  \n/* Implement the \"validate\" abstract method. */  \npublic validate(  \ncontrol: CrtControlState,  \nparams?: ValidatorParametersValues  \n): CrtValidationErrors | null {  \n/* Implement the logic of the method. */  \nconst value = control.value as string;  \nif (value === this._name) {  \nreturn {  \nerror: {   \nmessage: 'Validation error message'   \n},   \n}  \n}  \nreturn null;  \n}  \n}  \n3. Inject dependencies.\n1. Open the `some-validator-name.validator.ts` file.\n2. Create the `SOME_TOKEN_NAME` instance of the `InjectionToken` class. Use the token to work with Angular DI (dependency injection). \n3. Mark DI in the constructor of the `SomeValidatorNameValidator` class using the `@CrtInject` decorator. \n4. Import the required functionality from the libraries into the class.\n5. Save the file.\nsome-validator-name.validator.ts file\n/* Import the required functionality from the libraries. */  \n...  \nimport { InjectionToken } from \"@angular/core\";  \n/* The SOME_TOKEN_NAME token that works with Angular DI (dependency injection). */  \nexport const SOME_TOKEN_NAME = new InjectionToken<string>('SOME_TOKEN_NAME');  \n...  \nexport class SomeValidatorNameValidator extends BaseValidator {  \n/* Mark DI in the constructor using the @CrtInject decorator. */  \nconstructor(@CrtInject(SOME_TOKEN_NAME) private _name: string) {  \nsuper();  \n}  \n...  \n}  \n4. Register the `SomeValidatorNameValidator` validator as a validator and the `SOME_TOKEN_NAME` token. \n1. Open the `app.module.ts` file.\n2. Add the `SomeValidatorNameValidator` validator to the `validators` section in the `CrtModule` decorator.\n3. Add the configuration object to the `providers` section in the `NgModule` decorator.\n* Set the `provide` property to `SOME_TOKEN_NAME`.\n* Set the `useValue` property to the validation value.\n4. Implement the `resolveDependency()` method in the `bootstrapCrtModule()` method of the `AppModule` root module. The `bootstrapCrtModule()` method registers the `SomeValidatorNameValidator` validator flagged using the `CrtModule` decorator. The `resolveDependency()` method receives the dependencies of the SomeValidatorNameValidator converter.\n5. Import the required functionality from the libraries into the class.\n6. Save the file.\napp.module.ts file\n/* Import the required functionality from the libraries. */  \nimport { DoBootstrap, Injector, NgModule, ProviderToken } from '@angular/core';   \nimport { BrowserModule } from '@angular/platform-browser';  \nimport { bootstrapCrtModule, CrtModule } from '@creatio-devkit/common';  \nimport { SomeValidatorNameValidator, SOME_TOKEN_NAME} from \"./some-validator-name.validator\";  \n@CrtModule({  \nvalidators: [SomeValidatorNameValidator],  \n})  \n@NgModule({  \ndeclarations: [],  \nimports: [BrowserModule],  \nproviders: [{  \nprovide: SOME_TOKEN_NAME,  \nuseValue: 'SomeValue'  \n}],  \n})  \nexport class AppModule implements DoBootstrap {  \nconstructor(private _injector: Injector) { }  \nngDoBootstrap(): void {  \n/* Bootstrap CrtModule definitions. */  \nbootstrapCrtModule('some_package_name', AppModule, {  \nresolveDependency: (token) => this._injector.get(<ProviderToken<unknown>>token)  \n});  \n}  \n}  \n5. Build the project. To do this, run the `npm run build` command at the command line terminal of Microsoft Visual Studio Code.\nAs a result, Microsoft Visual Studio Code will add the build to the `dist` directory of the Angular project. The build will have the `<%projectName%>` name specified on [step 1](https://academy.creatio.com/documents?ver=8.0&id=15377&anchor=title-3971-2).\n## 3\\. Add the validator implemented using remote module to the Freedom UI page\u200b\n1. Repeat steps 1-6 of the procedure to [implement a custom UI component using remote module](https://academy.creatio.com/documents?ver=8.0&id=15017&anchor=title-3971-6).\n2. Bind the `usr.SomeValidatorNameValidator` validator to the model attribute in the `viewModelConfig` schema section.\nviewModelConfig schema section\nviewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{  \n\"attributes\": {  \n\"SomeField\": {  \n\"modelConfig\": {  \n\"path\": \"PDS.SomeField\"  \n},  \n\"validators\": {  \n\"usr.SomeValidatorNameValidator\": {  \n\"type\": \"usr.SomeValidatorNameValidator\",  \n\"params\": {}  \n}  \n}  \n},  \n...  \n}  \n}/**SCHEMA_VIEW_MODEL_CONFIG*/,  \n3. Click **Save** on the client Module Designer\u2019s toolbar.\nAs a result, Creatio will apply the validator to the element on the Freedom UI page.\n* * *\n## See also\u200b\n[Custom UI component implemented using remote module](https://academy.creatio.com/documents?ver=8.0&id=15017)\n* * *\n## Resources\u200b\n[Page customization Creatio documentation](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/page-customization-examples)",
+  "code_examples": [
+    {
+      "code": "/* Import the required functionality from the libraries. */import { BaseValidator, CrtControlState, CrtInject, CrtValidationErrors, CrtValidator, ValidatorParametersValues } from \"@creatio-devkit/common\";@CrtValidator({    type: 'usr.SomeValidatorNameValidator',})export class SomeValidatorNameValidator extends BaseValidator {    constructor(private _name: string) {        super();    }    /* Implement a field async. */    protected override async = false;    /* Implement the \"validate\" abstract method. */    public validate(        control: CrtControlState,        params?: ValidatorParametersValues    ): CrtValidationErrors | null {        /* Implement the logic of the method. */                const value = control.value as string;        if (value === this._name) {            return {                error: {                     message: 'Validation error message'                 },             }        }        return null;    }}",
+      "language": "js",
+      "context": "Implement the validator.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */...import { InjectionToken } from \"@angular/core\";/* The SOME_TOKEN_NAME token that works with Angular DI (dependency injection). */export const SOME_TOKEN_NAME = new InjectionToken<string>('SOME_TOKEN_NAME');...export class SomeValidatorNameValidator extends BaseValidator {    /* Mark DI in the constructor using the @CrtInject decorator. */    constructor(@CrtInject(SOME_TOKEN_NAME) private _name: string) {        super();    }    ...}",
+      "language": "js",
+      "context": "Inject dependencies.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Import the required functionality from the libraries. */import { DoBootstrap, Injector, NgModule, ProviderToken } from '@angular/core'; import { BrowserModule } from '@angular/platform-browser';import { bootstrapCrtModule, CrtModule } from '@creatio-devkit/common';import { SomeValidatorNameValidator, SOME_TOKEN_NAME} from \"./some-validator-name.validator\";@CrtModule({  validators: [SomeValidatorNameValidator],})@NgModule({  declarations: [],  imports: [BrowserModule],  providers: [{    provide: SOME_TOKEN_NAME,    useValue: 'SomeValue'  }],})export class AppModule implements DoBootstrap {  constructor(private _injector: Injector) { }  ngDoBootstrap(): void {    /* Bootstrap CrtModule definitions. */    bootstrapCrtModule('some_package_name', AppModule, {      resolveDependency: (token) => this._injector.get(<ProviderToken<unknown>>token)    });  }}",
+      "language": "js",
+      "context": "Save the file.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "viewModelConfig: /**SCHEMA_VIEW_MODEL_CONFIG*/{    \"attributes\": {        \"SomeField\": {            \"modelConfig\": {                \"path\": \"PDS.SomeField\"            },            \"validators\": {                \"usr.SomeValidatorNameValidator\": {                    \"type\": \"usr.SomeValidatorNameValidator\",                    \"params\": {}                }            }        },        ...    }}/**SCHEMA_VIEW_MODEL_CONFIG*/,",
+      "language": "js",
+      "context": "Bind theusr.SomeValidatorNameValidatorvalidator to the\u00a0model attribute in theviewModelConfigschema section.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantYou can implement a custom validator using remote module in Creatio version 8.0.8 Atlas and later.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>You can implement a custom validator using remote module in Creatio version 8.0.8 Atlas and later.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You can implement a custom validator using remote module in Creatio version 8.0.8 Atlas and later.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You can implement a custom validator using remote module in Creatio version 8.0.8 Atlas and later.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Custom validator implemented using remote module",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "1. Create an Angular project to develop a custom validator using remote module\u200b",
+      "anchor": "title-2657-1"
+    },
+    {
+      "level": 2,
+      "text": "2. Create a custom validator using remote module\u200b",
+      "anchor": "title-2657-1"
+    },
+    {
+      "level": 2,
+      "text": "3. Add the validator implemented using remote module to the Freedom UI page\u200b",
+      "anchor": "title-3971-6"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    },
+    {
+      "level": 2,
+      "text": "Resources\u200b",
+      "anchor": "resources"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "("
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/freedom-ui/remote-module/custom-validator/overview",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/overview",
+      "text": "Front-end architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/client-schema-freedomui/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/schema-freedomui-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/freedom-ui-page",
+      "text": "Freedom UI page structure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/custom-components",
+      "text": "Custom components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-component",
+      "text": "Freedom UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/implement-a-remote-module/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/remote-module-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/validator",
+      "text": "PreviousValidator",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/custom-validator-examples",
+      "text": "NextExamples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/custom-validator/examples/implement-validator-using-remote-module",
+      "text": "Implement a validator using remote module",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/converter",
+      "text": "Converter",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/custom-converter/converters-overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/custom-converter-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/request-handler",
+      "text": "Request handler",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/custom-request-handler/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/custom-handler-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/localize-remote-module",
+      "text": "Localization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/overview",
+      "text": "Asserts",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-component",
+      "text": "Classic UI component",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/implement-a-custom-component/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/custom-component-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/remote-module/requirements-for-icons",
+      "text": "Requirements for icons",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-sources",
+      "text": "Data sources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/data-sources/data-handling",
+      "text": "Data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/crud-operations",
+      "text": "CRUD operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/freedom-ui/data-sources/data-processing",
+      "text": "Additional data handling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/modules",
+      "text": "Modules",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/client-schema-1",
+      "text": "Client schema",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/controls",
+      "text": "Controls",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/sandbox",
+      "text": "Sandbox",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/websocket",
+      "text": "WebSocket",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/data-operations-front-end",
+      "text": "Data operations (front-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/front-end-development/classic-ui/js-classes",
+      "text": "JS classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/freedom-ui-1",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/category/debugging",
+      "text": "Debugging",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.0/page-customization-examples",
+      "text": "Page customization Creatio documentation",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T00:51:25.672890"
+}

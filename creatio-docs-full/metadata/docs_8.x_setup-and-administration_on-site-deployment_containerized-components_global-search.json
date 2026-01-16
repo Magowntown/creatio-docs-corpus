@@ -1,0 +1,1189 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search",
+  "title": "Global search",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment"
+    },
+    {
+      "text": "\u0421ontainerized components",
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components"
+    }
+  ],
+  "content_markdown": "Version: 8.3All Creatio products\nOn this page\nThe Global Search Service integrates ElasticSearch with Creatio. It performs the following functions:\n* **Recording** :\n* Subscribes clients by creating an index in ElasticSearch and saves the connection between the index and the application.\n* Disconnects clients by removing their index in ElasticSearch.\n* **Transporting** :\n* Participates in the indexing process by retrieving data from the database.\nThe sequence of actions during the global search setup depends on the global search version you are going to use. We recommend always using the latest version of the global search service with the latest version of Creatio.\nYou can deploy the components of global search version 3.0 using **Kubernetes orchestrator and Helm package manager** or **Docker**.\nWe also recommend backing up ElasticSearch daily to ensure the correct operation of the service and to enable the restoration of data after failures, e. g., power outages.\nIf you have any questions during the setup, we recommend consulting the [Global search and deduplication FAQ](https://academy.creatio.com/documents?id=2342).\nImportant\nYou need repository access to set up the current version of the global search service. Contact [Creatio support](mailto:support@creatio.com) to verify your license and gain access to the repository.\n## Set up the global search service using Kubernetes\u200b\nTo set up the service, download the source files. [Download files](https://github.com/Advance-Technologies-Foundation/global-search-helm/releases/latest).\nTo install the service:\n1. Set up the target environment:\n1. **Kubernetes cluster**. Learn more about setting up and managing the cluster in the [Kubernetes documentation](https://kubernetes.io/docs/home/).\n2. **Helm package manager**. Learn more about installing the package manager in the [Helm documentation](https://helm.sh/docs/intro/install/).\n2. Unpack the **values-onsite.yaml** file from the source file archive and save the file to the same directory as the archive.\n3. Open the file. View the main parameters the file uses in the table below.\n4. Specify the public service URL in the format of `http://k8s-node:30332` in the `global.searchService.url` variable.\n5. If you **have not installed** Redis, RabbitMQ, ElasticSearch, and PostgreSQL service database yet, proceed to the next step.\nIf you **have already installed** these services, for example, when setting up other containerized components, disable the installation of the services and set up the connection to existing services in the **values-onsite.yaml** source file of the global search service.\nnote\nFor highly loaded environments, we recommend deploying ElasticSearch in a cluster. Learn more in [ElasticSearch documentation](https://www.elastic.co/guide/en/elasticsearch/reference/7.16/setup.html).\n* For **Redis** :\n1. Disable the service installation. To do this, specify `enabled: false` in the `redis` section of the **values-onsite.yaml** file.\nredis:  \nenabled: false  \n2. Set up the connection to the previously installed Redis. To do this, specify the connection parameters in the `global.redis` section of the **values-onsite.yaml** file.\nglobal:  \nredis:  \nhost: [host]  \nport: [port]  \ndatabase: [database]  \nWhere\n[host] is the address of the Redis server.\n[port] is the connection port of the Redis server.\n[database] is the name of the Redis database.\n* For **RabbitMQ** :\n1. Disable the service installation. To do this, specify `enabled: false` in the `rabbitmq` section of the **values-onsite.yaml** file.\nrabbitmq:  \nenabled: false  \n2. Set up the connection to the previously installed RabbitMQ. To do this, specify the connection parameters in the `global.rabbitmq` section of the **values-onsite.yaml** file.\nglobal:  \nrabbitmq:  \nhost: [host]  \nvhost: [vhost]  \nport: [port]  \nuser: [user]  \npassword: [password]  \nWhere\n[host] is the address of the RabbitMQ service.\n[vhost] is the virtual host address of the RabbitMQ service.\n[port] is the amqp connection port of RabbitMQ.\n[user] is the RabbitMQ user.\n[password] is the RabbitMQ user password.\n* For **PostgreSQL** service database:\n1. Disable the PostgreSQL installation. To do this, specify `enabled: false` in the `postgresql` section of the **values-onsite.yaml** file.\npostgresql:  \nenabled: false  \n2. Set up the connection to the PostgreSQL service database. To do this, specify the connection parameters in the `global.postgresql` section of the **values-onsite.yaml** file.\nglobal:  \ndb:  \nuser: [user]  \npassword: [password]  \ndatabase: [database]  \nhost: [host]  \nport: [port]  \nWhere\n[user] is the PostgreSQL user on whose behalf to connect to the database.\n[password] is the PostgreSQL user password.\n[database] is the PostgreSQL service database.\n[host] is the address of the PostgreSQL database.\n[port] is the port to connect to the database.\n* For **ElasticSearch** :\n1. Disable ElasticSearch installation. To do this, specify `enabled: false` in the `elasticsearch` section of the **values-onsite.yaml** file.\nelasticsearch:  \nenabled: false  \n2. Set up the connection to the previously installed ElasticSearch. To do this, specify the connection parameters in the `global.elasticsearch` section of the **values-onsite.yaml** file.\nglobal:  \nelasticsearch:  \nurl: [url]  \nuser: [user]  \npassword: [password]  \nWhere\n[user] is the ElasticSearch user.\n[password] is the ElasticSearch user password.\n[url] is the ElasticSearch service URL in the format of `http://elasticsearch:9200`.\n6. Run the `helm install gs -f values-onsite.yaml globalsearch.tgz` command. As a result, Helm will install the global search service and selected dependencies.\nnote\nBy default, Helm deploys services with [NodePort](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport) type.\nThe main parameters of the global search service the **values.yaml** file uses.\nParameter| Parameter description  \n---|---  \nscheduler.env.fillQueueInterval| The run interval for primary indexing, in milliseconds.  \nworker.env.indexingCommandTimeout| The timeout of the Creatio database query upon primary indexing, in seconds.  \nworkerSingle.env.indexingCommandTimeout| The timeout of the Creatio database query upon instant indexing, in seconds.  \nglobal.incrementDays| The number of days within which to index the changed records during a single primary indexing iteration. Affects the indexing speed and Creatio database load. The higher the value, the faster the indexing and higher the load. The lower the value, the longer the indexing and lower the load.  \nlog4Net| Logging settings.  \nglobal.indexingContentLength| The maximum length of text fields upon indexing.  \nglobal.elasticsearch| ElasticSearch connection parameters.  \nglobal.searchService| Public URL to the search-service in the format of `http://k8s-node:30332`.  \nglobal.rabbitmq| RabbitMQ connection settings.  \nglobal.db| The connection settings of the global search service's internal service database.  \nglobal.redis| Redis connection settings.  \n## Set up the global search service in Docker\u200b\nThe global search requires 2 dedicated physical or virtual servers (\"server 1\" and \"server 2\") with Linux installed. Use the [requirements calculator](https://academy.creatio.com/docs/requirements/calculator) to check the server requirements.\nImportant\nThe global search setup procedure depends on the version you intend to install.\nLearn more about the OS versions supported by Docker in the [Docker documentation](https://docs.docker.com/install/). Depending on your company needs, you can use either Docker Community Edition (CE) or Enterprise Edition (EE). Learn more in the [Docker documentation](https://docs.docker.com/install/overview/).\nnote\nThe procedure below is relevant for global search service version 3.0. If you need to set up an earlier version of the global search, follow the procedure described in [Creatio 7.16 documentation](https://academy.creatio.com/documents/administration/7-16/set-global-search).\nTo **update** global search version 2.0 to version 3.0, run the [docker-compose down -v](https://docs.docker.com/compose/reference/down/) command to delete all docker volumes on servers 1 and 2, then install and set up the services once again.\n### Global search components\u200b\nDeploy on server 1:\n* [elasticsearch](https://hub.docker.com/_/elasticsearch/). The search engine.\nDeploy on server 2:\n* [postgres](https://hub.docker.com/_/postgres/). The database for configuring the global search components.\n* [rabbitmq](https://hub.docker.com/_/rabbitmq/). The message broker.\n* [redis](https://hub.docker.com/_/redis/). The database used for caching and performance improvement.\n* [gs-web-api](https://hub.docker.com/r/bpmonline/gs-web-api/). The web service that configures global search components.\n* [gs-web-indexing-service](https://hub.docker.com/r/bpmonline/gs-web-indexing-service). The web service that processes requests to perform targeted indexing of Creatio data.\n* [gs-search-service](https://hub.docker.com/r/bpmonline/gs-search-service). An elasticsearch proxy web service for data search.\n* [gs-scheduler](https://hub.docker.com/r/bpmonline/gs-scheduler/). The scheduler of Creatio data indexing in ElasticSearch.\n* [gs-worker](https://hub.docker.com/r/bpmonline/gs-worker/). The component that indexes Creatio data in ElasticSearch as per the scheduler tasks.\n* [gs-worker-replay](https://hub.docker.com/r/bpmonline/gs-worker-replay/). The component that processes the indexing results (gs-worker results).\n* [gs-worker-single](https://hub.docker.com/r/bpmonline/gs-worker-single/). The component that performs the targeted indexing of business process data in ElasticSearch upon a request from the business process.\n* [gs-worker-single-replay](https://hub.docker.com/r/bpmonline/gs-worker-single-replay/). The component that processes exceptions as part of the targeted indexing (gs-worker-single results).\n* [gs-worker-single-task](https://hub.docker.com/r/bpmonline/gs-worker-single-task/). The component that schedules tasks for gs-worker-single.\n* [gs-worker-queried-single-task](https://hub.docker.com/r/bpmonline/gs-worker-queried-single-task). The component that generates tasks for gs-worker-single.\nTo set up the components, download the source files. [Download files](https://github.com/Advance-Technologies-Foundation/gs-docker-compose/releases/latest).\nThe list of ports used by global search components:\nImportant\nIf you are using a firewall, make sure the ports below are open and available.\nComponent name| Outgoing port| Incoming port| Notes  \n---|---|---|---  \ngs-web-api| | 81| Configure the incoming port using the WEB_API_PORT variable  \ngs-web-indexing-service|  | 82| Configure the incoming port using the WEB_INDEXING_SERVICE_PORT variable  \ngs-search-service| 9200| 83| Configure the incoming port using the SEARCH_SERVICE_PORT variable  \ngs-worker| 9200|  | Requires connection to the server where elasticsearch is located.  \ngs-worker-single| 9200|  | Requires connection to the server where elasticsearch is located.  \nelasticsearch|  | 9200|   \n### Global search setup procedure\u200b\n1. Install Docker on a physical or virtual machine running Linux OS.\n2. Install Docker-Compose.\n3. Install ElasticSearch.\n4. Set up the container variables.\n5. Install and run the Global Search Service components.\n6. Enable the global search functionality in Creatio.\n#### Install Docker\u200b\nInstall Docker on Linux to deploy global search components. The installation is covered in the [Docker documentation](https://docs.docker.com/install/linux/docker-ce/debian/).\nRun the **docker --version** command on a Linux machine to verify the installed Docker version.\n#### Install Docker-Compose\u200b\nThe installation of Docker-Compose is covered in the [Docker documentation](https://docs.docker.com/compose/install/).\n#### Install ElasticSearch\u200b\nnote\nThis guide covers the procedure for deploying ElasticSearch in Docker-Compose. You can also deploy ElasticSearch as OS daemon, which does not involve installing Docker and Docker-Compose. Learn more about the setup procedure in the [ElasticSearch documentation](https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docker.html).\nTo install ElasticSearch:\n1. Go to the ElasticSearch installation server (server 1) and open the /opt directory.\n2. Download and unpack the archive with setup files to the directory. [Download the archive](https://github.com/Advance-Technologies-Foundation/gs-docker-compose/releases/latest).\n3. Open the /opt/docker-compose/elasticsearch directory (where the components are located) and run the following command:\ndocker-compose up -d  \nThe command might take up to several minutes to complete.\n4. Make sure that the log files do not contain any errors after the command is complete. To do this, run the following command:\ndocker logs es-01  \n#### Set up the container variables\u200b\nConfigure the global search component containers via the file that contains the environment variables. The variables are stored in the /opt/compose/services/.env file. Edit this file to set the variables.\nVariable name| Details| Default value  \n---|---|---  \nGS_ES_URL| The external ElasticSearch host required for access from Creatio. Specify the IP address of the server where the ElasticSearch is deployed.| `http://elasticsearch-publicip:9200`  \nCURRENT_SERVER_IP| The external IP address of the server where the global search components are deployed (server 2).| 10.0.0.1  \nnote\nTo check the external IP address of the server, run the `hostname -I | awk '{ print $1 }'` command.\nAdditional variables that control the data indexing parameters in ElasticSearch\nVariable name| Details| Default value  \n---|---|---  \nGS_DB_INCREMENT_DAYS| Number of days to index per one scheduler iteration. ModifiedOn columns of Creatio records are used for comparison.| 500 days  \nGS_DB_FILL_QUEUE_INTERVAL| Creatio database data collection interval for the regular scheduler. The lower the variable, the higher the load on Creatio database and the faster the primary indexing.| 30000 (specified in milliseconds)  \n### Run containers that have Global Search Service components\u200b\nImportant\nFor the correct container operation, the UTC time on the Linux machine with Docker installed must correspond to the UTC time on the Creatio database server. The permissible deviation is up to five minutes. Otherwise, the global search might not index all records.\n1. Go to the server that has the global search components (server 2) and open the /opt folder.\n2. Download and unpack the archive with setup files to the opened folder. [Download the archive](https://github.com/Advance-Technologies-Foundation/gs-docker-compose/releases/latest).\n3. Open the /opt/compose/services folder and run the following command:\ndocker-compose up -d  \n#### Verify that containers ran successfully\u200b\nTo see the running global search containers, use the following console command:\ndocker ps --filter \"label=service=gs\" -a --format \"table {{.Names}}\\t{{.Ports}}\\t{{.Status}}\\t{{.RunningFor}}\"  \nAll currently running containers display the **Up** status.\n#### Logging\u200b\nBy default, the container logging takes place in the stdout and stderr.\nnote\nThe \"docker logs --tail 100 gs-worker\" command displays 100 last strings from the gs-worker container.\nnote\nThe mysql or rabbitmq containers might become temporarily unavailable on start because they run after the rest of the containers. In this case, wait until a notification about the successful container connection and start appears in the log files: \"Now listening on: http:/ **::** 80 Application started. Press Ctrl+C to shut down.\"\n## Connect the global search service to Creatio\u200b\n### Actions on the server\u200b\nTo connect global search to Creatio, take the following steps on the server where the global search components are located (server 2 for the service deployed in Docker):\n1. Install the api-get install curl or yum install curl utility for HTTP queries.\napt-get install curl  \n2. Execute the HTTP request to register the site in global search. Specify the following:\n1. **DATABASE_TYPE** : Creatio database type (mssql, postgresql).\n2. **DATABASE_CONNECTION_STRING** : Creatio database connection string\n3. **SITE_NAME** : Creatio site name, e. g., my-test-site.\n4. **SERVER2_IP_ADDRESS** (only for Docker): the IP address of the Linux server where the global search components are deployed.\n5. **GS_WEB_API_URL** (only for Kubernetes): the IP address of the Linux server where the global search components are deployed.\n* Request for Docker\n* Request for Kubernetes\ncurl -v -X POST -d '{\"databaseType\": \"[DATABASE_TYPE]\", \"databaseConnectionString\": \"[DATABASE_CONNECTION_STRING]\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/[SITE_NAME]*  \ncurl -v -X POST -d '{\"databaseType\": \"[DATABASE_TYPE]\", \"databaseConnectionString\": \"[DATABASE_CONNECTION_STRING]\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/[SITE_NAME]*  \nExample for Microsoft SQL.\nFor Docker:\n`curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site`\nFor Kubernetes:\n`curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site`\nExample for PostgreSQL.\n`server=[SERVER_IP];port=5432;database=[DB_NAME];user id=[USER_NAME];password=[PASSWORD];timeout=10;commandtimeout=400;maxpoolsize=1024`\n3. Execute the HTTP request to connect the search to the site. Specify the following:\n1. **SITE_NAME** : Creatio site name, e. g., my-test-site.\n2. **TEMPLATE_NAME** : the name of the search template used in ElasticSearch. View the available templates in the table below.\n3. **SERVER2_IP_ADDRESS** (only for Docker): the IP address of the Linux server where the global search components are deployed.\n4. **GS_WEB_API_URL** (only for Kubernetes): the IP address of the Linux server where the global search components are deployed.\n* Request for Docker\n* Request for Kubernetes\ncurl -v -X POST -d '{\"templateName\": \"[TEMPLATE_NAME]\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/[SITE_NAME]/search  \ncurl -v -X POST -d '{\"templateName\": \"[TEMPLATE_NAME]\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/[SITE_NAME]/search  \nExample\nFor Docker: `curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site/search`\nFor Kubernetes: `curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site/search`\nnote\nThis request returns the URL of the index created in ElasticSearch. Save the URL and use it in the system setting installation SQL script below.\nImportant\nTo change the search template, run the DELETE query at /sites/{siteName}/search, as well as the search connection HTTP request described above. This reindexes the entire site.\nView the available search templates and their features in the table below:\n| Old template (version 1.6)| default.json| ngram_2.json| ngram_3.json| without_ngram.json  \n---|---|---|---|---|---  \nSearch by partial match| +| \u2013| +| +| \u2013  \nSearch by misspelled words| +| \u2013| +| +| \u2013  \nSearch communication options by phone number (partial match)| +| +| +| +| \u2013  \nSearch communication options (partial match)| +| +| +| +| \u2013  \nSearch by word swapping| +| +| +| +| +  \nSearch by exact match| +| +| +| +| +  \nSearch by two characters| \u2013| \u2013| +| \u2013| \u2013  \nAverage search speed (lower is better)|  | 1x| 13x| 7x| <1x  \nIndex size at elasticsearch (lower is better)|  | 1x| 4x| 2.5x| <1x  \nPrimary indexing time (lower is better)|  | 1x| 1.8x| 1.4x| <1x  \n### Settings in Creatio for Microsoft SQL DBMS\u200b\n1. Toggle the global search (GlobalSearch, GlobalSearch_V2, GlobalSearchRelatedEntityIndexing) feature in Creatio by running the following SQL script:\nDECLARE @GS_REIndexingFeature NVARCHAR(50) = 'GlobalSearchRelatedEntityIndexing';  \nDECLARE @GS_REIndexingFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE  \nCode = @GS_REIndexingFeature);  \nDECLARE @GlobalSearchFeature NVARCHAR(50) = 'GlobalSearch';  \nDECLARE @GlobalSearchFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @GlobalSearchFeature);  \nDECLARE @GlobalSearchV2Feature NVARCHAR(50) = 'GlobalSearch_V2';  \nDECLARE @GlobalSearchV2FeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @GlobalSearchV2Feature);  \nDECLARE @allEmployeesId UNIQUEIDENTIFIER = 'A29A3BA5-4B0D-DE11-9A51-005056C00008';  \nIF (@GlobalSearchFeatureId IS NOT NULL)  \nBEGIN  \nIF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @GlobalSearchFeatureId)  \nUPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @GlobalSearchFeatureId  \nELSE  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GlobalSearchFeatureId)  \nEND;  \nELSE  \nBEGIN  \nSET @GlobalSearchFeatureId = NEWID()  \nINSERT INTO Feature (Id, Name, Code) VALUES (@GlobalSearchFeatureId, @GlobalSearchFeature, @GlobalSearchFeature)  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GlobalSearchFeatureId)  \nEND;  \nIF (@GlobalSearchV2FeatureId IS NOT NULL)  \nBEGIN  \nIF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @GlobalSearchV2FeatureId)  \nUPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @GlobalSearchV2FeatureId  \nELSE  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1',@GlobalSearchV2FeatureId)  \nEND;  \nELSE  \nBEGIN  \nSET @GlobalSearchV2FeatureId = NEWID()  \nINSERT INTO Feature (Id, Name, Code) VALUES (@GlobalSearchV2FeatureId, @GlobalSearchV2Feature, @GlobalSearchV2Feature)  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1',@GlobalSearchV2FeatureId)  \nEND;  \nIF (@GS_REIndexingFeatureId IS NOT NULL)  \nBEGIN  \nIF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @GS_REIndexingFeatureId)  \nUPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @GS_REIndexingFeatureId  \nELSE  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GS_REIndexingFeatureId)  \nEND;  \nELSE  \nBEGIN  \nSET @GS_REIndexingFeatureId = NEWID()  \nINSERT INTO Feature (Id, Name, Code) VALUES (@GS_REIndexingFeatureId, @GS_REIndexingFeature, @GS_REIndexingFeature)  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GS_REIndexingFeatureId)  \nEND;  \n2. Set the values of the system settings:\n1. \"GlobalSearchUrl:\" the full path to ElasticSearch, including the index. The web-api returns this value if you request it to add site search.\nExample string for Docker: `http://[SERVER2_IP_ADDRESS]:83/indexname`.\nExample string for Kubernetes: `http://[GS-SEARCH-SERVICE_URL]/indexname`.\n2. \"GlobalSearchConfigServiceURL:\" the global search API URL.\nDefault value for Docker: `http://[SERVER2_IP_ADDRESS]:81`.\nDefault value for Kubernetes: `http://[GS_WEB_API_URL]`.\n3. \"GlobalSearchIndexingApiUrl:\" the instant indexing service URL.\nDefault value for Docker: `http://[SERVER2_IP_ADDRESS]:82`.\nDefault value for Kubernetes: `http://[GS-WEB-INDEXING-SERVICE_URL]`.\n* For Docker\n* For Kubernetes\nUPDATE SysSettingsValue  \nSET TextValue = [specify the URL to the ElasticSearch index, use a string of the following type: http://[SERVER2_IP_ADDRESS]:83/indexname]  \nWHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchUrl')  \nUPDATE SysSettingsValue  \nSET TextValue = [specify the URL to the Global Search Service, use a string of the following type: http://SERVER2_IP_ADDRESS:81]  \nWHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchConfigServiceUrl')  \nUPDATE SysSettingsValue  \nSET TextValue = [specify the URL to the Global Serch Indexing Service, use a string of the following type: http://SERVER2_IP_ADDRESS:82]  \nWHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchIndexingApiUrl')  \nUPDATE SysSettingsValue   \nSET TextValue = [specify the URL to the ElasticSearch index, use a string of the following type: http://[GS-SEARCH-SERVICE_URL]/indexname]   \nWHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchUrl')   \nUPDATE SysSettingsValue   \nSET TextValue = [specify the URL to the Global Search Service, use a string of the following type: http:// GS_WEB_API_URL]   \nWHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchConfigServiceUrl')   \nUPDATE SysSettingsValue   \nSET TextValue = [specify the URL to the Global Search Indexing Service, use a string of the following type: http:// GS-WEB-INDEXING-SERVICE_URL]   \nWHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchIndexingApiUrl')  \n3. Restart Creatio, flush Redis, and log in to the application.\n### Settings in Creatio for PostgreSQL DBMS\u200b\n1. Toggle the global search (GlobalSearch, GlobalSearch_V2, GlobalSearchRelatedEntityIndexing) feature in Creatio by running the following SQL script:\nDO $$  \nDECLARE   \nGlobalSearchFeature VARCHAR(50) := 'GlobalSearch';  \nGlobalSearchFeatureId uuid;  \nGlobalSearchV2Feature VARCHAR(50) := 'GlobalSearch_V2';  \nGlobalSearchV2FeatureId uuid;  \nGS_RelatedEntityIndexingFeature VARCHAR(50) :=   'GlobalSearchRelatedEntityIndexing';  \nGS_RelatedEntityIndexingFeatureId uuid;  \nallEmployeesId uuid := 'A29A3BA5-4B0D-DE11-9A51-005056C00008';  \nBEGIN  \nSELECT \"Id\" INTO GlobalSearchFeatureId FROM \"Feature\"  \nWHERE \"Code\" = GlobalSearchFeature  \nLIMIT 1;  \nIF (GlobalSearchFeatureId IS NOT NULL)  \nTHEN  \nIF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = GlobalSearchFeatureId) THEN  \nUPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = GlobalSearchFeatureId;  \nELSE  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchFeatureId);  \nEND IF;  \nELSE  \nGlobalSearchFeatureId := uuid_generate_v4();  \nINSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (GlobalSearchFeatureId, GlobalSearchFeature, GlobalSearchFeature);  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchFeatureId);  \nEND IF;  \nSELECT \"Id\" INTO GlobalSearchV2FeatureId FROM \"Feature\"  \nWHERE \"Code\" = GlobalSearchV2Feature  \nLIMIT 1;  \nIF (GlobalSearchV2FeatureId IS NOT NULL)  \nTHEN  \nIF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = GlobalSearchV2FeatureId) THEN  \nUPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = GlobalSearchV2FeatureId;  \nELSE  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchV2FeatureId);  \nEND IF;  \nELSE  \nGlobalSearchV2FeatureId := uuid_generate_v4();  \nINSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (GlobalSearchV2FeatureId, GlobalSearchV2Feature, GlobalSearchV2Feature);  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchV2FeatureId);  \nEND IF;  \nSELECT \"Id\" INTO GS_RelatedEntityIndexingFeatureId FROM \"Feature\" WHERE \"Code\" =GS_RelatedEntityIndexingFeature LIMIT 1;  \nIF (GS_RelatedEntityIndexingFeatureId IS NOT NULL)  \nTHEN  \nIF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = GS_RelatedEntityIndexingFeatureId) THEN  \nUPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = GS_RelatedEntityIndexingFeatureId;  \nELSE  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\",\"FeatureId\") VALUES (allEmployeesId, '1', GS_RelatedEntityIndexingFeatureId);  \nEND IF;  \nELSE  \nGS_RelatedEntityIndexingFeatureId := uuid_generate_v4();  \nINSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (GS_RelatedEntityIndexingFeatureId, GS_RelatedEntityIndexingFeature, GS_RelatedEntityIndexingFeature);  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\",\"FeatureId\") VALUES (allEmployeesId, '1', GS_RelatedEntityIndexingFeatureId);  \nEND IF;  \nEND $$;  \n2. Set the values of the system settings:\n1. \"GlobalSearchUrl:\" the full path to ElasticSearch, including the index. The web-api returns this value if you request it to add site search.\nExample string for Docker: `http://[SERVER2_IP_ADDRESS]:83/indexname`.\nExample string for Kubernetes: `http://[GS-SEARCH-SERVICE_URL]/indexname`.\n2. \"GlobalSearchConfigServiceURL:\" the global search API URL.\nDefault value for Docker: `http://[SERVER2_IP_ADDRESS]:81`.\nDefault value for Kubernetes: `http://[GS_WEB_API_URL]`.\n3. \"GlobalSearchIndexingApiUrl:\" the instant indexing service URL.\nDefault value for Docker: `http://[SERVER2_IP_ADDRESS]:82`.\nDefault value for Kubernetes: `http://[GS-WEB-INDEXING-SERVICE_URL]`.\nTo do this, run the following script:\n* For Docker\n* For Kubernetes\nUPDATE \"SysSettingsValue\"  \nSET \"TextValue\" = [specify the URL to the ElasticSearch index, use a string of the following type: http://[SERVER2_IP_ADDRESS]:83/indexname]  \nWHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchUrl' LIMIT 1);  \nUPDATE \"SysSettingsValue\"  \nSET \"TextValue\" = [specify the URL to the Global Search Service, use a string of the following type: http://SERVER2_IP_ADDRESS:81]  \nWHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchConfigServiceUrl' LIMIT 1);  \nUPDATE \"SysSettingsValue\"  \nSET \"TextValue\" = [specify the URL to the Global Search Indexing Service, use a string of the following type: http://SERVER2_IP_ADDRESS:82]  \nWHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchIndexingApiUrl' LIMIT 1);  \nUPDATE \"SysSettingsValue\"   \nSET \"TextValue\" = [specify the URL to the ElasticSearch index, use a string of the following type: http://[GS-SEARCH-SERVICE_URL /indexname]   \nWHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchUrl' LIMIT 1);   \nUPDATE \"SysSettingsValue\"   \nSET \"TextValue\" = [specify the URL to the Global Search Service, use a string of the following type: http://[GS_WEB_API_URL]  \nWHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchConfigServiceUrl' LIMIT 1);   \nUPDATE \"SysSettingsValue\"   \nSET \"TextValue\" = [specify the URL to the Global Search Indexing Service, use a string of the following type: http://[GS-WEB-INDEXING-SERVICE_URL]  \nWHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchIndexingApiUrl' LIMIT 1);  \n3. Restart Creatio, flush Redis, and log in to the application.\n* * *\n## See also\u200b\n[Search records and run commands](https://academy.creatio.com/documents?id=1228)\n[Deduplication FAQ](https://community.creatio.com/articles/deduplication-and-global-search-faq)\n[System requirements calculator](https://academy.creatio.com/docs/requirements/calculator)",
+  "code_examples": [
+    {
+      "code": "redis:  enabled: false",
+      "language": "yaml",
+      "context": "Disable the service installation. To do this, specifyenabled: falsein theredissection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "global:  redis:    host: [host]    port: [port]    database: [database]",
+      "language": "yaml",
+      "context": "Set up the connection to the previously installed Redis. To do this, specify the connection parameters in theglobal.redissection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "rabbitmq:  enabled: false",
+      "language": "yaml",
+      "context": "Disable the service installation. To do this, specifyenabled: falsein therabbitmqsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "global:  rabbitmq:    host: [host]    vhost: [vhost]    port: [port]    user: [user]    password: [password]",
+      "language": "yaml",
+      "context": "Set up the connection to the previously installed RabbitMQ. To do this, specify the connection parameters in theglobal.rabbitmqsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "postgresql:  enabled: false",
+      "language": "yaml",
+      "context": "Disable the PostgreSQL installation. To do this, specifyenabled: falsein thepostgresqlsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "global:  db:    user: [user]    password: [password]    database: [database]    host: [host]    port: [port]",
+      "language": "yaml",
+      "context": "Set up the connection to the PostgreSQL service database. To do this, specify the connection parameters in theglobal.postgresqlsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "elasticsearch:  enabled: false",
+      "language": "yaml",
+      "context": "Disable ElasticSearch installation. To do this, specifyenabled: falsein theelasticsearchsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "global:  elasticsearch:    url: [url]    user: [user]    password: [password]",
+      "language": "yaml",
+      "context": "Set up the connection to the previously installed ElasticSearch. To do this, specify the connection parameters in theglobal.elasticsearchsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker-compose up -d",
+      "language": "cli",
+      "context": "Open the /opt/docker-compose/elasticsearch directory (where the components are located) and run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker logs es-01",
+      "language": "cli",
+      "context": "Make sure that the log files do not contain any errors after the command is complete. To do this, run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker ps --filter \"label=service=gs\" -a --format \"table {{.Names}}\\t{{.Ports}}\\t{{.Status}}\\t{{.RunningFor}}\"",
+      "language": "cli",
+      "context": "To see the running global search containers, use the following console command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "apt-get install curl",
+      "language": "cli",
+      "context": "Install the api-get install curl or yum install curl utility for HTTP queries.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "curl -v -X POST -d '{\"databaseType\": \"[DATABASE_TYPE]\", \"databaseConnectionString\": \"[DATABASE_CONNECTION_STRING]\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/[SITE_NAME]*",
+      "language": "cli",
+      "context": "GS_WEB_API_URL(only for Kubernetes): the IP address of the Linux server where the global search components are deployed.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "curl -v -X POST -d '{\"databaseType\": \"[DATABASE_TYPE]\", \"databaseConnectionString\": \"[DATABASE_CONNECTION_STRING]\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/[SITE_NAME]*",
+      "language": "cli",
+      "context": "GS_WEB_API_URL(only for Kubernetes): the IP address of the Linux server where the global search components are deployed.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "curl -v -X POST -d '{\"templateName\": \"[TEMPLATE_NAME]\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/[SITE_NAME]/search",
+      "language": "cli",
+      "context": "GS_WEB_API_URL(only for Kubernetes): the IP address of the Linux server where the global search components are deployed.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "curl -v -X POST -d '{\"templateName\": \"[TEMPLATE_NAME]\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/[SITE_NAME]/search",
+      "language": "cli",
+      "context": "GS_WEB_API_URL(only for Kubernetes): the IP address of the Linux server where the global search components are deployed.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "DECLARE @GS_REIndexingFeature NVARCHAR(50) = 'GlobalSearchRelatedEntityIndexing';DECLARE @GS_REIndexingFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERECode = @GS_REIndexingFeature);DECLARE @GlobalSearchFeature NVARCHAR(50) = 'GlobalSearch';DECLARE @GlobalSearchFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @GlobalSearchFeature);DECLARE @GlobalSearchV2Feature NVARCHAR(50) = 'GlobalSearch_V2';DECLARE @GlobalSearchV2FeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @GlobalSearchV2Feature);DECLARE @allEmployeesId UNIQUEIDENTIFIER = 'A29A3BA5-4B0D-DE11-9A51-005056C00008';IF (@GlobalSearchFeatureId IS NOT NULL) BEGIN   IF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @GlobalSearchFeatureId)     UPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @GlobalSearchFeatureId    ELSE     INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GlobalSearchFeatureId) END;ELSE BEGIN   SET @GlobalSearchFeatureId = NEWID()   INSERT INTO Feature (Id, Name, Code) VALUES (@GlobalSearchFeatureId, @GlobalSearchFeature, @GlobalSearchFeature)   INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GlobalSearchFeatureId) END;IF (@GlobalSearchV2FeatureId IS NOT NULL) BEGIN   IF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @GlobalSearchV2FeatureId)     UPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @GlobalSearchV2FeatureId    ELSE     INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1',@GlobalSearchV2FeatureId) END;ELSE BEGIN   SET @GlobalSearchV2FeatureId = NEWID()   INSERT INTO Feature (Id, Name, Code) VALUES (@GlobalSearchV2FeatureId, @GlobalSearchV2Feature, @GlobalSearchV2Feature)   INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1',@GlobalSearchV2FeatureId) END;IF (@GS_REIndexingFeatureId IS NOT NULL)BEGIN IF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @GS_REIndexingFeatureId)  UPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @GS_REIndexingFeatureId  ELSE  INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GS_REIndexingFeatureId)END;ELSEBEGIN SET @GS_REIndexingFeatureId = NEWID() INSERT INTO Feature (Id, Name, Code) VALUES (@GS_REIndexingFeatureId, @GS_REIndexingFeature, @GS_REIndexingFeature) INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @GS_REIndexingFeatureId)END;",
+      "language": "sql",
+      "context": "Toggle the global search (GlobalSearch, GlobalSearch_V2, GlobalSearchRelatedEntityIndexing) feature in Creatio by running the following SQL script:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "UPDATE SysSettingsValueSET TextValue = [specify the URL to the ElasticSearch index, use a string of the following type: http://[SERVER2_IP_ADDRESS]:83/indexname]WHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchUrl')UPDATE SysSettingsValueSET TextValue = [specify the URL to the Global Search Service, use a string of the following type: http://SERVER2_IP_ADDRESS:81]WHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchConfigServiceUrl')UPDATE SysSettingsValueSET TextValue = [specify the URL to the Global Serch Indexing Service, use a string of the following type: http://SERVER2_IP_ADDRESS:82]WHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchIndexingApiUrl')",
+      "language": "sql",
+      "context": "Default value for Kubernetes:http://[GS-WEB-INDEXING-SERVICE_URL].",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "UPDATE SysSettingsValue SET TextValue = [specify the URL to the ElasticSearch index, use a string of the following type: http://[GS-SEARCH-SERVICE_URL]/indexname] WHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchUrl') UPDATE SysSettingsValue SET TextValue = [specify the URL to the Global Search Service, use a string of the following type: http:// GS_WEB_API_URL] WHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchConfigServiceUrl') UPDATE SysSettingsValue SET TextValue = [specify the URL to the Global Search Indexing Service, use a string of the following type: http:// GS-WEB-INDEXING-SERVICE_URL] WHERE SysSettingsId = (SELECT TOP 1 Id FROM SysSettings WHERE Code ='GlobalSearchIndexingApiUrl')",
+      "language": "sql",
+      "context": "Default value for Kubernetes:http://[GS-WEB-INDEXING-SERVICE_URL].",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "DO $$DECLARE     GlobalSearchFeature VARCHAR(50) := 'GlobalSearch';    GlobalSearchFeatureId uuid;    GlobalSearchV2Feature VARCHAR(50) := 'GlobalSearch_V2';    GlobalSearchV2FeatureId uuid;    GS_RelatedEntityIndexingFeature VARCHAR(50) :=   'GlobalSearchRelatedEntityIndexing';    GS_RelatedEntityIndexingFeatureId uuid;    allEmployeesId uuid := 'A29A3BA5-4B0D-DE11-9A51-005056C00008';BEGIN   SELECT \"Id\" INTO GlobalSearchFeatureId FROM \"Feature\"   WHERE \"Code\" = GlobalSearchFeature   LIMIT 1;   IF (GlobalSearchFeatureId IS NOT NULL)      THEN          IF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = GlobalSearchFeatureId) THEN             UPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = GlobalSearchFeatureId;          ELSE              INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchFeatureId);          END IF;   ELSE       GlobalSearchFeatureId := uuid_generate_v4();       INSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (GlobalSearchFeatureId, GlobalSearchFeature, GlobalSearchFeature);       INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchFeatureId);   END IF;   SELECT \"Id\" INTO GlobalSearchV2FeatureId FROM \"Feature\"   WHERE \"Code\" = GlobalSearchV2Feature   LIMIT 1;   IF (GlobalSearchV2FeatureId IS NOT NULL)    THEN        IF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = GlobalSearchV2FeatureId) THEN            UPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = GlobalSearchV2FeatureId;        ELSE           INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchV2FeatureId);        END IF;   ELSE       GlobalSearchV2FeatureId := uuid_generate_v4();       INSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (GlobalSearchV2FeatureId, GlobalSearchV2Feature, GlobalSearchV2Feature);       INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', GlobalSearchV2FeatureId);   END IF;  SELECT \"Id\" INTO GS_RelatedEntityIndexingFeatureId FROM \"Feature\" WHERE \"Code\" =GS_RelatedEntityIndexingFeature LIMIT 1;  IF (GS_RelatedEntityIndexingFeatureId IS NOT NULL) THEN    IF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = GS_RelatedEntityIndexingFeatureId) THENUPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = GS_RelatedEntityIndexingFeatureId;  ELSE  INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\",\"FeatureId\") VALUES (allEmployeesId, '1', GS_RelatedEntityIndexingFeatureId);  END IF;  ELSE  GS_RelatedEntityIndexingFeatureId := uuid_generate_v4();  INSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (GS_RelatedEntityIndexingFeatureId, GS_RelatedEntityIndexingFeature, GS_RelatedEntityIndexingFeature);  INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\",\"FeatureId\") VALUES (allEmployeesId, '1', GS_RelatedEntityIndexingFeatureId);  END IF;END $$;",
+      "language": "sql",
+      "context": "Toggle the global search (GlobalSearch, GlobalSearch_V2, GlobalSearchRelatedEntityIndexing) feature in Creatio by running the following SQL script:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "UPDATE \"SysSettingsValue\"SET \"TextValue\" = [specify the URL to the ElasticSearch index, use a string of the following type: http://[SERVER2_IP_ADDRESS]:83/indexname]WHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchUrl' LIMIT 1);UPDATE \"SysSettingsValue\"SET \"TextValue\" = [specify the URL to the Global Search Service, use a string of the following type: http://SERVER2_IP_ADDRESS:81]WHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchConfigServiceUrl' LIMIT 1);UPDATE \"SysSettingsValue\"SET \"TextValue\" = [specify the URL to the Global Search Indexing Service, use a string of the following type: http://SERVER2_IP_ADDRESS:82]WHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchIndexingApiUrl' LIMIT 1);",
+      "language": "sql",
+      "context": "To do this, run the following script:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "UPDATE \"SysSettingsValue\" SET \"TextValue\" = [specify the URL to the ElasticSearch index, use a string of the following type: http://[GS-SEARCH-SERVICE_URL /indexname] WHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchUrl' LIMIT 1); UPDATE \"SysSettingsValue\" SET \"TextValue\" = [specify the URL to the Global Search Service, use a string of the following type: http://[GS_WEB_API_URL]WHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchConfigServiceUrl' LIMIT 1); UPDATE \"SysSettingsValue\" SET \"TextValue\" = [specify the URL to the Global Search Indexing Service, use a string of the following type: http://[GS-WEB-INDEXING-SERVICE_URL]WHERE \"SysSettingsId\" = (SELECT \"Id\" FROM \"SysSettings\" WHERE \"Code\" = 'GlobalSearchIndexingApiUrl' LIMIT 1);",
+      "language": "sql",
+      "context": "To do this, run the following script:",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description"
+        ],
+        [
+          "scheduler.env.fillQueueInterval",
+          "The run interval for primary indexing, in milliseconds."
+        ],
+        [
+          "worker.env.indexingCommandTimeout",
+          "The timeout of the Creatio database query upon primary indexing, in seconds."
+        ],
+        [
+          "workerSingle.env.indexingCommandTimeout",
+          "The timeout of the Creatio database query upon instant indexing, in seconds."
+        ],
+        [
+          "global.incrementDays",
+          "The number of days within which to index the changed records during a single primary indexing iteration. Affects the indexing speed and Creatio database load. The higher the value, the faster the indexing and higher the load. The lower the value, the longer the indexing and lower the load."
+        ],
+        [
+          "log4Net",
+          "Logging settings."
+        ],
+        [
+          "global.indexingContentLength",
+          "The maximum length of text fields upon indexing."
+        ],
+        [
+          "global.elasticsearch",
+          "ElasticSearch connection parameters."
+        ],
+        [
+          "global.searchService",
+          "Public URL to the search-service in the format ofhttp://k8s-node:30332."
+        ],
+        [
+          "global.rabbitmq",
+          "RabbitMQ connection settings."
+        ],
+        [
+          "global.db",
+          "The connection settings of the global search service's internal service database."
+        ],
+        [
+          "global.redis",
+          "Redis connection settings."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter description</p></center></th></tr><tr><td><p>scheduler.env.fillQueueInterval</p></td><td><p>The run interval for primary indexing, in milliseconds.</p></td></tr><tr><td><p>worker.env.indexingCommandTimeout</p></td><td><p>The timeout of the Creatio database query upon primary indexing, in seconds.</p></td></tr><tr><td><p>workerSingle.env.indexingCommandTimeout</p></td><td><p>The timeout of the Creatio database query upon instant indexing, in seconds.</p></td></tr><tr><td><p>global.incrementDays</p></td><td><p>The number of days within which to index the changed records during a single primary indexing iteration. Affects the indexing speed and Creatio database load. The higher the value, the faster the indexing and higher the load. The lower the value, the longer the indexing and lower the load.</p></td></tr><tr><td><p>log4Net</p></td><td><p>Logging settings.</p></td></tr><tr><td><p>global.indexingContentLength</p></td><td><p>The maximum length of text fields upon indexing.</p></td></tr><tr><td><p>global.elasticsearch</p></td><td><p>ElasticSearch connection parameters.</p></td></tr><tr><td><p>global.searchService</p></td><td><p>Public URL to the search-service in the format of <code>http://k8s-node:30332</code>.</p></td></tr><tr><td><p>global.rabbitmq</p></td><td><p>RabbitMQ connection settings.</p></td></tr><tr><td><p>global.db</p></td><td><p>The connection settings of the global search service's internal service database.</p></td></tr><tr><td><p>global.redis</p></td><td><p>Redis connection settings.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Component name",
+          "Outgoing port",
+          "Incoming port",
+          "Notes"
+        ],
+        [
+          "gs-web-api",
+          "",
+          "81",
+          "Configure the incoming port using the WEB_API_PORT variable"
+        ],
+        [
+          "gs-web-indexing-service",
+          "",
+          "82",
+          "Configure the incoming port using the WEB_INDEXING_SERVICE_PORT variable"
+        ],
+        [
+          "gs-search-service",
+          "9200",
+          "83",
+          "Configure the incoming port using the SEARCH_SERVICE_PORT variable"
+        ],
+        [
+          "gs-worker",
+          "9200",
+          "",
+          "Requires connection to the server where elasticsearch is located."
+        ],
+        [
+          "gs-worker-single",
+          "9200",
+          "",
+          "Requires connection to the server where elasticsearch is located."
+        ],
+        [
+          "elasticsearch",
+          "",
+          "9200",
+          ""
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Component name</p></center></th><th><center><p>Outgoing port</p></center></th><th><center><p>Incoming port</p></center></th><th><center><p>Notes</p></center></th></tr><tr><td><p>gs-web-api</p></td><td></td><td><p>81</p></td><td><p>Configure the incoming port using the WEB_API_PORT variable</p></td></tr><tr><td><p>gs-web-indexing-service</p></td><td><p>\u00a0</p></td><td><p>82</p></td><td><p>Configure the incoming port using the WEB_INDEXING_SERVICE_PORT variable</p></td></tr><tr><td><p>gs-search-service</p></td><td><p>9200</p></td><td><p>83</p></td><td><p>Configure the incoming port using the SEARCH_SERVICE_PORT variable</p></td></tr><tr><td><p>gs-worker</p></td><td><p>9200</p></td><td><p>\u00a0</p></td><td><p>Requires connection to the server where elasticsearch is located.</p></td></tr><tr><td><p>gs-worker-single</p></td><td><p>9200</p></td><td><p>\u00a0</p></td><td><p>Requires connection to the server where elasticsearch is located.</p></td></tr><tr><td><p>elasticsearch</p></td><td><p>\u00a0</p></td><td><p>9200</p></td><td><p>\u00a0</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Variable name",
+          "Details",
+          "Default value"
+        ],
+        [
+          "GS_ES_URL",
+          "The external ElasticSearch host required for access from Creatio. Specify the IP address of the server where the ElasticSearch is deployed.",
+          "http://elasticsearch-publicip:9200"
+        ],
+        [
+          "CURRENT_SERVER_IP",
+          "The external IP address of the server where the global search components are deployed (server 2).",
+          "10.0.0.1"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Variable name</p></center></th><th><center><p>Details</p></center></th><th><center><p>Default value</p></center></th></tr><tr><td><p>GS_ES_URL</p></td><td><p>The external ElasticSearch host required for access from Creatio. Specify the IP address of the server where the ElasticSearch is deployed.</p></td><td><p><code>http://elasticsearch-publicip:9200</code></p></td></tr><tr><td><p>CURRENT_SERVER_IP</p></td><td><p>The external IP address of the server where the global search components are deployed (server 2).</p></td><td><p>10.0.0.1</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Variable name",
+          "Details",
+          "Default value"
+        ],
+        [
+          "GS_DB_INCREMENT_DAYS",
+          "Number of days to index per one scheduler iteration. ModifiedOn columns of Creatio records are used for comparison.",
+          "500 days"
+        ],
+        [
+          "GS_DB_FILL_QUEUE_INTERVAL",
+          "Creatio database data collection interval for the regular scheduler. The lower the variable, the higher the load on Creatio database and the faster the primary indexing.",
+          "30000 (specified in milliseconds)"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Variable name</p></center></th><th><center><p>Details</p></center></th><th><center><p>Default value</p></center></th></tr><tr><td><p>GS_DB_INCREMENT_DAYS</p></td><td><p>Number of days to index per one scheduler iteration. ModifiedOn columns of Creatio records are used for comparison.</p></td><td><p>500 days</p></td></tr><tr><td><p>GS_DB_FILL_QUEUE_INTERVAL</p></td><td><p>Creatio database data collection interval for the regular scheduler. The lower the variable, the higher the load on Creatio database and the faster the primary indexing.</p></td><td><p>30000 (specified in milliseconds)</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "",
+          "Old template (version 1.6)",
+          "default.json",
+          "ngram_2.json",
+          "ngram_3.json",
+          "without_ngram.json"
+        ],
+        [
+          "Search by partial match",
+          "+",
+          "\u2013",
+          "+",
+          "+",
+          "\u2013"
+        ],
+        [
+          "Search by misspelled words",
+          "+",
+          "\u2013",
+          "+",
+          "+",
+          "\u2013"
+        ],
+        [
+          "Search communication options by phone number (partial match)",
+          "+",
+          "+",
+          "+",
+          "+",
+          "\u2013"
+        ],
+        [
+          "Search communication options (partial match)",
+          "+",
+          "+",
+          "+",
+          "+",
+          "\u2013"
+        ],
+        [
+          "Search by word swapping",
+          "+",
+          "+",
+          "+",
+          "+",
+          "+"
+        ],
+        [
+          "Search by exact match",
+          "+",
+          "+",
+          "+",
+          "+",
+          "+"
+        ],
+        [
+          "Search by two characters",
+          "\u2013",
+          "\u2013",
+          "+",
+          "\u2013",
+          "\u2013"
+        ],
+        [
+          "Average search speed (lower is better)",
+          "",
+          "1x",
+          "13x",
+          "7x",
+          "<1x"
+        ],
+        [
+          "Index size at elasticsearch (lower is better)",
+          "",
+          "1x",
+          "4x",
+          "2.5x",
+          "<1x"
+        ],
+        [
+          "Primary indexing time (lower is better)",
+          "",
+          "1x",
+          "1.8x",
+          "1.4x",
+          "<1x"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>\u00a0</p></th><th><center><p>Old template (version 1.6)</p></center></th><th><center><p>default.json</p></center></th><th><center><p>ngram_2.json</p></center></th><th><center><p>ngram_3.json</p></center></th><th><center><p>without_ngram.json</p></center></th></tr><tr><td><p>Search by partial match</p></td><td><center><p>+</p></center></td><td><center><p>\u2013</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>\u2013</p></center></td></tr><tr><td><p>Search by misspelled words</p></td><td><center><p>+</p></center></td><td><center><p>\u2013</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>\u2013</p></center></td></tr><tr><td><p>Search communication options by phone number (partial match)</p></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>\u2013</p></center></td></tr><tr><td><p>Search communication options (partial match)</p></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>\u2013</p></center></td></tr><tr><td><p>Search by word swapping</p></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td></tr><tr><td><p>Search by exact match</p></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td><td><center><p>+</p></center></td></tr><tr><td><p>Search by two characters</p></td><td><center><p>\u2013</p></center></td><td><center><p>\u2013</p></center></td><td><center><p>+</p></center></td><td><center><p>\u2013</p></center></td><td><center><p>\u2013</p></center></td></tr><tr><td><p>Average search speed (lower is better)</p></td><td><p>\u00a0</p></td><td><center><p>1x</p></center></td><td><center><p>13x</p></center></td><td><center><p>7x</p></center></td><td><center><p>&lt;1x</p></center></td></tr><tr><td><p>Index size at elasticsearch (lower is better)</p></td><td><p>\u00a0</p></td><td><center><p>1x</p></center></td><td><center><p>4x</p></center></td><td><center><p>2.5x</p></center></td><td><center><p>&lt;1x</p></center></td></tr><tr><td><p>Primary indexing time (lower is better)</p></td><td><p>\u00a0</p></td><td><center><p>1x</p></center></td><td><center><p>1.8x</p></center></td><td><center><p>1.4x</p></center></td><td><center><p>&lt;1x</p></center></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantYou need repository access to set up the current version of the global search service. ContactCreatio supportto verify your license and gain access to the repository.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>You need repository access to set up the current version of the global search service. Contact <a href=\"mailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "You need repository access to set up the current version of the global search service. ContactCreatio supportto verify your license and gain access to the repository.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>You need repository access to set up the current version of the global search service. Contact <a href=\"mailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteFor highly loaded environments, we recommend deploying ElasticSearch in a cluster. Learn more inElasticSearch documentation.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>For highly loaded environments, we recommend deploying ElasticSearch in a cluster. Learn more in <a href=\"https://www.elastic.co/guide/en/elasticsearch/reference/7.16/setup.html\" rel=\"noopener noreferrer\" target=\"_blank\">ElasticSearch documentation</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "For highly loaded environments, we recommend deploying ElasticSearch in a cluster. Learn more inElasticSearch documentation.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>For highly loaded environments, we recommend deploying ElasticSearch in a cluster. Learn more in <a href=\"https://www.elastic.co/guide/en/elasticsearch/reference/7.16/setup.html\" rel=\"noopener noreferrer\" target=\"_blank\">ElasticSearch documentation</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteBy default, Helm deploys services withNodePorttype.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>By default, Helm deploys services with <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport\" rel=\"noopener noreferrer\" target=\"_blank\">NodePort</a> type.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "By default, Helm deploys services withNodePorttype.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>By default, Helm deploys services with <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport\" rel=\"noopener noreferrer\" target=\"_blank\">NodePort</a> type.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantThe global search setup procedure depends on the version you intend to install.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>The global search setup procedure depends on the version you intend to install.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The global search setup procedure depends on the version you intend to install.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The global search setup procedure depends on the version you intend to install.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "update",
+      "content": "noteThe procedure below is relevant for global search service version 3.0. If you need to set up an earlier version of the global search, follow the procedure described inCreatio 7.16 documentation.Toupdateglobal search version 2.0 to version 3.0, run thedocker-compose down -vcommand to delete all docker volumes on servers 1 and 2, then install and set up the services once again.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The procedure below is relevant for global search service version 3.0. If you need to set up an earlier version of the global search, follow the procedure described in <a href=\"https://academy.creatio.com/documents/administration/7-16/set-global-search\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio 7.16 documentation</a>.</p><p>To <strong>update</strong> global search version 2.0 to version 3.0, run the <a href=\"https://docs.docker.com/compose/reference/down/\" rel=\"noopener noreferrer\" target=\"_blank\">docker-compose down -v</a> command to delete all docker volumes on servers 1 and 2, then install and set up the services once again.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "update",
+      "content": "The procedure below is relevant for global search service version 3.0. If you need to set up an earlier version of the global search, follow the procedure described inCreatio 7.16 documentation.Toupdateglobal search version 2.0 to version 3.0, run thedocker-compose down -vcommand to delete all docker volumes on servers 1 and 2, then install and set up the services once again.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The procedure below is relevant for global search service version 3.0. If you need to set up an earlier version of the global search, follow the procedure described in <a href=\"https://academy.creatio.com/documents/administration/7-16/set-global-search\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio 7.16 documentation</a>.</p><p>To <strong>update</strong> global search version 2.0 to version 3.0, run the <a href=\"https://docs.docker.com/compose/reference/down/\" rel=\"noopener noreferrer\" target=\"_blank\">docker-compose down -v</a> command to delete all docker volumes on servers 1 and 2, then install and set up the services once again.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantIf you are using a firewall, make sure the ports below are open and available.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>If you are using a firewall, make sure the ports below are open and available.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "If you are using a firewall, make sure the ports below are open and available.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>If you are using a firewall, make sure the ports below are open and available.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThis guide covers the procedure for deploying ElasticSearch in Docker-Compose. You can also deploy ElasticSearch as OS daemon, which does not involve installing Docker and Docker-Compose. Learn more about the setup procedure in theElasticSearch documentation.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>This guide covers the procedure for deploying ElasticSearch in Docker-Compose. You can also deploy ElasticSearch as OS daemon, which does not involve installing Docker and Docker-Compose. Learn more about the setup procedure in the <a href=\"https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docker.html\" rel=\"noopener noreferrer\" target=\"_blank\">ElasticSearch documentation</a>.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This guide covers the procedure for deploying ElasticSearch in Docker-Compose. You can also deploy ElasticSearch as OS daemon, which does not involve installing Docker and Docker-Compose. Learn more about the setup procedure in theElasticSearch documentation.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This guide covers the procedure for deploying ElasticSearch in Docker-Compose. You can also deploy ElasticSearch as OS daemon, which does not involve installing Docker and Docker-Compose. Learn more about the setup procedure in the <a href=\"https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docker.html\" rel=\"noopener noreferrer\" target=\"_blank\">ElasticSearch documentation</a>.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteTo check the external IP address of the server, run thehostname -I | awk '{ print $1 }'command.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>To check the external IP address of the server, run the <code>hostname -I | awk '{ print $1 }'</code> command.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To check the external IP address of the server, run thehostname -I | awk '{ print $1 }'command.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To check the external IP address of the server, run the <code>hostname -I | awk '{ print $1 }'</code> command.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantFor the correct container operation, the UTC time on the Linux machine with Docker installed must correspond to the UTC time on the Creatio database server. The permissible deviation is up to five minutes. Otherwise, the global search might not index all records.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>For the correct container operation, the UTC time on the Linux machine with Docker installed must correspond to the UTC time on the Creatio database server. The permissible deviation is up to five minutes. Otherwise, the global search might not index all records.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "For the correct container operation, the UTC time on the Linux machine with Docker installed must correspond to the UTC time on the Creatio database server. The permissible deviation is up to five minutes. Otherwise, the global search might not index all records.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>For the correct container operation, the UTC time on the Linux machine with Docker installed must correspond to the UTC time on the Creatio database server. The permissible deviation is up to five minutes. Otherwise, the global search might not index all records.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThe \"docker logs --tail 100 gs-worker\" command displays 100 last strings from the gs-worker container.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The \"docker logs --tail 100 gs-worker\" command displays 100 last strings from the gs-worker container.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "The \"docker logs --tail 100 gs-worker\" command displays 100 last strings from the gs-worker container.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The \"docker logs --tail 100 gs-worker\" command displays 100 last strings from the gs-worker container.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "::",
+      "content": "noteThe mysql or rabbitmq containers might become temporarily unavailable on start because they run after the rest of the containers. In this case, wait until a notification about the successful container connection and start appears in the log files: \"Now listening on: http:/::80 Application started. Press Ctrl+C to shut down.\"",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>The mysql or rabbitmq containers might become temporarily unavailable on start because they run after the rest of the containers. In this case, wait until a notification about the successful container connection and start appears in the log files: \"Now listening on: http:/ <strong>::</strong> 80 Application started. Press Ctrl+C to shut down.\"</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "::",
+      "content": "The mysql or rabbitmq containers might become temporarily unavailable on start because they run after the rest of the containers. In this case, wait until a notification about the successful container connection and start appears in the log files: \"Now listening on: http:/::80 Application started. Press Ctrl+C to shut down.\"",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>The mysql or rabbitmq containers might become temporarily unavailable on start because they run after the rest of the containers. In this case, wait until a notification about the successful container connection and start appears in the log files: \"Now listening on: http:/ <strong>::</strong> 80 Application started. Press Ctrl+C to shut down.\"</p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Example for Microsoft SQL.For Docker:curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-siteFor Kubernetes:curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example for Microsoft SQL.</div><div class=\"admonitionContent_vXIg\"><p>For Docker:</p><p><code>curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site</code></p><p>For Kubernetes:</p><p><code>curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site</code></p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example for Microsoft SQL.",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example for Microsoft SQL.</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "For Docker:curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-siteFor Kubernetes:curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>For Docker:</p><p><code>curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site</code></p><p>For Kubernetes:</p><p><code>curl -v -X POST -d '{\"databaseType\": \"mssql\", \"databaseConnectionString\": \"Server=myserver\\mssql2016; Database=my-test-site; User Id=my-login; Password='my-password'; Connection Timeout=10\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site</code></p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "Example for PostgreSQL.server=[SERVER_IP];port=5432;database=[DB_NAME];user id=[USER_NAME];password=[PASSWORD];timeout=10;commandtimeout=400;maxpoolsize=1024",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example for PostgreSQL.</div><div class=\"admonitionContent_vXIg\"><p><code>server=[SERVER_IP];port=5432;database=[DB_NAME];user id=[USER_NAME];password=[PASSWORD];timeout=10;commandtimeout=400;maxpoolsize=1024</code></p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example for PostgreSQL.",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example for PostgreSQL.</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "server=[SERVER_IP];port=5432;database=[DB_NAME];user id=[USER_NAME];password=[PASSWORD];timeout=10;commandtimeout=400;maxpoolsize=1024",
+      "html": "<div class=\"admonitionContent_vXIg\"><p><code>server=[SERVER_IP];port=5432;database=[DB_NAME];user id=[USER_NAME];password=[PASSWORD];timeout=10;commandtimeout=400;maxpoolsize=1024</code></p></div>"
+    },
+    {
+      "type": "info",
+      "title": "Info",
+      "content": "ExampleFor Docker:curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site/searchFor Kubernetes:curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site/search",
+      "html": "<div class=\"theme-admonition theme-admonition-info alert alert--info admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Example</div><div class=\"admonitionContent_vXIg\"><p>For Docker: <code>curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site/search</code></p><p>For Kubernetes: <code>curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site/search</code></p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Example",
+      "html": "<div class=\"admonitionHeading_TMsN\">Example</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "For Docker:curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site/searchFor Kubernetes:curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site/search",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>For Docker: <code>curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[SERVER2_IP_ADDRESS]:81/sites/my-test-site/search</code></p><p>For Kubernetes: <code>curl -v -X POST -d '{\"templateName\": \"default.json\"}' -H \"Content-Type: application/json\" http://[GS_WEB_API_URL]/sites/my-test-site/search</code></p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteThis request returns the URL of the index created in ElasticSearch. Save the URL and use it in the system setting installation SQL script below.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>This request returns the URL of the index created in ElasticSearch. Save the URL and use it in the system setting installation SQL script below.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "This request returns the URL of the index created in ElasticSearch. Save the URL and use it in the system setting installation SQL script below.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>This request returns the URL of the index created in ElasticSearch. Save the URL and use it in the system setting installation SQL script below.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantTo change the search template, run the DELETE query at /sites/{siteName}/search, as well as the search connection HTTP request described above. This reindexes the entire site.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>To change the search template, run the DELETE query at /sites/{siteName}/search, as well as the search connection HTTP request described above. This reindexes the entire site.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "To change the search template, run the DELETE query at /sites/{siteName}/search, as well as the search connection HTTP request described above. This reindexes the entire site.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>To change the search template, run the DELETE query at /sites/{siteName}/search, as well as the search connection HTTP request described above. This reindexes the entire site.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Global search",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up the global search service using Kubernetes\u200b",
+      "anchor": "title-254-30"
+    },
+    {
+      "level": 2,
+      "text": "Set up the global search service in Docker\u200b",
+      "anchor": "title-254-19"
+    },
+    {
+      "level": 3,
+      "text": "Global search components\u200b",
+      "anchor": "title-254-20"
+    },
+    {
+      "level": 3,
+      "text": "Global search setup procedure\u200b",
+      "anchor": "title-254-21"
+    },
+    {
+      "level": 4,
+      "text": "Install Docker\u200b",
+      "anchor": "title-254-22"
+    },
+    {
+      "level": 4,
+      "text": "Install Docker-Compose\u200b",
+      "anchor": "title-254-23"
+    },
+    {
+      "level": 4,
+      "text": "Install ElasticSearch\u200b",
+      "anchor": "title-254-24"
+    },
+    {
+      "level": 4,
+      "text": "Set up the container variables\u200b",
+      "anchor": "title-254-25"
+    },
+    {
+      "level": 3,
+      "text": "Run containers that have Global Search Service components\u200b",
+      "anchor": "title-254-26"
+    },
+    {
+      "level": 4,
+      "text": "Verify that containers ran successfully\u200b",
+      "anchor": "title-254-27"
+    },
+    {
+      "level": 4,
+      "text": "Logging\u200b",
+      "anchor": "title-254-12"
+    },
+    {
+      "level": 2,
+      "text": "Connect the global search service to Creatio\u200b",
+      "anchor": "title-254-29"
+    },
+    {
+      "level": 3,
+      "text": "Actions on the server\u200b",
+      "anchor": "title-254-14"
+    },
+    {
+      "level": 3,
+      "text": "Settings in Creatio for Microsoft SQL DBMS\u200b",
+      "anchor": "title-254-15"
+    },
+    {
+      "level": 3,
+      "text": "Settings in Creatio for PostgreSQL DBMS\u200b",
+      "anchor": "title-254-33"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "scheduler.env.fillQueueInterval",
+        "type": "The run interval for primary indexing, in milliseconds.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "worker.env.indexingCommandTimeout",
+        "type": "The timeout of the Creatio database query upon primary indexing, in seconds.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "workerSingle.env.indexingCommandTimeout",
+        "type": "The timeout of the Creatio database query upon instant indexing, in seconds.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.incrementDays",
+        "type": "The number of days within which to index the changed records during a single primary indexing iteration. Affects the indexing speed and Creatio database load. The higher the value, the faster the indexing and higher the load. The lower the value, the longer the indexing and lower the load.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "log4Net",
+        "type": "Logging settings.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.indexingContentLength",
+        "type": "The maximum length of text fields upon indexing.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.elasticsearch",
+        "type": "ElasticSearch connection parameters.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.searchService",
+        "type": "Public URL to the search-service in the format ofhttp://k8s-node:30332.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.rabbitmq",
+        "type": "RabbitMQ connection settings.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.db",
+        "type": "The connection settings of the global search service's internal service database.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.redis",
+        "type": "Redis connection settings.",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/global-search",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/global-search",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/creatio-ai-on-site",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "Previous\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "NextGlobal search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "Email Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/home/",
+      "text": "Kubernetes documentation",
+      "active": false
+    },
+    {
+      "href": "https://helm.sh/docs/intro/install/",
+      "text": "Helm documentation",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport",
+      "text": "NodePort",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/requirements/calculator",
+      "text": "System requirements calculator",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:26:48.285230"
+}

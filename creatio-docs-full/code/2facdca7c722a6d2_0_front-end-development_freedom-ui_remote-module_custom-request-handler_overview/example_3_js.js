@@ -1,0 +1,1 @@
+viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[    ...,    {        "operation": "insert",        "name": "SomeComponentName",        "values": {            ...,            /* Bind the SomeAttributeName attribute to the caption property. */            "caption": "$SomeAttributeName",            ...        },        ...    }]/**SCHEMA_VIEW_CONFIG_DIFF*/,

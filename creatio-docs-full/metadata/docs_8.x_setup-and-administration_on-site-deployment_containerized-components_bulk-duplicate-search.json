@@ -1,0 +1,677 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/bulk-duplicate-search",
+  "title": "Bulk duplicate search",
+  "breadcrumbs": [
+    {
+      "text": "On-site deployment",
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment"
+    },
+    {
+      "text": "\u0421ontainerized components",
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components"
+    }
+  ],
+  "content_markdown": "Version: 8.3All Creatio products\nOn this page\nUse bulk duplicate search to deduplicate Creatio section records.\nImportant\nSet up the global search service in ElasticSearch to ensure correct operation of the bulk duplicate search. Learn more in a separate article: [Global search](https://academy.creatio.com/documents?id=1712). You need repository access to set up the current version of the global search service. Contact [Creatio support](mailto:support@creatio.com) to verify your license and gain access to the repository.\nBasic knowledge of kubernetes or docker-compose and Linux administration is required to set up bulk duplicate search service.\nYou can deploy the components of global duplicate search using **Kubernetes orchestrator and Helm package manager** or **Docker**.\nUse the [requirements calculator](https://academy.creatio.com/docs/requirements/calculator) to check the server requirements.\n## Set up the bulk duplicate search service using Kubernetes\u200b\nTo set up the service, download the source files. [Download files](https://academy.creatio.com/sites/default/files/documents/downloads/Deduplication/deduplication-3.0.12.tgz).\nTo install the service:\n1. Set up the target environment:\n1. **Kubernetes cluster**. Learn more about setting up and managing the cluster in the [Kubernetes documentation](https://kubernetes.io/docs/home/).\n2. **Helm package manager**. Learn more about installing the package manager in the [Helm documentation](https://helm.sh/docs/intro/install/).\n3. **Global search service** via Kubernetes. Learn more in a separate article: [Global search](https://academy.creatio.com/documents?id=1712).\n2. Unpack the **values-onsite.yaml** file from the source file archive and save the file to the same directory as the archive.\n3. Open the file. View the main parameters the file uses in the table below. To optimize the load on Redis and RabbitMQ, we recommend using the same service instances for both global search and bulk duplicate search. Bulk duplicate search always uses the same ElasticSearch service as global search.\nnote\nBy default, the Mongodb service is deployed together with the duplicate search service. If you need to change the Mongodb deployment parameters, unpack the source files from the archive and change the parameters in the mongodb section of the values-onsite.yaml file.\n4. Set up the connection to services you installed previously, for example, when setting up global search, in the **values-onsite.yaml** source file.\n* For **Redis** :\nSet up the connection to the previously installed Redis. To do this, specify the connection parameters in the `global.redis` section of the **values-onsite.yaml** file.\n# Multi pods global parameters  \nglobal:  \n# Redis server connection parameters  \nredis:  \nhost: [host]  \nport: [port]  \ndatabase: [database]  \nWhere\n[host] is the address of the Redis server.\n[port] is the connection port of the Redis server.\n[database] is the name of the Redis database.\n* For **RabbitMQ** :\nSet up the connection to the previously installed RabbitMQ. To do this, specify the connection parameters in the `global.rabbitmq` section of the **values-onsite.yaml** file.\n# Multi pods global parameters  \nglobal:  \n# RabbitMQ connection parameters  \nrabbitmq:  \nhost: [host]  \nvhost: [vhost]  \nport: [port]  \nuser: [user]  \npassword: [password]  \nWhere\n[host] is the address of the RabbitMQ service.\n[vhost] is the virtual host address of the RabbitMQ service.\n[port] is the amqp connection port of RabbitMQ.\n[user] is the RabbitMQ user.\n[password] is the RabbitMQ user password.\n* For **Mongodb** :\n1. Disable the Mongodb installation. To do this, specify `enabled: false` in the `mongodb` section of the **values-onsite.yaml** file.\nmongodb:  \nenabled: false  \n2. Set up the connection to external mongodb. To do this, specify the connection parameters in the `global.mongodb` section of the **values-onsite.yaml** file.\n# Multi pods global parameters  \nglobal:  \n# Deduplication database connection parameters  \nmongodb:  \nhost: [host]  \nport: [port]  \nuser: [user]  \npassword: [password]  \nWhere\n[host] is the address of the Mongodb service.\n[port] is the port to connect to the service.\n[user] is the Mongodb user on whose behalf to connect.\n[password] is the Mongodb user password.\n* For **ElasticSearch** :\nSet up the connection to the previously installed ElasticSearch. To do this, specify the connection parameters in the `global.elasticsearch` section of the **values-onsite.yaml** file.\n# Multi pods global parameters  \nglobal:  \n# Elastic search connection parameters  \nelasticsearch:  \nprotocol: [protocol]  \nhost: [host]  \nport: [port]  \npath: [path]  \nuser: [user]  \npassword: [password]  \nWhere\n[user] is the ElasticSearch user.\n[password] is the ElasticSearch user password.\n[port] is the port to connect to ElasticSearch.\n[path] is the path parameter of the ElasticSearch service (by default, ).\n[protocol] is the ElasticSearch connection protocol (by default, http).\n[host] is the address of the ElasticSearch service.\n5. Run the `helm install gs -f values-onsite.yaml deduplication.tgz` command. As a result, Helm will install the bulk duplicate search service and selected dependencies.\nnote\nBy default, Helm deploys services with [NodePort](https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport) type.\nThe main parameters of the global search service the **values.yaml** file uses.\nParameter| Parameter description  \n---|---  \nduplicatesSearchWorker.maxDuplicatesPerRecord| The maximum allowable number of duplicates for a single record.  \nlog4Net| Logging settings.  \nglobal.elasticsearch| ElasticSearch connection parameters.  \nglobal.rabbitmq| RabbitMQ connection settings.  \nglobal.mongodb| The connection settings of the duplicate search service's internal base.  \nglobal.db| The connection settings of the global search service's internal service database.  \nglobal.redis| Redis connection settings.  \n## Set up the bulk duplicate search service in Docker\u200b\n### Components of the bulk duplicate search service\u200b\nPrerequisites:\n1. Global search components. View the index in a separate article: [Global search](https://academy.creatio.com/documents?id=1712).\n2. Components of the bulk duplicate search service. View the component index below.\n[Mongodb](https://docs.mongodb.com/manual/administration/install-community/). Document-oriented DBMS.\n[dd-web-api](https://hub.docker.com/r/bpmonline/dup-web-api). Web service for communication in Creatio.\n[dd-data-service](https://hub.docker.com/r/bpmonline/dup-data-service). Internal service for communication with mongodb.\n[dd-duplicates-search-worker](https://hub.docker.com/r/bpmonline/dup-duplicates-search-worker). Duplicate search component.\n[dd-duplicates-deletion-worker](https://hub.docker.com/r/bpmonline/dup-duplicates-deletion-worker). Component for targeted deletion of duplicates.\n[dd-duplicates-confirmation-worker](https://hub.docker.com/r/bpmonline/dup-duplicates-confirmation-worker). Component that groups and filters found duplicates, taking into account their uniqueness.\n[dd-duplicates-cleaner](https://hub.docker.com/r/bpmonline/dup-duplicates-cleaner). Component that clears duplicates.\n[dd-deduplication-task-worker](https://hub.docker.com/r/bpmonline/dup-deduplication-task-worker). Component that sets the deduplication task.\n[dd-deduplication-preparation-worker](https://hub.docker.com/r/bpmonline/dup-deduplication-preparation-worker). Component that prepares the deduplication process. Generates duplicate search queries according to the rules.\n[dd-deduplication-task-diagnostic-worker](https://hub.docker.com/r/bpmonline/dup-deduplication-task-diagnostic-worker). Component that controls the execution of the duplicate search task.\nTo set up the components, download the source files. [Download files](https://github.com/Advance-Technologies-Foundation/deduplication-docker-compose/archive/refs/tags/v3.0.12.zip).\n1. Deploy and set up Creatio global search.\n2. Download and unpack the necessary source files. Copy them to the computer that has docker, docker-compose software installed. [Download files](https://github.com/Advance-Technologies-Foundation/deduplication-docker-compose/archive/refs/tags/v3.0.12.zip).\n3. Set up the environment variables.\n4. Launch the containers.\n5. Verify that containers are running successfully.\n6. Verify logging.\n7. Enable the bulk duplicate search functionality in Creatio.\n### Set up the environment variables\u200b\nThe compose/.env file stores the environment variables. Edit this file to set the variables.\nVariable name| Details| Default value  \n---|---|---  \nELASTICSEARCH_URI| The IP address of the server where you deployed ElasticSearch as part of Creatio global search setup.| `http://user:password@external.elasticsearch-ip:9200/`  \n### Launch the containers\u200b\nTo launch the containers, run the following command:\ncd compose # go to the compose directory  \ndocker-compose up -d  \n### Verify that containers ran successfully\u200b\nTo view the list of all running containers, run the following command at the console:\ndocker ps --filter \"label=service=dd\" -a --format \"table {{.Names}}\\t{{.Ports}}\\t{{.Status}}\\t{{.RunningFor}}\"  \nThe running containers have an \"Up\" status.\n### Verify logging\u200b\nBy default, logging is performed during the \"stdout\" container command execution. To view the last 100 records from the dd-data-service container, run the following command:\ndocker logs --tail 100 dd-data-service  \n### Update the bulk duplicate search version\u200b\nTo update the bulk duplicate search version 2.0 to version 3.0, take the following steps.\n1. Back up Creatio duplicate data. To do this, run the `/api/snapshot/backup/gzip/{indexName}` command via the `http://[server IP address]:8086/api` swagger web-api. {indexName} is the name (last 64 characters) of the index in the \"Global search url address\" (\"GlobalSearchUrl\" code) system setting.\n2. Delete the version 2.0 of docker volumes. To do this, open the docker-compose directory that contains the version 2.0 files and run the [docker-compose down -v](https://docs.docker.com/compose/reference/down/) command.\n3. Install the version 3.0 of the bulk duplicate search service.\n4. Upload the duplicate data retrieved on step 1 to the service. To do this, run the `/api/snapshot/restore/gzip` command in the new service version via swagger.\n## Enable the bulk duplicate search functionality in Creatio\u200b\nTake the following steps in Creatio.\n1. Configure the \"Deduplication service api address\" system setting.\n2. Set up the \"Duplicates search\" operation permissions.\n3. Enable the bulk duplicate search functionality in Creatio. Note that this setting is DBMS-specific.\n4. Restart the Creatio application.\n### Configure the \"Deduplication service api address\" system setting\u200b\nGo to the **System settings** section, open the \"Deduplication service api address\" (\"DeduplicationWebApiUrl\" code) system setting, and specify the URL to dd-web-api. Use a string of the following type: `http://external.deduplication-web-api:8086`.\n### Set up the \"Duplicates search\" operation permissions\u200b\nGo to the **Operation permissions** section, open the \"Duplicates search\" (\"CanSearchDuplicates\" code) system operation, and, on the **Operation permission** detail, grant permissions to the necessary users/roles, who can search for duplicates.\n### Enable the bulk duplicate search functionality in Creatio\u200b\nToggle the bulk duplicate search (Deduplication, ESDeduplication, BulkESDeduplication) functionality by running an SQL script. The script depends on the DBMS: Microsoft SQL, or PostgreSQL.\n* For Microsoft SQL DBMS\n* For PostgreSQL DBMS\nDECLARE @DeduplicationFeature NVARCHAR(50) = 'Deduplication';  \nDECLARE @DeduplicationFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @DeduplicationFeature);  \nDECLARE @ESDeduplicationFeature NVARCHAR(50) = 'ESDeduplication';  \nDECLARE @ESDeduplicationFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @ESDeduplicationFeature);  \nDECLARE @Bulk_ES_DD_Feature NVARCHAR(50) = 'BulkESDeduplication';  \nDECLARE @Bulk_ES_DD_FeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id   \nFROM Feature WHERE Code =@Bulk_ES_DD_Feature);  \nDECLARE @allEmployeesId UNIQUEIDENTIFIER = 'A29A3BA5-4B0D-DE11-9A51-005056C00008';  \nIF (@DeduplicationFeatureId IS NOT NULL)  \nBEGIN  \nIF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @DeduplicationFeatureId)  \nUPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId =@DeduplicationFeatureId  \nELSE  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1',  \n@DeduplicationFeatureId)  \nEND;  \nELSE  \nBEGIN  \nSET @DeduplicationFeatureId = NEWID()  \nINSERT INTO Feature (Id, Name, Code) VALUES  \n(@DeduplicationFeatureId, @DeduplicationFeature, @DeduplicationFeature)  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @DeduplicationFeatureId)  \nEND;  \nIF (@ESDeduplicationFeatureId IS NOT NULL)  \nBEGIN  \nIF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @ESDeduplicationFeatureId)  \nUPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @ESDeduplicationFeatureId  \nELSE  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @ESDeduplicationFeatureId)  \nEND;  \nELSE  \nBEGIN  \nSET @ESDeduplicationFeatureId = NEWID()  \nINSERT INTO Feature (Id, Name, Code) VALUES (@ESDeduplicationFeatureId, @ESDeduplicationFeature, @ESDeduplicationFeature)  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @ESDeduplicationFeatureId)  \nEND;  \nIF (@Bulk_ES_DD_FeatureId IS NOT NULL)  \nBEGIN  \nIF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @Bulk_ES_DD_FeatureId)  \nUPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId =@Bulk_ES_DD_FeatureId  \nELSE  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState,FeatureId) VALUES (@allEmployeesId, '1', @Bulk_ES_DD_FeatureId)  \nEND;  \nELSE  \nBEGIN  \nSET @Bulk_ES_DD_FeatureId = NEWID()  \nINSERT INTO Feature (Id, Name, Code) VALUES (@Bulk_ES_DD_FeatureId, @Bulk_ES_DD_Feature, @Bulk_ES_DD_Feature)  \nINSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @Bulk_ES_DD_FeatureId)  \nEND;  \nDO $$  \nDECLARE  \nDeduplicationFeature VARCHAR(50) := 'Deduplication';  \nDeduplicationFeatureId uuid;  \nESDeduplicationFeature VARCHAR(50) := 'ESDeduplication';  \nESDeduplicationFeatureId uuid;  \nBulk_ES_DD_Feature VARCHAR(50) := 'BulkESDeduplication';  \nBulk_ES_DD_FeatureId uuid;  \nallEmployeesId uuid := 'A29A3BA5-4B0D-DE11-9A51-005056C00008';  \nBEGIN  \nSELECT \"Id\" INTO DeduplicationFeatureId FROM \"Feature\"  \nWHERE \"Code\" = DeduplicationFeature  \nLIMIT 1;  \nIF (DeduplicationFeatureId IS NOT NULL)  \nTHEN  \nIF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = DeduplicationFeatureId) THEN  \nUPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = DeduplicationFeatureId;  \nELSE  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', DeduplicationFeatureId);  \nEND IF;  \nELSE  \nDeduplicationFeatureId := uuid_generate_v4();  \nINSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (DeduplicationFeatureId, DeduplicationFeature, DeduplicationFeature);  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', DeduplicationFeatureId);  \nEND IF;  \nSELECT \"Id\" INTO ESDeduplicationFeatureId FROM \"Feature\"  \nWHERE \"Code\" = ESDeduplicationFeature  \nLIMIT 1;  \nIF (ESDeduplicationFeatureId IS NOT NULL)  \nTHEN  \nIF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = ESDeduplicationFeatureId) THEN  \nUPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = ESDeduplicationFeatureId;  \nELSE  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', ESDeduplicationFeatureId);  \nEND IF;  \nELSE  \nESDeduplicationFeatureId := uuid_generate_v4();  \nINSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (ESDeduplicationFeatureId, ESDeduplicationFeature, ESDeduplicationFeature);  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', ESDeduplicationFeatureId);  \nEND IF;  \nSELECT \"Id\" INTO Bulk_ES_DD_FeatureId FROM \"Feature\"  \nWHERE \"Code\" = Bulk_ES_DD_Feature  \nLIMIT 1;  \nIF (Bulk_ES_DD_FeatureId IS NOT NULL)  \nTHEN  \nIF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = Bulk_ES_DD_FeatureId) THEN  \nUPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = Bulk_ES_DD_FeatureId;  \nELSE  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', Bulk_ES_DD_FeatureId);  \nEND IF;  \nELSE  \nBulk_ES_DD_FeatureId := uuid_generate_v4();  \nINSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (Bulk_ES_DD_FeatureId, Bulk_ES_DD_Feature, Bulk_ES_DD_Feature);  \nINSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', Bulk_ES_DD_FeatureId);  \nEND IF;  \nEND $$;  \n### Restart the Creatio application\u200b\nClear redis, restart the Creatio application and log in.\n## Recommended operations for the service functioning\u200b\nWe recommend performing mongodb backup once a day to support the functionality of the service and enable restoring of data, e. g., in case of electricity breakdowns.\n* * *\n## See also\u200b\n[Global search setup](https://academy.creatio.com/documents?product=administration&ver=7&id=1712)\n[Deduplication](https://academy.creatio.com/documents?product=base&ver=7&id=1591)\n[System requirements calculator](https://academy.creatio.com/docs/requirements/calculator)",
+  "code_examples": [
+    {
+      "code": "# Multi pods global parametersglobal:  # Redis server connection parameters  redis:    host: [host]    port: [port]    database: [database]",
+      "language": "yaml",
+      "context": "Set up the connection to the previously installed Redis. To do this, specify the connection parameters in theglobal.redissection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "# Multi pods global parametersglobal:  # RabbitMQ connection parameters  rabbitmq:    host: [host]    vhost: [vhost]    port: [port]    user: [user]    password: [password]",
+      "language": "yaml",
+      "context": "Set up the connection to the previously installed RabbitMQ. To do this, specify the connection parameters in theglobal.rabbitmqsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "mongodb:  enabled: false",
+      "language": "yaml",
+      "context": "Disable the Mongodb installation. To do this, specifyenabled: falsein themongodbsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "# Multi pods global parametersglobal:  # Deduplication database connection parameters  mongodb:    host: [host]    port: [port]    user: [user]    password: [password]",
+      "language": "yaml",
+      "context": "Set up the connection to external mongodb. To do this, specify the connection parameters in theglobal.mongodbsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "# Multi pods global parametersglobal:  # Elastic search connection parameters  elasticsearch:    protocol: [protocol]    host: [host]    port: [port]    path: [path]    user: [user]    password: [password]",
+      "language": "yaml",
+      "context": "Set up the connection to the previously installed ElasticSearch. To do this, specify the connection parameters in theglobal.elasticsearchsection of thevalues-onsite.yamlfile.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "cd compose # go to the compose directorydocker-compose up -d",
+      "language": "cli",
+      "context": "To launch the containers, run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker ps --filter \"label=service=dd\" -a --format \"table {{.Names}}\\t{{.Ports}}\\t{{.Status}}\\t{{.RunningFor}}\"",
+      "language": "cli",
+      "context": "To view the list of all running containers, run the following command at the console:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "docker logs --tail 100 dd-data-service",
+      "language": "cli",
+      "context": "By default, logging is performed during the \"stdout\" container command execution. To view the last 100 records from the dd-data-service container, run the following command:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "DECLARE @DeduplicationFeature NVARCHAR(50) = 'Deduplication';DECLARE @DeduplicationFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @DeduplicationFeature);DECLARE @ESDeduplicationFeature NVARCHAR(50) = 'ESDeduplication';DECLARE @ESDeduplicationFeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code = @ESDeduplicationFeature);DECLARE @Bulk_ES_DD_Feature NVARCHAR(50) = 'BulkESDeduplication';DECLARE @Bulk_ES_DD_FeatureId UNIQUEIDENTIFIER = (SELECT TOP 1 Id FROM Feature WHERE Code =@Bulk_ES_DD_Feature);DECLARE @allEmployeesId UNIQUEIDENTIFIER = 'A29A3BA5-4B0D-DE11-9A51-005056C00008';IF (@DeduplicationFeatureId IS NOT NULL)BEGIN      IF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @DeduplicationFeatureId)       UPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId =@DeduplicationFeatureId      ELSE       INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1',@DeduplicationFeatureId)END;ELSEBEGIN      SET @DeduplicationFeatureId = NEWID()      INSERT INTO Feature (Id, Name, Code) VALUES(@DeduplicationFeatureId, @DeduplicationFeature, @DeduplicationFeature)       INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @DeduplicationFeatureId)END;IF (@ESDeduplicationFeatureId IS NOT NULL)BEGIN      IF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @ESDeduplicationFeatureId)     UPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId = @ESDeduplicationFeatureId      ELSE       INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @ESDeduplicationFeatureId)END;ELSEBEGIN      SET @ESDeduplicationFeatureId = NEWID()      INSERT INTO Feature (Id, Name, Code) VALUES (@ESDeduplicationFeatureId, @ESDeduplicationFeature, @ESDeduplicationFeature)      INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @ESDeduplicationFeatureId)END;IF (@Bulk_ES_DD_FeatureId IS NOT NULL)BEGIN      IF EXISTS (SELECT * FROM AdminUnitFeatureState WHERE FeatureId = @Bulk_ES_DD_FeatureId)       UPDATE AdminUnitFeatureState SET FeatureState = 1 WHERE FeatureId =@Bulk_ES_DD_FeatureId      ELSE       INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState,FeatureId) VALUES (@allEmployeesId, '1', @Bulk_ES_DD_FeatureId)END;ELSEBEGIN      SET @Bulk_ES_DD_FeatureId = NEWID()      INSERT INTO Feature (Id, Name, Code) VALUES (@Bulk_ES_DD_FeatureId, @Bulk_ES_DD_Feature, @Bulk_ES_DD_Feature)      INSERT INTO AdminUnitFeatureState (SysAdminUnitId, FeatureState, FeatureId) VALUES (@allEmployeesId, '1', @Bulk_ES_DD_FeatureId)END;",
+      "language": "sql",
+      "context": "Toggle the bulk duplicate search (Deduplication, ESDeduplication, BulkESDeduplication) functionality by running an SQL script. The script depends on the DBMS: Microsoft SQL, or PostgreSQL.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "DO $$DECLARE  DeduplicationFeature VARCHAR(50) := 'Deduplication';  DeduplicationFeatureId uuid;  ESDeduplicationFeature VARCHAR(50) := 'ESDeduplication';  ESDeduplicationFeatureId uuid;  Bulk_ES_DD_Feature VARCHAR(50) := 'BulkESDeduplication';  Bulk_ES_DD_FeatureId uuid;  allEmployeesId uuid := 'A29A3BA5-4B0D-DE11-9A51-005056C00008';BEGIN  SELECT \"Id\" INTO DeduplicationFeatureId FROM \"Feature\"  WHERE \"Code\" = DeduplicationFeature  LIMIT 1;  IF (DeduplicationFeatureId IS NOT NULL)    THEN      IF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = DeduplicationFeatureId) THEN        UPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = DeduplicationFeatureId;      ELSE        INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', DeduplicationFeatureId);      END IF;  ELSE    DeduplicationFeatureId := uuid_generate_v4();    INSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (DeduplicationFeatureId, DeduplicationFeature, DeduplicationFeature);    INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', DeduplicationFeatureId);  END IF;  SELECT \"Id\" INTO ESDeduplicationFeatureId FROM \"Feature\"  WHERE \"Code\" = ESDeduplicationFeature  LIMIT 1;  IF (ESDeduplicationFeatureId IS NOT NULL)    THEN      IF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = ESDeduplicationFeatureId) THEN        UPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = ESDeduplicationFeatureId;      ELSE        INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', ESDeduplicationFeatureId);      END IF;  ELSE    ESDeduplicationFeatureId := uuid_generate_v4();    INSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (ESDeduplicationFeatureId, ESDeduplicationFeature, ESDeduplicationFeature);    INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', ESDeduplicationFeatureId);  END IF;  SELECT \"Id\" INTO Bulk_ES_DD_FeatureId FROM \"Feature\"  WHERE \"Code\" = Bulk_ES_DD_Feature  LIMIT 1;  IF (Bulk_ES_DD_FeatureId IS NOT NULL)    THEN      IF EXISTS (SELECT * FROM \"AdminUnitFeatureState\" WHERE \"FeatureId\" = Bulk_ES_DD_FeatureId) THEN        UPDATE \"AdminUnitFeatureState\" SET \"FeatureState\" = 1 WHERE \"FeatureId\" = Bulk_ES_DD_FeatureId;      ELSE        INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', Bulk_ES_DD_FeatureId);      END IF;  ELSE    Bulk_ES_DD_FeatureId := uuid_generate_v4();    INSERT INTO \"Feature\" (\"Id\", \"Name\", \"Code\") VALUES (Bulk_ES_DD_FeatureId, Bulk_ES_DD_Feature, Bulk_ES_DD_Feature);    INSERT INTO \"AdminUnitFeatureState\" (\"SysAdminUnitId\", \"FeatureState\", \"FeatureId\") VALUES (allEmployeesId, '1', Bulk_ES_DD_FeatureId);  END IF;END $$;",
+      "language": "sql",
+      "context": "Toggle the bulk duplicate search (Deduplication, ESDeduplication, BulkESDeduplication) functionality by running an SQL script. The script depends on the DBMS: Microsoft SQL, or PostgreSQL.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Parameter",
+          "Parameter description"
+        ],
+        [
+          "duplicatesSearchWorker.maxDuplicatesPerRecord",
+          "The maximum allowable number of duplicates for a single record."
+        ],
+        [
+          "log4Net",
+          "Logging settings."
+        ],
+        [
+          "global.elasticsearch",
+          "ElasticSearch connection parameters."
+        ],
+        [
+          "global.rabbitmq",
+          "RabbitMQ connection settings."
+        ],
+        [
+          "global.mongodb",
+          "The connection settings of the duplicate search service's internal base."
+        ],
+        [
+          "global.db",
+          "The connection settings of the global search service's internal service database."
+        ],
+        [
+          "global.redis",
+          "Redis connection settings."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Parameter</p></center></th><th><center><p>Parameter description</p></center></th></tr><tr><td><p>duplicatesSearchWorker.maxDuplicatesPerRecord</p></td><td><p>The maximum allowable number of duplicates for a single record.</p></td></tr><tr><td><p>log4Net</p></td><td><p>Logging settings.</p></td></tr><tr><td><p>global.elasticsearch</p></td><td><p>ElasticSearch connection parameters.</p></td></tr><tr><td><p>global.rabbitmq</p></td><td><p>RabbitMQ connection settings.</p></td></tr><tr><td><p>global.mongodb</p></td><td><p>The connection settings of the duplicate search service's internal base.</p></td></tr><tr><td><p>global.db</p></td><td><p>The connection settings of the global search service's internal service database.</p></td></tr><tr><td><p>global.redis</p></td><td><p>Redis connection settings.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Variable name",
+          "Details",
+          "Default value"
+        ],
+        [
+          "ELASTICSEARCH_URI",
+          "The IP address of the server where you deployed ElasticSearch as part of Creatio global search setup.",
+          "http://user:password@external.elasticsearch-ip:9200/"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><center><p>Variable name</p></center></th><th><center><p>Details</p></center></th><th><center><p>Default value</p></center></th></tr><tr><td><p>ELASTICSEARCH_URI</p></td><td><p>The IP address of the server where you deployed ElasticSearch as part of Creatio global search setup.</p></td><td><p><code>http://user:password@external.elasticsearch-ip:9200/</code></p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantSet up the global search service in ElasticSearch to ensure correct operation of the bulk duplicate search. Learn more in a separate article:Global search. You need repository access to set up the current version of the global search service. ContactCreatio supportto verify your license and gain access to the repository.Basic knowledge of kubernetes or docker-compose and Linux administration is required to set up bulk duplicate search service.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Set up the global search service in ElasticSearch to ensure correct operation of the bulk duplicate search. Learn more in a separate article: <a href=\"https://academy.creatio.com/documents?id=1712\" rel=\"noopener noreferrer\" target=\"_blank\">Global search</a>. You need repository access to set up the current version of the global search service. Contact <a href=\"mailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p><p>Basic knowledge of kubernetes or docker-compose and Linux administration is required to set up bulk duplicate search service.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Set up the global search service in ElasticSearch to ensure correct operation of the bulk duplicate search. Learn more in a separate article:Global search. You need repository access to set up the current version of the global search service. ContactCreatio supportto verify your license and gain access to the repository.Basic knowledge of kubernetes or docker-compose and Linux administration is required to set up bulk duplicate search service.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Set up the global search service in ElasticSearch to ensure correct operation of the bulk duplicate search. Learn more in a separate article: <a href=\"https://academy.creatio.com/documents?id=1712\" rel=\"noopener noreferrer\" target=\"_blank\">Global search</a>. You need repository access to set up the current version of the global search service. Contact <a href=\"mailto:support@creatio.com\" rel=\"noopener noreferrer\" target=\"_blank\">Creatio support</a> to verify your license and gain access to the repository.</p><p>Basic knowledge of kubernetes or docker-compose and Linux administration is required to set up bulk duplicate search service.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteBy default, the Mongodb service is deployed together with the duplicate search service. If you need to change the Mongodb deployment parameters, unpack the source files from the archive and change the parameters in the mongodb section of the values-onsite.yaml file.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>By default, the Mongodb service is deployed together with the duplicate search service. If you need to change the Mongodb deployment parameters, unpack the source files from the archive and change the parameters in the mongodb section of the values-onsite.yaml file.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "By default, the Mongodb service is deployed together with the duplicate search service. If you need to change the Mongodb deployment parameters, unpack the source files from the archive and change the parameters in the mongodb section of the values-onsite.yaml file.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>By default, the Mongodb service is deployed together with the duplicate search service. If you need to change the Mongodb deployment parameters, unpack the source files from the archive and change the parameters in the mongodb section of the values-onsite.yaml file.</p></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "noteBy default, Helm deploys services withNodePorttype.",
+      "html": "<div class=\"theme-admonition theme-admonition-note alert alert--secondary admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">note</div><div class=\"admonitionContent_vXIg\"><p>By default, Helm deploys services with <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport\" rel=\"noopener noreferrer\" target=\"_blank\">NodePort</a> type.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "note",
+      "html": "<div class=\"admonitionHeading_TMsN\">note</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "By default, Helm deploys services withNodePorttype.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>By default, Helm deploys services with <a href=\"https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport\" rel=\"noopener noreferrer\" target=\"_blank\">NodePort</a> type.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [
+    {
+      "url": "https://academy.creatio.com/sites/default/files/documents/downloads/Deduplication/deduplication-3.0.12.tgz",
+      "text": "Download files",
+      "filename": "deduplication-3.0.12.tgz",
+      "type": "unknown",
+      "local_path": "creatio-docs-full/downloads/docs_8.x_setup-and-administration_on-site-deployment_containerized-components_bulk-duplicate-search_deduplication-3.0.12.tgz"
+    },
+    {
+      "url": "https://github.com/Advance-Technologies-Foundation/deduplication-docker-compose/archive/refs/tags/v3.0.12.zip",
+      "text": "Download files",
+      "filename": "v3.0.12.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/docs_8.x_setup-and-administration_on-site-deployment_containerized-components_bulk-duplicate-search_v3.0.12.zip"
+    },
+    {
+      "url": "https://github.com/Advance-Technologies-Foundation/deduplication-docker-compose/archive/refs/tags/v3.0.12.zip",
+      "text": "Download files",
+      "filename": "v3.0.12.zip",
+      "type": "zip",
+      "local_path": "creatio-docs-full/downloads/docs_8.x_setup-and-administration_on-site-deployment_containerized-components_bulk-duplicate-search_v3.0.12.zip"
+    }
+  ],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Bulk duplicate search",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Set up the bulk duplicate search service using Kubernetes\u200b",
+      "anchor": "title-242-13"
+    },
+    {
+      "level": 2,
+      "text": "Set up the bulk duplicate search service in Docker\u200b",
+      "anchor": "title-242-14"
+    },
+    {
+      "level": 3,
+      "text": "Components of the bulk duplicate search service\u200b",
+      "anchor": "title-242-3"
+    },
+    {
+      "level": 3,
+      "text": "Set up the environment variables\u200b",
+      "anchor": "title-242-5"
+    },
+    {
+      "level": 3,
+      "text": "Launch the containers\u200b",
+      "anchor": "title-242-6"
+    },
+    {
+      "level": 3,
+      "text": "Verify that containers ran successfully\u200b",
+      "anchor": "title-242-7"
+    },
+    {
+      "level": 3,
+      "text": "Verify logging\u200b",
+      "anchor": "title-242-8"
+    },
+    {
+      "level": 3,
+      "text": "Update the bulk duplicate search version\u200b",
+      "anchor": "title-242-18"
+    },
+    {
+      "level": 2,
+      "text": "Enable the bulk duplicate search functionality in Creatio\u200b",
+      "anchor": "title-242-9"
+    },
+    {
+      "level": 3,
+      "text": "Configure the \"Deduplication service api address\" system setting\u200b",
+      "anchor": "title-242-10"
+    },
+    {
+      "level": 3,
+      "text": "Set up the \"Duplicates search\" operation permissions\u200b",
+      "anchor": "title-242-11"
+    },
+    {
+      "level": 3,
+      "text": "Enable the bulk duplicate search functionality in Creatio\u200b",
+      "anchor": "title-242-12"
+    },
+    {
+      "level": 3,
+      "text": "Restart the Creatio application\u200b",
+      "anchor": "title-242-16"
+    },
+    {
+      "level": 2,
+      "text": "Recommended operations for the service functioning\u200b",
+      "anchor": "title-242-17"
+    },
+    {
+      "level": 2,
+      "text": "See also\u200b",
+      "anchor": "see-also"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [],
+    "parameters": [
+      {
+        "name": "duplicatesSearchWorker.maxDuplicatesPerRecord",
+        "type": "The maximum allowable number of duplicates for a single record.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "log4Net",
+        "type": "Logging settings.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.elasticsearch",
+        "type": "ElasticSearch connection parameters.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.rabbitmq",
+        "type": "RabbitMQ connection settings.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.mongodb",
+        "type": "The connection settings of the duplicate search service's internal base.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.db",
+        "type": "The connection settings of the global search service's internal service database.",
+        "description": "",
+        "required": false
+      },
+      {
+        "name": "global.redis",
+        "type": "Redis connection settings.",
+        "description": "",
+        "required": false
+      }
+    ],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "Bulk duplicate search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.2/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.1/on-site-deployment/containerized-components/bulk-duplicate-search",
+      "text": "8.1",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/8.0/administration/user-and-access-management/user-access-overview",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/administration",
+      "text": "Administration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/user-and-access-management",
+      "text": "User and access management",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/licensing",
+      "text": "Licensing",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/administration/pricing-model-limits",
+      "text": "Pricing model",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/security-settings",
+      "text": "Security settings",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/creatio-maintenance",
+      "text": "Creatio maintenance",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/on-site-deployment",
+      "text": "On-site deployment",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/system-requirements",
+      "text": "System requirements",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/client-side-system-requirements",
+      "text": "Client-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/system-requirements/server-side-system-requirements",
+      "text": "Server-side",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/general-creatio-deployment-procedure",
+      "text": "General deployment procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/database-server",
+      "text": "Database server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-ms-sql-database-for-creatio",
+      "text": "MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-linux",
+      "text": "PostgreSQL (Linux)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/database-server/deploy-postgresql-database-windows",
+      "text": "PostgreSQL (Windows)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/caching-server",
+      "text": "Caching server",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/general-setup-procedure-for-data-caching-server-redis",
+      "text": "General setup procedure",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/redis-cluster",
+      "text": "Redis Cluster",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/caching-server/set-up-secure-connection-to-redis",
+      "text": "Set up connection",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-linux",
+      "text": "Application server on Linux",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/prepare-creatio-net-setup-files-on-linux",
+      "text": "Prepare for installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/deploy-the-creatio-net-application-on-linux",
+      "text": "Installation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-linux/move-creatio-net-6-to-net-8",
+      "text": "Move Creatio to .NET 8",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/application-server-on-windows",
+      "text": "Application server on Windows",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/enable-required-windows-components",
+      "text": "Check required components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-ms-sql-server",
+      "text": "ConnectionStrings.config for MS SQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-connectionstrings-config-for-postgresql",
+      "text": "ConnectionStrings.config for PostgreSQL",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/modify-web-config",
+      "text": "Set up Web.config",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/deploy-creatio-application-server-on-iis",
+      "text": "Set up IIS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/set-up-websockets",
+      "text": "Set up WebSockets",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/application-server-on-windows/switch-creatio-website-from-http-to-https",
+      "text": "Switch Creatio to HTTPS",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/additional-setup",
+      "text": "Additional setup",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/creatio-ai-on-site",
+      "text": "Creatio.ai",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/application-server-web-farm",
+      "text": "Application server web-farm",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/google-integration",
+      "text": "Google integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/file-storage",
+      "text": "File storage",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/data-enrichment-service",
+      "text": "Data enrichment service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/chat-access-setup",
+      "text": "Chat access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/sase-resolution-notifications",
+      "text": "Case notifications",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/secure-access-to-the-portal",
+      "text": "Secure access to the portal",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/version-control-system-for-development-environments",
+      "text": "Version control system",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/landing-page-integration",
+      "text": "Landing page integration",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-additional-setup/rabbit-mq",
+      "text": "RabbitMQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/identity-service",
+      "text": "Identity Service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/\u0441ontainerized-components",
+      "text": "\u0421ontainerized components",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search",
+      "text": "Global search",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/global-search-and-deduplication-faq",
+      "text": "PreviousGlobal search FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/email-listener-synchronization-service",
+      "text": "NextEmail Listener",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/containerized-components/machine-learning-service",
+      "text": "Machine learning service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/category/faq",
+      "text": "FAQ",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/framework-compatibility",
+      "text": "Framework compatibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-net-products",
+      "text": "Creatio .NET products",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/setup-and-administration/on-site-deployment/deployment-faq/creatio-setup-faq",
+      "text": "Creatio setup",
+      "active": false
+    },
+    {
+      "href": "https://academy.creatio.com/docs/requirements/calculator",
+      "text": "System requirements calculator",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/home/",
+      "text": "Kubernetes documentation",
+      "active": false
+    },
+    {
+      "href": "https://helm.sh/docs/intro/install/",
+      "text": "Helm documentation",
+      "active": false
+    },
+    {
+      "href": "https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport",
+      "text": "NodePort",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-15T07:16:54.816479"
+}

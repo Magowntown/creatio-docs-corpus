@@ -1,0 +1,1 @@
+Entity GetSummaryEntity(UserConnection userConnection, EntitySchemaQueryColumnCollection summaryColumns)Entity GetSummaryEntity(UserConnection userConnection)Entity GetSummaryEntity(UserConnection userConnection, IEnumerable<string> columnNames)Entity GetSummaryEntity(UserConnection userConnection, params string[] columnNames)

@@ -1,0 +1,1 @@
+HavingCondition Terrasoft.Core.DB.QueryCondition

@@ -1,0 +1,603 @@
+{
+  "url": "https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+  "title": "Configure object events",
+  "breadcrumbs": [
+    {
+      "text": "Back-end development",
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development"
+    }
+  ],
+  "content_markdown": "Version: 8.1\nOn this page\nLevel: advanced\nYou can configure object events (saving, editing, deleting, etc.) in the following **ways** :\n* In the Creatio UI using event subprocesses of the Object Designer.\n* In the Creatio back-end using development tools.\n## Mechanism of the Entity event layer\u200b\nThe **purpose** of the `Entity` event layer is to configure object event handlers in the Creatio back-end using development tools. Creatio supports only those handlers that are defined in the main configuration and file content assemblies. Handlers from external assemblies are not supported.\nImportant\nCreatio triggers the mechanism of the `Entity` event layer after executing the object event subprocesses.\nThe event layer can handle the following **object events** :\n* `OnDeleted` after a record is deleted.\n* `OnInserted` after a record is added.\n* `OnInserting` before a record is added.\n* `OnDeleting` before a record is deleted.\n* `OnSaved` after a record is saved.\n* `OnSaving` before a record is saved.\n* `OnUpdated` after a record is updated.\n* `OnUpdating` before a record is updated.\nThe following **components** implement the mechanism of the `Entity` event layer:\n* `BaseEntityEventListener`. Provides the handler methods of entity events\n* `EntityAfterEventArgs`. Provides the properties with the arguments of the handler method that is executed after the event triggers.\n* The `EntityBeforeEventArgs` class. Provides the properties with the arguments of the handler method that is executed before the event fires.\n* The `EntityEventListener` attribute. Registers the listener.\n### BaseEntityEventListener class\u200b\nThe purpose of the `Terrasoft.Core.Entities.Events.BaseEntityEventListener` class is to provide the handler methods of various entity events. View the handler methods in the table below.\nHandler method| Method description  \n---|---  \nOnDeleted(object sender, EntityAfterEventArgs e)| Handles events after a record is deleted.  \nOnDeleting(object sender, EntityBeforeEventArgs e)| Handles events before a record is deleted.  \nOnInserted(object sender, EntityAfterEventArgs e)| Handles events after a record is added.  \nOnInserting(object sender, EntityBeforeEventArgs e)| Handles events before a record is added.  \nOnSaved(object sender, EntityAfterEventArgs e)| Handles events after a record is saved.  \nOnSaving(object sender, EntityBeforeEventArgs e)| Handles events before a record is saved.  \nOnUpdated(object sender, EntityAfterEventArgs e)| Handles events after a record is updated.  \nOnUpdating(object sender, EntityBeforeEventArgs e)| Handles events before a record is updated.  \nThe methods of the `BaseEntityEventListener` class have the following **parameters** :\n* `sender`. The link to the object instance that generates the event.\n* `e`. The event arguments. Can take on the `EntityAfterEventArgs` (after the event) or `EntityBeforeEventArgs` (before the event) value.\nView the call sequence of the event handler methods in the table below.\nCreate an object record| Edit an object| Delete an object  \n---|---|---  \nOnSaving()OnInserting()OnInserted()OnSaved()| OnSaving()OnUpdating()OnUpdated()OnSaved()| OnDeleting()OnDeleted()  \nEvent handlers retrieve the instance of `UserConnection` from the `sender` parameter. View an example that retrieves `UserConnection` below.\nExample that retrieves UserConnection\n[EntityEventListener(SchemaName = \"Activity\")]  \npublic class ActivityEntityEventListener: BaseEntityEventListener {  \npublic override void OnSaved(object sender, EntityAfterEventArgs e) {  \nbase.OnSaved(sender, e);  \nvar entity = (Entity) sender;  \nvar userConnection = entity.UserConnection;  \n}  \n}  \n### EntityAfterEventArgs class\u200b\nThe **purpose** of the `Terrasoft.Core.Entities.EntityAfterEventArgs` class is to provide properties with the arguments of the handler method that is executed after the event fires.\nThe `EntityAfterEventArgs` class has the following **properties** :\n* `ModifiedColumnValues`. A collection of the modified columns.\n* `PrimaryColumnValue`. The record ID.\n### EntityBeforeEventArgs class\u200b\nThe **purpose** of the `Terrasoft.Core.Entities.EntityBeforeEventArgs` class is to provide properties with the arguments of the handler method that is executed before the event triggers.\nThe `EntityBeforeEventArgs` class has the following **properties** :\n* `KeyValue`. The record ID.\n* `IsCanceled`. Enables canceling the further event execution.\n* `AdditionalCondition`. Enables providing additional description of the entity filter conditions before the action.\n### EntityEventListener attribute\u200b\nThe **purpose** of the `EntityEventListener` attribute is to register a listener. The listener can be linked to all objects (`IsGlobal = true`) or to a specific object (for example, `SchemaName = \"Contact\"`). You can tag one listener class with many attributes to define a custom set of listened entities.\n### Set up the object event handler\u200b\nTo **set up** the event handler for an object that inherits from the `Entity` class:\n1. Create a class that inherits from the `BaseEntityEventListener` class.\n2. Decorate the class with the `[EntityEventListener]` attribute and specify the name of the entity whose event subscription to execute.\n3. Override the event handler method.\nExample that overrides the event handler method\n/* Event listener of the \"Activity\" entity. */  \npublic class ActivityEntityEventListener: BaseEntityEventListener {  \n[EntityEventListener(SchemaName = \"Activity\")]  \n/* Override the handler of the entity save event. */  \npublic override void OnSaved(object sender, EntityAfterEventArgs e) {  \n/* Call the parent implementation. */  \nbase.OnSaved(sender, e);  \n/* Additional actions.  \n... */  \n}  \n}  \n## Asynchronous behavior in the Entity event layer\u200b\nThe additional business logic of an object is time-consuming and executed sequentially. This hurts Creatio's front-end performance, for example, when an entity is saved or edited. The **mechanism of asynchronous operation execution** based on the `Entity` event layer solves this problem.\nThe following **components** implement asynchronous behavior in the `Entity` event layer:\n* The `IEntityEventAsyncExecutor` interface. Declares the method that executes operations asynchronously.\n* The `IEntityEventAsyncOperation` interface. Declares the method that launches an asynchronous operation.\n* The `EntityEventAsyncOperationArgs` class. Instances of the class serve as arguments to pass to an asynchronous operation.\n### IEntityEventAsyncExecutor interface\u200b\nThe **purpose** of the `Terrasoft.Core.Entities.AsyncOperations.Interfaces.IEntityEventAsyncExecutor` interface is to declare the method that executes operations asynchronously. `ExecuteAsync<TOperation>(object parameters)` is a typed method that launches an operation with parameters. `TOperation` is a configuration class that implements the `IEntityEventAsyncOperation` interface.\n### IEntityEventAsyncOperation interface\u200b\nThe **purpose** of the `Terrasoft.Core.Entities.AsyncOperations.Interfaces.IEntityEventAsyncOperation` interface is to declare the method that launches an asynchronous operation. `Execute(UserConnection userConnection, EntityEventAsyncOperationArgs arguments)` is the launch method.\nImportant\nWe do not recommend describing the change logic of the primary entity in the class that implements the `IEntityEventAsyncOperation` interface. This can lead to incorrect data creation. We also do not recommend executing lightweight operations (for example, calculating a field value) since creating a separate thread can take more time than executing the operation itself.\n### EntityEventAsyncOperationArgs class\u200b\nThe **purpose** of the `Terrasoft.Core.Entities.AsyncOperations.EntityEventAsyncOperationArgs` class is to provide its instances as arguments to pass to an asynchronous operation.\nThe `EntityEventAsyncOperationArgs` class includes the following **properties** :\n* `EntityId`. The record ID.\n* `EntitySchemaName`. The name of the schema.\n* `EntityColumnValues`. The glossary of current column values of an entity.\n* `OldEntityColumnValues`. The glossary of old column values of an entity.\n### Implement asynchronous behavior in the event layer\u200b\nTo **implement asynchronous behavior in the event layer** :\n1. Create a class that implements the `IEntityEventAsyncOperation` interface. Implement additional logic that can be run asynchronously in the class.\nView an example of a class that implements additional logic below.\nExample of a class that implements additional logic\n/* The class that implements asynchronous operation calls. */  \npublic class DoSomethingActivityAsyncOperation: IEntityEventAsyncOperation {  \n/* The start method of the class. */  \npublic void Execute(UserConnection userConnection, EntityEventAsyncOperationArgs arguments) {  \n/* ... */  \n}  \n}  \n2. Use a [class factory](https://academy.creatio.com/documents?ver=8.1&id=15221) in the handler method of the activity object listener.\nThe class factory serves the following **purposes** :\n* Retrieve the instance of the class that implements the `IEntityEventAsyncExecutor` interface.\n* Prepare the parameters.\n* Pass the class that implements additional logic for execution.\nView an example that calls an asynchronous operation in the event layer below.\nExample that calls an asynchronous operation in the event layer\n[EntityEventListener(SchemaName = \"Activity\")]  \npublic class ActivityEntityEventListener: BaseEntityEventListener {  \n/* The handler method of the event after the entity is saved. */  \npublic override void OnSaved(object sender, EntityAfterEventArgs e) {  \nbase.OnSaved(sender, e);  \n/* The instance of the class to execute asynchronously. */  \nvar asyncExecutor = ClassFactory.Get <IEntityEventAsyncExecutor> (  \nnew ConstructorArgument(\"userConnection\", ((Entity) sender).UserConnection));  \n/* The parameters to execute asynchronously. */  \nvar operationArgs = new EntityEventAsyncOperationArgs((Entity) sender, e);  \n/* Asynchronous execution. */  \nasyncExecutor.ExecuteAsync <DoSomethingActivityAsyncOperation> (operationArgs);  \n}  \n}",
+  "code_examples": [
+    {
+      "code": "[EntityEventListener(SchemaName = \"Activity\")]public class ActivityEntityEventListener: BaseEntityEventListener {    public override void OnSaved(object sender, EntityAfterEventArgs e) {        base.OnSaved(sender, e);        var entity = (Entity) sender;        var userConnection = entity.UserConnection;    }}",
+      "language": "cs",
+      "context": "Event handlers retrieve the instance ofUserConnectionfrom thesenderparameter. View an example that retrievesUserConnectionbelow.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* Event listener of the \"Activity\" entity. */public class ActivityEntityEventListener: BaseEntityEventListener {    [EntityEventListener(SchemaName = \"Activity\")]    /* Override the handler of the entity save event. */    public override void OnSaved(object sender, EntityAfterEventArgs e) {        /* Call the parent implementation. */        base.OnSaved(sender, e);        /* Additional actions.        ... */    }}",
+      "language": "cs",
+      "context": "Toset upthe event handler for an object that inherits from theEntityclass:",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "/* The class that implements asynchronous operation calls. */public class DoSomethingActivityAsyncOperation: IEntityEventAsyncOperation {    /* The start method of the class. */    public void Execute(UserConnection userConnection, EntityEventAsyncOperationArgs arguments) {        /* ... */    }}",
+      "language": "cs",
+      "context": "View an example of a class that implements additional logic below.",
+      "tab_label": "",
+      "line_count": 1
+    },
+    {
+      "code": "[EntityEventListener(SchemaName = \"Activity\")]public class ActivityEntityEventListener: BaseEntityEventListener {    /* The handler method of the event after the entity is saved. */    public override void OnSaved(object sender, EntityAfterEventArgs e) {        base.OnSaved(sender, e);        /* The instance of the class to execute asynchronously. */        var asyncExecutor = ClassFactory.Get <IEntityEventAsyncExecutor> (            new ConstructorArgument(\"userConnection\", ((Entity) sender).UserConnection));        /* The parameters to execute asynchronously. */        var operationArgs = new EntityEventAsyncOperationArgs((Entity) sender, e);        /* Asynchronous execution. */        asyncExecutor.ExecuteAsync <DoSomethingActivityAsyncOperation> (operationArgs);    }}",
+      "language": "cs",
+      "context": "View an example that calls an asynchronous operation in the event layer below.",
+      "tab_label": "",
+      "line_count": 1
+    }
+  ],
+  "tables": [
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Handler method",
+          "Method description"
+        ],
+        [
+          "OnDeleted(object sender, EntityAfterEventArgs e)",
+          "Handles events after a record is deleted."
+        ],
+        [
+          "OnDeleting(object sender, EntityBeforeEventArgs e)",
+          "Handles events before a record is deleted."
+        ],
+        [
+          "OnInserted(object sender, EntityAfterEventArgs e)",
+          "Handles events after a record is added."
+        ],
+        [
+          "OnInserting(object sender, EntityBeforeEventArgs e)",
+          "Handles events before a record is added."
+        ],
+        [
+          "OnSaved(object sender, EntityAfterEventArgs e)",
+          "Handles events after a record is saved."
+        ],
+        [
+          "OnSaving(object sender, EntityBeforeEventArgs e)",
+          "Handles events before a record is saved."
+        ],
+        [
+          "OnUpdated(object sender, EntityAfterEventArgs e)",
+          "Handles events after a record is updated."
+        ],
+        [
+          "OnUpdating(object sender, EntityBeforeEventArgs e)",
+          "Handles events before a record is updated."
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Handler method</p></th><th><p>Method description</p></th></tr><tr><td><p>OnDeleted(object sender, EntityAfterEventArgs e)</p></td><td><p>Handles events after a record is deleted.</p></td></tr><tr><td><p>OnDeleting(object sender, EntityBeforeEventArgs e)</p></td><td><p>Handles events before a record is deleted.</p></td></tr><tr><td><p>OnInserted(object sender, EntityAfterEventArgs e)</p></td><td><p>Handles events after a record is added.</p></td></tr><tr><td><p>OnInserting(object sender, EntityBeforeEventArgs e)</p></td><td><p>Handles events before a record is added.</p></td></tr><tr><td><p>OnSaved(object sender, EntityAfterEventArgs e)</p></td><td><p>Handles events after a record is saved.</p></td></tr><tr><td><p>OnSaving(object sender, EntityBeforeEventArgs e)</p></td><td><p>Handles events before a record is saved.</p></td></tr><tr><td><p>OnUpdated(object sender, EntityAfterEventArgs e)</p></td><td><p>Handles events after a record is updated.</p></td></tr><tr><td><p>OnUpdating(object sender, EntityBeforeEventArgs e)</p></td><td><p>Handles events before a record is updated.</p></td></tr></tbody></table>"
+    },
+    {
+      "headers": [],
+      "rows": [
+        [
+          "Create an object record",
+          "Edit an object",
+          "Delete an object"
+        ],
+        [
+          "OnSaving()OnInserting()OnInserted()OnSaved()",
+          "OnSaving()OnUpdating()OnUpdated()OnSaved()",
+          "OnDeleting()OnDeleted()"
+        ]
+      ],
+      "caption": "",
+      "html": "<table><tbody><tr><th><p>Create an object record</p></th><th><p>Edit an object</p></th><th><p>Delete an object</p></th></tr><tr><td><p>OnSaving()</p><p>OnInserting()</p><p>OnInserted()</p><p>OnSaved()</p></td><td><p>OnSaving()</p><p>OnUpdating()</p><p>OnUpdated()</p><p>OnSaved()</p></td><td><p>OnDeleting()</p><p>OnDeleted()</p></td></tr></tbody></table>"
+    }
+  ],
+  "callouts": [
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantCreatio triggers the mechanism of theEntityevent layer after executing the object event subprocesses.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>Creatio triggers the mechanism of the <code>Entity</code> event layer after executing the object event subprocesses.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Creatio triggers the mechanism of theEntityevent layer after executing the object event subprocesses.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>Creatio triggers the mechanism of the <code>Entity</code> event layer after executing the object event subprocesses.</p></div>"
+    },
+    {
+      "type": "warning",
+      "title": "Warning",
+      "content": "ImportantWe do not recommend describing the change logic of the primary entity in the class that implements theIEntityEventAsyncOperationinterface. This can lead to incorrect data creation. We also do not recommend executing lightweight operations (for example, calculating a field value) since creating a separate thread can take more time than executing the operation itself.",
+      "html": "<div class=\"theme-admonition theme-admonition-caution alert alert--warning admonition_WoCw\"><div class=\"admonitionHeading_TMsN\">Important</div><div class=\"admonitionContent_vXIg\"><p>We do not recommend describing the change logic of the primary entity in the class that implements the <code>IEntityEventAsyncOperation</code> interface. This can lead to incorrect data creation. We also do not recommend executing lightweight operations (for example, calculating a field value) since creating a separate thread can take more time than executing the operation itself.</p></div></div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "Important",
+      "html": "<div class=\"admonitionHeading_TMsN\">Important</div>"
+    },
+    {
+      "type": "note",
+      "title": "Note",
+      "content": "We do not recommend describing the change logic of the primary entity in the class that implements theIEntityEventAsyncOperationinterface. This can lead to incorrect data creation. We also do not recommend executing lightweight operations (for example, calculating a field value) since creating a separate thread can take more time than executing the operation itself.",
+      "html": "<div class=\"admonitionContent_vXIg\"><p>We do not recommend describing the change logic of the primary entity in the class that implements the <code>IEntityEventAsyncOperation</code> interface. This can lead to incorrect data creation. We also do not recommend executing lightweight operations (for example, calculating a field value) since creating a separate thread can take more time than executing the operation itself.</p></div>"
+    }
+  ],
+  "images": [],
+  "videos": [],
+  "downloadables": [],
+  "headings": [
+    {
+      "level": 1,
+      "text": "Configure object events",
+      "anchor": ""
+    },
+    {
+      "level": 2,
+      "text": "Mechanism of the Entity event layer\u200b",
+      "anchor": "title-2173-1"
+    },
+    {
+      "level": 3,
+      "text": "BaseEntityEventListener class\u200b",
+      "anchor": "title-2173-2"
+    },
+    {
+      "level": 3,
+      "text": "EntityAfterEventArgs class\u200b",
+      "anchor": "title-2173-4"
+    },
+    {
+      "level": 3,
+      "text": "EntityBeforeEventArgs class\u200b",
+      "anchor": "title-2173-5"
+    },
+    {
+      "level": 3,
+      "text": "EntityEventListener attribute\u200b",
+      "anchor": "title-2173-6"
+    },
+    {
+      "level": 3,
+      "text": "Set up the object event handler\u200b",
+      "anchor": "title-2173-10"
+    },
+    {
+      "level": 2,
+      "text": "Asynchronous behavior in the Entity event layer\u200b",
+      "anchor": "title-2173-7"
+    },
+    {
+      "level": 3,
+      "text": "IEntityEventAsyncExecutor interface\u200b",
+      "anchor": "title-2173-8"
+    },
+    {
+      "level": 3,
+      "text": "IEntityEventAsyncOperation interface\u200b",
+      "anchor": "title-2173-9"
+    },
+    {
+      "level": 3,
+      "text": "EntityEventAsyncOperationArgs class\u200b",
+      "anchor": "title-2173-10"
+    },
+    {
+      "level": 3,
+      "text": "Implement asynchronous behavior in the event layer\u200b",
+      "anchor": "title-2173-11"
+    }
+  ],
+  "api_docs": {
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "IEntityEventAsyncExecutor"
+      },
+      {
+        "method": "IENTITYEVENTASYNCEXECUTOR",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      },
+      {
+        "method": "EXECUTEASYNC",
+        "path": ""
+      },
+      {
+        "method": "",
+        "path": "<"
+      },
+      {
+        "method": "<",
+        "path": "DoSomethingActivityAsyncOperation"
+      },
+      {
+        "method": "DOSOMETHINGACTIVITYASYNCOPERATION",
+        "path": ">"
+      },
+      {
+        "method": ">",
+        "path": ""
+      }
+    ],
+    "parameters": [],
+    "responses": [],
+    "examples": []
+  },
+  "sidebar_items": [
+    {
+      "href": "/docs/8.x/dev/",
+      "text": "Guides",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/objects-business-logic",
+      "text": "Object events",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/back-end-development/objects-business-logic",
+      "text": "latest version",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.2/back-end-development/objects-business-logic",
+      "text": "8.2",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.0/back-end-development/objects-business-logic",
+      "text": "8.0",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/getting-started",
+      "text": "Getting started",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/getting-started/development-recommendations",
+      "text": "Development recommendations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/architecture",
+      "text": "Architecture",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/architecture/creatio-platform",
+      "text": "Platform",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/microservices",
+      "text": "Microservices",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/creatio-development",
+      "text": "Creatio development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/development-tools",
+      "text": "Development tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/creatio-ide",
+      "text": "Creatio IDE",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/external-ides",
+      "text": "External IDEs",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/packages",
+      "text": "Packages",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/clio-utility",
+      "text": "Clio utility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/version-control-tools",
+      "text": "Version control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/testing-tools",
+      "text": "Testing tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/database-tools",
+      "text": "Database tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/logging-tools",
+      "text": "Logging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging-tools",
+      "text": "Debugging tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/delivery-tools",
+      "text": "Delivery tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/back-end-development",
+      "text": "Back-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/types-visibility",
+      "text": ".NET types visibility",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/replacing-class-factory",
+      "text": "Replacing class factory",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/replacing-class-factory/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/class-factory-examples",
+      "text": "Examples",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/data-operations-back-end",
+      "text": "Data operations (back-end)",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/background-operations",
+      "text": "Background operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/direct-access",
+      "text": "Direct access",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/orm",
+      "text": "ORM",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/complex-select-queries",
+      "text": "Complex Select queries",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-operations-back-end/copy-hierarchical-data",
+      "text": "Hierarchical data",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/web-services",
+      "text": "Web services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/implementation",
+      "text": "Implementation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/calling",
+      "text": "Calling",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/web-services/migrating",
+      "text": "PreviousMigrating a web service to .NET Core or .NET 6",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/redistribute-licenses",
+      "text": "NextRedistribute licenses",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/redistribute-licenses/workflow-of-license-redistribution",
+      "text": "Workflow",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/role-based-license-redistribution",
+      "text": "Role-based license redistribution",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/data-storage-and-cache",
+      "text": "Data storage and cache",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/localizable-resources",
+      "text": "Localizable resources",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/localizable-resources/overview",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/operations",
+      "text": "Operations",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/automatic-data-binding",
+      "text": "Automatic data binding",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/file-management-api",
+      "text": "File management API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/api-for-file-management/overview",
+      "text": "Overview",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/file-management-references",
+      "text": "References",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/back-end-development/net-class-libraries-of-platform-core",
+      "text": ".NET classes reference",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/front-end-development",
+      "text": "Front-end development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/front-end-development/data-fetching",
+      "text": "Best practices for data fetching",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/freedom-ui",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/platform-customization",
+      "text": "Platform customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/freedom-ui-customization",
+      "text": "Freedom UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/classic-ui-1",
+      "text": "Classic UI",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/interface-control-tools",
+      "text": "Interface control tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/integrations-tools",
+      "text": "Integrations tools",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/overview",
+      "text": "Integration options",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/authentication",
+      "text": "Authentication",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/data-services",
+      "text": "Data services",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/chat-channels-integration",
+      "text": "Chats",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/business-process-service",
+      "text": "Business process service",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/test-api",
+      "text": "Test API",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/integrations-and-api/integration-examples",
+      "text": "API documentation",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/mobile-app-development",
+      "text": "Mobile app development",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/basics",
+      "text": "Basics",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/customization",
+      "text": "Customization",
+      "active": false
+    },
+    {
+      "href": "/docs/8.x/dev/development-on-creatio-platform/8.1/category/debugging",
+      "text": "Debugging",
+      "active": false
+    }
+  ],
+  "related_links": [],
+  "version": "8.x",
+  "crawled_at": "2026-01-14T23:12:10.608584"
+}

@@ -1,0 +1,1 @@
+EntitySchemaConcatQueryFunction(EntitySchemaConcatQueryFunction source)

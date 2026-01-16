@@ -1,0 +1,1 @@
+bool HasCultureValue(CultureInfo culture)

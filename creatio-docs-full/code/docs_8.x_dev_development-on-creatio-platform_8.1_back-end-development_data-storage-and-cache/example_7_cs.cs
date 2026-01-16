@@ -1,0 +1,1 @@
+/* Use the GetValue() extended method. */return UserConnection.SessionData.GetValue<string>("SomeKey");

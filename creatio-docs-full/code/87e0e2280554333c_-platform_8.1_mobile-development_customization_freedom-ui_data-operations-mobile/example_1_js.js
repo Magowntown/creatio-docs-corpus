@@ -1,0 +1,1 @@
+"viewModelConfig": {    "attributes": {        "CustomAttribute": {            "modelConfig": {                "path": "PDS"            }        }    }}

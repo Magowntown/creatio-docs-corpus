@@ -1,0 +1,1 @@
+virtual bool InsertToDB(bool skipLookupColumnValues, bool validateRequired)

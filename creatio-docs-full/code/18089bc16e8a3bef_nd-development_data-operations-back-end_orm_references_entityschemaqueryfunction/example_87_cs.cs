@@ -1,0 +1,1 @@
+EntitySchemaCastQueryFunction(EntitySchemaCastQueryFunction source)

@@ -1,0 +1,1 @@
+QueryKind Terrasoft.Common.QueryKind

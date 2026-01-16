@@ -1,0 +1,1 @@
+// URL format of the POST query to DataService to update data.http(s)://[Creatio application address]/[Configuration number]/dataservice/[Data fromat]/reply/UpdateQuery// URL example of the POST query to DataService to update data.

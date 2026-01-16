@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentWeekQueryFunction(EntitySchemaStartOfCurrentWeekQueryFunction source) : base(source)

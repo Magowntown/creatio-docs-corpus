@@ -1,0 +1,1 @@
+EntitySchemaCaseNotNullQueryFunction(EntitySchemaCaseNotNullQueryFunction source)

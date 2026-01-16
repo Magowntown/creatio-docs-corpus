@@ -1,0 +1,1 @@
+Delete From(string schemaName)Delete From(ModifyQuerySource source)

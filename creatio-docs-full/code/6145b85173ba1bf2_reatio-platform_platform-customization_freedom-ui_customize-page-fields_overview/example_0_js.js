@@ -1,0 +1,1 @@
+viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[    {        "operation": "merge",        "path": [            "attributes"        ],        "values": {            ...,            /* An attribute that stores data. */            "SomeAttribute": {}        }    },    ...]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,

@@ -1,0 +1,1 @@
+LengthQueryFunction(QueryColumnExpression expression)LengthQueryFunction(IQueryColumnExpressionConvertible expression)

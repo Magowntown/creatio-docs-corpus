@@ -1,0 +1,1 @@
+EntitySchemaStartOfCurrentYearQueryFunction(EntitySchemaQuery parentQuery, int offset = 0) : this(parentQuery, null, offset)EntitySchemaStartOfCurrentYearQueryFunction(EntitySchemaQuery parentQuery, EntitySchemaQueryExpression expression, int offset = 0) : base(parentQuery, expression, offset)

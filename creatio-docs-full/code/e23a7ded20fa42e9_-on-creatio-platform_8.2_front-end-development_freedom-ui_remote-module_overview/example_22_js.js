@@ -1,0 +1,1 @@
+public ngAfterViewInit(): void {    this._renderrer.setStyle(        document.querySelector('p'),        'background-image',        'url(https://upload.wikimedia.org/wikipedia/commoms/thumb/4/47/picture.png)'    );}

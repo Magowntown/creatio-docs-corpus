@@ -1,0 +1,1 @@
+<connectionStrings>    <add name="db" connectionString="Data Source=(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = YourDBServerName)(PORT = 1521))) (CONNECT_DATA = (SERVICE_NAME = YourOracleServiceName) (SERVER = DEDICATED)));User Id=YourCreatioUser;Password=YourCreatioUserPassword; Statement Cache Size = 300" /></connectionStrings>

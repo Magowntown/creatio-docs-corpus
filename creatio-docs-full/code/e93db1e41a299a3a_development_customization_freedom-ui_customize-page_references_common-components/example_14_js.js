@@ -1,0 +1,1 @@
+{    "type": "crt.RelatedDetailItem",    "moduleName": "Activity",    "relationOptions": {        "detailColumn": "Opportunity",        "masterColumn": "Id",        "parentRecordId": "$Id"    },    "filterAttributes": [        {"name": "ActivityDetail_Filter"}    ],    "caption": "Attachments",    "parentModuleName": "Opportunity"}

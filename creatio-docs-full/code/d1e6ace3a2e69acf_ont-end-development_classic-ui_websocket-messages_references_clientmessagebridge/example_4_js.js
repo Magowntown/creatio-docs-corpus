@@ -1,0 +1,1 @@
+deleteSavedMessages(sandboxMessageName)

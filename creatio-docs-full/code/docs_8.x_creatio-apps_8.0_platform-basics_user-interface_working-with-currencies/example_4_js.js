@@ -1,0 +1,1 @@
+Amount in conversion currency(2) = Amount in conversion currency(1) * Ratio(1) * Rate(2) / Ratio(2) * Rate(1)

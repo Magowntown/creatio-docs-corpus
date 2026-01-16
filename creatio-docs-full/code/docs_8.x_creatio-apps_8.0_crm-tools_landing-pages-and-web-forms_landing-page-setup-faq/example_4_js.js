@@ -1,0 +1,1 @@
+<input type="hidden" id="selectedNameCaption" /> <input type="hidden" id="selectedSecondNameCaption" />

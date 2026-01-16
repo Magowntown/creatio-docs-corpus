@@ -1,0 +1,1 @@
+decimal decimalValue = Get<decimal>("DecimalParameter");decimalValue += 5.5m;Set<decimal>("DecimalParameter", decimalValue);
