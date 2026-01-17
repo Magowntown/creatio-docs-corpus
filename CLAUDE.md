@@ -1,7 +1,7 @@
 # CLAUDE.md - Creatio Reports Fix
 
-> **Status:** ✅ **SYNC-001 RESOLVED:** QB sync infrastructure working. Dec 2025 invoices synced but awaiting payment in QB. FLT-004 ✅ FLT-002 ✅
-> **Updated:** 2026-01-15 | **See:** `docs/CLAUDE_REFERENCE.md` for technical details
+> **Status:** ⚠️ **SYNC-002 NEW:** QB sync issue reported - `UsrPage_ebkv9e8` Form page in IWQB package (PROD) implicated. FLT-004 ✅ FLT-002 ✅
+> **Updated:** 2026-01-16 | **See:** `docs/CLAUDE_REFERENCE.md` for technical details
 
 ---
 
@@ -18,6 +18,7 @@
 | FLT-004 | Commission empty data (older months) | ✅ Fixed |
 | DATA-001 | PaymentStatusId=Planned blocks QB sync | ⚠️ Business Decision Required |
 | **SYNC-001** | QB sync process | ✅ Resolved + Automated |
+| **SYNC-002** | QB sync issue - UsrPage_ebkv9e8 implicated (PROD) | 🔴 **NEW - Investigate** |
 | **DATA-002** | Dec 2025 invoices synced but awaiting payment in QB | ⚠️ QB Accounting Workflow |
 | **PROC-001** | V4 Commission process gateway type mismatch | 📋 Dormant (no IWPayments data) |
 | ENV-001 | Template lookup broken in DEV | ✅ NOT REPRODUCIBLE |
@@ -54,6 +55,96 @@ return true;
 **Phase 2 (Next):** Query `BGCommissionReportQBDownload.CreatedOn` for dynamic start date
 
 **Full guide:** `docs/QB_SYNC_AUTOMATION.md`
+
+---
+
+## SYNC-002: QB Sync Issue - UsrPage_ebkv9e8 Form Page (PROD)
+
+**Reported:** 2026-01-16 | **Investigated:** 2026-01-16
+**Status:** 🔴 **ROOT CAUSE IDENTIFIED - Fix Required**
+
+### Report Summary
+
+Word received that the QuickBooks sync issue is being caused by the `UsrPage_ebkv9e8` Form page in the **IWQB package in PROD**.
+
+### Key Information
+
+| Item | Value |
+|------|-------|
+| **Component** | `UsrPage_ebkv9e8` Form Page |
+| **Package** | IWQB (IWQBIntegration) |
+| **Environment** | PROD |
+| **Modified Date** | **2026-01-14** (same day as problematic OrderPageV2) |
+| **Local copies** | `UsrPage_ebkv9e8_Updated.js` (complex), `UsrPage_ebkv9e8_IframeDownload.js` (simple) |
+
+### Investigation Findings
+
+**PROD has 3 versions of UsrPage_ebkv9e8:**
+
+| UID | Package | Modified | Status |
+|-----|---------|----------|--------|
+| `4e6a5aa6...` | BGlobalLookerStudio | 2023-10-23 | Old version |
+| `561d9dd4...` | BGApp_eykaguu | 2025-07-14 | Intermediate |
+| `1d5dfc4d...` | **IWQBIntegration** | **2026-01-14** | ⚠️ **Most recent - SUSPECT** |
+
+### Root Cause Analysis
+
+The **Updated.js** version (currently deployed to IWQBIntegration) has **2 additional handlers** compared to the simple version:
+
+| Handler | Simple Version | Updated Version | Risk |
+|---------|----------------|-----------------|------|
+| `usr.GenerateExcelReportRequest` | ✅ | ✅ | Low - Report-specific |
+| `crt.HandleViewModelAttributeChangeRequest` | ❌ | ✅ | **HIGH** - Triggers on ANY attribute change |
+| `crt.LoadDataRequest` | ❌ | ✅ | **HIGH** - Intercepts ALL data load requests |
+
+**Problem:** The `crt.LoadDataRequest` handler (lines 73-305) intercepts data loading and:
+1. Queries `IWPayments` entity during Sales Group filtering
+2. Queries `IWPaymentsInvoice` entity for fallback filtering
+3. Creates `sdk.FilterGroup` objects with complex logic
+
+**Potential Interference:**
+- If this handler runs during QB sync operations, it could cause:
+  - Database locks on IWPayments/IWPaymentsInvoice tables
+  - Unhandled exceptions that propagate to sync processes
+  - Memory/performance issues from repeated queries
+
+### Code Comparison
+
+```
+UsrPage_ebkv9e8_IframeDownload.js (SAFE):
+  - 217 lines
+  - 1 handler: usr.GenerateExcelReportRequest only
+  - No IWPayments queries
+  - No framework-level interceptors
+
+UsrPage_ebkv9e8_Updated.js (PROBLEMATIC):
+  - 495 lines (2.3x larger)
+  - 3 handlers including framework interceptors
+  - Queries IWPayments and IWPaymentsInvoice
+  - Complex FilterGroup logic
+```
+
+### Recommended Fix
+
+**Option A (Quick Fix):** Roll back to the simpler `UsrPage_ebkv9e8_IframeDownload.js` version
+- Removes the two framework interceptors
+- Sacrifices Sales Group cascade filtering (UX feature)
+- Lowest risk approach
+
+**Option B (Targeted Fix):** Modify `crt.LoadDataRequest` handler to be more defensive
+- Add try/catch around IWPayments queries
+- Add checks to only run on this specific page
+- Keep the UX feature but reduce interference risk
+
+**Option C (Investigation):** Verify if page handlers are being triggered during sync
+- Add logging to the handlers to confirm interference
+- May need to check PROD server logs
+
+### Connection to Other Issues
+
+- **Same modification date** as OrderPageV2 change that caused DATA-001
+- The IWQBIntegration package was modified on 2026-01-14 - 1 day before issues reported
+- May explain DATA-002 (Dec 2025 data gap) if sync was blocked by page handlers
 
 ---
 
@@ -387,7 +478,22 @@ python3 scripts/investigation/review_report_flow.py --env dev
 
 ---
 
-## Session Log: 2026-01-15 (Latest)
+## Session Log: 2026-01-16 (Latest)
+
+### New Issue Reported
+
+**SYNC-002:** Word received that QB sync issue is caused by `UsrPage_ebkv9e8` Form page in IWQB package (PROD). Documented for later investigation.
+
+### Also Noted (Windows auto-claude issues - separate from Creatio)
+
+User reported issues with auto-claude application on Windows C: drive:
+- Claude update blocked → **Fix:** Add `C:\Users\amago\.local\bin` to Windows PATH
+- Git not detected → Git IS in PATH; likely auto-claude launch context issue
+- auto-claude not initializing → Path mismatch in settings (`IW_IDE` vs `IW__Launcher`)
+
+---
+
+## Session Log: 2026-01-15
 
 ### What Was Done
 
