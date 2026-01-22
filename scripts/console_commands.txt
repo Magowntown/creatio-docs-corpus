@@ -1,0 +1,11 @@
+# Browser Console Commands for Patricia Investigation
+# Copy these EXACTLY from this file (open in text editor, not rendered markdown)
+
+# Step 1: Get recent commission earners and find Patricia
+fetch("/0/odata/BGCommissionEarner?$top=500&$orderby=CreatedOn desc&$select=Id,BGName,BGOrderId,BGCommissionRate,CreatedOn").then(function(r){return r.json()}).then(function(d){var p=d.value.filter(function(e){return e.BGName&&e.BGName.indexOf("Patricia")>=0});console.log("Patricia earners found:",p.length);p.forEach(function(e){console.log(e.BGName,e.BGCommissionRate,e.CreatedOn)});window.pEarners=p})
+
+# Step 2: After step 1 completes, get order details
+var ids=window.pEarners.slice(0,30).map(function(e){return e.BGOrderId}).filter(function(x){return x});Promise.all(ids.map(function(id){return fetch("/0/odata/Order("+id+")?$select=Id,Number,BGNumberInvoice").then(function(r){return r.json()})})).then(function(orders){var withInv=orders.filter(function(o){return o.BGNumberInvoice});console.log("Orders with invoice:",withInv.length,"/",orders.length);withInv.forEach(function(o){console.log(o.Number,"Inv:",o.BGNumberInvoice)});window.pOrders=orders})
+
+# Step 3: After step 2 completes, check QB Download
+var invs=window.pOrders.filter(function(o){return o.BGNumberInvoice}).map(function(o){return o.BGNumberInvoice});Promise.all(invs.map(function(inv){return fetch("/0/odata/BGCommissionReportQBDownload?$filter=BGCleanInvoiceNumber eq '"+inv+"'&$top=1&$select=Id,BGCleanInvoiceNumber").then(function(r){return r.json()})})).then(function(res){var found=0;var missing=[];invs.forEach(function(inv,i){if(res[i].value&&res[i].value.length>0){found++}else{missing.push(inv)}});console.log("Found in QB Download:",found);console.log("MISSING:",missing.length,missing)})

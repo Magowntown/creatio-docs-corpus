@@ -42,6 +42,366 @@ Diagnostics:
 
 ---
 
+## Test Log: 2026-01-20 - PROD Reports Page Restoration (Post-Package Removal)
+
+**Environment:** PROD (pampabay.creatio.com)
+**Context:** IWQBIntegration and InterWeavePaymentApp packages removed. Restoring report functionality.
+
+---
+
+### Test 1: Looker Studio Iframe (Original Approach)
+
+**Test:** Attempted to use original parent schema with Looker Studio iframe
+
+**Result:** ❌ FAIL - CSP Blocked
+
+**Evidence:**
+```
+Refused to frame 'https://bglobalsolutions.com/' because it violates Content Security Policy
+X-Frame-Options set to 'sameorigin'
+```
+
+**Conclusion:** Freedom UI (v8) blocks external iframes. Cannot use original Looker Studio embed approach.
+
+---
+
+### Test 2: Looker Studio New Tab (Workaround)
+
+**Test:** Modified handler to open Looker Studio URL in new tab (bypasses CSP)
+
+**Result:** ⚠️ PARTIAL - Opens but requires Google auth
+
+**Evidence:**
+```
+Can't access report
+Your current account amagown@gmail.com can't access this report, or the report doesn't exist.
+```
+
+**URL tested:** `https://lookerstudio.google.com/u/0/reporting/3b2a38a0-981e-4552-b607-1855bc65e335/page/pf9CD`
+
+**Conclusion:** URL format conversion works (`/embed/` → `/u/0/`), but Google account permissions not configured.
+
+---
+
+### Test 3: Commission Report (Excel)
+
+**Test:** Generate Commission report via UsrExcelReportService
+
+**Result:** ✅ PASS - Downloads successfully
+
+**Console logs:**
+```
+[UsrPage_ebkv9e8] Report metadata: Commission URL: NO
+[UsrPage_ebkv9e8] No Looker URL, using Excel service for: Commission
+[UsrPage_ebkv9e8] Found IntExcelReport: Commission -> [guid]
+[UsrPage_ebkv9e8] UsrExcelReportService response: {success: true, key: "..."}
+```
+
+**Conclusion:** Commission Excel download working. Data accuracy issue (missing Dec 2025/Jan 2026) is QB payment backlog, not technical issue.
+
+---
+
+### Test 4: Items by Customer (Excel Fallback)
+
+**Test:** Generate "Items by Customer" report via Excel fallback
+
+**Result:** ❌ FAIL - Template error
+
+**Error:**
+```
+ArgumentException: Row out of range STACK:[0]at IntExcelExport.Utilities.ReportUtilities.LoadEsqToSheet
+```
+
+**Conclusion:** IntExcelReport template configuration issue. Need BGlobal to review template settings.
+
+---
+
+### Test 5: Handler Cache Verification
+
+**Test:** Verify correct handler is running after deployment
+
+**Initial Result:** ❌ FAIL - Old handler still running (showed `IntExcelReportService` in logs)
+
+**After hard refresh (Ctrl+Shift+R):** ✅ PASS - New handler running (shows `UsrExcelReportService`)
+
+**Conclusion:** Always hard refresh after deploying new schema to clear browser cache.
+
+---
+
+### Test 6: UsrReportesPampa URL Configuration
+
+**Test:** Query UsrReportesPampa to identify reports with/without Looker Studio URLs
+
+**Result:** ✅ PASS - Data retrieved
+
+**Findings:**
+
+| Report | Has Looker URL | UsrActive |
+|--------|---------------|-----------|
+| Sales By Customer | ✅ Yes | true |
+| Sales By Sales Group | ✅ Yes | true |
+| Sales By Customer Type | ✅ Yes | true |
+| Sales Rep Monthly Report | ✅ Yes | true |
+| Sales By Sales Rep | ✅ Yes | true |
+| Commission | ❌ No | true |
+| Sales By Item | ❌ No | true |
+| Items by Customer | ❌ No | true |
+
+**Conclusion:** ~60% of reports have Looker URLs. Reports without URLs must use Excel fallback.
+
+---
+
+### Summary: PROD Reports Status (2026-01-20)
+
+| Report Type | Status | Blocker |
+|-------------|--------|---------|
+| Commission (Excel) | ✅ Working | Data accuracy (QB payments) |
+| Looker Studio reports | ❌ Blocked | Google permissions |
+| Other Excel reports | ❌ Blocked | Template configuration |
+
+---
+
+### Handler Deployed
+
+**File:** `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_Hybrid_v2.js`
+**Schema UID:** 561d9dd4-8bf2-4f63-a781-54ac48a74972
+**Status:** ✅ DEPLOYED
+
+---
+
+### Next Steps
+
+1. BGlobal: Configure CSP to whitelist Looker Studio domains
+2. BGlobal: Grant Google account permissions for Looker Studio dashboards
+3. BGlobal: Review IntExcelReport template configurations
+4. QB Team: Process December 2025 / January 2026 invoice payments
+
+**Email drafted:** `docs/EMAIL_BGLOBAL_REPORT_ISSUES.md`
+
+---
+
+## Test Log: 2026-01-19 - PROD Download 404 Investigation (DL-004)
+
+**Environment:** PROD (pampabay.creatio.com)
+**Issue:** DL-004 - Commission report download returns 404
+
+---
+
+### Problem Discovery
+
+Commission report generation succeeds but download fails:
+- `Generate` returns `{"success": true, "key": "ExportFilterKey_..."}`
+- `GetReport/{key}` returns HTTP 404
+
+### Root Cause Analysis
+
+| Step | What Happens | Result |
+|------|--------------|--------|
+| 1. Generate called | `ReportUtilities.Generate()` runs | Returns `ExportFilterKey_abc123` |
+| 2. Library behavior | Library returns key but **doesn't store bytes** | SessionData is empty |
+| 3. GetReport called | Looks for `userConnection.SessionData[key]` | **NULL - 404 returned** |
+
+**Key insight:** The `GenerateWithDateFilter` method (used for IW_Commission) properly stores bytes in SessionData. Commission was falling through to the library fallback which does NOT.
+
+### Fix Applied
+
+Added routing in `UsrExcelReportService_Updated.cs`:
+
+```csharp
+// Lines 1588-1605: Route Commission to custom generator
+if (entitySchemaName == "BGCommissionReportDataView")
+{
+    if (request.YearMonthId != Guid.Empty)
+    {
+        return GenerateWithDateFilter(userConnection, request, yearMonthName);
+    }
+    else
+    {
+        return GenerateWithDateFilterAllTime(userConnection, request);
+    }
+}
+```
+
+Created new method `GenerateWithDateFilterAllTime` (lines 1214-1263) for Commission without Year-Month filter.
+
+### Verification Script
+
+Created `scripts/testing/verify_download_fix.py` that:
+1. Authenticates to PROD
+2. Generates Commission report with Year-Month filter
+3. Attempts download via GetReport
+4. Validates file is valid Excel (PK signature)
+5. Tests again without Year-Month filter
+
+### Status
+
+| Item | Status |
+|------|--------|
+| Code fix | ✅ In repo |
+| Deployment to PROD | ⏳ Pending |
+| Verification | ⏳ After deployment |
+
+**Next Step:** Deploy to PROD and run verification script.
+
+---
+
+### RPT-002: ESQ Sanitization - PROD Verification
+
+Verified "Rpt Sales By Line" report configuration in PROD:
+
+| Check | Result |
+|-------|--------|
+| @P patterns in ESQ | ✅ None found |
+| Filter items cleared | ✅ `{}` |
+| Report accessible | ✅ OData returns record |
+
+**Status:** ✅ VERIFIED WORKING
+
+---
+
+### December 2025 Payment Gap Analysis
+
+Confirmed scale of missing December 2025 commission data:
+
+| Metric | Count |
+|--------|-------|
+| Total sales reps affected | 44 |
+| Total commission earners affected | 790 |
+| December 2025 orders with Unpaid status | 78% |
+
+**Top affected reps:**
+- Office: 395 earners missing
+- Jim: 124 earners missing
+- Patricia Goncalves: 61 earners missing
+- Carrie: 42 earners missing
+- Carlos: 26 earners missing
+
+**Root Cause:** QB accounting hasn't processed December 2025 payments.
+
+**Action Required:** QB team must process payments (see `docs/QB_TEAM_EMAIL_DRAFT.md`).
+
+---
+
+## Test Log: 2026-01-19 - DEV Reports Investigation
+
+**Environment:** DEV (dev-pampabay.creatio.com)
+**Issues Investigated:** UI-001, DATA-003, SYNC-003
+
+---
+
+### UI-001: Reports Page Infinite Loading
+
+**Problem:** DEV Reports page showed infinite loading spinner on page load.
+
+**Root Cause:** `UsrPage_ebkv9e8_Updated.js` used `sdk` objects (`sdk.HandlerChainService`, `sdk.Model.create`, `sdk.FilterGroup`) in framework interceptors. The `sdk` object wasn't available in Freedom UI context.
+
+**Affected Handlers:**
+- `crt.LoadDataRequest` - intercepts data loading
+- `crt.HandleViewModelAttributeChangeRequest` - intercepts attribute changes
+
+**Resolution:** Deployed `UsrPage_ebkv9e8_Hybrid.js` which only contains:
+- `usr.GenerateExcelReportRequest` handler (report generation only)
+- No `sdk` dependencies
+- Uses only `fetch()` and `Terrasoft` (globally available)
+
+**Result:** ✅ Page loads successfully, reports generate
+
+---
+
+### DATA-003: Missing Commission Data Investigation
+
+**Problem:** Reports generating but showing missing/empty data for recent months.
+
+**API Test Results:**
+
+| Year-Month | Environment | Rows | Result |
+|------------|-------------|------|--------|
+| 2024-12 | DEV | 514 | ✅ PASS |
+| 2025-12 | DEV | 1 (header only) | ❌ No data |
+| 2026-01 | DEV | 1 (header only) | ❌ No data |
+
+**Data Distribution Analysis (DEV - sample of 500 records):**
+
+| Month | Records |
+|-------|---------|
+| 2025-10 | 6 (most recent) |
+| 2025-09 | 29 |
+| 2025-08 | 21 |
+| 2025-07 | 24 |
+| 2025-06 | 24 |
+| 2025-05 | 24 |
+
+**Environment Comparison:**
+
+| Environment | Total Records | Most Recent Data |
+|-------------|--------------|------------------|
+| **DEV** | 9,112 | October 2025 |
+| **PROD** | 10,025 | January 2026 |
+
+**Conclusion:** DEV `BGCommissionReportQBDownload` hasn't synced since October 2025. November 2025+ data doesn't exist.
+
+**Resolution Required:** Run QB sync after resolving SYNC-003.
+
+---
+
+### SYNC-003: QB Customer Order Integration 20K Limit
+
+**Problem:** Running "QB Customer Order Integration" in DEV fails with:
+```
+Terrasoft.Common.InvalidObjectStateException: Maximum number of 20000 records exceeded
+while loading "BGQuickBooksIntegrationLogDetail" object data
+```
+
+**Investigation:**
+
+| Metric | Value |
+|--------|-------|
+| `BGQuickBooksIntegrationLogDetail` total | 81,803 records |
+| Pending status | ~69% (~56,000+) |
+| Processed status | ~30% |
+| Error/Processing | ~1% |
+| ESQ default limit | 20,000 |
+
+**Status Lookup Verified:**
+
+| Status ID | Name |
+|-----------|------|
+| `c97db3bc-634d-4c90-8432-ec7141c87640` | Pending |
+| `e7428193-4cf1-4d1b-abae-00e93ab5e1c5` | Processed |
+| `bdfc60c7-55fd-4cbd-9a2c-dca2def46d80` | Error |
+| `fc2a1755-cdb8-43ec-a637-cdbcb6ef4bef` | Processing |
+| `ff92e20c-da27-4255-96bc-57e32f0944f4` | Re-Process |
+
+**Pending Records Analysis:**
+
+| Field | Value |
+|-------|-------|
+| BGTypeId | `14535998-d4c0-45ac-bbac-8c0185bfcc1a` (Customer Order) |
+| BGActionId | `9065a18f-7c4c-49fb-a9ec-4f6f9d342c43` (Update) |
+| Oldest pending | 2025-10-08 |
+| Newest pending | 2025-12-10 |
+
+**Root Cause:** Process `GetQuickBooksPendingLogsByType()` attempts to load ALL pending records at once, exceeding Creatio's 20,000 ESQ limit.
+
+**Solution Documented:** Batch processing using "Re-Process" status rotation:
+1. Move older pending to Re-Process (keep newest 15K as Pending)
+2. Run QB sync
+3. Rotate next batch back to Pending
+4. Repeat until complete
+
+**Impact Assessment:**
+
+| Process | Uses Log Table | Impact |
+|---------|---------------|--------|
+| QB Customer Order Integration | Yes (queries Pending) | ⚠️ Re-Process skipped |
+| WooCommerce | Writes new entries | ✅ No impact |
+| Brandwise | Writes new entries | ✅ No impact |
+| Commission Sync | Different type | ✅ No impact |
+
+**Status:** 🔴 Awaiting decision to proceed with batch processing
+
+---
+
 ## Test Log: 2026-01-15 - PROD Commission Report View Missing (CRITICAL INCIDENT)
 
 **Environment:** PROD (pampabay.creatio.com)
