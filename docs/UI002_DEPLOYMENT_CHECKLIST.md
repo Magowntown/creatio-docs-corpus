@@ -1,22 +1,48 @@
 # UI-002 Deployment Checklist
 
 **Issue:** Non-Commission reports showing wrong filters in PROD
-**Fix:** Deploy v4 Minimal handler
-**Date:** 2026-01-22
+**Fix:** Deploy v10 Production handler (merged from v4+v9+VisibilityFix)
+**Date:** 2026-01-22 (Updated)
 
 ---
 
 ## Pre-Deployment Summary
 
 ### Problem
-- **Symptom:** "Sales By Line" and other non-Commission reports show Year-Month and Sales Group filters (should be hidden)
-- **Missing:** Status filter, Expand All button, date filters
-- **Root Cause:** v2 handler uses `operation: "remove"` which permanently destroys UI elements
+- **Symptom:** ALL filters showing simultaneously - no conditional visibility working
+- **Evidence:** Warning + Year-Month + Sales Group visible BEFORE selecting any report
+- **Root Cause #1:** Attribute declared as `{ "value": false }` instead of `{}` - prevents reactive binding
+- **Root Cause #2:** Two business rules with same name in different packages (Custom + BGApp_eykaguu)
+- **Root Cause #3:** No init handler to set default visibility state
 
 ### Solution
-- **v4 Minimal handler:** Non-destructive approach
-- **Design principle:** Only ADD Commission filters conditionally, never remove existing elements
-- **Verification:** Triple-checked through code analysis, package review, and Creatio docs
+- **v10 Production handler:** Merges best elements from v4 Minimal, v9 AttrFix, VisibilityFix_v2
+- **Key fixes:**
+  - Empty `{}` attribute declaration for reactive binding
+  - Init handler sets defaults: `UsrShowCommissionFilters=false`, `UsrShowDateFilters=true`
+  - Toggles BOTH Commission filters AND date filters based on selection
+  - Non-destructive (no remove operations)
+
+---
+
+## Pre-Deployment: Resolve Business Rule Conflict
+
+### Step 0: Check/Delete Custom Business Rule
+
+**Two business rules exist with same name:**
+| Package | Modified | Action |
+|---------|----------|--------|
+| Custom | 1/20/2026 | **DELETE** |
+| BGApp_eykaguu | 7/14/2025 | Keep |
+
+**Steps:**
+1. PROD → Configuration → Packages → Custom
+2. Find `BGUsrPage_ebkv9e8BusinessRule`
+3. Open and review (check for visibility rules that might conflict)
+4. **Delete** the Custom version
+5. Compile Custom package
+
+**Why:** Custom package rules can override handler logic. The newer Custom rule may be setting visibility incorrectly.
 
 ---
 
@@ -46,12 +72,12 @@ https://pampabay.creatio.com/0/ClientApp/#/ClientUnitSchemaDesigner/561d9dd4-8bf
 
 ---
 
-### Step 3: Replace with v4 Minimal Handler
+### Step 3: Replace with v10 Production Handler
 
 1. Select all code in the schema designer
-2. Paste contents of: `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_Hybrid_v4_Minimal.js`
+2. Paste contents of: `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_v10_Production.js`
 
-**File location:** `/home/magown/creatio-report-fix/client-module/BGApp_eykaguu_UsrPage_ebkv9e8_Hybrid_v4_Minimal.js`
+**File location:** `/home/magown/creatio-report-fix/client-module/BGApp_eykaguu_UsrPage_ebkv9e8_v10_Production.js`
 
 ---
 
@@ -173,10 +199,28 @@ request.$context.UsrShowCommissionFilters = isCommissionReport;
 
 | File | Purpose |
 |------|---------|
-| `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_Hybrid_v4_Minimal.js` | **Deploy this** |
+| `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_v10_Production.js` | **Deploy this** |
 | `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_Hybrid_v2.js` | Current PROD (broken) |
+| `client-module/BGlobalLookerStudio_UsrPage_ebkv9e8_Fixed.js` | Parent schema (if restore needed) |
 | `docs/REPORT_FILTER_MAPPING.md` | Filter requirements for all 18 reports |
+| `docs/UI002_FIX_CATALOG.md` | Full technical catalog |
+
+---
+
+## CSP Configuration (Optional - for iframe embedding)
+
+If you want Looker Studio dashboards to work in iframes instead of new tabs:
+
+1. System Designer → Security → Content Security Policy
+2. Enable "Log violations" mode first
+3. Trusted sources → Add: `https://lookerstudio.google.com`
+4. Associate with directives: `child-src`, `frame-ancestors`
+5. Test iframe embedding
+6. Enable "Block" mode if working
+
+**Note:** Requires Creatio 8.1.2+ and admin access.
 
 ---
 
 *Created: 2026-01-22*
+*Updated: 2026-01-22 - v10 handler (merged v4+v9+VisibilityFix)*
