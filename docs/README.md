@@ -1,79 +1,55 @@
 # Documentation Index
 
-> **Last Updated:** 2026-01-20
-> **Primary Document:** `../CLAUDE.md` (start there)
+**Brain:** See `/CLAUDE.md` for the central hub with active issues, quick deploy, and AI instructions.
 
-## Active Documentation
+## Directory Structure
 
-| Document | Purpose | Last Updated |
-|----------|---------|--------------|
-| **CLAUDE.md** (root) | Main status, issues, session logs | 2026-01-20 |
-| **TEST_LOG.md** | All test results | 2026-01-20 |
-| **EMAIL_BGLOBAL_REPORT_ISSUES.md** | Email to BGlobal about current blockers | 2026-01-20 |
+```
+docs/
+├── logs/           # Session logs, action logs, test logs
+├── issues/         # Issue-specific investigation & fixes
+├── investigation/  # Deep technical analysis
+├── reference/      # System knowledge & catalogs
+├── deployment/     # Deployment guides & checklists
+├── communication/  # Emails, meeting notes, summaries
+├── qb-sync/        # QuickBooks sync documentation
+└── archive/        # Older/completed docs
+```
 
-## Current Issues Reference
+## Quick Start
 
-| Document | Issue |
-|----------|-------|
-| `EMAIL_BGLOBAL_REPORT_ISSUES.md` | CSP-001, LOOKER-001, RPT-004, DATA-002 |
-| `QB_TEAM_ACTION_REQUIRED.md` | DATA-002: Commission data gap |
-| `QB_TEAM_EMAIL_DRAFT.md` | Email template for QB team |
+| Need | Location |
+|------|----------|
+| **Current status** | `/CLAUDE.md` |
+| **Latest session** | `logs/SESSION_LOG_20260129.md` |
+| **Report catalog** | `reference/MASTER_CATALOG.md` |
+| **Handler versions** | `reference/HANDLER_VERSION_HISTORY.md` |
+| **Filter requirements** | `reference/REPORT_FILTER_REQUIREMENTS.md` |
+| **Full investigation** | `investigation/COMPREHENSIVE_INVESTIGATION_SUMMARY.md` |
 
-## Technical Reference
+## Each Directory Has a README
 
-| Document | Topic |
-|----------|-------|
-| `CLAUDE_REFERENCE.md` | API patterns, deployment steps |
-| `CREATIO_REPORT_SYSTEM_ANALYSIS.md` | Report system architecture |
-| `CREATIO_HANDLER_INSTRUCTIONS.md` | Handler development guide |
-| `IW_COMMISSION_STRATEGY.md` | IW_Commission implementation |
-
-## Investigation Reports
-
-| Document | Investigation |
-|----------|--------------|
-| `INVESTIGATION_PAYMENT_STATUS.md` | DATA-001: PaymentStatusId analysis |
-| `INVESTIGATION_SUMMARY_20260119.md` | January 19 findings |
-| `USRPAGE_CONFLICT_ANALYSIS.md` | SYNC-002: Page conflict analysis |
-| `REPORT_BUTTON_INVESTIGATION.md` | Root cause analysis |
-| `REPORT_FILTER_FIX_REQUIRED.md` | Filter fix requirements |
-
-## Process Documentation
-
-| Document | Process |
-|----------|---------|
-| `QB_SYNC_AUTOMATION.md` | QuickBooks sync automation |
-| `SYNC_003_BATCH_PROCESSING.md` | 20K record limit workaround |
-| `PROD_DEPLOYMENT_PLAN.md` | Production deployment steps |
-| `VIEW_DEPLOYMENT_PREVENTION.md` | View deployment issues |
-
-## Historical / Reference
-
-| Document | Notes |
-|----------|-------|
-| `CLAUDE_HISTORY.md` | Change history |
-| `ACTION_LOG.md` | Action timeline |
-| `ACTION_PLAN.md` | Priority queue |
-| `PACKAGE_COMPARISON.md` | Package analysis |
-| `RALPH_PACKAGE_ANALYSIS.md` | Package deep dive |
-| `CRAWL_NEXT_SESSION.md` | Crawler notes |
-| `CREATIO_ACADEMY_STRUCTURE.md` | Academy docs structure |
-
-## Status Documents
-
-| Document | Purpose |
-|----------|---------|
-| `CURRENT_STATUS.md` | Quick status summary |
-| `QUICK_REFERENCE.md` | Quick commands |
-| `COMMISSION_FIX_COMPLETE.md` | Commission fix completion |
+Every subdirectory contains a `README.md` with a table of contents for that section.
 
 ## Reading Order for New AI Sessions
 
-1. **Start:** `../CLAUDE.md` - Full context
-2. **Test results:** `TEST_LOG.md`
-3. **Current blockers:** `EMAIL_BGLOBAL_REPORT_ISSUES.md`
-4. **Technical details:** `CLAUDE_REFERENCE.md`
+1. **Start:** `/CLAUDE.md` - Full context, active issues, quick deploy
+2. **Current session:** `logs/SESSION_LOG_20260129.md`
+3. **If investigating:** `investigation/COMPREHENSIVE_INVESTIGATION_SUMMARY.md`
+4. **If deploying:** `deployment/` folder
+5. **Technical details:** `reference/CLAUDE_REFERENCE.md`
 
-## Note on File Dates
+## File Count by Category
 
-Many documents may have older modification dates but contain historical context that's still relevant. Always cross-reference with `CLAUDE.md` session logs for the most current status.
+| Directory | Files | Purpose |
+|-----------|-------|---------|
+| `logs/` | 9 | Chronological history |
+| `issues/` | 14 | Issue-specific docs |
+| `investigation/` | 13 | Deep analysis |
+| `reference/` | 20 | System knowledge |
+| `deployment/` | 7 | Deployment guides |
+| `communication/` | 8 | Emails/summaries |
+| `qb-sync/` | 8 | QB integration |
+| `archive/` | 5 | Historical |
+
+**Total:** 84 markdown files, organized for quick AI context loading.

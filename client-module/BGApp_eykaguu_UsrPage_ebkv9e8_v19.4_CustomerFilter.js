@@ -1,0 +1,665 @@
+/**
+ * UsrPage_ebkv9e8 - v19.4 Customer Filter
+ * Package: BGApp_eykaguu
+ *
+ * BASED ON: Working v19.1 code (deployed to PROD)
+ *
+ * v19.4 ADDITIONS:
+ * - FIX Issue 3: Added Customer filter for "Items by Customer" report
+ * - Uses lookupListConfig for Customer (new attribute, not bound to page entity)
+ * - Sends CustomerId to backend (backend already updated to support this)
+ *
+ * KNOWN LIMITATIONS:
+ * - Issue 1 (Expand All): NOT FIXABLE - This is a Looker Studio feature
+ * - Issue 2 (Sales Group cascade): NOT IMPLEMENTED - Requires server-side view changes
+ *   The Sales Group dropdown shows ALL groups. Filtering by YearMonth would require
+ *   intercepting crt.LoadDataRequest which can break other lookups.
+ *
+ * VISIBILITY RULES:
+ * | Report Type          | Commission Filters | Date+Status Filters | Customer Filter | Action         |
+ * |----------------------|-------------------|---------------------|-----------------|----------------|
+ * | None selected        | Hidden            | Hidden              | Hidden          | -              |
+ * | Commission           | VISIBLE           | Hidden              | Hidden          | Excel          |
+ * | Items by Customer    | Hidden            | VISIBLE             | VISIBLE         | Excel          |
+ * | Non-Commission Excel | Hidden            | VISIBLE             | Hidden          | Excel          |
+ * | Looker Studio        | Hidden            | VISIBLE             | Hidden          | New Tab+Params |
+ */
+define("UsrPage_ebkv9e8", /**SCHEMA_DEPS*/["@creatio-devkit/common"]/**SCHEMA_DEPS*/, function/**SCHEMA_ARGS*/(sdk)/**SCHEMA_ARGS*/ {
+
+    // ================================================================
+    // HELPER FUNCTIONS
+    // ================================================================
+
+    function getBpmcsrf() {
+        var value = "; " + document.cookie;
+        var parts = value.split("; BPMCSRF=");
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return "";
+    }
+
+    // Format date as YYYY-MM-DD for Looker params
+    function formatDateForLooker(dateValue) {
+        if (!dateValue) return null;
+        var d = new Date(dateValue);
+        if (isNaN(d.getTime())) return null;
+        var year = d.getFullYear();
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + day;
+    }
+
+    // Build Looker Studio URL params
+    function buildLookerParams(context) {
+        var param = '?params=%7B"ds0.additionalFilters":';
+        var filters = [];
+        var attrs = context.attributes || {};
+
+        if (attrs.CreatedFrom) {
+            var createdfrom = formatDateForLooker(attrs.CreatedFrom);
+            if (createdfrom) filters.push('CreatedOn ge datetime' + "'" + createdfrom + "'");
+        }
+        if (attrs.CreatedTo) {
+            var createdto = formatDateForLooker(attrs.CreatedTo);
+            if (createdto) filters.push('CreatedOn le datetime' + "'" + createdto + "'");
+        }
+        if (attrs.ShippingFrom) {
+            var shippingfrom = formatDateForLooker(attrs.ShippingFrom);
+            if (shippingfrom) filters.push('BGShipDate ge datetime' + "'" + shippingfrom + "'");
+        }
+        if (attrs.ShippingTo) {
+            var shippingto = formatDateForLooker(attrs.ShippingTo);
+            if (shippingto) filters.push('BGShipDate le datetime' + "'" + shippingto + "'");
+        }
+        if (attrs.DeliveryFrom) {
+            var deliveryfrom = formatDateForLooker(attrs.DeliveryFrom);
+            if (deliveryfrom) filters.push('BGDeliveryDate ge datetime' + "'" + deliveryfrom + "'");
+        }
+        if (attrs.DeliveryTo) {
+            var deliveryto = formatDateForLooker(attrs.DeliveryTo);
+            if (deliveryto) filters.push('BGDeliveryDate le datetime' + "'" + deliveryto + "'");
+        }
+
+        var status = attrs.LookupAttribute_tytkx09;
+        if (status && status.displayValue && status.displayValue !== "All") {
+            filters.push("contains(BGStatus, '" + status.displayValue + "')");
+        }
+
+        var theme = attrs.LookupAttribute_4ufq0og;
+        if (theme && theme.displayValue) {
+            filters.push("contains(BGTheme, '" + theme.displayValue + "')");
+        }
+
+        var salesRep = attrs.LookupAttribute_houdnx9;
+        if (salesRep && salesRep.displayValue) {
+            filters.push("contains(BGSalesRep, '" + salesRep.displayValue + "')");
+        }
+
+        var customerType = attrs.LookupAttribute_c4ubvuy;
+        if (customerType && customerType.displayValue) {
+            filters.push("contains(BGCustomerType, '" + customerType.displayValue + "')");
+        }
+
+        // Include Customer filter for Looker reports if set
+        var customerName = attrs.UsrCustomerName;
+        if (customerName && customerName.length > 0) {
+            filters.push("contains(BGAccount, '" + customerName + "')");
+        }
+
+        if (filters.length > 0) {
+            param = param + '"' + filters.join(' and ') + '","ds0.top":"1000000"%7D';
+        } else {
+            param = param + '"","ds0.top":"1000000"%7D';
+        }
+
+        return param;
+    }
+
+    return {
+        viewConfigDiff: /**SCHEMA_VIEW_CONFIG_DIFF*/[
+            // ================================================================
+            // HIDE PARENT'S REPORT DROPDOWN (we insert our own)
+            // ================================================================
+            {
+                "operation": "merge",
+                "name": "GridContainer_oshnwh8",
+                "values": {
+                    "visible": false
+                }
+            },
+
+            // ================================================================
+            // HIDE THE IFRAME CONTAINER
+            // ================================================================
+            {
+                "operation": "merge",
+                "name": "GridContainer_fh039aq",
+                "values": {
+                    "visible": false
+                }
+            },
+
+            // ================================================================
+            // DATE FILTERS CONTAINER - Bind to attribute for dynamic visibility
+            // ================================================================
+            {
+                "operation": "merge",
+                "name": "GridContainer_xdy25v1",
+                "values": {
+                    "visible": "$UsrShowDateStatusFilters"
+                }
+            },
+
+            // ================================================================
+            // STATUS FILTER CONTAINER - Bind to attribute for dynamic visibility
+            // ================================================================
+            {
+                "operation": "merge",
+                "name": "GridContainer_knkow5v",
+                "values": {
+                    "visible": "$UsrShowDateStatusFilters"
+                }
+            },
+
+            // ================================================================
+            // WIRE GENERATE BUTTON TO OUR HANDLER
+            // ================================================================
+            {
+                "operation": "merge",
+                "name": "Button_vae0g6x",
+                "values": {
+                    "visible": true,
+                    "clicked": {
+                        "request": "usr.GenerateReportRequest"
+                    }
+                }
+            },
+
+            // ================================================================
+            // INSERT: Report selector container (always visible)
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGReportContainer",
+                "values": {
+                    "type": "crt.GridContainer",
+                    "columns": ["minmax(32px, 1fr)", "minmax(32px, 1fr)"],
+                    "rows": "minmax(max-content, 32px)",
+                    "gap": { "columnGap": "large", "rowGap": "none" },
+                    "items": [],
+                    "fitContent": true,
+                    "visible": true,
+                    "color": "transparent",
+                    "borderRadius": "none",
+                    "padding": { "top": "none", "right": "none", "bottom": "none", "left": "none" }
+                },
+                "parentName": "MainContainer",
+                "propertyName": "items",
+                "index": 0
+            },
+
+            // ================================================================
+            // INSERT: Report dropdown
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGPampaReport",
+                "values": {
+                    "type": "crt.ComboBox",
+                    "label": "Report",
+                    "labelPosition": "auto",
+                    "control": "$LookupAttribute_0as4io2",
+                    "listActions": [],
+                    "showValueAsLink": true,
+                    "controlActions": [],
+                    "placeholder": "Select a report...",
+                    "layoutConfig": { "column": 1, "row": 1, "colSpan": 1, "rowSpan": 1 },
+                    "visible": true,
+                    "tooltip": ""
+                },
+                "parentName": "BGReportContainer",
+                "propertyName": "items",
+                "index": 0
+            },
+
+            // ================================================================
+            // INSERT: Warning label (Commission only)
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGWarningLabel",
+                "values": {
+                    "type": "crt.Label",
+                    "caption": "Commission data is derived from QuickBooks synced payment records.",
+                    "labelType": "placeholder",
+                    "labelThickness": "default",
+                    "labelEllipsis": false,
+                    "labelColor": "#D2310D",
+                    "labelBackgroundColor": "transparent",
+                    "labelTextAlign": "center",
+                    "visible": "$UsrShowCommissionFilters"
+                },
+                "parentName": "MainContainer",
+                "propertyName": "items",
+                "index": 1
+            },
+
+            // ================================================================
+            // INSERT: Commission filters container (conditional)
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGCommissionFiltersContainer",
+                "values": {
+                    "type": "crt.GridContainer",
+                    "columns": ["minmax(32px, 1fr)", "minmax(32px, 1fr)"],
+                    "rows": "minmax(max-content, 32px)",
+                    "gap": { "columnGap": "large", "rowGap": "none" },
+                    "items": [],
+                    "fitContent": true,
+                    "visible": "$UsrShowCommissionFilters",
+                    "color": "transparent",
+                    "borderRadius": "none",
+                    "padding": { "top": "none", "right": "none", "bottom": "none", "left": "none" }
+                },
+                "parentName": "MainContainer",
+                "propertyName": "items",
+                "index": 2
+            },
+
+            // ================================================================
+            // INSERT: Year-Month filter
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGYearMonth",
+                "values": {
+                    "type": "crt.ComboBox",
+                    "label": "Year-Month",
+                    "labelPosition": "auto",
+                    "control": "$UsrYearMonth",
+                    "listActions": [],
+                    "showValueAsLink": true,
+                    "controlActions": [],
+                    "placeholder": "Select month...",
+                    "layoutConfig": { "column": 1, "row": 1, "colSpan": 1, "rowSpan": 1 },
+                    "visible": true,
+                    "tooltip": "Required for Commission reports"
+                },
+                "parentName": "BGCommissionFiltersContainer",
+                "propertyName": "items",
+                "index": 0
+            },
+
+            // ================================================================
+            // INSERT: Sales Group filter
+            // NOTE: Shows ALL groups. Cascade filtering requires server changes.
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGSalesGroup",
+                "values": {
+                    "type": "crt.ComboBox",
+                    "label": "Sales Group",
+                    "labelPosition": "auto",
+                    "control": "$UsrSalesGroup",
+                    "listActions": [],
+                    "showValueAsLink": true,
+                    "controlActions": [],
+                    "placeholder": "Select group...",
+                    "layoutConfig": { "column": 2, "row": 1, "colSpan": 1, "rowSpan": 1 },
+                    "visible": true,
+                    "tooltip": "Optional filter",
+                    "mode": "List"
+                },
+                "parentName": "BGCommissionFiltersContainer",
+                "propertyName": "items",
+                "index": 1
+            },
+
+            // ================================================================
+            // INSERT: Customer filter container (for "Items by Customer" report)
+            // v19.4 ADDITION
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGCustomerFilterContainer",
+                "values": {
+                    "type": "crt.GridContainer",
+                    "columns": ["minmax(32px, 1fr)", "minmax(32px, 1fr)"],
+                    "rows": "minmax(max-content, 32px)",
+                    "gap": { "columnGap": "large", "rowGap": "none" },
+                    "items": [],
+                    "fitContent": true,
+                    "visible": "$UsrShowCustomerFilter",
+                    "color": "transparent",
+                    "borderRadius": "none",
+                    "padding": { "top": "none", "right": "none", "bottom": "none", "left": "none" }
+                },
+                "parentName": "MainContainer",
+                "propertyName": "items",
+                "index": 3
+            },
+
+            // ================================================================
+            // INSERT: Customer name input (text field - searches by name)
+            // v19.4 ADDITION - Using Input instead of ComboBox for simplicity
+            // ================================================================
+            {
+                "operation": "insert",
+                "name": "BGCustomerInput",
+                "values": {
+                    "type": "crt.Input",
+                    "label": "Customer Name",
+                    "labelPosition": "auto",
+                    "control": "$UsrCustomerName",
+                    "placeholder": "Enter customer name to filter...",
+                    "layoutConfig": { "column": 1, "row": 1, "colSpan": 1, "rowSpan": 1 },
+                    "visible": true,
+                    "tooltip": "Type customer name (partial match supported)"
+                },
+                "parentName": "BGCustomerFilterContainer",
+                "propertyName": "items",
+                "index": 0
+            }
+        ]/**SCHEMA_VIEW_CONFIG_DIFF*/,
+
+        viewModelConfigDiff: /**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/[
+            {
+                "operation": "merge",
+                "path": ["attributes"],
+                "values": {
+                    "UsrShowCommissionFilters": {
+                        "value": false
+                    },
+                    "UsrShowDateStatusFilters": {
+                        "value": false
+                    },
+                    "UsrShowCustomerFilter": {
+                        "value": false
+                    },
+                    "UsrYearMonth": {
+                        "modelConfig": {
+                            "path": "UsrEntity_e7ac661DS.BGYearMonth"
+                        }
+                    },
+                    "UsrSalesGroup": {
+                        "modelConfig": {
+                            "path": "UsrEntity_e7ac661DS.BGSalesGroup"
+                        }
+                    },
+                    "UsrSalesGroup_List": {
+                        "isCollection": true,
+                        "modelConfig": {
+                            "sortingConfig": {
+                                "default": [{"columnName": "BGSalesGroupName", "direction": "asc"}]
+                            }
+                        }
+                    },
+                    "UsrCustomerName": {
+                        "value": ""
+                    }
+                }
+            }
+        ]/**SCHEMA_VIEW_MODEL_CONFIG_DIFF*/,
+
+        modelConfigDiff: /**SCHEMA_MODEL_CONFIG_DIFF*/[]/**SCHEMA_MODEL_CONFIG_DIFF*/,
+
+        handlers: /**SCHEMA_HANDLERS*/[
+            // ================================================================
+            // PAGE INIT - Log initialization
+            // ================================================================
+            {
+                request: "crt.HandleViewModelInitRequest",
+                handler: async (request, next) => {
+                    await next?.handle(request);
+                    console.log("[v19.4] Page init - customer filter support enabled");
+                    return;
+                }
+            },
+
+            // ================================================================
+            // REPORT SELECTION - Update visibility attributes based on report type
+            // ================================================================
+            {
+                request: "crt.HandleViewModelAttributeChangeRequest",
+                handler: async (request, next) => {
+                    if (request.attributeName === "LookupAttribute_0as4io2" && !request.silent) {
+                        const selectedReport = await request.$context.LookupAttribute_0as4io2;
+
+                        if (selectedReport && selectedReport.displayValue && selectedReport.value) {
+                            const reportName = selectedReport.displayValue.toLowerCase();
+                            const isCommissionReport = reportName.includes("commission");
+                            const isItemsByCustomer = reportName.includes("items by customer");
+
+                            // Check if report has Looker URL
+                            let reportUrl = "";
+                            try {
+                                const bpmcsrf = getBpmcsrf();
+                                const metaUrl = "/0/odata/UsrReportesPampa(" + selectedReport.value + ")?$select=UsrURL";
+                                const resp = await fetch(metaUrl, {
+                                    method: "GET",
+                                    headers: { "Content-Type": "application/json", "BPMCSRF": bpmcsrf }
+                                });
+                                if (resp.ok) {
+                                    const meta = await resp.json();
+                                    if (meta && typeof meta.UsrURL !== 'undefined') {
+                                        reportUrl = meta.UsrURL || "";
+                                    }
+                                }
+                            } catch (e) {
+                                console.log("[v19.4] Error checking report URL:", e);
+                            }
+
+                            const isLookerReport = reportUrl && reportUrl.length > 0;
+
+                            // Clear filter values when switching reports
+                            request.$context.UsrYearMonth = null;
+                            request.$context.UsrSalesGroup = null;
+                            request.$context.UsrCustomerName = "";
+
+                            // Apply visibility rules
+                            if (isCommissionReport) {
+                                request.$context.UsrShowCommissionFilters = true;
+                                request.$context.UsrShowDateStatusFilters = false;
+                                request.$context.UsrShowCustomerFilter = false;
+                                console.log("[v19.4] Report:", selectedReport.displayValue, "| Type: COMMISSION");
+
+                            } else if (isItemsByCustomer) {
+                                // Items by Customer: Show date+status AND customer filter
+                                request.$context.UsrShowCommissionFilters = false;
+                                request.$context.UsrShowDateStatusFilters = true;
+                                request.$context.UsrShowCustomerFilter = true;
+                                console.log("[v19.4] Report:", selectedReport.displayValue, "| Type: ITEMS_BY_CUSTOMER | Customer filter VISIBLE");
+
+                            } else if (isLookerReport) {
+                                request.$context.UsrShowCommissionFilters = false;
+                                request.$context.UsrShowDateStatusFilters = true;
+                                request.$context.UsrShowCustomerFilter = false;
+                                console.log("[v19.4] Report:", selectedReport.displayValue, "| Type: LOOKER");
+
+                            } else {
+                                request.$context.UsrShowCommissionFilters = false;
+                                request.$context.UsrShowDateStatusFilters = true;
+                                request.$context.UsrShowCustomerFilter = false;
+                                console.log("[v19.4] Report:", selectedReport.displayValue, "| Type: EXCEL");
+                            }
+                        } else {
+                            request.$context.UsrShowCommissionFilters = false;
+                            request.$context.UsrShowDateStatusFilters = false;
+                            request.$context.UsrShowCustomerFilter = false;
+                            console.log("[v19.4] No report selected | All filters hidden");
+                        }
+                    }
+                    return next?.handle(request);
+                }
+            },
+
+            // ================================================================
+            // REPORT GENERATION
+            // ================================================================
+            {
+                request: "usr.GenerateReportRequest",
+                handler: async (request, next) => {
+                    const context = request.$context;
+                    const selectedReport = await context.LookupAttribute_0as4io2;
+
+                    if (!selectedReport || !selectedReport.value) {
+                        Terrasoft.showErrorMessage("Please select a report");
+                        return next?.handle(request);
+                    }
+
+                    const pampaReportId = selectedReport.value;
+                    let reportDisplayName = selectedReport.displayValue || "";
+                    const bpmcsrf = getBpmcsrf();
+
+                    // Fetch report metadata
+                    let reportUrl = "";
+                    let reportCode = "";
+                    try {
+                        const reportMetaUrl = "/0/odata/UsrReportesPampa(" + pampaReportId + ")?$select=Id,Name,UsrURL,UsrCode";
+                        const reportMetaResp = await fetch(reportMetaUrl, {
+                            method: "GET",
+                            headers: { "Content-Type": "application/json", "BPMCSRF": bpmcsrf }
+                        });
+                        if (reportMetaResp.ok) {
+                            const reportMeta = await reportMetaResp.json();
+                            if (reportMeta) {
+                                reportDisplayName = reportMeta.Name || reportDisplayName;
+                                reportUrl = (typeof reportMeta.UsrURL !== 'undefined') ? (reportMeta.UsrURL || "") : "";
+                                reportCode = (typeof reportMeta.UsrCode !== 'undefined') ? (reportMeta.UsrCode || "") : "";
+                            }
+                        }
+                    } catch (e) {
+                        console.log("[v19.4] Metadata lookup failed:", e);
+                    }
+
+                    // LOOKER STUDIO - Open in new tab WITH URL PARAMS
+                    if (reportUrl && reportUrl.length > 0) {
+                        var params = buildLookerParams(context);
+                        var fullUrl = reportUrl + params;
+                        console.log("[v19.4] Opening Looker Studio:", fullUrl);
+                        window.open(fullUrl, "_blank");
+                        Terrasoft.showInformation("Report opened in new tab");
+                        return next?.handle(request);
+                    }
+
+                    // EXCEL PATH
+                    console.log("[v19.4] Generating Excel report:", reportDisplayName);
+
+                    const emptyGuid = "00000000-0000-0000-0000-000000000000";
+                    var yearMonthId = emptyGuid;
+                    var salesGroupId = emptyGuid;
+                    var customerId = emptyGuid;
+
+                    // Get Commission filter values
+                    if (reportDisplayName.toLowerCase().includes("commission")) {
+                        try {
+                            const yearMonth = await context.UsrYearMonth;
+                            if (yearMonth && yearMonth.value) yearMonthId = yearMonth.value;
+                        } catch (e) {}
+                        try {
+                            const salesGroup = await context.UsrSalesGroup;
+                            if (salesGroup && salesGroup.value) salesGroupId = salesGroup.value;
+                        } catch (e) {}
+                    }
+
+                    // Get Customer filter value (for "Items by Customer" and similar reports)
+                    // Search for Account by name if customer name is provided
+                    try {
+                        const customerName = await context.UsrCustomerName;
+                        if (customerName && customerName.length > 0) {
+                            console.log("[v19.4] Searching for customer:", customerName);
+                            // Search Account by name (exact or contains match)
+                            const escapedName = customerName.replace(/'/g, "''");
+                            const accountUrl = "/0/odata/Account?$filter=contains(Name,'" + escapedName + "')&$select=Id,Name&$top=1";
+                            const accountResp = await fetch(accountUrl, {
+                                method: "GET",
+                                headers: { "Content-Type": "application/json", "BPMCSRF": bpmcsrf }
+                            });
+                            if (accountResp.ok) {
+                                const accountData = await accountResp.json();
+                                if (accountData.value && accountData.value.length > 0) {
+                                    customerId = accountData.value[0].Id;
+                                    console.log("[v19.4] Found customer:", accountData.value[0].Name, "| ID:", customerId);
+                                } else {
+                                    console.log("[v19.4] No customer found matching:", customerName);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log("[v19.4] Customer search error:", e);
+                    }
+
+                    // Find IntExcelReport template
+                    var intExcelReportId = null;
+                    try {
+                        var escapeName = function(s) { return s.replace(/'/g, "''"); };
+                        var odataUrl = "/0/odata/IntExcelReport?$filter=" +
+                            "(IntName eq '" + escapeName(reportDisplayName) + "'" +
+                            " or IntName eq 'Rpt " + escapeName(reportDisplayName) + "'" +
+                            " or IntName eq '" + escapeName(reportCode) + "'" +
+                            " or IntName eq 'Rpt " + escapeName(reportCode) + "')" +
+                            "&$select=Id,IntName&$top=1";
+                        const odataResponse = await fetch(odataUrl, {
+                            method: "GET",
+                            headers: { "Content-Type": "application/json", "BPMCSRF": bpmcsrf }
+                        });
+                        const odataResult = await odataResponse.json();
+                        if (odataResult.value && odataResult.value.length > 0) {
+                            intExcelReportId = odataResult.value[0].Id;
+                            console.log("[v19.4] Found template:", odataResult.value[0].IntName);
+                        } else {
+                            Terrasoft.showErrorMessage("Excel template not found for: " + reportDisplayName);
+                            return next?.handle(request);
+                        }
+                    } catch (e) {
+                        Terrasoft.showErrorMessage("Error finding template: " + e.message);
+                        return next?.handle(request);
+                    }
+
+                    // Generate Excel report
+                    try {
+                        Terrasoft.showInformation("Generating Excel report...");
+                        const response = await fetch("/0/rest/UsrExcelReportService/Generate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "BPMCSRF": bpmcsrf },
+                            body: JSON.stringify({
+                                ReportId: intExcelReportId,
+                                YearMonthId: yearMonthId,
+                                SalesRepId: salesGroupId,
+                                CustomerId: customerId
+                            })
+                        });
+                        const result = await response.json();
+                        console.log("[v19.4] Excel service response:", result);
+
+                        if (result.success && result.key) {
+                            var downloadUrl = "/0/rest/UsrExcelReportService/GetReport/" +
+                                result.key + "/" + encodeURIComponent(reportDisplayName || "Report");
+                            var iframe = document.getElementById("reportDownloadFrame");
+                            if (!iframe) {
+                                iframe = document.createElement("iframe");
+                                iframe.id = "reportDownloadFrame";
+                                iframe.style.display = "none";
+                                document.body.appendChild(iframe);
+                            }
+                            iframe.src = downloadUrl;
+                            Terrasoft.showInformation("Download starting...");
+                        } else {
+                            var errorMsg = result.message || result.errorMessage || "Unknown error";
+                            Terrasoft.showErrorMessage("Failed: " + errorMsg);
+                        }
+                    } catch (error) {
+                        console.error("[v19.4] Error:", error);
+                        Terrasoft.showErrorMessage("Error: " + error.message);
+                    }
+
+                    return next?.handle(request);
+                }
+            }
+        ]/**SCHEMA_HANDLERS*/,
+
+        converters: /**SCHEMA_CONVERTERS*/{}/**SCHEMA_CONVERTERS*/,
+        validators: /**SCHEMA_VALIDATORS*/{}/**SCHEMA_VALIDATORS*/
+    };
+});

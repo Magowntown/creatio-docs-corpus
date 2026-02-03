@@ -1,0 +1,54 @@
+-- BGSalesByItemView - DEV Deployment Script
+-- Fixes:
+--   1. Employee JOIN (eliminates 26x duplicate rows)
+--   2. Adds BGProductDescription column
+-- Date: 2026-01-30
+--
+-- NOTE: Must DROP first because we're adding a new column (BGProductDescription)
+-- PostgreSQL doesn't allow adding columns with CREATE OR REPLACE VIEW
+
+-- Step 1: DROP the existing view
+DROP VIEW IF EXISTS "BGSalesByItemView" CASCADE;
+
+-- Step 2: CREATE the fixed view with all columns
+CREATE VIEW "BGSalesByItemView" AS
+SELECT
+    o."Id",
+    o."CreatedOn",
+    o."CreatedById",
+    o."ModifiedOn",
+    o."ModifiedById",
+    o."ProcessListeners",
+    o."Number" AS "BGNumber",
+    o."BGPONumber",
+    o."BGShipDate",
+    o."BGDeliveryDate",
+    op."Price" AS "BGPrice",
+    op."TotalAmount" AS "BGAmount",
+    p."Name" AS "BGItem",
+    p."Description" AS "BGProductDescription",  -- NEW COLUMN
+    op."Quantity" AS "BGQuantity",
+    ac."Name" AS "BGCustomer",
+    os."Name" AS "BGStatus",
+    sg."BGSalesGroupName" AS "BGSalesGroup",
+    e."Name" AS "BGSalesRep"
+FROM "Order" o
+JOIN "Account" ac ON (o."AccountId" = ac."Id")
+JOIN "OrderStatus" os ON (o."StatusId" = os."Id")
+JOIN "BGSalesGroup" sg ON (o."BGSalesGroupId" = sg."Id")
+LEFT JOIN "Employee" e ON (o."BGSalesRepLookupId" = e."Id")  -- FIXED JOIN
+JOIN "OrderProduct" op ON (op."OrderId" = o."Id")
+JOIN "Product" p ON (p."Id" = op."ProductId")
+WHERE o."BGOrderTypeId" = '154d3407-9d8c-49c2-84cd-e85afeb8d55a'::uuid
+  AND sg.* IS NOT NULL
+  AND os."Id" IN (
+    '29fa66e3-ef69-4feb-a5af-ec1de125a614',
+    '40de86ee-274d-4098-9b92-9ebdcf83d4fc',
+    '8ab0f830-908b-40d7-80a3-7f49ef70ce70'
+  );
+
+-- Step 3: Verify the view was created
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'BGSalesByItemView'
+ORDER BY ordinal_position;

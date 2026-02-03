@@ -170,3 +170,122 @@ For dynamic visibility in Freedom UI child schemas affecting parent elements:
 - `docs/HANDLER_VERSION_HISTORY.md` - Complete version history
 - `docs/REPORT_FILTER_MAPPING.md` - Filter requirements per report
 - `docs/REPORT_TESTING_CHECKLIST.md` - Testing matrix
+
+---
+
+## Session Part 2: v19 Development & Exhaustive Audit
+
+**Continuation:** 2026-01-23 (later same day)
+**Focus:** v19 Looker fix + Pre-deployment investigation
+
+### Issue Identified
+
+After v18 deployment, discovered Looker reports behavior:
+- v18 hides ALL filters for Looker reports (treated them like "view-only")
+- Looker Studio actually NEEDS date/status filters to build URL params
+- Looker URLs should include query parameters for filtering
+
+### v19 Changes Created
+
+**File:** `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_v19_LookerFix.js`
+
+| Change | v18 Behavior | v19 Behavior |
+|--------|-------------|--------------|
+| Looker filters | Hidden | **Show date+status** |
+| Looker URL | Base URL only | **URL + params from filters** |
+
+**Key Code:**
+```javascript
+// v19 visibility logic
+if (isCommissionReport) {
+    request.$context.UsrShowCommissionFilters = true;
+    request.$context.UsrShowDateStatusFilters = false;
+} else if (isLookerReport) {
+    // v19 FIX: Show date+status for Looker
+    request.$context.UsrShowCommissionFilters = false;
+    request.$context.UsrShowDateStatusFilters = true;
+} else {
+    // Non-Commission Excel
+    request.$context.UsrShowCommissionFilters = false;
+    request.$context.UsrShowDateStatusFilters = true;
+}
+
+// v19 URL building
+var params = buildLookerParams(context);
+var fullUrl = reportUrl + params;
+window.open(fullUrl, "_blank");
+```
+
+---
+
+### Exhaustive Package Search
+
+Launched 4 parallel agents to scan PROD comprehensively:
+
+| Agent | Search Scope | Key Findings |
+|-------|-------------|--------------|
+| Package Scanner | All 13 packages | 9 primary + 4 additional |
+| Report References | UsrPage_ebkv9e8 mentions | Found in BGApp + BGlobalLookerStudio |
+| Business Rules | AddonSchemaManager | Only 1 exists (BGApp_eykaguu) |
+| Service/API | Report services | UsrExcelReportService + BGIntExcelReportService2 |
+
+**Additional Packages Found:**
+1. PampaBay2025 - Product page extensions
+2. PampaBayBrandwise - Brandwise integration
+3. BpmonlineCloudIntegration - Email/cloud (no reports)
+4. IWQBIntegration - DEV-only (OrderPageV2 override)
+
+---
+
+### Business Rule Investigation ✅
+
+**Concern:** Documentation mentioned duplicate `BGUsrPage_ebkv9e8BusinessRule` in Custom package.
+
+**Investigation Script:** `scripts/investigation/fetch_business_rule_v2.py`
+
+**Results:**
+
+| Search | Target | Result |
+|--------|--------|--------|
+| UId `60ed3410...` | BGApp_eykaguu original | ✅ EXISTS |
+| UId `e42d1bec...` | Custom duplicate | ❌ **NOT FOUND** |
+| Custom package schemas | Any | ❌ **EMPTY** |
+
+**Conclusion:** **NO DUPLICATE EXISTS** - Custom package has no schemas at all.
+v19 can be safely deployed without business rule conflict risk.
+
+---
+
+### Files Created This Session (Part 2)
+
+| File | Purpose |
+|------|---------|
+| `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_v19_LookerFix.js` | v19 with Looker URL params |
+| `docs/V19_DEPLOYMENT_GUIDE.md` | v19 deployment steps |
+| `scripts/investigation/fetch_business_rule.py` | Business rule fetcher |
+| `scripts/investigation/fetch_business_rule_v2.py` | Enhanced multi-search version |
+| `docs/PROD_PACKAGE_AUDIT.md` | Updated with investigation results |
+| `docs/ADDITIONAL_REPORT_INFLUENCES.md` | Updated with findings |
+
+---
+
+### Updated Current State
+
+**Handler Versions:**
+- v18: Current PROD (DEV verified)
+- v19: Ready for deployment (Looker URL params fix)
+
+**Pre-Deployment Checks:**
+- [x] Business rule conflict investigation - **CLEAR**
+- [x] Package audit complete (13 packages)
+- [ ] Deploy v19 to DEV
+- [ ] Verify Looker URL params working
+- [ ] Deploy v19 to PROD
+
+### Next Session Actions
+
+1. Deploy v19 to DEV environment
+2. Verify Looker reports show date+status filters
+3. Verify Looker URL includes params (check new tab URL)
+4. Deploy v19 to PROD
+5. Address remaining blockers (SYNC-004, IW-001)
