@@ -1,8 +1,35 @@
 # IWQBIntegration - Team Instructions
 
-**Date:** 2026-01-30
+**Date:** 2026-01-30 (Updated: 2026-02-03)
 **Package:** IWQBIntegration v8.3.2.4199
-**Status:** ✅ Ready for PROD Import (with configuration)
+**Status:** 🔴 **BLOCKED** - Missing dependency in PROD
+
+---
+
+## ⚠️ CRITICAL: Dependency Required (Discovered 2026-02-03)
+
+**IWInterWeavePaymentApp is NOT installed in PROD.** This must be imported FIRST.
+
+| Package | DEV | PROD | Action |
+|---------|-----|------|--------|
+| PampaBay | ✅ | ✅ | None |
+| PampaBayQuickBooks | ✅ | ✅ | None |
+| **IWInterWeavePaymentApp** | ✅ | ❌ | **Export from DEV, import to PROD first** |
+| IWQBIntegration | ✅ | ❌ | Import after dependency |
+
+### Pre-Requisite: Import IWInterWeavePaymentApp
+
+**Before starting the procedure below:**
+
+1. Go to DEV: `https://dev-pampabay.creatio.com/0/ClientApp/#/WorkspaceExplorer/`
+2. Navigate to: Configuration → Packages → IWInterWeavePaymentApp
+3. Right-click → Export package
+4. Save as: `IWInterWeavePaymentApp_YYYYMMDD.zip`
+5. Go to PROD: `https://pampabay.creatio.com/0/ClientApp/#/WorkspaceExplorer/`
+6. Navigate to: Configuration → Install from file
+7. Select the exported zip
+8. Compile the package
+9. **Then proceed with IWQBIntegration import below**
 
 ---
 
@@ -16,6 +43,91 @@ This document provides step-by-step instructions for importing the IWQBIntegrati
 - PROD admin access
 - Database backup capability
 - Access to Configuration section
+- **IWInterWeavePaymentApp already imported to PROD** (see above)
+
+---
+
+## Phase 0: DEV Readiness Verification (REQUIRED FIRST)
+
+**Before exporting to PROD, verify the package is correctly configured in DEV.**
+
+### 0.1 DEV Package Verification
+
+| Item | Expected | Verified |
+|------|----------|----------|
+| IWQBIntegration package exists | ✅ v8.3.2.4199 | ☐ |
+| IWInterWeavePaymentApp exists | ✅ | ☐ |
+| 25 IW columns on Order entity | ✅ | ☐ |
+
+### 0.2 DEV Process Configuration (CRITICAL)
+
+Navigate to: `DEV → System Designer → Process Library → Search "IWCalculateCommission"`
+
+| Process | Required State | Verified |
+|---------|----------------|----------|
+| IWCalculateCommissiononPaymentV2 | ✅ **ACTIVE** | ☐ |
+| IWCalculateCommissiononPayment (V1) | ⬜ Inactive | ☐ |
+| IWCalculateCommissiononPaymentIWQBIntegrationV3 | ⬜ **MUST BE INACTIVE** (26x cascade risk!) | ☐ |
+| IWCalculateCommissiononPaymentCustomV4 | ⬜ Inactive | ☐ |
+
+**⚠️ WARNING:** If V3 is active, it triggers on ANY Order modification and causes 26x duplicate entries. See `IWQBINTEGRATION_DEEP_DIVE_ANALYSIS.md` for details.
+
+### 0.3 DEV System Settings
+
+Navigate to: `DEV → System Designer → System Settings → Search "IWEnable"`
+
+| Setting | Required Value | Exists | Verified |
+|---------|----------------|--------|----------|
+| IWEnableCommissionV3 | **false** | ☐ Create if missing | ☐ |
+| IWEnableCommissionV4 | **false** | ☐ Create if missing | ☐ |
+| IWCalcInvoicePaymentsAmountWithProcess | true/false (verify) | ✅ In package | ☐ |
+
+**To create missing settings:**
+1. System Designer → System Settings → Add
+2. Code: `IWEnableCommissionV3`
+3. Name: `Enable Commission V3`
+4. Type: Boolean
+5. Default Value: **false**
+6. Repeat for `IWEnableCommissionV4`
+
+### 0.4 DEV Functional Test
+
+Before exporting, test commission calculation in DEV:
+
+1. Find an Order with Payments: `Orders → Filter by "Has Payments"`
+2. Edit a Payment amount
+3. Verify:
+   - Commission recalculated (check Payment record)
+   - Only ONE process execution (check Process Log)
+   - No 26x duplicate entries
+
+### 0.5 Export Packages from DEV
+
+**Only after all above checks pass:**
+
+1. Export `IWInterWeavePaymentApp`:
+   ```
+   DEV → Configuration → IWInterWeavePaymentApp → Export
+   Save as: IWInterWeavePaymentApp_YYYYMMDD.zip
+   ```
+
+2. Export `IWQBIntegration`:
+   ```
+   DEV → Configuration → IWQBIntegration → Export
+   Save as: IWQBIntegration_YYYYMMDD.zip
+   ```
+
+### 0.6 Phase 0 Sign-Off
+
+| Check | Completed | Date | By |
+|-------|-----------|------|-----|
+| Process V2 active, others inactive | ☐ | | |
+| System settings created/verified | ☐ | | |
+| Functional test passed | ☐ | | |
+| IWInterWeavePaymentApp exported | ☐ | | |
+| IWQBIntegration exported | ☐ | | |
+
+**Proceed to Phase 1 only after Phase 0 is complete.**
 
 ---
 

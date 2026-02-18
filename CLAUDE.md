@@ -1,7 +1,7 @@
 # CLAUDE.md - Creatio Reports Fix
 
-> **Status:** ✅ **RPT-009 & RPT-010 FIXED** | 📐 **BGlobal V7 Architecture Documented** | 🎯 **QB Go-Live Ready**
-> **Updated:** 2026-02-01 | **Latest Log:** `docs/logs/SESSION_LOG_20260201.md`
+> **Status:** ✅ **Reports Complete** | 🟡 **V6 Commission Process (Building)** | 🔴 **IWQBIntegration BLOCKED** | 🎯 **QB Go-Live Ready**
+> **Updated:** 2026-02-11 evening | **Latest Log:** `docs/logs/SESSION_LOG_20260210.md` | **Audit:** `docs/investigation/COMMISSION_PROCESS_AUDIT_20260205.md`
 
 ---
 
@@ -22,6 +22,7 @@
 
 | User Request Type | Start With |
 |-------------------|------------|
+| V6 Commission Process | `docs/investigation/V6_PROCESS_BUILDER_GUIDE.md` |
 | IWQBIntegration / QB Package | `docs/investigation/IWQBINTEGRATION_MASTER_CATALOG.md` |
 | Reports / Excel issues | `docs/reference/MASTER_CATALOG.md` |
 | Deployment | This file → Quick Deploy section |
@@ -71,10 +72,86 @@
 ### Session Start Checklist
 
 1. ✅ Read this CLAUDE.md (you're doing it now)
-2. ✅ Check latest session log: `docs/logs/SESSION_LOG_20260201.md`
+2. ✅ Check latest session log: `docs/logs/SESSION_LOG_20260203.md`
 3. ✅ For deep understanding: Read `docs/SHARED_UNDERSTANDING.md`
-4. ✅ For complex changes: Enter Plan mode first
-5. ✅ Before deploying: Verify with tests
+4. ✅ Review the pre-deployment checklist: `docs/reference/RISK_CHECKLIST.md`
+5. ✅ For complex changes: Enter Plan mode first
+6. ✅ Before deploying: Verify with tests
+
+### 🎯 Top Active Tasks (2026-02-11)
+
+| Rank | Task | Priority | Status | Next Action |
+|------|------|----------|--------|-------------|
+| **1** | **V6 Combined Commission Process** | 🔴 HIGH | Plan Complete | Build in Process Designer → [Builder Guide](docs/investigation/V6_PROCESS_BUILDER_GUIDE.md) |
+| **2** | IWQBIntegration PROD Import | 🔴 HIGH | Phase 0 ✅ | Export packages for PROD |
+| **3** | QB Go-Live Confirmation | 🟡 HIGH | Ready | Monitor stability, confirm with Carlos |
+| **4** | SYNC-005 Reset | 🟢 LOW | Pending | Wait for go-live, then SQL reset |
+
+### 🟡 V6 Commission Process (2026-02-11)
+
+**Plan:** Combine 3 broken processes into 1 combined `IWOrderandPaymentsSync`
+**Builder Guide:** `docs/investigation/V6_PROCESS_BUILDER_GUIDE.md`
+**Test Script:** `scripts/diagnostics/test_v6_process.py`
+**Column Verification:** `scripts/diagnostics/verify_v6_columns.py`
+
+| What | Details |
+|------|---------|
+| **Replaces** | V4 Calculator + Fill V2 Report Fields + Order Recalc V2 |
+| **Signals** | 8 (IWPayments + Order + OrderProduct add/modify/delete) |
+| **Paths** | A: Payment calculation, B1: Order→Pending, B2: OrderProduct→Pending, C: Order deleted |
+| **Elements** | 36 total (8 signals, 7 reads, 6 changes, 4 gateways, 4 formulas, 7 terminators) |
+| **Build order** | Path B1 first (tests ChangeData), then B2, C, A |
+
+**Key Risk:** ChangeData may write null columns (known Creatio 8.3 bug). Path B1 is the canary test — if it writes null, switch to Script Task fallback.
+
+**Test command:** `source .env && python3 scripts/diagnostics/test_v6_process.py`
+
+### 🔴 Commission Process Bugs (2026-02-05 Audit)
+
+**Audit:** `docs/investigation/COMMISSION_PROCESS_AUDIT_20260205.md`
+**Steps:** `v3_restructure_steps_labeled.md` (Steps 11-12)
+
+| # | Bug | Process | Fix | Status |
+|---|-----|---------|-----|--------|
+| 1 | V4 100x recursion | V4 | Remove "Payment Modified" signal (Step 11) | TODO |
+| 2 | Fill V2 ↔ V4 ping-pong | Fill V2 + V4 | Remove Fill V2's Payment Modified signal (Step 12) | TODO |
+| 3 | Fill V2 Order signal unfiltered | Fill V2 | Remove StartSignal4 from Fill V2 (Step 12) | TODO |
+| 4 | V3 IsActiveVersion=True in package | V3 | Disable V3 before any PROD import | PENDING |
+| 5 | **Order Recalc V2 never Published** | Order Recalc V2 | Open in Process Designer → **Publish** (not Compile All!) | TODO |
+| 6 | Recalculation gap | V4 + Order Recalc V2 | Add Script Task to Order Recalc V2 (Option A) | DESIGN COMPLETE |
+| 7 | V3 sets status as TEXT not GUID | V3 | Only matters if V3 activated (keep disabled) | N/A |
+
+**Priority fix order:** 5 → 1 → 2+3 → test → 6
+
+### V4 Commission Process Status (DEV)
+
+| Process | Enabled | Actual | Status | Notes |
+|---------|---------|--------|--------|-------|
+| **V4** (Payment Calculator) | ✅ | ✅ | 🔴 Recursion bug | Remove "Payment Modified" signal |
+| **Fill V2** (Report Fields) | ✅ | ✅ | 🔴 Ping-pong + unfiltered | Remove 2 signals |
+| **Order Recalc V2** (Order→Pending) | ✅ | ✅ | 🔴 Never Published | Publish from Process Designer |
+| V2 (Current) | ✅ | ❌ | Replaced by V4 | Won't execute |
+| V1 (Original) | ✅ | ❌ | Superseded | Won't execute |
+
+**Phase 0 Checklist (DEV Verification): ✅ COMPLETE**
+- [x] Verify V2 commission active ✅ **API-VERIFIED 2026-02-05**
+- [x] V1 processes not "Actual version" ✅ (V2 is Actual, V1 won't execute)
+- [x] V3/V4 not found in DEV ✅ (V4 created during this session)
+- [x] **Order Recalc V2 uses filtered trigger** ✅ **BROWSER-VERIFIED 2026-02-05**
+  - Signal: "In any of the selected fields" (NOT "In any field")
+  - Fields: Amount, Shipping Charge, Sub Total, Tax Amount, Total
+- [x] Payment process triggers on IWPayments ✅ **BROWSER-VERIFIED**
+- [ ] **Publish Order Recalc V2** from Process Designer (NOT Compile All!)
+- [ ] Test commission in DEV (verify single execution) - Manual
+- [ ] Export packages for PROD import - Manual
+
+**📋 Key Documents (2026-02-05):**
+- ✅ `docs/investigation/COMMISSION_PROCESS_AUDIT_20260205.md` - **4-agent audit results**
+- ✅ `v3_restructure_steps_labeled.md` - **Steps 1-12 implementation guide**
+- ✅ `docs/investigation/FILTERED_ORDER_TRIGGER_DESIGN.md` - Already implemented as V2
+- ✅ `docs/investigation/COMMISSION_CALCULATION_INVESTIGATION.md` - Gap analysis complete
+
+> **Reports work is HANDED OFF** to BGlobal/Rommel. Focus is now 100% on QB Integration.
 
 ### Verification Commands
 
@@ -148,18 +225,52 @@ python3 scripts/investigation/review_report_flow.py --env dev
 
 ---
 
-## 📦 IWQBIntegration Package Investigation (2026-01-30)
+## 📦 IWQBIntegration Package Import (2026-02-03)
 
-**Status:** ✅ **INVESTIGATION COMPLETE** - Ready for PROD import with configuration
+**Status:** 🔴 **BLOCKED** - DEV verification required + Missing PROD dependency
 
-### Quick Summary
+### Current Blockers
+
+| # | Blocker | Action Required | Status |
+|---|---------|-----------------|--------|
+| ~~1~~ | ~~DEV process configuration unverified~~ | ~~Verify V2 active, V3 disabled~~ | ✅ RESOLVED — API-verified 2026-02-05 |
+| ~~2~~ | ~~System settings missing~~ | ~~Create IWEnableCommissionV3=false~~ | ✅ NOT NEEDED — V3 doesn't exist in DEV |
+| 3 | **IWInterWeavePaymentApp not in PROD** | Export from DEV, import first |
+
+### Package Status
+
+| Package | DEV | PROD | Status |
+|---------|-----|------|--------|
+| PampaBay | ✅ | ✅ | OK |
+| PampaBayQuickBooks | ✅ | ✅ | OK |
+| **IWInterWeavePaymentApp** | ✅ | ❌ | **MISSING - Must import first!** |
+| IWQBIntegration | ✅ | ❌ | Target (after dependency) |
+
+### Required Steps (In Order)
+
+**Phase 0: DEV Verification** ← CURRENT (API-VERIFIED ✅)
+1. ✅ V2 commission processes are ACTIVE and set as Actual version
+2. ✅ V1 processes enabled but NOT Actual version (won't execute)
+3. ✅ V3/V4 NOT FOUND in DEV (no action needed)
+4. [ ] Test commission calculation in DEV (verify single execution)
+5. [ ] Export packages
+
+**Phase 1-7: PROD Import** (after Phase 0)
+1. Export IWInterWeavePaymentApp from DEV
+2. Import to PROD, compile
+3. Import IWQBIntegration to PROD
+4. Verify V2 is Actual version in PROD
+5. Compile and test
+
+### Quick Summary (API-Verified 2026-02-05)
 
 | Finding | Impact |
 |---------|--------|
 | NO breaking conflicts with UsrExcelReportService | ✅ Safe |
-| V3 StartSignal4 causes 26x cascade | Set `IWEnableCommissionV3=false` |
-| 4 commission versions exist | Only enable V2 |
-| Invoice race condition confirmed | 3 processes write same fields |
+| **V3/V4 NOT FOUND in DEV** | No action needed for V3/V4 |
+| **V2 is Actual version** | ✅ V1 won't execute (correct config) |
+| **Order Recalc V2 EXISTS** | `IWRecalculateCommissionOnOrderChangeV2` already deployed! |
+| Invoice race condition confirmed | Multiple processes write same fields |
 | 31 entities (10 extended + 21 created) | Order is CRITICAL |
 
 ### Documents (Start Here)
@@ -182,12 +293,23 @@ SELECT column_name FROM information_schema.columns
 WHERE table_name = 'Order' AND column_name LIKE '%SalesTax%';
 ```
 
+### Process UIds (API-Verified 2026-02-05)
+
+| Process | UId | Actual Ver | Executes |
+|---------|-----|------------|----------|
+| IWCalculateCommissiononPayment (V1) | c2623b8a-338e-4adb-afbe-cb76b68368d9 | ❌ | No |
+| **IWCalculateCommissiononPaymentV2** | 8cdd4845-4b27-45cd-9907-e9cc478bc3c5 | ✅ | **Yes** |
+| IWRecalculateCommissionOnOrderChange (V1) | 04e376c2-3452-4786-88d9-faf096c98ec6 | ❌ | No |
+| **IWRecalculateCommissionOnOrderChangeV2** | 3c425afe-3ee8-4d38-baf2-a30de552bd94 | ✅ | **Yes** |
+
+**Note:** V1 processes being "Enabled" doesn't matter - only Actual version executes.
+
 | Setting | Required Value |
 |---------|----------------|
-| Commission Version | V2 only (disable V1, V3, V4) |
-| Tax Process | V2 only (disable V1) |
-| IWEnableCommissionV3 | **false** |
-| IWEnableCommissionV4 | **false** |
+| Commission Version | V2 is Actual ✅ |
+| Order Recalc V2 | V2 is Actual ✅ |
+| IWEnableCommissionV3 | Not needed (V3 doesn't exist) |
+| IWEnableCommissionV4 | Not needed (V4 doesn't exist) |
 
 ---
 
@@ -376,6 +498,10 @@ docs/
 11. **IntName mismatch discovered (2026-01-29):** MASTER_CATALOG has different IntName values than actual database. Always verify via API.
 12. **Route by report name FIRST (2026-01-30):** IntEsq rootSchemaName can be wrong (legacy data). Always check report name before entity schema when routing reports.
 13. **VBA anchor variable pattern bug (2026-01-30):** BGlobal's nested While loops reset anchor variables inside the loop, causing infinite loops. Fix: move anchor reset BEFORE the While, remove resets inside loop.
+14. **Process "Actual version" vs "Enabled" (2026-02-05):** In Creatio, a process can be Enabled but only the one marked as "Actual version" executes. Multiple versions can be Enabled simultaneously - only Actual version matters.
+15. **"Publish" ≠ "Compile All" (2026-02-05):** "Publish" from Process Designer generates C# code, compiles, **registers start signals**, and clears NeedUpdate flags. "Compile All" from Configuration only recompiles existing generated code — does NOT generate new code or register signals. A process that was never Published will have NeedUpdateSourceCode=True, NeedUpdateStructure=True, NeedInstall=True and its signals won't fire.
+16. **Unfiltered signals are dangerous (2026-02-05):** A signal with `DZ12=[]` (empty NewEntityChangedColumns) fires on ANY field change. Fill V2's Order signal has no filter — fires on every Order modification. Always verify signal column filters via metadata API.
+17. **Creatio formula lookup syntax (2026-02-10):** In Process Designer conditional flow formulas, reference lookup values using `[#Lookup.EntityName.DisplayValue.GUID#]` format, NOT `Guid("...")`. Example: `[#Lookup.IW Commission Status.Pending.930bb1c6-ca67-4ac0-8f96-a5ea4018a366#]`. `Guid.Empty` and `||` are both valid.
 
 </details>
 
@@ -409,6 +535,8 @@ Most missing commission data is due to unpaid invoices in QuickBooks.
 
 | Purpose | Script |
 |---------|--------|
+| **V6 process test** | `scripts/diagnostics/test_v6_process.py` |
+| **V6 column verify** | `scripts/diagnostics/verify_v6_columns.py` |
 | API baseline | `scripts/testing/test_report_service.py` |
 | Items by Customer | `scripts/testing/test_items_by_customer.py` |
 | Dynamic filters | `scripts/testing/test_commission_dynamic_filters.py` |

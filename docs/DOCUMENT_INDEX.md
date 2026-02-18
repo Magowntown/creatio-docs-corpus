@@ -1,8 +1,8 @@
 # Document Index
 
 **Purpose:** Complete listing of all documentation with descriptions and relationships.
-**Updated:** 2026-02-01
-**Total Documents:** 112
+**Updated:** 2026-02-05
+**Total Documents:** 113
 
 ---
 
@@ -31,6 +31,8 @@
 | `IWQBINTEGRATION_CONSOLIDATED_FINDINGS.md` | Agent Results | 6 parallel investigation findings |
 | `IWQBINTEGRATION_NEXT_STEPS.md` | Recommendations | 5 improvements, suggested investigations |
 | `IWQBINTEGRATION_INVESTIGATION_LOG.md` | Timeline | Full investigation methodology and status |
+| `COMMISSION_CALCULATION_INVESTIGATION.md` | Commission Analysis | V2/V3 gap analysis, entity relationships |
+| `FILTERED_ORDER_TRIGGER_DESIGN.md` | **Implementation Design** | Filtered Order trigger for V2, subprocess spec |
 
 **Relationships:**
 ```
@@ -77,6 +79,10 @@ IWQBINTEGRATION_SUMMARY.md (quick read)
 | Document | Purpose | Key Content |
 |----------|---------|-------------|
 | `CLAUDE_CODE_WORKFLOW.md` | How to Work | Boris Cherny method, Plan mode |
+| `RISK_CHECKLIST.md` | Pre-Deployment Checklist | Common risks and edge cases to test |
+| `RESOURCE_INVENTORY.md` | **All Available Resources** | 17GB resources: C:\Creatio, crawled docs, packages |
+| `CREATIO_ARCHITECTURE_DEEP_DIVE.md` | **Platform Architecture** | How Creatio operates internally |
+| `CREATIO_SDK_REFERENCE.md` | **TypeScript SDK Guide** | @creatio-devkit/common decorators, services, patterns |
 
 ---
 

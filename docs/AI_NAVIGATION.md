@@ -1,7 +1,60 @@
 # AI Navigation Guide
 
 **Purpose:** Enable any AI assistant to quickly locate relevant documentation based on user requests.
-**Updated:** 2026-01-30
+**Updated:** 2026-02-05
+
+---
+
+## 🎯 Quick Reference Card
+
+> **Ultra-compact navigation** - Use this section for instant lookup. Detailed scenarios below.
+
+### By Task (One-Line Lookup)
+
+| Task | Start Here |
+|------|------------|
+| **What's the status?** | `/CLAUDE.md` |
+| **IWQBIntegration import** | `investigation/IWQBINTEGRATION_TEAM_INSTRUCTIONS.md` |
+| **Report issues** | `reference/MASTER_CATALOG.md` |
+| **QB sync issues** | `qb-sync/QB_SYNC_AUTOMATION.md` |
+| **Frontend/SDK** | `reference/CREATIO_SDK_REFERENCE.md` |
+| **Find a file** | `reference/RESOURCE_INVENTORY.md` |
+| **Deploy something** | `/CLAUDE.md` → Quick Deploy section |
+| **Session history** | `logs/SESSION_LOG_20260203.md` |
+
+### Key SDK Patterns (Copy-Paste Ready)
+
+```typescript
+// Module bootstrap
+bootstrapCrtModule('pkg', AppModule, { resolveDependency: t => injector.get(t) });
+
+// View element
+@CrtViewElement({ selector: 'usr-my', type: 'usr.My' })
+
+// Data access
+const model = await sdk.Model.create('Contact');
+const items = await model.load({ Name: 'John' });
+```
+
+### Critical Gotchas
+
+| Gotcha | Rule |
+|--------|------|
+| WCF dates | Use `/Date(ms)/` not ISO 8601 |
+| Customer filter | Must be LOOKUP, never text |
+| Data sources | Only ONE per Freedom UI page |
+| V3 commission | Keep DISABLED (26x cascade bug) |
+
+### File Locations
+
+| Resource | Path |
+|----------|------|
+| Backend service | `source-code/UsrExcelReportService_Updated.cs` |
+| Frontend handler | `client-module/BGApp_eykaguu_UsrPage_ebkv9e8_v54_FlatObject.js` |
+| SDK types | `node_modules/@creatio-devkit/common/index.d.ts` |
+| Freedom UI template | `FreedomUIProjectTemplate_v5/` |
+| Academy code examples | `creatio-docs-full/code/` (1,496 dirs) |
+| Package analysis | `investigation/IWQBIntegration/full_content.txt` |
 
 ---
 
@@ -66,7 +119,7 @@
 | "False processed orders" / "SYNC-005" | `CLAUDE.md` (SYNC-005 section) |
 | "Commission sync" | `docs/qb-sync/QB_SYNC_AUTOMATION.md` |
 
-### 🖥️ Frontend / UI
+### 🖥️ Frontend / UI / SDK
 
 | User Might Say | Load These Documents (in order) |
 |----------------|--------------------------------|
@@ -74,7 +127,13 @@
 | "Infinite loading" / "UI-006" | `CLAUDE.md` (UI-006 section) |
 | "Customer filter" / "lookup" | `docs/reference/HANDLER_VERSION_HISTORY.md` (v54) |
 | "Looker Studio" / "iframe" | `CLAUDE.md` (CSP-001) |
-| "Freedom UI" | `docs/reference/CLAUDE_REFERENCE.md` |
+| "Freedom UI" | `docs/reference/CLAUDE_REFERENCE.md` → `docs/reference/CREATIO_SDK_REFERENCE.md` |
+| "TypeScript SDK" / "@creatio-devkit" | `docs/reference/CREATIO_SDK_REFERENCE.md` |
+| "CrtModule" / "CrtViewElement" | `docs/reference/CREATIO_SDK_REFERENCE.md` (Decorators section) |
+| "Model service" / "data access" | `docs/reference/CREATIO_SDK_REFERENCE.md` (Model section) |
+| "Custom component" / "Angular component" | `docs/reference/CREATIO_SDK_REFERENCE.md` → `FreedomUIProjectTemplate_v5.zip` |
+| "Request handler" / "handler chain" | `docs/reference/CREATIO_SDK_REFERENCE.md` (Handler Chain Pattern) |
+| "Creatio architecture" / "how Creatio works" | `docs/reference/CREATIO_ARCHITECTURE_DEEP_DIVE.md` |
 
 ### 📋 Deployment
 
@@ -91,7 +150,7 @@
 | User Might Say | Load These Documents (in order) |
 |----------------|--------------------------------|
 | "Investigate" / "debug" / "find issue" | `CLAUDE.md` → `docs/investigation/COMPREHENSIVE_INVESTIGATION_SUMMARY.md` |
-| "Session history" / "what happened" | `docs/logs/SESSION_LOG_20260130.md` → `docs/logs/SESSION_HISTORY.md` |
+| "Session history" / "what happened" | `docs/logs/SESSION_LOG_20260203.md` → `docs/logs/SESSION_HISTORY.md` |
 | "Test results" | `docs/logs/TEST_LOG.md` |
 | "All issues" / "issue tracker" | `CLAUDE.md` (Issue Tracker section) |
 
@@ -112,7 +171,7 @@
 
 Load in this order:
 1. `CLAUDE.md` - Current status, active issues, quick deploy
-2. Latest session log - `docs/logs/SESSION_LOG_20260130.md`
+2. Latest session log - `docs/logs/SESSION_LOG_20260203.md`
 3. Specific docs based on user's first request
 
 ### When User Asks About Specific Issue
@@ -252,4 +311,4 @@ CLAUDE.md (entry point)
 
 ---
 
-*AI Navigation Guide - Updated 2026-01-30*
+*AI Navigation Guide - Updated 2026-02-05*
