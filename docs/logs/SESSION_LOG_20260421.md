@@ -194,3 +194,97 @@ Bruce spoke with Dmytro directly. Key outcomes captured in Bruce's notes:
 - **Dmytro's turn**: Flip config tonight 5 PM+
 - **Danlyn's turn**: Verify tomorrow AM
 - **Post-tonight**: Edit-prevention listener proposal pending Dmytro's greenlight
+
+---
+
+## Evening reframe (22:50–23:30 UTC)
+
+### Dmytro halted invoice testing — "weird total issue"
+
+22:50 UTC email, exact text:
+> Correction. I will not switch to Create and Update schema in delete/insert mode until we get weird total issue resolved. We may not need any switching at all... It has Price $52, Discount 20%, Quantity 2 and Total $208. How is this possible? 52×2=104. 104−20%=83.20. That is the total in QB... I stopped any invoice testing until this is responded. Switching to payment flow.
+
+**My 4/21 AM log analysis was wrong.** The "Delete/Create fixes the 21 stale records" framing assumed OrderProduct.Price was being pushed correctly. It isn't. The divergence between Creatio Order.Amount and OrderProduct line math is structural, not stale-state.
+
+### Root cause (diagnosed from package source)
+
+Read `packages/PampaBayVer2_latest/extracted/Resources/OrderProduct.Entityesource.en-US.xml` — OrderProduct has THREE custom pricing columns in addition to native Price:
+
+| Column | Caption | Meaning |
+|---|---|---|
+| `Price` | Price | Wholesale/cost per unit (what middleware defaults to) |
+| `BGBuyerPrice` | Buyer Price | Wholesale line rate |
+| `BGCustomerPrice` | Customer Price | **Retail line rate (customer-facing)** |
+| `BGFinalPrice` | Final Price | Discounted retail |
+| `BGAmountWithDiscount` | Amount with Discount | Line total post-discount |
+| `TotalAmount` | Total | Native: `Price × Qty × (1-Disc%)` |
+
+And Order entity (`Order.Entityesource.en-US.xml`):
+- `Amount` captioned **"Total, $"** — the header total
+
+Per `BGOrder_FormPage.js` bindings: the standard OrderProduct grid shows only `Price / Quantity / DiscountPercent / TotalAmount`. The BG* pricing columns exist in schema but aren't rendered on the default form — they are **import-layer tracking fields** likely populated by WooCommerce/Brandwise webhooks.
+
+**Math reconciliation on Dmytro's example:**
+- Creatio Order.Amount = $208 (set by WC webhook = what Auth.Net charged)
+- OrderProduct.Price = $52 (wholesale cost)
+- OrderProduct.Quantity = 2
+- OrderProduct.DiscountPercent = 20
+- Native `TotalAmount` = 52 × 2 × 0.8 = **$83.20** ← middleware pulls this
+- Implied retail per Auth.Net: $208 / 2 qty = $104/unit post-discount → $130/unit pre-discount
+- Wholesale/retail ratio: $52 / $130 = **0.40** — exact match to the ratio flagged in `PAMPABAY_EXPORT_INVESTIGATION_2026-04-01.md`
+
+**The two totals never reconcile** because Order.Amount isn't recomputed from OrderProduct line math — it's imported from the WC cart. Both are "correct" for their purpose: Order.Amount is customer-facing retail, OrderProduct.Price is wholesale for internal margin tracking.
+
+### Danlyn's 23:10 response — workflow rule rejected
+
+Exact text:
+> Orders are often edited after they are invoiced and therefore sent to QB. This is a natural part of business we cannot change.
+
+Plus:
+> item cost is showing up as the price
+>
+> all payments up until 4/17 have been manually applied on QB
+
+Danlyn's "item cost is showing up as the price" is the **same root cause as Dmytro's $208/$83.20** — different observation angle. The `Price` column literally is the item cost (wholesale). Pushing it to QB = cost-priced invoices.
+
+Her "orders are edited after invoicing" is a hard business constraint. Edit-prevention cannot be a rule. Architecture must accommodate legitimate post-invoice edits and surface them for Danlyn to reconcile via QB-side credit memos.
+
+Her "all payments up until 4/17 have been manually applied on QB" narrows bulk-load scope — anything pre-4/17 is already in QB manually. Dmytro scaled his bulk-load window to 4/18+ after seeing this.
+
+### Also resolves "product name is broken"
+
+Dmytro's separate observation. Per `PAMPABAY_EXPORT_INVESTIGATION_2026-04-01.md` line 37: *"Discount % appended to product description instead of applied as line discount"* (e.g., `"Large Oval Platter - 15% Discount"`). WC import concatenates discount into the product name suffix rather than writing numeric DiscountPercent. This is a second WC import quirk, separate from the wholesale/retail mismatch.
+
+### Fix paths for middleware pricing (ordered by ease)
+
+1. **Config-only** — Invoice config Row 15 = `BGCustomerPrice`. Requires data audit first: verify WC webhook populates BGCustomerPrice on historical orders. If nulls, need backfill.
+2. **Derived column** — Add `IWInvoiceLineRate` to OrderProduct: `Price × (Order.Amount / Σ(Price × Qty × (1-Disc%)))`. Scales wholesale proportionally to match retail total. Middleware Row 15 → `IWInvoiceLineRate`. Clean math, line detail preserved, no WC dependency.
+3. **Single-line invoice** — Middleware emits 1 line per invoice: rate = Order.Amount / Σ(Qty), generic description. Loses SKU detail, guaranteed retail-correct.
+4. **WC backfill** — Change webhook paths to write OrderProduct.Price = retail, rely on DiscountPercent. Breaks internal cost tracking unless a new cost column is added.
+
+### Revised plan for tonight
+
+- Payments flow turn-on: **proceeds**
+- Bulk-load window: **4/18+** (was 4/02+)
+- Invoice Delete/Create flip: **deferred** — waiting on Dmytro's Row 15 mapping decision
+- Tomorrow AM: Danlyn confirms payments arriving in QB
+- **Next email to Dmytro**: point at the 3 pricing columns (BGCustomerPrice / BGFinalPrice / BGAmountWithDiscount) and ask which is populated by the WC path — gives him a concrete Row 15 target
+
+### Other developments
+
+- Andrew got **InterWeave middleware platform credentials from Alex**. Can log in directly next session instead of screenshot relay.
+- **Refund reconciliation rule promoted to durable memory** (`feedback_pampabay_edit_after_push_refund.md`) — check Auth.Net R-suffix rows before blaming staff edits.
+
+---
+
+## Continued overnight — see `SESSION_LOG_20260422.md`
+
+Pivoted from "change Row 15 config" to **Option B: add derived column `IWInvoiceLineRate` on OrderProduct**. All pre-flight checks passed; blueprint at `reference/OPTION_B_IWINVOICELINERATE_BLUEPRINT.md`; unsent email draft at `docs-corpus/docs/communication/DMYTRO_EMAIL_DRAFT_OPTION_B_UNSENT.md`.
+
+Key delta from this afternoon's understanding:
+- Divergent order count: 15 → **22** (Danlyn missed 8)
+- WCId range: 38812-38858 → **38808-38858**
+- Fix approach: middleware config change → **Creatio-side derived column + listener**
+- Coverage: 22 orders → **29 orders fixed by Option B + Delete/Create re-push** (includes 64625-29 and 64493)
+
+Nothing pushed to PROD overnight. Plan documented; waiting on Dmytro approval in the morning.

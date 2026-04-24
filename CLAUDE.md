@@ -1,7 +1,7 @@
 # CLAUDE.md - Creatio Reports Fix
 
-> **Status:** ✅ **Reports Complete** | 🟡 **V6 Commission Process (Building)** | 🔴 **IWQBIntegration BLOCKED** | 🎯 **QB Go-Live Ready**
-> **Updated:** 2026-02-11 evening | **Latest Log:** `docs/logs/SESSION_LOG_20260210.md` | **Audit:** `docs/investigation/COMMISSION_PROCESS_AUDIT_20260205.md`
+> **Status:** ✅ **Commission Report v3 DEPLOYED** | ✅ **Auth.net Inbound ACTIVE** (381 txns, 250 Ready4QB) | ✅ **QB File Repaired 4/14** | ✅ **IWTransactionAutoPair listener LIVE (4/17)** | ✅ **IWTransactionReady4QBListener LIVE (4/22)** | ✅ **IWOrderProductInvoiceLineRateListener LIVE (4/22)** | ✅ **Inbound QB→Creatio payments flowing (4/23, 377 IWPayments/48h)** | ⏳ **Outbound Creatio→QB choking on tax-amount mismatches** — TR-02150 ($298.55 vs INV 66318 amount-due $280) first confirmed rejection; awaiting QB-side reads from Alex on INV 66318 tax calc + TR-00126 triple-split application history
+> **Updated:** 2026-04-23 | **Latest Log:** `docs/logs/SESSION_LOG_20260423.md` | **TR-02150 Ref:** `~/.claude/projects/-home-magown-creatio-hub/memory/reference_pampabay_tr02150_qodbc_tax_rejection.md`
 
 ---
 
@@ -78,14 +78,24 @@
 5. ✅ For complex changes: Enter Plan mode first
 6. ✅ Before deploying: Verify with tests
 
-### 🎯 Top Active Tasks (2026-02-11)
+### 🎯 Top Active Tasks (2026-04-07)
 
 | Rank | Task | Priority | Status | Next Action |
 |------|------|----------|--------|-------------|
-| **1** | **V6 Combined Commission Process** | 🔴 HIGH | Plan Complete | Build in Process Designer → [Builder Guide](docs/investigation/V6_PROCESS_BUILDER_GUIDE.md) |
-| **2** | IWQBIntegration PROD Import | 🔴 HIGH | Phase 0 ✅ | Export packages for PROD |
-| **3** | QB Go-Live Confirmation | 🟡 HIGH | Ready | Monitor stability, confirm with Carlos |
-| **4** | SYNC-005 Reset | 🟢 LOW | Pending | Wait for go-live, then SQL reset |
+| **1** | **Order Export to QB (718 backlog)** | 🔴 CRITICAL | BROKEN since March 1 | Dmytro must fix Creatio→QB flow. Flagged 4/7. |
+| **2** | **Bulk Load Second Pass** | 🔴 HIGH | Proposed, not agreed | Dmytro: TimeModified + RefNum >= 7797 for pre-2/18 invoices |
+| **3** | **Commission Report Reconciliation** | 🟡 HIGH | First pass data ready | Danlyn to reconcile PROD report against internal numbers |
+| **4** | Product Price Gaps CSV to Danlyn | 🟡 MEDIUM | Ready in Downloads | Attach to next Danlyn email |
+| **5** | Alitcha QB Linking | 🟢 LOW | Requested | Dmytro to link BGQuickBooksId |
+
+### Previous Tasks (2026-02-11, mostly superseded)
+
+| Rank | Task | Priority | Status | Next Action |
+|------|------|----------|--------|-------------|
+| **1** | **V6 Combined Commission Process** | 🟡 | Plan Complete | Build in Process Designer → [Builder Guide](docs/investigation/V6_PROCESS_BUILDER_GUIDE.md) |
+| **2** | IWQBIntegration PROD Import | 🔴 | Phase 0 ✅ | Export packages for PROD |
+| **3** | QB Go-Live Confirmation | 🟡 | Ready | Monitor stability, confirm with Carlos |
+| **4** | SYNC-005 Reset | 🟢 | Pending | Wait for go-live, then SQL reset |
 
 ### 🟡 V6 Commission Process (2026-02-11)
 
@@ -117,7 +127,7 @@
 | 2 | Fill V2 ↔ V4 ping-pong | Fill V2 + V4 | Remove Fill V2's Payment Modified signal (Step 12) | TODO |
 | 3 | Fill V2 Order signal unfiltered | Fill V2 | Remove StartSignal4 from Fill V2 (Step 12) | TODO |
 | 4 | V3 IsActiveVersion=True in package | V3 | Disable V3 before any PROD import | PENDING |
-| 5 | **Order Recalc V2 never Published** | Order Recalc V2 | Open in Process Designer → **Publish** (not Compile All!) | TODO |
+| 5 | **Order Recalc V2 never Saved in Designer** | Order Recalc V2 | Open in Process Designer → **Save** (not Compile All!) | TODO |
 | 6 | Recalculation gap | V4 + Order Recalc V2 | Add Script Task to Order Recalc V2 (Option A) | DESIGN COMPLETE |
 | 7 | V3 sets status as TEXT not GUID | V3 | Only matters if V3 activated (keep disabled) | N/A |
 
@@ -129,7 +139,7 @@
 |---------|---------|--------|--------|-------|
 | **V4** (Payment Calculator) | ✅ | ✅ | 🔴 Recursion bug | Remove "Payment Modified" signal |
 | **Fill V2** (Report Fields) | ✅ | ✅ | 🔴 Ping-pong + unfiltered | Remove 2 signals |
-| **Order Recalc V2** (Order→Pending) | ✅ | ✅ | 🔴 Never Published | Publish from Process Designer |
+| **Order Recalc V2** (Order→Pending) | ✅ | ✅ | 🔴 Never Saved in Designer | Save from Process Designer |
 | V2 (Current) | ✅ | ❌ | Replaced by V4 | Won't execute |
 | V1 (Original) | ✅ | ❌ | Superseded | Won't execute |
 
@@ -141,7 +151,7 @@
   - Signal: "In any of the selected fields" (NOT "In any field")
   - Fields: Amount, Shipping Charge, Sub Total, Tax Amount, Total
 - [x] Payment process triggers on IWPayments ✅ **BROWSER-VERIFIED**
-- [ ] **Publish Order Recalc V2** from Process Designer (NOT Compile All!)
+- [ ] **Save Order Recalc V2** in Process Designer (NOT just Compile All!)
 - [ ] Test commission in DEV (verify single execution) - Manual
 - [ ] Export packages for PROD import - Manual
 
@@ -152,6 +162,14 @@
 - ✅ `docs/investigation/COMMISSION_CALCULATION_INVESTIGATION.md` - Gap analysis complete
 
 > **Reports work is HANDED OFF** to BGlobal/Rommel. Focus is now 100% on QB Integration.
+> **Exception: COMM-001 Commission View Fix** — DEPLOYED v3 2026-04-03. `CommissionBySalesRepVw` updated:
+> - Added `PaymentDate` (IWPayments.IWPaymentDue) and `SalesGroup` (BGSalesGroup.BGSalesGroupName) columns
+> - Added system columns (Id, CreatedOn, etc.) for OData/ESQ compatibility
+> - `CommissionReportService.cs` now filters by `PaymentDate` instead of `InvoiceDate`
+> - Dashboard "Export Sales Commissions" button wired through — no JS changes needed
+> - Rommel (e6Solutions) notified of ReportTool package changes
+> - Data incomplete (27 Feb records) — Alex Umanets assigned to run QBInvoices2CreatioDRS bulk load (2/18 to today, batch 20)
+> - Full investigation: `~/creatio-hub/reference/PAMPABAY_EXPORT_INVESTIGATION_2026-04-01.md`
 
 ### Verification Commands
 
@@ -337,6 +355,7 @@ WHERE table_name = 'Order' AND column_name LIKE '%SalesTax%';
 
 | ID | Issue | Resolution |
 |----|-------|------------|
+| **COMM-001** | Commission report all $0.00 (BGTotalMaster dead) | `CommissionBySalesRepVw` v3 deployed 2026-04-03: PaymentDate + SalesGroup columns, service filters by PaymentDate. Pending bulk load for full data. |
 | **RPT-009** | "Sales By Item By Type Of Customer" VBA infinite loop | VBA anchor variable fix (v2) |
 | **RPT-010** | "Rpt Sales By Item" showing wrong columns | Backend routing order fix |
 | RPT-008 | "Items by Customer" VBA Type mismatch | BGItemsByCustomerView routing |
@@ -499,7 +518,7 @@ docs/
 12. **Route by report name FIRST (2026-01-30):** IntEsq rootSchemaName can be wrong (legacy data). Always check report name before entity schema when routing reports.
 13. **VBA anchor variable pattern bug (2026-01-30):** BGlobal's nested While loops reset anchor variables inside the loop, causing infinite loops. Fix: move anchor reset BEFORE the While, remove resets inside loop.
 14. **Process "Actual version" vs "Enabled" (2026-02-05):** In Creatio, a process can be Enabled but only the one marked as "Actual version" executes. Multiple versions can be Enabled simultaneously - only Actual version matters.
-15. **"Publish" ≠ "Compile All" (2026-02-05):** "Publish" from Process Designer generates C# code, compiles, **registers start signals**, and clears NeedUpdate flags. "Compile All" from Configuration only recompiles existing generated code — does NOT generate new code or register signals. A process that was never Published will have NeedUpdateSourceCode=True, NeedUpdateStructure=True, NeedInstall=True and its signals won't fire.
+15. **"Save" in Process Designer ≠ "Compile All" (corrected 2026-03-04):** The Business Process Designer does **NOT** have a "Publish" button — only **"Save"**. Clicking **Save** in Process Designer generates C# code, compiles, and **registers start signals**. "Compile All" from Configuration only recompiles existing generated code — does NOT register new signals. "Generate Source Code" from Configuration compiles the process class but may not register signal subscriptions. A process imported via package but never opened and **Saved** in Process Designer may not have its signals registered.
 16. **Unfiltered signals are dangerous (2026-02-05):** A signal with `DZ12=[]` (empty NewEntityChangedColumns) fires on ANY field change. Fill V2's Order signal has no filter — fires on every Order modification. Always verify signal column filters via metadata API.
 17. **Creatio formula lookup syntax (2026-02-10):** In Process Designer conditional flow formulas, reference lookup values using `[#Lookup.EntityName.DisplayValue.GUID#]` format, NOT `Guid("...")`. Example: `[#Lookup.IW Commission Status.Pending.930bb1c6-ca67-4ac0-8f96-a5ea4018a366#]`. `Guid.Empty` and `||` are both valid.
 
