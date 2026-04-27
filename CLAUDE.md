@@ -1,7 +1,7 @@
 # CLAUDE.md - Creatio Reports Fix
 
-> **Status:** ✅ **Commission Report v3 DEPLOYED** | ✅ **Auth.net Inbound ACTIVE** (381 txns, 250 Ready4QB) | ✅ **QB File Repaired 4/14** | ✅ **IWTransactionAutoPair listener LIVE (4/17)** | ✅ **IWTransactionReady4QBListener LIVE (4/22)** | ✅ **IWOrderProductInvoiceLineRateListener LIVE (4/22)** | ✅ **Inbound QB→Creatio payments flowing (4/23, 377 IWPayments/48h)** | ⏳ **Outbound Creatio→QB choking on tax-amount mismatches** — TR-02150 ($298.55 vs INV 66318 amount-due $280) first confirmed rejection; awaiting QB-side reads from Alex on INV 66318 tax calc + TR-00126 triple-split application history
-> **Updated:** 2026-04-23 | **Latest Log:** `docs/logs/SESSION_LOG_20260423.md` | **TR-02150 Ref:** `~/.claude/projects/-home-magown-creatio-hub/memory/reference_pampabay_tr02150_qodbc_tax_rejection.md`
+> **Status:** ✅ **Commission Report v3 DEPLOYED** | ✅ **Auth.net Inbound ACTIVE** | ✅ **QB File Repaired 4/14** | ✅ **IWTransactionAutoPair listener LIVE (4/17)** | ✅ **IWTransactionReady4QBListener LIVE (4/22)** | ✅ **IWOrderProductInvoiceLineRateListener LIVE (4/22)** | ✅ **Outbound→inbound roundtrip working as of 4/24** — Danlyn confirmed all 4/23 invoices applied in QB except INV 66318 (TR-02150 $298.55 tax mismatch, isolated case) | ⏳ **Awaiting Alex QODBC reads** on INV 66318 tax calc + IWPayment 163428 (TR-00126 triple-split) application history | ⏳ **Awaiting Dmytro** on 4-day bulk load schedule (silent all day 4/24)
+> **Updated:** 2026-04-24 | **Latest Log:** `docs/logs/SESSION_LOG_20260424.md` | **TR-02150 Ref:** `~/.claude/projects/-home-magown-creatio-hub/memory/reference_pampabay_tr02150_qodbc_tax_rejection.md`
 
 ---
 
